@@ -1,0 +1,340 @@
+version: 1
+entries:
+  - id: mem-2026-05-12-001
+    file: process-improvements.md
+    title: "Skills use .agent-harness as the only edit source"
+    type: procedural
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - skills
+      - projection
+      - codex
+      - claude
+      - opencode
+    evidence:
+      - script: scripts/sync_skills.py
+      - file: .agent-harness/skills/registry.yaml
+      - file: .agent-harness/skills/src/skills-sync/SKILL.md
+    promoted_to:
+      - ".githooks/pre-commit: python scripts/sync_skills.py --check"
+      - "scripts/lint_agent_entrypoints.py"
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-002
+    file: process-improvements.md
+    title: "Harness dream is report-only"
+    type: policy
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - dream
+      - safety
+      - memory
+    evidence:
+      - script: scripts/dream_runner.py
+      - file: .agent-harness/skills/src/harness-dream/SKILL.md
+      - doc: harness/docs/harness-dream.md
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-003
+    file: process-improvements.md
+    title: "Template runtime records stay local"
+    type: policy
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - template
+      - runtime
+      - local
+    evidence:
+      - script: scripts/harness_runtime.py
+      - script: scripts/lint_template_clean.py
+      - doc: harness/docs/template-runtime.md
+    promoted_to:
+      - ".githooks/pre-commit: python scripts/lint_template_clean.py"
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-004
+    file: process-improvements.md
+    title: "Harness upgrades require MANUAL merge audit"
+    type: procedural
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - upgrade
+      - manual-merge
+      - downstream
+    evidence:
+      - script: scripts/upgrade_harness.py
+      - file: .agent-harness/skills/src/harness-upgrade/SKILL.md
+      - doc: harness/docs/harness-upgrade.md
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-005
+    file: failure-patterns.md
+    title: "Unindexed memory becomes context noise"
+    type: failure
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - memory
+      - index
+      - drift
+    evidence:
+      - memory: harness/memory/README.md
+      - script: scripts/lint_memory.py
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-006
+    file: decisions.md
+    title: "Repo memory is the source of truth"
+    type: decision
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - memory
+      - runner
+      - retrieval
+    evidence:
+      - memory: harness/memory/README.md
+      - script: scripts/lint_memory.py
+      - doc: harness/docs/harness-dream.md
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-12-007
+    file: decisions.md
+    title: "Target harness.yaml must be trackable"
+    type: decision
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - bootstrap
+      - gitignore
+      - template-runtime
+      - harness-yaml
+    evidence:
+      - file: .gitignore
+      - script: scripts/harness_runtime.py
+      - doc: harness/docs/template-runtime.md
+    last_validated_at: "2026-05-12"
+  - id: mem-2026-05-15-001
+    file: decisions.md
+    title: "Template version is canonicalized in harness/VERSION"
+    type: decision
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - version
+      - upgrade
+      - template
+      - harness-yaml
+    evidence:
+      - file: harness/VERSION
+      - script: scripts/lint_template_version.py
+      - script: scripts/upgrade_harness.py
+      - doc: README.md
+    promoted_to:
+      - ".githooks/pre-commit: python scripts/lint_template_version.py"
+    last_validated_at: "2026-05-15"
+  - id: mem-2026-05-18-001
+    file: decisions.md
+    title: "Agent runtime is local handoff state, not durable memory"
+    type: decision
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - agent-runtime
+      - handoff
+      - eval
+      - worker
+      - local
+    evidence:
+      - script: scripts/agent_runtime.py
+      - doc: harness/docs/agent-runtime-contract.md
+      - doc: harness/docs/eval-governance.md
+      - file: templates/agent-task-template.yaml
+    last_validated_at: "2026-05-18"
+  - id: mem-2026-05-18-002
+    file: decisions.md
+    title: "Template quality baseline stays local while target baseline is shared"
+    type: decision
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - baseline
+      - quality
+      - template-runtime
+      - gitignore
+    evidence:
+      - script: scripts/lint_quality.py
+      - script: scripts/lint_template_clean.py
+      - file: .gitignore
+      - doc: harness/docs/template-runtime.md
+    promoted_to:
+      - ".githooks/pre-commit: python scripts/lint_template_clean.py"
+    last_validated_at: "2026-05-18"
+  - id: mem-2026-05-18-003
+    file: process-improvements.md
+    title: "Downstream hardening deltas must converge back to template"
+    type: procedural
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - upgrade
+      - downstream
+      - hardening
+      - convergence
+    evidence:
+      - script: scripts/upgrade_harness.py
+      - script: scripts/harness_runtime.py
+      - script: scripts/validate.py
+      - file: .agent-harness/skills/src/commit-review/SKILL.md
+    last_validated_at: "2026-05-18"
+  - id: mem-2026-06-01-001
+    file: process-improvements.md
+    title: "Preview requires first-principles reflection"
+    type: procedural
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - preview
+      - planning
+      - review
+      - reflection
+      - agent-runtime
+    evidence:
+      - file: WORKFLOW.md
+      - file: CONSTRAINTS.md
+      - script: scripts/agent_runtime.py
+      - doc: harness/docs/agent-runtime-contract.md
+      - file: .agent-harness/skills/src/harness-executor/SKILL.md
+    promoted_to:
+      - "scripts/agent_runtime.py workpad --reflection"
+      - "WORKFLOW.md preview reflection rule"
+    last_validated_at: "2026-06-01"
+  - id: mem-2026-06-08-001
+    file: failure-patterns.md
+    title: "Inline empty YAML values must not become validation commands"
+    type: failure
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - yaml
+      - parser
+      - agent-runtime
+      - validation
+      - downstream
+    evidence:
+      - script: scripts/harness_runtime.py
+      - script: scripts/test_harness_runtime_yaml.py
+    last_validated_at: "2026-06-08"
+  - id: mem-2026-06-08-002
+    file: failure-patterns.md
+    title: "Committed harness.yaml must not store developer-local paths"
+    type: failure
+    scope: template
+    status: active
+    confidence: high
+    tags:
+      - harness-yaml
+      - upgrade
+      - portability
+      - project-init
+      - downstream
+    evidence:
+      - script: scripts/lint_harness_config.py
+      - file: .agent-harness/skills/src/project-init/SKILL.md
+      - file: .agent-harness/skills/src/harness-creator/SKILL.md
+    last_validated_at: "2026-06-08"
+  - id: mem-2026-06-08-003
+    file: failure-patterns.md
+    title: "PRD review sign-off must not be split across files"
+    type: failure
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - prd-review
+      - docs
+      - signoff
+      - gate
+      - downstream
+    evidence:
+      - script: scripts/lint_prd_review_signoff.py
+      - file: .agent-harness/skills/src/prd-review/SKILL.md
+      - file: doc/features/templates/outputs/product-spec-review-template.md
+    promoted_to:
+      - "validation.verify: python scripts/lint_prd_review_signoff.py"
+      - "prd-review single sign-off ledger rule"
+    last_validated_at: "2026-06-08"
+  - id: mem-2026-06-08-004
+    file: failure-patterns.md
+    title: "Hook-referenced scripts must be upgrade-owned"
+    type: failure
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - upgrade
+      - hooks
+      - validation
+      - manifest
+      - downstream
+    evidence:
+      - script: scripts/upgrade_harness.py
+      - script: scripts/install_git_hooks.py
+      - script: scripts/lint_template_version.py
+    promoted_to:
+      - "scripts/lint_template_version.py upgrade manifest dependency check"
+      - "harness-upgrade framework-owned script manifest"
+    last_validated_at: "2026-06-08"
+  - id: mem-2026-06-08-005
+    file: decisions.md
+    title: "Template README is not the target project README"
+    type: decision
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - upgrade
+      - readme
+      - downstream
+      - project-owned-docs
+    evidence:
+      - script: scripts/upgrade_harness.py
+      - file: .agent-harness/skills/src/harness-upgrade/SKILL.md
+      - doc: harness/docs/harness-upgrade.md
+    promoted_to:
+      - "harness-upgrade excludes root README.md from upgrade diff"
+      - "target README remains project-owned"
+    last_validated_at: "2026-06-08"
+  - id: mem-2026-06-16-001
+    file: process-improvements.md
+    title: "Target project-only skills use registry.project.yaml"
+    type: procedural
+    scope: template
+    status: promoted_to_rule
+    confidence: high
+    tags:
+      - skills
+      - projection
+      - upgrade
+      - downstream
+    evidence:
+      - script: scripts/sync_skills.py
+      - script: scripts/test_sync_skills.py
+      - doc: harness/docs/skills-sync.md
+      - doc: harness/docs/harness-upgrade.md
+    promoted_to:
+      - ".agent-harness/skills/registry.project.example.yaml"
+      - "scripts/sync_skills.py registry.project.yaml merge"
+      - "duplicate skill name rejection"
+    last_validated_at: "2026-06-16"

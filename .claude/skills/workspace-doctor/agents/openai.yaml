@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workspace Doctor"
+  short_description: "Diagnose local workspace readiness"
+  default_prompt: "Check this repository workspace, fix safe local setup issues, and tell me what to read or ask the owner next."

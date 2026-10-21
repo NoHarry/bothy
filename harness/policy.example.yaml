@@ -1,0 +1,17 @@
+hook_bus:
+  mode: "dry-run"  # dry-run | warn | soft-block | hard-block
+  record_events: true
+  dangerous_command_patterns:
+    - "git reset --hard"
+    - "git checkout --"
+    - "rm -rf"
+    - "Remove-Item -Recurse"
+  reminders:
+    require_commit_review: true
+    require_validation_evidence: true
+    record_harness_bypass: true
+
+dream:
+  default_trace_limit: 20
+  memory_line_threshold: 500
+  trace_count_threshold: 10

@@ -1,0 +1,21 @@
+# systemd unit for the agent relay. Install as /etc/systemd/system/agent-relay.service and adjust User and paths.
+[Unit]
+Description=Agent relay (A2A face for a user's Grok Bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=REPLACE_WITH_USER
+WorkingDirectory=/home/REPLACE_WITH_USER/agent-relay
+ExecStart=/usr/local/bin/node /home/REPLACE_WITH_USER/agent-relay/relay.cjs /home/REPLACE_WITH_USER/agent-relay/relay.env
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/REPLACE_WITH_USER/agent-relay/data
+
+[Install]
+WantedBy=multi-user.target

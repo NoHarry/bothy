@@ -1,0 +1,45 @@
+{
+  "defaultProfile": "deepseek-anthropic",
+  "profiles": [
+    {
+      "id": "pc-local",
+      "label": "PC Local",
+      "provider": "openai",
+      "baseUrl": "http://localhost:18317/v1",
+      "model": "deepseek-v4-flash",
+      "apiKey": "",
+      "stream": true,
+      "searchCapability": "openai-chat-options"
+    },
+    {
+      "id": "deepseek-api",
+      "label": "deepseek api",
+      "provider": "openai",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "model": "deepseek-flash",
+      "apiKey": "",
+      "stream": true,
+      "searchCapability": "openai-chat-options"
+    },
+    {
+      "id": "deepseek-anthropic",
+      "label": "deepseek anthropic",
+      "provider": "anthropic",
+      "baseUrl": "https://api.deepseek.com/anthropic",
+      "model": "deepseek-flash",
+      "apiKey": "",
+      "stream": true,
+      "searchCapability": "anthropic-server-tool"
+    },
+    {
+      "id": "no-hosted-search",
+      "label": "No web_search",
+      "provider": "openai",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "model": "deepseek-flash",
+      "apiKey": "",
+      "stream": true,
+      "searchCapability": "none"
+    }
+  ]
+}

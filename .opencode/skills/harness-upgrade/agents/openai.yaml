@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Upgrade"
+  short_description: "Upgrade an existing Harness project from the latest template"
+  default_prompt: "Upgrade this already-onboarded Harness project from the latest template, produce a plan first, then apply safe framework-owned updates."

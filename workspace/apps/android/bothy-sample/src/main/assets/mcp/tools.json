@@ -1,0 +1,147 @@
+{
+    "jsonrpc": "2.0",
+    "result": {
+        "tools": [
+            {
+                "name": "get_weather",
+                "title": "Get weather",
+                "description": "Query current weather for a city.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "city": {
+                            "type": "string",
+                            "description": "City name"
+                        }
+                    },
+                    "required": [
+                        "city"
+                    ]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        },
+                        "temperatureCelsius": {
+                            "type": "number"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "play_media",
+                "title": "Play media",
+                "description": "Play music or other media by keyword.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "keyword": {
+                            "type": "string",
+                            "description": "Search keyword such as a song or artist name"
+                        }
+                    },
+                    "required": [
+                        "keyword"
+                    ]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "set_temperature",
+                "title": "Set temperature",
+                "description": "Adjust the target temperature of the climate system.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": [
+                                "set",
+                                "increase",
+                                "decrease"
+                            ]
+                        },
+                        "value": {
+                            "type": "number",
+                            "description": "Target temperature in Celsius"
+                        }
+                    },
+                    "required": [
+                        "action"
+                    ]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "navigate_to",
+                "title": "Navigate to destination",
+                "description": "Start navigation to a destination by keyword.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "destination": {
+                            "type": "string",
+                            "description": "Destination keyword"
+                        },
+                        "avoidHighways": {
+                            "type": "boolean"
+                        }
+                    },
+                    "required": [
+                        "destination"
+                    ]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "send_notification",
+                "title": "Send notification",
+                "description": "Post a local notification with the given text.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "Notification body text"
+                        }
+                    },
+                    "required": [
+                        "text"
+                    ]
+                },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    "id": 1
+}

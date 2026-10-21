@@ -1,0 +1,107 @@
+# TypeScript Monorepo (pnpm workspace) 项目预设
+# 适用场景：pnpm workspace 多包管理的前端/全栈 monorepo，
+#   包含 web (packages/web)、api (packages/api) 等多个子包
+# 使用方法：复制到项目根目录，按实际包名更新 platforms.*.path
+
+project:
+  name: "MyMonorepoApp"
+  language: "typescript"
+  platform: "web"
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "{HARNESS_TEMPLATE_REMOTE_URL}"
+  source_ref: "main"
+  source_commit: null
+  last_upgrade: null
+
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+platforms:
+  web:
+    path: "packages/web"
+    build: "npm run build --workspace=@my/web"
+    test: "npm test --workspace=@my/web"
+  api:
+    path: "packages/api"
+    build: "npm run build --workspace=@my/api"
+    test: "npm test --workspace=@my/api"
+  shared:
+    path: "packages/shared"
+    build: "npm run build --workspace=@my/shared"
+    test: "npm test --workspace=@my/shared"
+
+doc:
+  path: "doc"
+  mode: "local"
+
+workflow:
+  ref_to_design_in_greenfield: false
+
+validation:
+  build:
+    enabled: true
+    command: "pnpm run build"
+  lint_arch:
+    command: "python scripts/lint_deps.py"
+    enabled: true
+  test:
+    enabled: true
+    command: "pnpm run test"
+  verify:
+    command: "python scripts/validate_workflow.py && python scripts/lint_template_version.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+    enabled: true
+
+architecture:
+  layers:
+    - name: "pages"
+      path: "packages/web/src/pages/"
+      level: 0
+    - name: "components"
+      path: "packages/web/src/components/"
+      level: 1
+    - name: "hooks"
+      path: "packages/web/src/hooks/"
+      level: 2
+    - name: "services"
+      path: "packages/web/src/services/"
+      level: 3
+    - name: "api"
+      path: "packages/api/src/"
+      level: 4
+  exclude_paths:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "**/dist/**"
+    - "**/.turbo/**"
+    - "**/.next/**"
+  generated_code_paths:
+    - "packages/web/node_modules/.cache/"
+    - "packages/api/node_modules/.cache/"
+    - "**/dist/"
+
+quality:
+  max_file_lines: 300
+  max_function_lines: 50
+  baseline_mode: "drift_gate"
+  exclude_paths:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "**/dist/**"
+    - "**/.turbo/**"
+    - "**/.next/**"
+    - "**/__pycache__/**"
+  forbidden_patterns:
+    - pattern: "console\\.log"
+      message: "请使用 proper logging"
+      languages: ["typescript"]

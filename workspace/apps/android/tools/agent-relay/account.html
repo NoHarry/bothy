@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设备账号 · {{NAME}}</title>
+<style nonce="{{NONCE}}">
+:root { --bg:#f4f3f1; --card:#fff; --text:#1a1a1a; --muted:#6b6b66; --line:#e4e2dd; --accent:#4a5bd0; --ok:#0f9f6e; --bad:#d92d20; --code:#f2f1ee; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0b0d12; --card:#151922; --text:#e8eaf0; --muted:#9aa1b2; --line:#262c3a; --accent:#7c8cff; --ok:#34d399; --bad:#f2707a; --code:#0f1219; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; }
+main { max-width:680px; margin:0 auto; padding:20px 16px 48px; }
+h1 { font-size:22px; margin:8px 0 4px; }
+.lead { color:var(--muted); margin:0 0 20px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:0 0 14px; }
+h2 { font-size:16px; margin:0 0 8px; }
+p { margin:6px 0; }
+label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+input { width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); }
+#link-code { font-family:ui-monospace, Menlo, monospace; letter-spacing:2px; text-transform:uppercase; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--code); border-radius:10px; padding:10px 12px; margin:8px 0; font:13px/1.5 ui-monospace, Menlo, monospace; }
+button { font:inherit; border:0; border-radius:999px; padding:9px 18px; cursor:pointer; background:var(--accent); color:#fff; }
+button.ghost { background:transparent; color:var(--accent); border:1px solid var(--line); padding:6px 14px; font-size:13px; }
+button.danger { background:transparent; color:var(--bad); border:1px solid var(--line); padding:6px 14px; font-size:13px; }
+button:disabled { opacity:.5; cursor:default; }
+details { margin-top:10px; }
+summary { cursor:pointer; color:var(--accent); }
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+.between { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.status { font-size:14px; }
+.ok { color:var(--ok); } .bad { color:var(--bad); } .muted { color:var(--muted); font-size:13px; }
+.hidden { display:none; }
+.tabs { display:flex; gap:8px; margin-bottom:4px; }
+.tabs button { background:transparent; color:var(--muted); border:1px solid var(--line); }
+.tabs button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.item { border-top:1px solid var(--line); padding:10px 0; }
+.item:first-child { border-top:0; }
+.tag { display:inline-block; font-size:12px; border:1px solid var(--line); border-radius:999px; padding:0 8px; margin-left:6px; color:var(--muted); }
+.field { display:flex; gap:8px; align-items:center; }
+.field input { flex:1; }
+</style>
+</head>
+<body>
+<main>
+<h1>设备账号</h1>
+<p class="lead">一个账号对应一个 {{NAME}} 连接。在设备或平板的「连接应用」里登录同一个账号，设备就会加入这个连接，不用再扫码或填令牌。</p>
+
+<section id="signed-out" class="hidden">
+<div class="tabs"><button id="tab-login" class="on" type="button">登录</button><button id="tab-register" type="button">注册</button></div>
+<form id="auth">
+<label for="name">用户名</label>
+<input id="name" autocomplete="username" maxlength="32">
+<label for="password">密码（至少 8 位）</label>
+<div class="field"><input id="password" type="password" autocomplete="current-password" maxlength="128"><button class="ghost" type="button" data-reveal="password">显示</button></div>
+<div class="row"><button id="auth-button" type="submit">登录</button><span id="auth-status" class="status"></span></div>
+</form>
+<p class="muted">已经连好 {{NAME}} 的设备：在那台设备的「连接应用」里注册或登录，账号会接管它的连接。</p>
+</section>
+
+<div id="signed-in" class="hidden">
+<section>
+<div class="between"><div>账号：<b id="account-name"></b></div><button id="logout" class="ghost" type="button">退出登录</button></div>
+</section>
+
+<section>
+<h2>{{NAME}} 连接</h2>
+<div id="connection"></div>
+<div id="connection-tools" class="hidden">
+<details>
+<summary>更新例行任务的 Webhook</summary>
+<p class="muted">在 {{NAME}} 里重建或重新生成例行任务的 Webhook 后，把新的地址和密钥填在这里。</p>
+<form id="webhook">
+<label for="webhook-url">Webhook 地址</label>
+<input id="webhook-url" type="url" autocomplete="off" placeholder="https://…">
+<label for="webhook-key">Webhook 密钥</label>
+<div class="field"><input id="webhook-key" type="password" autocomplete="off"><button class="ghost" type="button" data-reveal="webhook-key">显示</button></div>
+<div class="row"><button type="submit">保存</button><span id="webhook-status" class="status"></span></div>
+</form>
+</details>
+<details>
+<summary>重置 MCP 令牌</summary>
+<p class="muted">{{NAME}} 的 {{CONNECTOR}} 连接器用这个令牌汇报结果。重置后旧令牌立即失效，要把下面生成的一句话发给 {{NAME}}，让它改连接器。</p>
+<div class="row"><button id="rotate" class="danger" type="button">重置令牌</button><span id="rotate-status" class="status"></span></div>
+<div id="rotated" class="hidden"><pre id="rotate-message"></pre><button class="ghost" type="button" data-copy="rotate-message">复制</button></div>
+</details>
+</div>
+</section>
+
+<section>
+<h2>设备</h2>
+<div id="devices"></div>
+<form id="link">
+<label for="link-code">加入一台新设备：在它的「连接应用 → {{NAME}}」里点开始连接，把显示的配对码填在这里</label>
+<div class="field"><input id="link-code" autocomplete="off" placeholder="ABCD-EFGH" maxlength="12"><button type="submit">加入</button></div>
+<span id="link-status" class="status"></span>
+</form>
+</section>
+
+<section>
+<h2>最近的委托（24 小时内）</h2>
+<div id="tasks"></div>
+</section>
+
+<section>
+<details>
+<summary>修改密码</summary>
+<form id="password-form">
+<label for="old-password">原密码</label>
+<div class="field"><input id="old-password" type="password" autocomplete="current-password" maxlength="128"><button class="ghost" type="button" data-reveal="old-password">显示</button></div>
+<label for="new-password">新密码（至少 8 位）</label>
+<div class="field"><input id="new-password" type="password" autocomplete="new-password" maxlength="128"><button class="ghost" type="button" data-reveal="new-password">显示</button></div>
+<div class="row"><button type="submit">修改</button><span id="password-status" class="status"></span></div>
+</form>
+</details>
+</section>
+</div>
+</main>
+<script nonce="{{NONCE}}">
+const $ = id => document.getElementById(id);
+const query = new URLSearchParams(location.search);
+if (query.get('code')) $('link-code').value = query.get('code');
+history.replaceState(null, '', location.pathname);
+let registering = false;
+
+function show(id, visible) { $(id).classList.toggle('hidden', !visible); }
+function status(id, text, kind) { const node = $(id); node.textContent = text; node.className = 'status ' + (kind || ''); }
+function el(tag, text, className) { const node = document.createElement(tag); if (text) node.textContent = text; if (className) node.className = className; return node; }
+function when(isoText) { return isoText ? new Date(isoText).toLocaleString('zh-CN', { hour12: false }) : '—'; }
+
+async function call(path, body) {
+  const options = body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const response = await fetch(path, options);
+  const parsed = await response.json().catch(() => ({}));
+  if (!response.ok) { const error = new Error(parsed.error || '请求失败（HTTP ' + response.status + '）'); error.status = response.status; throw error; }
+  return parsed;
+}
+
+function setMode(next) {
+  registering = next;
+  $('tab-login').classList.toggle('on', !next);
+  $('tab-register').classList.toggle('on', next);
+  $('auth-button').textContent = next ? '注册' : '登录';
+  $('password').autocomplete = next ? 'new-password' : 'current-password';
+  status('auth-status', '');
+}
+$('tab-login').addEventListener('click', () => setMode(false));
+$('tab-register').addEventListener('click', () => setMode(true));
+
+$('auth').addEventListener('submit', async event => {
+  event.preventDefault();
+  $('auth-button').disabled = true;
+  try {
+    await call(registering ? '/account/register' : '/account/login', { name: $('name').value, password: $('password').value });
+    $('password').value = '';
+    await load();
+  } catch (error) { status('auth-status', error.message, 'bad'); }
+  $('auth-button').disabled = false;
+});
+
+$('logout').addEventListener('click', async () => { await call('/account/logout', {}).catch(() => {}); await load(); });
+
+const STATES = { working: '处理中', completed: '完成', failed: '失败', 'input-required': '等你回答', canceled: '已取消', submitted: '已提交' };
+
+function renderConnection(connection) {
+  const box = $('connection');
+  box.replaceChildren();
+  show('connection-tools', Boolean(connection && !connection.server_config));
+  if (!connection) {
+    box.append(el('p', '还没有连接。在一台已经连好的设备上登录这个账号，或者在设备上按配对流程连接一次。', 'muted'));
+    return;
+  }
+  const failing = connection.last_failure && (!connection.last_answer_at || connection.last_failure.at > connection.last_answer_at);
+  box.append(el('p', failing ? '最近一次委托失败' : '正常', failing ? 'bad' : 'ok'));
+  if (connection.webhook_host) box.append(el('p', '例行任务 Webhook：' + connection.webhook_host, 'muted'));
+  box.append(el('p', '最近一次收到回报：' + when(connection.last_answer_at), 'muted'));
+  if (connection.last_failure) box.append(el('p', '最近一次失败（' + when(connection.last_failure.at) + '）：' + connection.last_failure.text, 'muted'));
+  if (connection.server_config) box.append(el('p', '这是服务器自带的连接，Webhook 和令牌在服务器的 relay.env 里改。', 'muted'));
+}
+
+function renderDevices(devices) {
+  const box = $('devices');
+  box.replaceChildren();
+  if (!devices.length) box.append(el('p', '还没有设备。', 'muted'));
+  for (const device of devices) {
+    const item = el('div', '', 'item');
+    const head = el('div', '', 'between');
+    const title = el('div');
+    title.append(el('b', device.label));
+    if (device.signed_in) title.append(el('span', '已登录', 'tag'));
+    const actions = el('div', '', 'row');
+    const rename = el('button', '改名', 'ghost');
+    rename.type = 'button';
+    rename.addEventListener('click', async () => {
+      const label = prompt('设备名称', device.label);
+      if (!label) return;
+      try { await call('/account/devices/rename', { device_id: device.id, label }); await load(); } catch (error) { alert(error.message); }
+    });
+    const remove = el('button', '移除', 'danger');
+    remove.type = 'button';
+    remove.addEventListener('click', async () => {
+      if (!confirm('移除「' + device.label + '」？它将不能再委托，连接本身保留。')) return;
+      try { await call('/account/devices/remove', { device_id: device.id }); await load(); } catch (error) { alert(error.message); }
+    });
+    actions.append(rename, remove);
+    head.append(title, actions);
+    item.append(head, el('p', '连接于 ' + when(device.connected_at) + ' · 最近在线 ' + when(device.seen_at), 'muted'));
+    box.append(item);
+  }
+}
+
+function renderTasks(tasks) {
+  const box = $('tasks');
+  box.replaceChildren();
+  if (!tasks.length) box.append(el('p', '24 小时内没有委托。', 'muted'));
+  for (const task of tasks) {
+    const item = el('div', '', 'item');
+    const head = el('div', '', 'between');
+    head.append(el('b', task.request || '（无内容）'));
+    head.append(el('span', STATES[task.state] || task.state, task.state === 'failed' ? 'bad' : task.state === 'completed' ? 'ok' : 'muted'));
+    item.append(head, el('p', when(task.at) + ' · ' + task.device + (task.round > 1 ? ' · 第 ' + task.round + ' 轮' : ''), 'muted'));
+    if (task.answer) item.append(el('p', task.answer));
+    box.append(item);
+  }
+}
+
+async function load() {
+  try {
+    const account = await call('/account/me');
+    $('account-name').textContent = account.name;
+    renderConnection(account.connection);
+    renderDevices(account.devices);
+    renderTasks(account.tasks);
+    show('signed-out', false);
+    show('signed-in', true);
+  } catch (error) {
+    show('signed-in', false);
+    show('signed-out', true);
+    if (error.status !== 401) status('auth-status', error.message, 'bad');
+  }
+}
+
+$('webhook').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await call('/account/webhook', { webhook_url: $('webhook-url').value, webhook_key: $('webhook-key').value });
+    $('webhook-key').value = '';
+    status('webhook-status', '已保存（' + result.webhook_host + '）。在设备上点「测试连接」确认一下。', 'ok');
+    await load();
+  } catch (error) { status('webhook-status', error.message, 'bad'); }
+});
+
+$('rotate').addEventListener('click', async () => {
+  if (!confirm('重置后旧令牌立即失效，在把新令牌告诉 {{NAME}} 之前，委托的结果都回不来。继续？')) return;
+  try {
+    const result = await call('/account/mcp-token', {});
+    $('rotate-message').textContent = result.message;
+    show('rotated', true);
+    status('rotate-status', '已重置。把下面这句话发给 {{NAME}}。', 'ok');
+  } catch (error) { status('rotate-status', error.message, 'bad'); }
+});
+
+for (const button of document.querySelectorAll('[data-reveal]')) {
+  button.addEventListener('click', () => {
+    const input = $(button.dataset.reveal);
+    const hidden = input.type === 'password';
+    input.type = hidden ? 'text' : 'password';
+    button.textContent = hidden ? '隐藏' : '显示';
+  });
+}
+
+for (const button of document.querySelectorAll('[data-copy]')) {
+  button.addEventListener('click', async () => {
+    const text = $(button.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); button.textContent = '已复制'; }
+    catch { getSelection().selectAllChildren($(button.dataset.copy)); button.textContent = '已选中，请手动复制'; }
+  });
+}
+
+$('link').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    const result = await call('/account/devices/link', { code: $('link-code').value });
+    $('link-code').value = '';
+    status('link-status', '「' + result.label + '」已加入。', 'ok');
+    await load();
+  } catch (error) { status('link-status', error.message, 'bad'); }
+});
+
+$('password-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  try {
+    await call('/account/password', { password: $('old-password').value, new_password: $('new-password').value });
+    $('old-password').value = '';
+    $('new-password').value = '';
+    status('password-status', '已修改，其他地方的登录都已退出。', 'ok');
+  } catch (error) { status('password-status', error.message, 'bad'); }
+});
+
+load();
+</script>
+</body>
+</html>

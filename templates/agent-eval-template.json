@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "runtime_contract_version": "1.1.0",
+  "run_id": "run-YYYYMMDD-HHMMSS-short-task",
+  "task_id": "local-YYYYMMDD-HHMMSS-short-task",
+  "checks": [
+    {
+      "id": "required-validation-001",
+      "type": "command",
+      "command": "python scripts/validate.py --dry-run",
+      "status": "pass",
+      "summary": "Validation passed",
+      "evidence": ["validation.json"]
+    }
+  ],
+  "overall_status": "pass"
+}

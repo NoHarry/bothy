@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "casePackId": "sample.debug.v1",
+  "normative": false,
+  "prompt": {
+    "sha256": "e3ab5758c78371c5ea5615fcb582c8eddff7d32f751001d1195624a96e729531"
+  },
+  "requires": {
+    "minToolCalls": 0,
+    "probePacks": ["bench_core"]
+  },
+  "toolMatchers": {
+    "sample_debug_echo": {
+      "anyOf": [
+        {
+          "toolNameRegex": "^mcp__sample__debug_echo$",
+          "sourceIn": ["BACKEND"],
+          "ok": true
+        }
+      ]
+    },
+    "sample_navi_prefix": {
+      "anyOf": [
+        {
+          "toolNameRegex": "^mcp__navi__",
+          "sourceIn": ["BACKEND"]
+        }
+      ]
+    },
+    "sample_vendor_prefix": {
+      "anyOf": [
+        {
+          "toolNameRegex": "^mcp__vendor__",
+          "sourceIn": ["BACKEND"]
+        }
+      ]
+    }
+  },
+  "gates": [
+    {
+      "id": "G_SAMPLE_DEBUG_ECHO_OPTIONAL",
+      "type": "exists",
+      "matcher": "sample_debug_echo",
+      "minCount": 0
+    },
+    {
+      "id": "G_SAMPLE_FORBID_NAVI_LEAK",
+      "type": "forbid",
+      "matcher": "sample_navi_prefix"
+    },
+    {
+      "id": "G_SAMPLE_FORBID_VENDOR_LEAK",
+      "type": "forbid",
+      "matcher": "sample_vendor_prefix"
+    },
+    {
+      "id": "G_SAMPLE_FINAL_HINT",
+      "type": "final_response",
+      "op": "contains",
+      "value": "sample-debug-non-normative"
+    }
+  ]
+}

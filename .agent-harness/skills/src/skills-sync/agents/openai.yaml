@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skills Sync"
+  short_description: "Project canonical Harness skills to Codex, Claude Code, and OpenCode"
+  default_prompt: "Add, update, delete, or repair Harness skill projections using the canonical .agent-harness skill source and sync_skills.py."

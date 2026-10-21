@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>连接设备 · {{NAME}}</title>
+<style nonce="{{NONCE}}">
+:root { --bg:#f4f3f1; --card:#fff; --text:#1a1a1a; --muted:#6b6b66; --line:#e4e2dd; --accent:#4a5bd0; --ok:#0f9f6e; --bad:#d92d20; --code:#f2f1ee; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0b0d12; --card:#151922; --text:#e8eaf0; --muted:#9aa1b2; --line:#262c3a; --accent:#7c8cff; --ok:#34d399; --bad:#f2707a; --code:#0f1219; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; }
+main { max-width:640px; margin:0 auto; padding:20px 16px 48px; }
+h1 { font-size:22px; margin:8px 0 4px; }
+.lead { color:var(--muted); margin:0 0 20px; }
+section { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:0 0 14px; }
+h2 { font-size:16px; margin:0 0 8px; }
+p, li { margin:6px 0; }
+ol { padding-left:20px; margin:6px 0; }
+label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+input { width:100%; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--text); }
+#code { font-family:ui-monospace, Menlo, monospace; letter-spacing:2px; text-transform:uppercase; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--code); border-radius:10px; padding:10px 12px; margin:8px 0; font:13px/1.5 ui-monospace, Menlo, monospace; }
+button { font:inherit; border:0; border-radius:999px; padding:9px 18px; cursor:pointer; background:var(--accent); color:#fff; }
+button.ghost { background:transparent; color:var(--accent); border:1px solid var(--line); padding:6px 14px; font-size:13px; }
+button:disabled { opacity:.5; cursor:default; }
+details { margin-top:12px; color:var(--muted); font-size:14px; }
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
+.status { font-size:14px; }
+.ok { color:var(--ok); } .bad { color:var(--bad); }
+.hidden { display:none; }
+.warn { font-size:13px; color:var(--muted); }
+.field { display:flex; gap:8px; align-items:center; }
+.field input { flex:1; }
+</style>
+</head>
+<body>
+<main>
+<h1>把设备连到你的 {{NAME}}</h1>
+<p class="lead">设备上的语音助手会把需要你个人账号的事（发邮件、查资料、设提醒……）交给你自己的 {{NAME}} 去办，办完再回到设备上播报。</p>
+
+<section>
+<h2>第 1 步 · 把这段话发给 {{NAME}}</h2>
+<p>它会建好（或更新）例行任务「车载语音助手任务」，然后发给你 Webhook 地址和密钥的两个链接。</p>
+<pre id="setup">{{SETUP}}</pre>
+<button class="ghost" data-copy="setup">复制这段话</button>
+</section>
+
+<section>
+<h2>第 2 步 · 把 Webhook 地址和密钥复制到这里</h2>
+<p>点 {{NAME}} 发来的两个链接，或者在 {{NAME}} 窗口右侧「详情 → 例行任务 → 车载语音助手任务」里找到 Webhook 地址和密钥，各复制一次，点下面的「粘贴」。Grok 不让 Bot 自己读这两个值，所以只有这一步要你来；密钥只发给设备中转，不进聊天记录。</p>
+<form id="claim">
+<label for="code">设备屏幕上的配对码</label>
+<input id="code" autocomplete="off" placeholder="ABCD-EFGH" required>
+<label for="webhook-url">Webhook 地址</label>
+<div class="field"><input id="webhook-url" type="url" autocomplete="off" placeholder="https://…"><button class="ghost" type="button" data-paste="webhook-url">粘贴</button></div>
+<label for="webhook-key">Webhook 密钥</label>
+<div class="field"><input id="webhook-key" type="password" autocomplete="off"><button class="ghost" type="button" data-paste="webhook-key">粘贴</button></div>
+<details>
+<summary>已经连过另一台设备？</summary>
+<p>填上次拿到的 MCP 令牌（就是 {{NAME}} 里 {{CONNECTOR}} 连接器请求头里的那个），这台设备会加到同一个连接，{{NAME}} 那边不用再配置；Webhook 可以不填。</p>
+<label for="mcp-token">MCP 令牌</label>
+<div class="field"><input id="mcp-token" type="password" autocomplete="off"><button class="ghost" type="button" data-paste="mcp-token">粘贴</button></div>
+</details>
+<div class="row"><button id="claim-button" type="submit">连接</button><span id="claim-status" class="status"></span></div>
+<p class="warn">配对码 15 分钟内有效，过期了在设备上点「刷新配对码」。</p>
+</form>
+</section>
+
+<section id="mcp" class="hidden">
+<h2>第 3 步 · 把这句话发给 {{NAME}}</h2>
+<div id="mcp-new">
+<p>它会接上 {{CONNECTOR}} 连接器，请确认它弹出的审批卡片。</p>
+<pre id="mcp-line"></pre>
+<button class="ghost" data-copy="mcp-line">复制这句话</button>
+<p class="warn">里面的 MCP 令牌只显示这一次。以后要把别的设备加到同一个连接时需要它，请自己保存好。</p>
+</div>
+<p id="mcp-reuse" class="hidden">已加入原来的连接，{{NAME}} 那边的连接器不用再配置。</p>
+<p>再在 {{NAME}} 的 设置 → 通用 → Auto-review 里加一条 <b>Allow automatically</b> 规则：自动允许调用 {{CONNECTOR}} 的 <code>car_task_get</code> 和 <code>car_task_report</code>。不加的话，每次汇报都要你手动批准。</p>
+</section>
+
+<section id="test-section" class="hidden">
+<h2>第 4 步 · 测试</h2>
+<p>设备 <b id="device"></b> 已经显示「已连接」。在设备上点「测试连接」，或者在这里测试，让 {{NAME}} 走一遍完整流程（大约半分钟到两分钟）。</p>
+<div class="row"><button id="test-button" type="button">测试连接</button><span id="test-status" class="status"></span></div>
+<p class="warn">以后不用了：在设备的「连接应用」里点「解除绑定」，或者对 {{NAME}} 说「解除设备绑定」（它会调用 {{CONNECTOR}} 的 car_disconnect）。</p>
+</section>
+
+<details>
+<summary>例行任务指令原文（{{NAME}} 建不了时，自己新建 Webhook 触发的例行任务，粘贴这段）</summary>
+<section>
+<pre id="routine">{{ROUTINE}}</pre>
+<button class="ghost" data-copy="routine">复制指令</button>
+</section>
+</details>
+</main>
+<script nonce="{{NONCE}}">
+const $ = id => document.getElementById(id);
+const query = new URLSearchParams(location.search);
+if (query.get('code')) $('code').value = query.get('code');
+history.replaceState(null, '', location.pathname);
+let mcpToken = '';
+
+function show(id, visible) { $(id).classList.toggle('hidden', !visible); }
+function status(id, text, kind) { const node = $(id); node.textContent = text; node.className = 'status ' + (kind || ''); }
+
+for (const button of document.querySelectorAll('[data-copy]')) {
+  button.addEventListener('click', async () => {
+    const text = $(button.dataset.copy).textContent;
+    try { await navigator.clipboard.writeText(text); button.textContent = '已复制'; }
+    catch { getSelection().selectAllChildren($(button.dataset.copy)); button.textContent = '已选中，请手动复制'; }
+  });
+}
+
+for (const button of document.querySelectorAll('[data-paste]')) {
+  button.addEventListener('click', async () => {
+    const input = $(button.dataset.paste);
+    try { input.value = (await navigator.clipboard.readText()).trim(); button.textContent = '已粘贴'; }
+    catch { input.focus(); button.textContent = '请长按输入框粘贴'; }
+  });
+}
+
+async function call(path, options) {
+  const response = await fetch(path, options);
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || '请求失败（HTTP ' + response.status + '）');
+  return body;
+}
+
+$('claim').addEventListener('submit', async event => {
+  event.preventDefault();
+  $('claim-button').disabled = true;
+  status('claim-status', '正在连接…');
+  const body = { code: $('code').value, webhook_url: $('webhook-url').value, webhook_key: $('webhook-key').value, mcp_token: $('mcp-token').value };
+  try {
+    const result = await call('/connect/claim', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    mcpToken = result.mcp_token || body.mcp_token.trim();
+    $('device').textContent = result.device_label;
+    if (result.mcp_token) {
+      $('mcp-line').textContent = '添加一个自定义 MCP 服务器（custom server，不要装目录里的插件）：名称 ' + result.connector_name +
+        '，URL ' + result.mcp_url + '，请求头 Authorization: Bearer ' + result.mcp_token + '，不用 OAuth；已经有同名的服务器就改成这个 URL 和请求头。';
+    }
+    show('mcp-new', Boolean(result.mcp_token));
+    show('mcp-reuse', !result.mcp_token);
+    show('mcp', true);
+    show('test-section', true);
+    status('claim-status', '已连接', 'ok');
+  } catch (error) {
+    status('claim-status', error.message, 'bad');
+    $('claim-button').disabled = false;
+  }
+});
+
+$('test-button').addEventListener('click', async () => {
+  $('test-button').disabled = true;
+  const headers = { Authorization: 'Bearer ' + mcpToken };
+  try {
+    let task = await call('/connect/test', { method: 'POST', headers });
+    for (let tries = 0; task.state === 'working' && tries < 100; tries += 1) {
+      status('test-status', '已交给 {{NAME}}，等它汇报…');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      task = await call('/connect/test/' + task.task_id, { headers });
+    }
+    status('test-status', task.text, task.state === 'completed' ? 'ok' : 'bad');
+  } catch (error) {
+    status('test-status', error.message, 'bad');
+  }
+  $('test-button').disabled = false;
+});
+</script>
+</body>
+</html>

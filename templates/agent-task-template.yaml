@@ -1,0 +1,29 @@
+schema_version: 1
+runtime_contract_version: "1.1.0"
+task_id: "local-YYYYMMDD-HHMMSS-short-task"
+parent_run_id: null
+assigned_by: "local"
+worker_id: null
+mode: "local" # local | worker
+attempt: 1
+retry_of: null
+objective: "Describe the development or bug-fix task."
+workspace: "."
+branch: null
+scope:
+  allowed_paths: []
+  forbidden_paths:
+    - "harness/.local/**"
+  owned_paths: []
+  shared_paths: []
+acceptance:
+  - "Expected user-visible or technical outcome."
+required_validation:
+  - "python scripts/validate.py --dry-run"
+memory_policy:
+  durable_write: false
+  candidate_write: true
+eval_policy:
+  repo_eval_write: false
+  candidate_write: true
+handoff_required: true

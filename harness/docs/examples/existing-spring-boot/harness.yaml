@@ -1,0 +1,87 @@
+# Spring Boot 单模块项目预设
+# 适用场景：Java/Maven 或 Gradle 的单模块 Spring Boot 后端服务，三层架构（controller/service/repository）
+# 使用方法：复制到项目根目录，修改 project.name 和实际路径
+
+project:
+  name: "MySpringBootApp"
+  language: "java"
+  platform: "server"
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "{HARNESS_TEMPLATE_REMOTE_URL}"
+  source_ref: "main"
+  source_commit: null
+  last_upgrade: null
+
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+platforms:
+  server:
+    path: "src/main/java"
+    build: "mvn compile"
+    test: "mvn test"
+
+doc:
+  path: "doc"
+  mode: "local"
+
+workflow:
+  ref_to_design_in_greenfield: false
+
+validation:
+  build:
+    enabled: true
+    command: "mvn compile"
+  lint_arch:
+    command: "python scripts/lint_deps.py"
+    enabled: true
+  test:
+    enabled: true
+    command: "mvn test"
+  verify:
+    command: "python scripts/validate_workflow.py && python scripts/lint_template_version.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+    enabled: true
+
+architecture:
+  layers:
+    - name: "controller"
+      path: "com/example/controller/"
+      level: 0
+    - name: "service"
+      path: "com/example/service/"
+      level: 1
+    - name: "repository"
+      path: "com/example/repository/"
+      level: 2
+  exclude_paths:
+    - "**/build/**"
+    - "**/target/**"
+    - "**/.mvn/**"
+  generated_code_paths:
+    - "target/generated-sources/"
+    - "target/classes"
+
+quality:
+  max_file_lines: 300
+  max_function_lines: 50
+  baseline_mode: "drift_gate"
+  exclude_paths:
+    - "**/build/**"
+    - "**/target/**"
+    - "**/node_modules/**"
+    - "**/.mvn/**"
+  forbidden_patterns:
+    - pattern: "System\\.out\\.print"
+      message: "请使用 logger 代替 System.out"
+      languages: ["java"]

@@ -1,0 +1,9 @@
+skills:
+  - name: workspace-doctor
+    source: src/workspace-doctor
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active

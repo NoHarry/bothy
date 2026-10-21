@@ -1,0 +1,145 @@
+skills:
+  - name: code-to-test
+    source: src/code-to-test
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: commit-review
+    source: src/commit-review
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: design-to-code
+    source: src/design-to-code
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-audit
+    source: src/harness-audit
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-creator
+    source: src/harness-creator
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-dream
+    source: src/harness-dream
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-executor
+    source: src/harness-executor
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-onboard
+    source: src/harness-onboard
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: harness-upgrade
+    source: src/harness-upgrade
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: memory-distill
+    source: src/memory-distill
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: migration-roadmap
+    source: src/migration-roadmap
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: prd-review
+    source: src/prd-review
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: prd-to-design
+    source: src/prd-to-design
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: project-init
+    source: src/project-init
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: ref-to-design
+    source: src/ref-to-design
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: sync-latest
+    source: src/sync-latest
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: skills-sync
+    source: src/skills-sync
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active
+  - name: workspace-doctor
+    source: src/workspace-doctor
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: active

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Harness Dream"
+  short_description: "Generate a read-only Harness offline review report"
+  default_prompt: "Run a Harness dream pass over recent trace and memory records, then summarize memory cleanup suggestions, hardening candidates, owner actions, and missing validation evidence."

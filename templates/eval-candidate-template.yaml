@@ -1,0 +1,14 @@
+schema_version: 1
+runtime_contract_version: "1.1.0"
+candidates:
+  - id: "eval-cand-YYYYMMDD-001"
+    type: "bug_regression"
+    source_run_id: "run-YYYYMMDD-HHMMSS-short-task"
+    title: "Regression behavior to preserve"
+    reason: "This task fixed behavior that should not regress."
+    evidence:
+      - "tests/path/to/test"
+      - "harness/.local/agent-runtime/runs/{run_id}/result.md"
+    suggested_location: "harness/evals/cases/bug-regression/example.yaml"
+    confidence: "medium"
+    status: "candidate"

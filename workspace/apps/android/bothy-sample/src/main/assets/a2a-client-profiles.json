@@ -1,0 +1,21 @@
+{
+  "defaultProfileId": "direct-local",
+  "profiles": [
+    {
+      "id": "direct-local",
+      "label": "Direct JSON-RPC (local)",
+      "moduleId": "direct-jsonrpc",
+      "endpoint": "http://127.0.0.1:9999",
+      "enabled": false,
+      "allowLoopbackHttpForDebug": true
+    },
+    {
+      "id": "official-local",
+      "label": "Official Java SDK (local)",
+      "moduleId": "official-java-sdk",
+      "endpoint": "http://127.0.0.1:9999",
+      "enabled": false,
+      "allowLoopbackHttpForDebug": true
+    }
+  ]
+}

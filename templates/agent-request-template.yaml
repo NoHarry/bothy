@@ -1,0 +1,18 @@
+schema_version: 1
+runtime_contract_version: "1.1.0"
+request_id: "req-YYYYMMDD-HHMMSS"
+type: "plan_approval" # plan_approval | handoff_acceptance | validation_exception | owner_decision | worker_shutdown
+sender: "executor"
+target: "owner"
+status: "pending" # pending | approved | rejected | cancelled
+summary: "Short request summary."
+payload: |
+  Detailed request body. Include the plan, exception, handoff acceptance criteria,
+  or owner decision that needs a response.
+evidence:
+  - "harness/.local/agent-runtime/runs/{run_id}/workpad.md"
+response: null
+feedback: ""
+created_at: "YYYY-MM-DDTHH:MM:SS+08:00"
+updated_at: "YYYY-MM-DDTHH:MM:SS+08:00"
+resolved_at: ""

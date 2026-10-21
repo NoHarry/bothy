@@ -1,0 +1,11 @@
+schema_version: 1
+suites:
+  - id: "bug-regression"
+    description: "Project bug regression cases promoted from reviewed fixes."
+    cases_path: "harness/evals/cases/bug-regression"
+  - id: "workflow-regression"
+    description: "Workflow regression cases for repeated process failures."
+    cases_path: "harness/evals/cases/workflow-regression"
+  - id: "harness-regression"
+    description: "Harness framework behavior checks."
+    cases_path: "harness/evals/cases/harness-regression"

@@ -1,0 +1,65 @@
+# Go 技术栈 Harness 配置示例
+
+project:
+  name: "example-go"
+  language: "go"
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "{HARNESS_TEMPLATE_REMOTE_URL}"
+  source_ref: "main"
+  source_commit: null
+  last_upgrade: null
+
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+platforms:
+  server:
+    path: "workspace/apps/server"
+
+validation:
+  build:
+    enabled: true
+    command: "go build ./..."
+  lint_arch:
+    enabled: true
+    command: "python scripts/lint_deps.py"
+  test:
+    enabled: true
+    command: "go test ./..."
+  verify:
+    enabled: true
+    command: "python scripts/validate_workflow.py && python scripts/lint_template_version.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+
+architecture:
+  layers:
+    - name: "api"
+      path: "workspace/apps/server/cmd/api/"
+      level: 0
+    - name: "service"
+      path: "workspace/apps/server/internal/service/"
+      level: 1
+    - name: "repository"
+      path: "workspace/apps/server/internal/repository/"
+      level: 2
+
+quality:
+  max_file_lines: 300
+  max_function_lines: 50
+  forbidden_patterns:
+    - pattern: "fmt\\.Print"
+      message: "请使用 log"
+      languages: ["go"]
+
+workflow:
+  ref_to_design_in_greenfield: false

@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+if command -v python >/dev/null 2>&1; then
+  PYTHON=python
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+elif command -v py >/dev/null 2>&1; then
+  PYTHON="py -3"
+else
+  echo "[HARNESS] python not found; cannot run pre-push hook" >&2
+  exit 1
+fi
+
+exec $PYTHON scripts/install_git_hooks.py --mode run-hook --hook pre-push

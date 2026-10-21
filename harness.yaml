@@ -1,0 +1,165 @@
+project:
+  name: "bothy"
+  language: "kotlin"
+  platform: "android"
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "git@github.com:NoHarry/agent-harness-template.git"
+  source_ref: "main"
+  source_commit: null
+  last_upgrade: "2026-07-05"
+
+harness_runtime:
+  repo_role: "target"
+
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+platforms:
+  android:
+    path: "workspace/apps/android"
+    build: "./gradlew assembleDebug"
+    test: "./gradlew testDebugUnitTest :bothy-kernel-api:test :bothy-kernel-core:test :bothy-minimal:test"
+    gradle_modules:
+      - ":bothy-kernel-api"
+      - ":bothy-kernel-core"
+      - ":bothy-minimal"
+      - ":bothy-runtime"
+      - ":bothy-vfs"
+      - ":bothy-vfs-saf"
+      - ":bothy-exec-js"
+      - ":bothy-device-capabilities"
+      - ":bothy-android-use"
+      - ":bothy-voice"
+      - ":bothy-a2a-client"
+      - ":bothy-a2a-client-direct"
+      - ":bothy-a2a-client-official"
+      - ":bothy-a2a-server"
+      - ":bothy-sample"
+      - ":bothy-playground"
+
+doc:
+  path: "doc"
+  mode: "local"
+
+workflow:
+  ref_to_design_in_greenfield: false
+
+agent_tools:
+  codex:
+    enabled: true
+    skills_path: ".agents/skills"
+  claude:
+    enabled: true
+    skills_path: ".claude/skills"
+  opencode:
+    enabled: true
+    skills_path: ".opencode/skills"
+  hook_bus:
+    mode: "dry-run"
+  skills_sync:
+    mode: "source-of-truth"
+
+validation:
+  performance:
+    record: "local"
+  build:
+    enabled: true
+  lint_arch:
+    command: "python scripts/lint_deps.py --warn-on-unresolved"
+    enabled: true
+  test:
+    enabled: true
+  verify:
+    command: "python scripts/lint_public_hygiene.py && python scripts/validate_workflow.py && python scripts/validate_harness_sync.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+    enabled: true
+
+git_hooks:
+  profile: "baseline"
+  pre_commit:
+    commands:
+      - "python scripts/lint_public_hygiene.py"
+      - "python scripts/sync_skills.py --check"
+      - "python scripts/lint_agent_entrypoints.py"
+      - "python scripts/lint_harness_config.py"
+      - "python scripts/lint_goal_contract.py"
+      - "python scripts/lint_prd_review_signoff.py"
+      - "python scripts/validate_workflow.py"
+      - "python scripts/validate_harness_sync.py"
+      - "python scripts/lint_memory.py"
+      - "python scripts/lint_deps.py --warn-on-unresolved"
+      - "python scripts/lint_quality.py"
+  pre_push:
+    commands:
+      - "python scripts/lint_public_hygiene.py"
+      - "python scripts/validate.py --dry-run"
+
+hardening_debt: []
+
+architecture:
+  layers:
+    - name: "bothy_sample"
+      path: "workspace/apps/android/bothy-sample/src/main/**"
+      level: 0
+      import_prefix: "cc.noharry.bothy.sample"
+    - name: "bothy_runtime"
+      path: "workspace/apps/android/bothy-runtime/src/main/**"
+      level: 1
+      import_prefix: "cc.noharry.bothy.runtime"
+    - name: "bothy_kernel_core"
+      path: "workspace/apps/android/bothy-kernel-core/src/main/**"
+      level: 2
+      import_prefix: "cc.noharry.bothy.kernel.core"
+    - name: "bothy_vfs"
+      path: "workspace/apps/android/bothy-vfs/src/main/**"
+      level: 2
+      import_prefix: "cc.noharry.bothy.vfs"
+    - name: "bothy_kernel_api"
+      path: "workspace/apps/android/bothy-kernel-api/src/main/**"
+      level: 3
+      import_prefix: "cc.noharry.bothy.kernel.api"
+  exclude_paths:
+    - ".agent-harness/**"
+    - ".agents/**"
+    - ".claude/**"
+    - ".githooks/**"
+    - ".opencode/**"
+    - ".review/**"
+    - "doc/**"
+    - "harness/**"
+    - "scripts/**"
+    - "templates/**"
+    - "**/build/**"
+    - "**/.gradle/**"
+    - "**/generated/**"
+    - "**/gradle/wrapper/**"
+  generated_code_paths:
+    - "build/generated/"
+    - "**/generated/"
+    - "R.java"
+    - "BuildConfig.java"
+
+quality:
+  max_file_lines: 1000
+  max_function_lines: 50
+  baseline_mode: "off"
+  exclude_paths:
+    - "**/build/**"
+    - "**/.gradle/**"
+    - "**/generated/**"
+    - "**/gradle/wrapper/**"
+    - "**/node_modules/**"
+  forbidden_patterns:
+    - pattern: "System\\.out\\.println"
+      message: "Use a structured logger or trace event instead of stdout."
+      languages: ["kotlin", "java"]

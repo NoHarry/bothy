@@ -1,0 +1,13 @@
+schema_version: 1
+runtime_contract_version: "1.1.0"
+candidates:
+  - id: "mem-cand-YYYYMMDD-001"
+    type: "failure"
+    scope: "project"
+    title: "Short reusable lesson"
+    claim: "Describe the candidate memory."
+    evidence:
+      - "harness/.local/agent-runtime/runs/{run_id}/events.jsonl"
+    confidence: "medium"
+    suggested_location: "harness/memory/failure-patterns.md"
+    status: "candidate"

@@ -1,0 +1,60 @@
+# Third-party notices
+
+Bothy's own source code is licensed under the repository [MIT license](LICENSE). Dependencies resolved by Gradle, and
+the third-party files committed in this repository, remain under their respective upstream licenses and terms; Bothy's
+MIT license does not replace them.
+
+This file is informational and does not modify any upstream license. Use Gradle dependency reports or your
+application's software-composition analysis tooling to produce the final, release-specific inventory, including
+transitive dependencies and the versions your build actually packages.
+
+## Committed third-party files
+
+### On-device speech (`bothy-voice`, `bothy-sample`)
+
+- **sherpa-onnx Kotlin API** (`bothy-voice/src/main/kotlin/com/k2fsa/sherpa/onnx/`) — Apache License 2.0, Copyright
+  Xiaomi Corporation and the sherpa-onnx authors. Copied from tag v1.13.8; see the `NOTICE` file in that directory.
+  Upstream: <https://github.com/k2-fsa/sherpa-onnx>
+- **`libsherpa-onnx-jni.so`** (`bothy-voice/src/main/jniLibs/arm64-v8a/`) — Apache License 2.0, from the sherpa-onnx
+  v1.13.8 Android release.
+- **`libonnxruntime.so`** (same directory) — MIT License, Copyright Microsoft Corporation, as bundled in the sherpa-onnx
+  v1.13.8 Android release. Upstream: <https://github.com/microsoft/onnxruntime>
+- **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
+  model** `sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01` (`bothy-sample/src/main/assets/voice-models/`) —
+  published by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). The
+  keyword-spotting model was trained on the WenetSpeech corpus, which OpenSLR lists under CC BY 4.0
+  (<https://www.openslr.org/121>) and whose official download requires accepting the WenetSpeech access agreement.
+  Check the upstream model pages and the dataset terms before using these models in a commercial product.
+
+`workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the native libraries and models from the pinned
+upstream archives and checks their SHA-256, so the committed files can be verified or replaced.
+
+### Wake-answer clips (`bothy-sample/src/main/assets/voice-acks/`)
+
+Short spoken answers (「我在」「在呢」…) synthesized with Xiaomi MiMo TTS preset voices by
+`workspace/apps/android/tools/voice/make_wake_acks.py`. They are provided for the demo; review the MiMo service terms
+before redistributing them in your own product, or regenerate them with a TTS service and voice you are licensed to use.
+Without them the app synthesizes the answer on the device the first time it needs it.
+
+### A2A Java SDK sources (`bothy-a2a-client-official`)
+
+Seven small classes from A2A Java SDK `1.1.0.Final` (Apache License 2.0) are included as source; see that module's
+`THIRD_PARTY_NOTICES.md`. Upstream: <https://github.com/a2aproject/a2a-java>
+
+## Notable Gradle dependencies
+
+- **JavaScript execution** (`bothy-exec-js`): `app.cash.zipline:zipline` — Apache License 2.0
+  (<https://github.com/cashapp/zipline>). The Zipline Android artifact includes native QuickJS libraries, distributed
+  upstream under the MIT license (<https://bellard.org/quickjs/>).
+- **A2A**: A2A Java SDK client artifacts — Apache License 2.0 (<https://github.com/a2aproject/a2a-java>).
+- **A2UI rendering** (sample): AndroidX A2UI alpha artifacts — Apache License 2.0 (<https://github.com/androidx/androidx>).
+- **AndroidX, Jetpack Compose, Material** — Apache License 2.0 (<https://github.com/androidx/androidx>).
+- **Kotlin coroutines and serialization** — Apache License 2.0 (<https://github.com/Kotlin/kotlinx.coroutines>,
+  <https://github.com/Kotlin/kotlinx.serialization>).
+- **OkHttp** — Apache License 2.0 (<https://github.com/square/okhttp>).
+- **Glide** (sample) — BSD, part MIT and Apache 2.0 (<https://github.com/bumptech/glide>).
+- **ZXing core** (sample, QR codes) — Apache License 2.0 (<https://github.com/zxing/zxing>).
+- **multiplatform-markdown-renderer** (sample) — Apache License 2.0 (<https://github.com/mikepenz/multiplatform-markdown-renderer>).
+
+Applications that include the optional modules redistribute these libraries, including their native artifacts,
+through their APK/AAB and should preserve all notices the exact resolved dependency graph requires.

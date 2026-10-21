@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "runtime_contract_version": "1.1.0",
+  "run_id": "run-YYYYMMDD-HHMMSS-short-task",
+  "task_id": "local-YYYYMMDD-HHMMSS-short-task",
+  "status": "running",
+  "phase": "implementation",
+  "mode": "local",
+  "assigned_by": "local",
+  "worker_id": null,
+  "workspace": ".",
+  "branch": null,
+  "updated_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "changed_files": [],
+  "last_event": "started"
+}

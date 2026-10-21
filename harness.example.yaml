@@ -1,0 +1,219 @@
+# Harness 项目配置模板
+# 目标项目初始化时复制或生成为 harness.yaml
+
+project:
+  name: "{PROJECT_NAME}"
+  language: "{LANGUAGE}"         # python | java | kotlin | swift | typescript | ...
+  platform: "{PLATFORM}"         # android | ios | harmony | web | server | ...
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "{HARNESS_TEMPLATE_REMOTE_URL}"      # 该项目实际使用的模板远程 Git URL；本地调试用 harness.local.yaml 或 --source
+  source_ref: "main"                           # 远程模板分支或 tag
+  source_commit: null                          # 可选：40 位 commit SHA pin；为空时按 source_ref 的当前 HEAD
+  last_upgrade: null
+
+# 运行态路径配置：
+# - 目标项目通常保持 target，把 trace/memory/commit_log 写到标准位置。
+# - 模板仓库维护者可在本地 harness.local.yaml 中设置 repo_role: template，
+#   让运行记录写入 ignored 的 harness/.local/。
+# harness_runtime:
+#   repo_role: "target"        # target | template
+
+# 单 agent / worker workspace 运行契约。
+# 运行中状态、handoff、runtime eval 和候选 memory 均写入 ignored 的 harness/.local/agent-runtime/。
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+# 仓库级 eval 是经 review 后的可复用回归元数据；运行期 eval/candidate 不直接提交。
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+# 平台配置：支持单平台或多平台 mono-repo。
+# 新项目的业务源码统一放在 workspace/ 下，避免和 Harness 基础设施混在仓库根。
+# 单平台项目：只保留一个条目（如 web 或 android），默认 path 为 workspace/apps/{platform}。
+# 多平台项目：为每个平台添加条目，path 指向 workspace/apps/{platform} 或 workspace/packages/{name}。
+platforms:
+  "{PLATFORM}":
+    path: "workspace/apps/{PLATFORM}"
+    build: "{BUILD_COMMAND}"
+    test: "{TEST_COMMAND}"
+  # 多平台示例：
+  # web:
+  #   path: "workspace/apps/web"
+  #   build: "npm run build"
+  #   test: "npm test"
+  # android:
+  #   path: "workspace/apps/android"
+  #   build: "gradle assembleDebug"
+  #   test: "gradle test"
+  #   # Android 平台可选配置：gradle_modules
+  #   # 用于 lint_deps.py 正则解析失败时的兜底路径解析。
+  #   # 当项目包含多个 Gradle 子模块且跨模块依赖无法被自动分析时启用。
+  #   # gradle_modules:
+  #   #   - "app"
+  #   #   - "lib_core"
+  #   #   - "lib_router"
+
+doc:
+  path: "doc"                    # doc 目录相对路径
+  mode: "local"                  # local | submodule
+
+# 工作流编排开关：控制各 skill 阶段的行为。
+workflow:
+  # ref_to_design_in_greenfield: 在 greenfield（无参考代码）场景下是否允许使用 ref_to_design skill。
+  #   false = 关闭（默认）：greenfield 项目强制使用 prd_to_design 生成设计文档。
+  #   true  = 开启：允许 ref_to_design 即使在无参考代码时也可使用（一般不推荐）。
+  # 适用场景：新项目推荐 false；已有参考代码或需借鉴外部实现时用 true。
+  ref_to_design_in_greenfield: false
+
+agent_tools:
+  # Multi-agent adapter settings are non-blocking in the template.
+  codex:
+    enabled: true
+    skills_path: ".agents/skills"
+  claude:
+    enabled: true
+    skills_path: ".claude/skills"
+  opencode:
+    enabled: true
+    skills_path: ".opencode/skills"
+  hook_bus:
+    mode: "dry-run"             # dry-run | warn | soft-block | hard-block
+  skills_sync:
+    mode: "source-of-truth"
+
+validation:
+  build:
+    enabled: false               # 启用后 validate.py 会按 platforms.*.build 逐个执行
+  lint_arch:
+    command: "python scripts/lint_deps.py"
+    enabled: true
+  test:
+    enabled: true
+    # 模板仓库默认运行 harness 脚本回归测试；目标项目可替换为项目级测试命令，
+    # 或移除 command 后按 platforms.*.test 逐个执行。
+    command: 'python -m unittest discover -s scripts -p "test_*.py"'
+  verify:
+    command: "python scripts/validate_workflow.py && python scripts/validate_harness_sync.py && python scripts/lint_template_version.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+    enabled: true
+
+git_hooks:
+  # profile:
+  #   bootstrap = 只提示不阻断，适合新仓库、未配置远程或首次接入
+  #   baseline  = 阻断失败项，适合已有远程且 baseline 已建立的项目
+  #   strict    = 严格阻断，适合成熟项目
+  profile: "baseline"
+  pre_commit:
+    commands:
+      - "python scripts/sync_skills.py --check"
+      - "python scripts/lint_agent_entrypoints.py"
+      - "python scripts/lint_template_clean.py"
+      - "python scripts/lint_template_version.py"
+      - "python scripts/lint_harness_config.py"
+      - "python scripts/lint_goal_contract.py"
+      - "python scripts/lint_prd_review_signoff.py"
+      - "python scripts/validate_workflow.py"
+      - "python scripts/validate_harness_sync.py"
+      - "python scripts/lint_memory.py"
+      - "python scripts/lint_deps.py"
+      - "python scripts/lint_quality.py"
+  pre_push:
+    commands:
+      - "python scripts/validate.py --dry-run"
+
+# 无法立即机械化或负责人尚未确认的约束放这里。
+# 每项必须有 owner、reason、next_step；负责人确认后应转入 CONSTRAINTS.md / harness.yaml / .review/rules。
+hardening_debt: []
+
+architecture:
+  layers: []
+  # 架构层级定义，每项包含：
+  #   name: 层级名称（如 api、service、repository）
+  #   path: 源码目录（支持 glob 格式）
+  #   level: 层级序号（0 为最上层，禁止反向依赖）
+  #   import_prefix: 可选，语言级包名前缀；当源码路径和 import 包名不一致时使用。
+  # 示例:
+  # - name: "api"
+  #   path: "workspace/apps/{PLATFORM}/src/api/"
+  #   level: 0
+  #   import_prefix: "com.example.api"
+  # - name: "service"
+  #   path: "workspace/apps/{PLATFORM}/src/services/"
+  #   level: 1
+  #   import_prefix: "com.example.service"
+  # - name: "repository"
+  #   path: "workspace/apps/{PLATFORM}/src/repositories/"
+  #   level: 2
+  #   import_prefix: "com.example.repository"
+
+  # exclude_paths: 排除出架构依赖检查的路径（glob 格式）。
+  # 与 quality.exclude_paths 独立，各自生效。
+  # 适用场景：build 产物目录、临时文件、第三方代码等不应参与架构检查的路径。
+  # 示例：
+  # exclude_paths:
+  #   - "**/build/**"
+  #   - "**/.gradle/**"
+  #   - "**/__pycache__/**"
+  exclude_paths: []
+
+  # generated_code_paths: 代码生成工具（KAPT/APT/codegen/protobuf 等）的输出路径。
+  # 循环依赖检测时会自动豁免这些路径下的文件，避免将生成代码误判为反向依赖。
+  # 示例：
+  # generated_code_paths:
+  #   - "build/generated/"
+  #   - "**/generated/"
+  #   - "R.java"
+  #   - "BuildConfig.java"
+  #   - "*.pb.go"
+  #   - "*_generated.ts"
+  generated_code_paths: []
+
+  # isolation: 临时或遗留 import 前缀的检疫规则。
+  # 适用场景：旧系统迁移、第三方 SDK 替换、bridge/adapter 过渡期。
+  # import_prefix 只允许出现在 allowed_paths 中；allowed_paths 为空表示全仓禁用。
+  # 示例:
+  # isolation:
+  #   - import_prefix: "com.legacy.runtime"
+  #     allowed_paths:
+  #       - "workspace/apps/{PLATFORM}/legacybridge/**"
+  #     note: "迁移期检疫；终态应删除 bridge 并清空 allowed_paths"
+  isolation: []
+
+quality:
+  max_file_lines: 300
+  max_function_lines: 50
+  forbidden_patterns: []
+  # 示例:
+  # - pattern: "print\\("
+  #   message: "请使用 logging 代替 print()"
+  #   languages: ["python"]
+
+  # baseline_mode: 质量基线模式，控制违规报告的严格程度。
+  #   off        = 关闭（默认）：所有新违规均报错，不考虑 baseline.json。
+  #   baseline   = 基线模式：baseline.json 中记录的历史违规被忽略，新违规报错。
+  #                适用于已有大量技术债务的存量项目迁移。
+  #   strict     = 严格模式：包括 baseline.json 在内的所有违规均报错。
+  #                适用于已清完基线 debt 的新项目或要求零容忍的团队。
+  #   drift_gate = 漂移门控：仅当文件较 baseline 有恶化趋势时报错，持平或改善则放行。
+  #                适用于渐进式改进，鼓励改善但不过度阻碍开发。
+  # 推荐：greenfield 新项目用 off；迁移项目用 baseline；清完债务后切 strict。
+  baseline_mode: "off"
+
+  # exclude_paths: 排除出质量扫描的路径（glob 格式）。
+  # 与 architecture.exclude_paths 独立，各自生效。
+  # 适用场景：第三方依赖、构建产物、自动生成的代码等不应参与质量检查的路径。
+  # 示例：
+  # exclude_paths:
+  #   - "**/build/**"
+  #   - "**/.gradle/**"
+  #   - "**/generated/**"
+  #   - "**/node_modules/**"
+  #   - "**/__pycache__/**"
+  exclude_paths: []

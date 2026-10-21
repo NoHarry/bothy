@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-11T00:00:00",
+  "event": "pre_tool_use",
+  "tool": "codex",
+  "payload": {
+    "command": "python scripts/validate.py --dry-run"
+  },
+  "observations": [
+    {
+      "level": "info",
+      "code": "mode",
+      "message": "policy mode: dry-run"
+    }
+  ]
+}

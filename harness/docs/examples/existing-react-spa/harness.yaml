@@ -1,0 +1,93 @@
+# React SPA 项目预设
+# 适用场景：TypeScript/React 单页应用，前端分层（pages/components/hooks/services）
+# 使用方法：复制到项目根目录，修改 project.name 和实际路径
+
+project:
+  name: "MyReactApp"
+  language: "typescript"
+  platform: "web"
+
+harness_framework:
+  schema_version: 1
+  template_version: "1.5.7"
+  source: "{HARNESS_TEMPLATE_REMOTE_URL}"
+  source_ref: "main"
+  source_commit: null
+  last_upgrade: null
+
+agent_runtime:
+  enabled: true
+  contract_version: "1.1.0"
+  root: "harness/.local/agent-runtime"
+  current_pointer: "harness/.local/agent-runtime/current/run.json"
+
+evals:
+  enabled: true
+  index: "harness/evals/index.yaml"
+  runtime_candidates: "harness/.local/agent-runtime/runs/{run_id}/eval-candidates.yaml"
+
+platforms:
+  web:
+    path: "src"
+    build: "npm run build"
+    test: "npm test"
+
+doc:
+  path: "doc"
+  mode: "local"
+
+workflow:
+  ref_to_design_in_greenfield: false
+
+validation:
+  build:
+    enabled: true
+    command: "npm run build"
+  lint_arch:
+    command: "python scripts/lint_deps.py"
+    enabled: true
+  test:
+    enabled: true
+    command: "npm test"
+  verify:
+    command: "python scripts/validate_workflow.py && python scripts/lint_template_version.py && python scripts/lint_harness_config.py && python scripts/lint_goal_contract.py && python scripts/lint_prd_review_signoff.py && python scripts/lint_memory.py && python scripts/lint_quality.py"
+    enabled: true
+
+architecture:
+  layers:
+    - name: "pages"
+      path: "src/pages/"
+      level: 0
+    - name: "components"
+      path: "src/components/"
+      level: 1
+    - name: "hooks"
+      path: "src/hooks/"
+      level: 2
+    - name: "services"
+      path: "src/services/"
+      level: 3
+  exclude_paths:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "**/.next/**"
+    - "**/dist/**"
+  generated_code_paths:
+    - "node_modules/.cache/"
+    - "build/"
+    - "dist/"
+
+quality:
+  max_file_lines: 300
+  max_function_lines: 50
+  baseline_mode: "baseline"
+  exclude_paths:
+    - "**/node_modules/**"
+    - "**/build/**"
+    - "**/.next/**"
+    - "**/dist/**"
+    - "**/__pycache__/**"
+  forbidden_patterns:
+    - pattern: "console\\.log"
+      message: "请使用 proper logging"
+      languages: ["typescript"]

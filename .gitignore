@@ -1,0 +1,49 @@
+# Gradle / Android
+.gradle/
+build/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+# Kotlin 2.x compiler daemon sessions and caches.
+.kotlin/
+**/.kotlin/
+
+# Python (harness tooling)
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup / temp
+*.bak
+*.tmp
+*.orig
+*.log
+
+# Harness machine-local runtime state (never committed; includes denylist)
+harness/.local/
+harness/upgrade-backups/
+*.harness-backup-*
+harness.local.yaml
+
+# Voice assets: the sherpa-onnx native libraries and models are committed; fetch_voice_assets.py caches the
+# pinned upstream archives here when it re-fetches or verifies them.
+workspace/apps/android/tools/voice/.cache/
+
+# Signing keys never go in the repository (BOTHY_SIGNING_* in local.properties points at one outside it).
+*.jks
+*.keystore

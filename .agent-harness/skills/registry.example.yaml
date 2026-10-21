@@ -1,0 +1,10 @@
+# Schema example only. Template skills use registry.yaml; target-project skill extensions use registry.project.yaml.
+skills:
+  - name: example-skill
+    source: src/example-skill
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: infra
+    status: proposed

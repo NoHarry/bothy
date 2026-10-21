@@ -1,0 +1,11 @@
+# Schema example only. Target projects may copy this to registry.project.yaml.
+# Keep registry.yaml template-owned; put project-only skills here.
+skills:
+  - name: example-project-skill
+    source: src/example-project-skill
+    targets:
+      codex: true
+      claude: true
+      opencode: true
+    owner: project-team
+    status: active

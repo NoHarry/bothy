@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The MCP server listens on 127.0.0.1 only; a socket still needs INTERNET. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- AMap navigation: where the car is, and the network state its location and routing use. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Shows Bothy's assistant in the head unit (Assistant): a signature permission both apps declare and hold. -->
+    <permission
+        android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE" />
+    <queries>
+        <package android:name="cc.noharry.bothy.sample" />
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Bothy Playground"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true">
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="${AMAP_KEY}" />
+        <service android:name="com.amap.api.location.APSService" />
+        <activity
+            android:name=".PlaygroundActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="true"
+            android:theme="@android:style/Theme.Material.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <receiver
+            android:name=".AssistantEventReceiver"
+            android:exported="true"
+            android:permission="cc.noharry.bothy.permission.ASSISTANT_SURFACE">
+            <intent-filter>
+                <action android:name="cc.noharry.bothy.ASSISTANT_EVENT" />
+            </intent-filter>
+        </receiver>
+        <service
+            android:name=".PlaygroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Local MCP server for a simulated car cabin and home used in assistant demos" />
+        </service>
+    </application>
+</manifest>
