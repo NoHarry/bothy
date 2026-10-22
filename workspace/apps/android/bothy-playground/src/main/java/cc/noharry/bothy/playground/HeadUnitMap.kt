@@ -73,24 +73,51 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier) {
                     Text(" 进入", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 5.dp))
                 }
                 Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // An exit to take, and where it leads, as AMap's stock panel says it (「出口 · 去 南山」).
+                val exit = listOfNotNull(
+                    nav.guide.exit.takeIf(String::isNotBlank)?.let { if ("出口" in it) it else "出口 $it" },
+                    nav.guide.toward.takeIf(String::isNotBlank)?.let { "去 $it" },
+                )
+                if (exit.isNotEmpty()) Text(exit.joinToString(" · "), color = UnitColors.teal, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Spacer(Modifier.height(8.dp))
-        // How fast the car goes and the lights still ahead (owner 2026-10-22: 「确认下红绿灯，车速等信息能正常显示吗」).
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("${nav.speedKmh}", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
-            if (nav.lightsLeft > 0) {
-                Spacer(Modifier.width(12.dp))
-                Icon(Icons.Filled.Traffic, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
-                Text("还有 ${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
-            }
-        }
+        SpeedLine(nav)
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth()) {
             Text("${nav.remainingSeconds.duration()} · ${nav.remainingMeters.km()}", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
             Text("${clockText(now + nav.remainingSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)
         }
+    }
+}
+
+/** How fast the car goes against the limit ahead, the lights still ahead, and an average-speed section under way. */
+@Composable
+private fun SpeedLine(nav: NavState) {
+    // How fast the car goes and the lights still ahead (owner 2026-10-22: 「确认下红绿灯，车速等信息能正常显示吗」).
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Over the limit of the camera ahead, the speed turns red beside the limit's sign.
+        if (nav.guide.limitKmh > 0) {
+            LimitSign(nav.guide.limitKmh)
+            Spacer(Modifier.width(6.dp))
+        }
+        Text("${nav.speedKmh}", color = if (nav.guide.over(nav.speedKmh)) LIMIT_RED else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        if (nav.lightsLeft > 0) {
+            Spacer(Modifier.width(12.dp))
+            Icon(Icons.Filled.Traffic, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
+            Text("还有 ${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
+        }
+    }
+    if (nav.guide.sectionLimitKmh > 0) {
+        val average = nav.guide.sectionAverageKmh
+        Text(
+            "区间测速 · 平均 $average · 限速 ${nav.guide.sectionLimitKmh} · 还剩 ${nav.guide.sectionLeftMeters.km()}",
+            color = if (average > nav.guide.sectionLimitKmh) LIMIT_RED else UnitColors.muted,
+            fontSize = 13.sp,
+            maxLines = 1,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 
@@ -193,7 +220,7 @@ private fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
  * ahead, a flag at the end, the car where it is now.
  */
 @Composable
-internal fun RouteProgressBar(nav: NavState, modifier: Modifier = Modifier) {
+internal fun RouteProgressBar(nav: NavState, traffic: List<TrafficStretch> = emptyList(), modifier: Modifier = Modifier) {
     val total = nav.totalMeters.coerceAtLeast(1)
     val done = (1f - nav.remainingMeters.toFloat() / total).coerceIn(0f, 1f)
     val stops = nav.toWaypoints.map { done + (1f - done) * (it.meters.toFloat() / nav.remainingMeters.coerceAtLeast(1)).coerceIn(0f, 1f) }
@@ -203,6 +230,15 @@ internal fun RouteProgressBar(nav: NavState, modifier: Modifier = Modifier) {
         val bar = 6.dp.toPx()
         drawLine(Color.White.copy(alpha = 0.18f), Offset(x, y(0f)), Offset(x, y(done)), bar, StrokeCap.Round)
         drawLine(UnitColors.teal, Offset(x, y(done)), Offset(x, y(1f)), bar, StrokeCap.Round)
+        // The road ahead coloured by its traffic, as AMap's bar is (its stretches run from the route's start).
+        val routeMeters = traffic.sumOf { it.meters }.coerceAtLeast(1)
+        var from = 0
+        traffic.forEach { stretch ->
+            val a = (from.toFloat() / routeMeters).coerceAtLeast(done)
+            val b = (from + stretch.meters).toFloat() / routeMeters
+            if (b > a) drawLine(trafficColor(stretch.status), Offset(x, y(a)), Offset(x, y(b)), bar, StrokeCap.Butt)
+            from += stretch.meters
+        }
         stops.forEach {
             drawCircle(Color.White, 6.dp.toPx(), Offset(x, y(it)))
             drawCircle(UnitColors.teal, 3.5.dp.toPx(), Offset(x, y(it)))

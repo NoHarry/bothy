@@ -12,6 +12,10 @@ import com.amap.api.navi.NaviSetting
 import com.amap.api.navi.SimpleNaviListener
 import com.amap.api.navi.enums.NaviType
 import com.amap.api.navi.model.AMapCalcRouteResult
+import com.amap.api.navi.model.AMapLaneInfo
+import com.amap.api.navi.model.AMapNaviCameraInfo
+import com.amap.api.navi.model.AMapNaviCross
+import com.amap.api.navi.model.AMapServiceAreaInfo
 import com.amap.api.navi.model.AMapNaviLocation
 import com.amap.api.navi.model.NaviInfo
 import com.amap.api.navi.model.NaviPoi
@@ -181,13 +185,26 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
             onMain {
                 if (simulated) amap.setEmulatorNaviSpeed(SIMULATED_KMH)
                 amap.startNavi(if (simulated) NaviType.EMULATOR else NaviType.GPS)
+                readTraffic()
             }
         }
     }
 
     override fun stop() {
         onMain { navi?.stopNavi() }
+        Guidance.clear()
     }
+
+    /** The route's traffic from its start, stretch by stretch, for the progress bar ([Guidance.traffic]). */
+    private fun readTraffic() {
+        val amap = navi ?: return
+        val total = amap.naviPath?.allLength ?: return
+        Guidance.traffic.value = runCatching { amap.getTrafficStatuses(0, total) }.getOrNull().orEmpty()
+            .map { TrafficStretch(it.length, it.status) }
+    }
+
+    /** A reading of AMap's guidance into the state ([Guide]), only while driving. */
+    private fun guide(edit: (Guide) -> Guide) = store.quietly { it.withNav(it.cabin.nav.withGuide(edit)) }
 
     /** The weather where the car is: now and the next days, from AMap; cached, null until the city is known. */
     fun weather(): WeatherReport? {
@@ -247,7 +264,48 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
 
         override fun onNaviInfoUpdate(info: NaviInfo) {
             store.quietly { it.withNav(it.cabin.nav.withProgress(info.toProgress())) }
+            val exit = info.exitDirectionInfo
+            guide { it.copy(exit = exit?.exitNameInfo.orEmpty().joinToString("、"), toward = exit?.directionInfo.orEmpty().joinToString("、")) }
         }
+
+        // What AMap's stock screen shows besides the turn (owner 2026-10-22: 方案三).
+        override fun showLaneInfo(lanes: AMapLaneInfo?) {
+            Guidance.lanes.value = lanes
+        }
+
+        override fun hideLaneInfo() {
+            Guidance.lanes.value = null
+        }
+
+        override fun showCross(cross: AMapNaviCross?) {
+            Guidance.cross.value = cross
+        }
+
+        override fun hideCross() {
+            Guidance.cross.value = null
+        }
+
+        override fun updateCameraInfo(cameras: Array<out AMapNaviCameraInfo>?) {
+            val ahead = cameras.orEmpty().filter { it.cameraSpeed > 0 }.minByOrNull { it.cameraDistance }
+            guide { it.copy(limitKmh = ahead?.cameraSpeed ?: 0, cameraMeters = ahead?.cameraDistance ?: 0) }
+        }
+
+        override fun updateIntervalCameraInfo(start: AMapNaviCameraInfo?, end: AMapNaviCameraInfo?, status: Int) {
+            val inside = start != null && status != 0
+            guide {
+                if (!inside) it.copy(sectionAverageKmh = 0, sectionLimitKmh = 0, sectionLeftMeters = 0)
+                else it.copy(sectionAverageKmh = start!!.averageSpeed, sectionLimitKmh = start.cameraSpeed.takeIf { s -> s > 0 } ?: end?.cameraSpeed ?: 0, sectionLeftMeters = start.intervalRemainDistance)
+            }
+        }
+
+        override fun onServiceAreaUpdate(areas: Array<out AMapServiceAreaInfo>?) {
+            val next = areas.orEmpty().minByOrNull { it.remainDist }
+            guide { it.copy(stopName = next?.name.orEmpty(), stopIsToll = next?.type == TOLL_STATION, stopMeters = next?.remainDist ?: 0) }
+        }
+
+        override fun onGpsSignalWeak(weak: Boolean) = guide { it.copy(gpsWeak = weak) }
+
+        override fun onTrafficStatusUpdate() = readTraffic()
 
         override fun onLocationChange(location: AMapNaviLocation) {
             location.coord?.let { carLocation = GeoPoint(it.latitude, it.longitude) }
@@ -276,6 +334,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         if (!nav.driving) return
         if (nav.simulated) parked = carLocation ?: nav.destination?.point
         store.quietly { it.withNav(it.cabin.nav.afterArrival()) }
+        Guidance.clear()
         store.record("cabin", "navigation", "已到达「${nav.destination?.name}」", setOf(Highlight.NAV), fromAssistant = false)
     }
 
@@ -365,6 +424,8 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         /** 深圳市民中心, in 福田: the demo script's routes all start in the middle of 深圳. */
         val DEMO_START = GeoPoint(22.543_099, 114.057_868)
         const val DEMO_CITY = "深圳市"
+        /** AMap's kind of facility ahead: a toll station (otherwise a service area). */
+        const val TOLL_STATION = 1
         const val SEARCH_OK = 1000
         const val QPS_RETRIES = 3
         const val QPS_BACKOFF_MS = 1_000L

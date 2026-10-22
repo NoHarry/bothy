@@ -80,6 +80,8 @@ data class NavState(
     val startsAt: Long = 0L,
     /** A route only planned (「规划下路线」): it stays shown, with no count, until the user's word to go. */
     val waitsForGo: Boolean = false,
+    /** What else AMap tells while driving, as its stock screen shows it ([Guide]). */
+    val guide: Guide = Guide(),
 ) {
     /** A route is in hand: planned and shown, or being driven. */
     val active: Boolean get() = status == NavStatus.NAVIGATING || status == NavStatus.PLANNED
@@ -88,6 +90,34 @@ data class NavState(
 
     val driving: Boolean get() = status == NavStatus.NAVIGATING
 }
+
+/**
+ * What AMap tells besides the turn while driving, as its stock screen shows it (owner 2026-10-22: 「各种指示信息有没有用到
+ * 位，相比公版」): the limit at the camera ahead, an average-speed section, the exit to take and where it leads, the next
+ * service area or toll station, a weak GPS. Lanes and the junction's picture are AMap's own drawings ([Guidance]).
+ */
+data class Guide(
+    /** The speed limit of the camera ahead, km/h; 0 when none is known. */
+    val limitKmh: Int = 0,
+    val cameraMeters: Int = 0,
+    /** In an average-speed section: the average so far, the limit and what is left of it; all 0 outside one. */
+    val sectionAverageKmh: Int = 0,
+    val sectionLimitKmh: Int = 0,
+    val sectionLeftMeters: Int = 0,
+    /** The exit's number or name and where it leads (「出口 · 南山」), when the next turn is one. */
+    val exit: String = "",
+    val toward: String = "",
+    /** The next service area or toll station ahead. */
+    val stopName: String = "",
+    val stopIsToll: Boolean = false,
+    val stopMeters: Int = 0,
+    val gpsWeak: Boolean = false,
+) {
+    /** Over the limit ahead, by more than AMap's own leeway. */
+    fun over(speedKmh: Int): Boolean = limitKmh > 0 && speedKmh > limitKmh + OVER_LEEWAY_KMH
+}
+
+private const val OVER_LEEWAY_KMH = 5
 
 /** What a stop is asked for as: a name to search, coordinates, or both (coordinates win). */
 data class PlaceSpec(val name: String, val point: GeoPoint? = null, val poiId: String = "")

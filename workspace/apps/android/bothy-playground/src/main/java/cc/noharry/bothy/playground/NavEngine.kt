@@ -85,4 +85,7 @@ internal fun NavState.afterWaypointReached(): NavState =
     if (waypoints.isEmpty() || !driving) this else copy(waypoints = waypoints.drop(1), toWaypoints = toWaypoints.drop(1), reachedWaypoints = reachedWaypoints + waypoints.first().name)
 
 internal fun NavState.afterArrival(): NavState =
-    copy(status = NavStatus.ARRIVED, remainingMeters = 0, remainingSeconds = 0, toWaypoints = emptyList(), speedKmh = 0, stepMeters = 0)
+    copy(status = NavStatus.ARRIVED, remainingMeters = 0, remainingSeconds = 0, toWaypoints = emptyList(), speedKmh = 0, stepMeters = 0, guide = Guide())
+
+/** A reading of AMap's guidance ([Guide]) counts only while driving, as the progress does. */
+internal fun NavState.withGuide(edit: (Guide) -> Guide): NavState = if (!driving) this else copy(guide = edit(guide))

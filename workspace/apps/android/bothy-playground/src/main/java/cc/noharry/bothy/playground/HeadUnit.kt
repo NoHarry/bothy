@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.amap.api.navi.model.AMapLaneInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -223,15 +224,26 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
     var overview by remember { mutableStateOf(false) }
     var muted by remember { mutableStateOf(false) }
     val navigation = Playground.navigation
+    val lanes by Guidance.lanes.collectAsState()
+    val cross by Guidance.cross.collectAsState()
+    val traffic by Guidance.traffic.collectAsState()
     Column(Modifier.offset(slots.x, slots.top).width(slots.width), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (nav.previewing) {
             RoutePreviewCard(nav, { scope.launch(Dispatchers.IO) { navigation?.begin() } }, { scope.launch(Dispatchers.IO) { navigation?.stop() } })
             RouteDetails(nav, now)
         } else {
             TurnCard(nav, now)
-            if (details) RouteDetails(nav, now, Modifier.clickable { details = false }) else NextStopCard(nav, now, { details = true })
+            // The junction's picture while AMap shows it, as its stock screen does, in the next stop's place.
+            val junction = cross.takeIf { nav.driving }
+            when {
+                junction != null -> JunctionCard(junction)
+                details -> RouteDetails(nav, now, Modifier.clickable { details = false })
+                else -> NextStopCard(nav, now, { details = true })
+            }
+            if (nav.driving && nav.guide.stopName.isNotBlank()) RoadsideCard(nav.guide)
         }
     }
+    lanes?.takeIf { nav.driving }?.let { LanesOverMap(it, slots) }
     if (nav.driving) {
         NavActionBar(
             overview, muted,
@@ -246,9 +258,16 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
             onMore = onMore,
             modifier = Modifier.offset(slots.x, slots.actionsBottom - ACTION_BAR_HEIGHT).width(slots.width),
         )
-        RouteProgressBar(nav, Modifier.offset(slots.progressX, slots.progressTop).height(slots.progressHeight))
+        RouteProgressBar(nav, traffic, Modifier.offset(slots.progressX, slots.progressTop).height(slots.progressHeight))
         RoadChip(nav.currentRoad, Modifier.offset(slots.roadX, slots.roadY))
     }
+}
+
+/** The lanes at the junction ahead, over the top of the open map between the route and the progress, as AMap's stock screen puts them. */
+@Composable
+private fun LanesOverMap(lanes: AMapLaneInfo, slots: RouteSlots) {
+    val left = slots.x + slots.width + 10.dp
+    Box(Modifier.offset(left, slots.top).width(slots.progressX - 10.dp - left), contentAlignment = Alignment.TopCenter) { LaneBar(lanes) }
 }
 
 /** The map's own bar while nothing else is on it: search (小博 listens) and what to look for nearby (said to 小博). */

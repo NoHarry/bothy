@@ -72,7 +72,7 @@ class NavController(
         if (expected != null && expected != generation.get()) return
         val planned = nav.takeIf { it.previewing } ?: return
         engine.startDriving(planned.simulated)
-        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.NAVIGATING, startsAt = 0L, waitsForGo = false)) }
+        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.NAVIGATING, startsAt = 0L, waitsForGo = false, guide = Guide())) }
         store.record("cabin", "navigation", "开始导航去「${planned.destination?.name}」", setOf(Highlight.NAV), fromAssistant = false)
     }
 
@@ -173,7 +173,7 @@ class NavController(
         if (!nav.active) return ToolOutcome(store.read(), "现在没有在导航。")
         generation.incrementAndGet()
         engine.stop()
-        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.IDLE, speedKmh = 0)) }
+        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.IDLE, speedKmh = 0, guide = Guide())) }
         return ToolOutcome(store.read(), "导航已退出。", setOf(Highlight.NAV))
     }
 

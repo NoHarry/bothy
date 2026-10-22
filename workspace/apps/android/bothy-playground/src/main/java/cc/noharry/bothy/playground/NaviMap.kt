@@ -396,7 +396,9 @@ private fun naviOptions(drawRoute: Boolean, anchor: Pair<Double, Double>): AMapN
     // Flatter than AMap's default, as its stock screen drives: more road ahead, less to draw.
     setTilt(DRIVING_TILT)
     setAutoDisplayOverview(false)
-    setRealCrossDisplayShow(false)
+    // The lanes and the junction's picture come to the head unit, which draws them in its own cards (Guidance); AMap's
+    // own lane strip and 3D junction model would draw over the map a second time.
+    setRealCrossDisplayShow(true)
     setModeCrossDisplayShow(false)
     setLaneInfoShow(false)
     setEagleMapVisible(false)
