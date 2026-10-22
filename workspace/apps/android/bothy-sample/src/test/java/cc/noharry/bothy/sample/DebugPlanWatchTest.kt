@@ -18,6 +18,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import cc.noharry.agent.mcp.McpStatus
+import cc.noharry.agent.mcp.McpRpcResponse
 
 /** Watches on any server's resources or read-only tools, the trackers that fire them, and the actions an automation runs. */
 @OptIn(ExperimentalAgentRuntimeApi::class)

@@ -1,13 +1,13 @@
-package cc.noharry.bothy.sample
+package cc.noharry.agent.mcp
 
 import kotlinx.serialization.json.JsonObject
 
 /**
  * An MCP server spoken to in JSON-RPC, such as a standard MCP server over Streamable HTTP ([McpHttpClient]).
  * [McpToolProvider] lists and calls tools through it; a response's [McpRpcResponse.dataJson] is the JSON-RPC response
- * object (`result` or `error`).
+ * object (`result` or `error`). Candidate API, not frozen.
  */
-internal interface McpRpcClient {
+interface McpRpcClient {
     suspend fun connect(): McpConnectResult
 
     suspend fun sendRequest(method: String, params: JsonObject): McpRpcResponse
@@ -17,12 +17,12 @@ internal interface McpRpcClient {
 }
 
 /** Status codes of [McpConnectResult] and [McpRpcResponse]. */
-internal object McpStatus {
+object McpStatus {
     const val OK = 0
     const val CONNECT_ERROR = -1
 }
 
-internal data class McpConnectResult(
+data class McpConnectResult(
     val statusCode: Int,
     val rawMessage: String = "",
     val errorMessage: String? = null,
@@ -30,7 +30,7 @@ internal data class McpConnectResult(
     val ok: Boolean = statusCode == McpStatus.OK
 }
 
-internal data class McpRpcResponse(
+data class McpRpcResponse(
     val statusCode: Int,
     val rawEnvelope: String,
     val dataJson: JsonObject?,

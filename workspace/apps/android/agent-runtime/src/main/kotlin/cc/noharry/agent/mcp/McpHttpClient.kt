@@ -1,14 +1,11 @@
-package cc.noharry.bothy.sample
+package cc.noharry.agent.mcp
 
-import android.content.Context
 import cc.noharry.agent.transport.HttpRequest
 import cc.noharry.agent.transport.HttpResponse
 import cc.noharry.agent.transport.HttpTransport
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.sync.Mutex
@@ -31,10 +28,10 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * [query] is added to [url] only when a request is sent, so a key never sits in the stored address. A server that could
  * not be reached at all is not tried again for [unreachableCooldownMillis], and with a [retryScope] never in a caller's
  * way again: connecting says at once that it is unreachable and tries anew in the background, so the next caller finds
- * it back. Every run connects to every switched-on server first, and one that is blocked where the car is (2026-10-21:
- * huggingface.co from Shenzhen) held each run up a minute.
+ * it back. A run connects to every switched-on server first, and one the device's network cannot reach would otherwise
+ * hold each run up. [messages] words what went wrong. Candidate API, not frozen.
  */
-internal class McpHttpClient(
+class McpHttpClient(
     private val url: String,
     private val headers: () -> Map<String, String>,
     private val http: HttpTransport,
@@ -44,6 +41,7 @@ internal class McpHttpClient(
     private val unreachableCooldownMillis: Long = 0L,
     private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 },
     private val retryScope: CoroutineScope? = null,
+    private val messages: McpClientMessages = McpClientMessages.Default,
 ) : McpRpcClient {
     private val ids = AtomicInteger(1)
     private val lock = Mutex()
@@ -97,7 +95,7 @@ internal class McpHttpClient(
             reply = exchange(rpcRequest(method, params), session)
         }
         reply.problem?.let { return McpRpcResponse(McpStatus.CONNECT_ERROR, reply.raw, null, it) }
-        val body = reply.body ?: return McpRpcResponse(McpStatus.CONNECT_ERROR, reply.raw, null, "服务的回应不是 JSON-RPC")
+        val body = reply.body ?: return McpRpcResponse(McpStatus.CONNECT_ERROR, reply.raw, null, messages.notJsonRpc())
         return McpRpcResponse(McpStatus.OK, reply.raw, body, null)
     }
 
@@ -124,9 +122,9 @@ internal class McpHttpClient(
             }
         }
         unreachable = null
-        // A gateway that refuses the key may answer 200 with its own JSON (高德: {"info":"INVALID_USER_KEY"}); show it.
+        // A gateway that refuses the key may answer 200 with its own JSON (such as {"info":"INVALID_USER_KEY"}); show it.
         val result = reply.body?.get("result") as? JsonObject
-            ?: return McpConnectResult(McpStatus.CONNECT_ERROR, reply.raw, reply.body?.errorText() ?: initializeRefusal(reply.raw))
+            ?: return McpConnectResult(McpStatus.CONNECT_ERROR, reply.raw, reply.body?.errorText() ?: messages.initializeRefused(reply.raw.trim().take(RAW_HINT_CHARS)))
         val version = (result["protocolVersion"] as? JsonPrimitive)?.contentOrNull ?: PROTOCOL_VERSION
         val established = Session(reply.sessionId, version)
         // 202 Accepted with no body; a server that refuses it shows that on the next request.
@@ -159,15 +157,15 @@ internal class McpHttpClient(
             // A dead or hung server must not hold up every run (and the client's lock) for OkHttp's minutes.
             withTimeoutOrNull(timeoutMillis) {
                 http.execute(HttpRequest("POST", withQuery(url, query()), requestHeaders, message.toString().toByteArray(Charsets.UTF_8)))
-            } ?: return Reply(0, null, "", null, "${timeoutMillis / 1000} 秒没有回应")
+            } ?: return Reply(0, null, "", null, messages.timedOut(timeoutMillis / 1000))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            return Reply(0, null, "", null, "连不上：${error.message ?: error.javaClass.simpleName}")
+            return Reply(0, null, "", null, messages.unreachable(error.message ?: error.javaClass.simpleName))
         }
         val raw = response.body.toString(Charsets.UTF_8)
         val sessionId = response.header("Mcp-Session-Id")
-        httpProblem(response.statusCode)?.let { return Reply(response.statusCode, null, raw, sessionId, it) }
+        messages.httpProblem(response.statusCode)?.let { return Reply(response.statusCode, null, raw, sessionId, it) }
         val id = message["id"] ?: return Reply(response.statusCode, null, raw, sessionId, null)
         val body = if (response.header("Content-Type")?.startsWith("text/event-stream") == true) sseResponse(raw, id) else jsonObject(raw)
         return Reply(response.statusCode, body, raw, sessionId, null)
@@ -182,45 +180,8 @@ internal class McpHttpClient(
         private const val JSON_RPC_VERSION = "2.0"
         private const val HTTP_NOT_FOUND = 404
         private const val RAW_HINT_CHARS = 120
-
-        private fun initializeRefusal(raw: String): String =
-            raw.trim().take(RAW_HINT_CHARS).let { if (it.isEmpty()) "服务没有回应 initialize" else "服务没有回应 initialize：$it" }
         private val OK_RESULT = McpConnectResult(McpStatus.OK)
     }
-}
-
-/**
- * The app's one connection per standard MCP server, shared by runs, the catalog cache and the tool preview. An edit
- * to the server's address makes a new one.
- */
-internal object McpHttpClients {
-    private val clients = mutableMapOf<String, Pair<String, McpHttpClient>>()
-    /** Where a server nobody could reach is tried again, out of every run's way. */
-    private val retries = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
-    fun get(context: Context, server: DebugMcpServer): McpHttpClient {
-        val app = context.applicationContext
-        return synchronized(clients) {
-            clients[server.id]?.takeIf { it.first == server.url }?.second
-                ?: McpHttpClient(
-                    url = server.url,
-                    headers = { DebugMcpSecrets.requestHeaders(app, server.id) },
-                    http = BenchHttpTransport(app),
-                    clientName = app.packageName,
-                    clientVersion = BuildConfig.VERSION_NAME,
-                    query = { DebugMcpSecrets.requestQuery(app, server.id) },
-                    unreachableCooldownMillis = UNREACHABLE_COOLDOWN_MS,
-                    retryScope = retries,
-                ).also { client -> clients.put(server.id, server.url to client)?.second?.close() }
-        }
-    }
-
-    fun close(serverId: String) {
-        synchronized(clients) { clients.remove(serverId) }?.second?.close()
-    }
-
-    /** How often a server nobody could reach is tried again (in the background); its switch toggled tries it at once. */
-    private const val UNREACHABLE_COOLDOWN_MS = 5 * 60 * 1000L
 }
 
 /** [url] with [query] set on it (replacing a parameter of the same name); unchanged when there is none. */
@@ -228,17 +189,6 @@ internal fun withQuery(url: String, query: Map<String, String>): String {
     if (query.isEmpty()) return url
     val parsed = url.toHttpUrlOrNull() ?: return url
     return parsed.newBuilder().apply { query.forEach { (name, value) -> setQueryParameter(name, value) } }.build().toString()
-}
-
-/** Why an HTTP status is not an answer, in words for the settings row; null for 2xx. */
-internal fun httpProblem(status: Int): String? = when (status) {
-    in 200..299 -> null
-    401, 403 -> "服务拒绝了（HTTP $status），检查令牌或请求头"
-    404 -> "地址不对（HTTP 404）"
-    405 -> "这个地址不收 POST（HTTP 405），可能是旧版 SSE 服务，只支持 Streamable HTTP"
-    406, 415 -> "服务不接受这个格式（HTTP $status）"
-    in 500..599 -> "服务出错了（HTTP $status）"
-    else -> "HTTP $status"
 }
 
 /** The JSON-RPC response with [id] among a `text/event-stream` body's events (notifications may come first). */

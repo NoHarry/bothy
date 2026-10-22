@@ -4,6 +4,9 @@ import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import cc.noharry.agent.mcp.McpHttpClient
+import cc.noharry.agent.mcp.McpToolsListing
+import cc.noharry.agent.mcp.listMcpTools
 
 /**
  * 连接应用 as an app market: each app's own page says how to connect it. These apps publish a remote MCP server, open to
@@ -71,11 +74,12 @@ internal suspend fun probeMcpEndpoint(context: Context, endpoint: DebugMcpEndpoi
         clientName = app.packageName,
         clientVersion = BuildConfig.VERSION_NAME,
         query = { endpoint.query },
+        messages = ChineseMcpMessages,
     )
     try {
         withTimeoutOrNull(PROBE_TIMEOUT_MS) {
             val connect = client.connect()
-            if (connect.ok) listMcpTools(client) else McpToolsListing(emptyList(), connect.errorMessage ?: "连不上")
+            if (connect.ok) listMcpTools(client, ChineseMcpMessages) else McpToolsListing(emptyList(), connect.errorMessage ?: "连不上")
         } ?: McpToolsListing(emptyList(), "${PROBE_TIMEOUT_MS / 1000} 秒没有回应")
     } finally {
         client.close()

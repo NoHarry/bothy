@@ -1,4 +1,4 @@
-package cc.noharry.bothy.sample
+package cc.noharry.agent.mcp
 
 import cc.noharry.agent.transport.HttpEvent
 import cc.noharry.agent.transport.HttpRequest
@@ -112,9 +112,9 @@ class McpHttpClientTest {
         var now = 0L
         val down = FakeServer { _, _, _ -> throw IOException("timeout") }
         val skipping = McpHttpClient("https://mcp.test/mcp", { emptyMap() }, down, "sample", "1.0", unreachableCooldownMillis = 60_000L, nowMillis = { now })
-        assertTrue(skipping.connect().errorMessage!!.contains("连不上"))
+        assertTrue(skipping.connect().errorMessage!!.contains("Cannot connect"))
         now = 59_000L
-        assertTrue(skipping.connect().errorMessage!!.contains("连不上"))
+        assertTrue(skipping.connect().errorMessage!!.contains("Cannot connect"))
         assertEquals("the second run did not wait on it again", 1, down.requests.size)
         now = 61_000L
         skipping.connect()
@@ -154,19 +154,19 @@ class McpHttpClientTest {
     fun refusalsAndUnreachableServersSayWhatToCheck() = runBlocking {
         val refused = client(FakeServer { _, _, _ -> HttpResponse(401) }).connect()
         assertFalse(refused.ok)
-        assertTrue(refused.errorMessage!!.contains("令牌"))
+        assertTrue(refused.errorMessage!!.contains("token"))
 
         val old = client(FakeServer { _, _, _ -> HttpResponse(405) }).connect()
         assertTrue(old.errorMessage!!.contains("SSE"))
 
         val down = client(FakeServer { _, _, _ -> throw IOException("timeout") }).connect()
-        assertTrue(down.errorMessage!!.contains("连不上"))
+        assertTrue(down.errorMessage!!.contains("Cannot connect"))
 
         val listing = listMcpTools(client(FakeServer { method, id, _ ->
             if (method == "tools/list") json("""{"jsonrpc":"2.0","id":$id,"error":{"code":-32601,"message":"no tools"}}""")
             else json("""{"jsonrpc":"2.0","id":$id,"result":{"protocolVersion":"2025-06-18"}}""")
         }))
-        assertEquals("tools/list 出错：no tools", listing.problem)
+        assertEquals("tools/list failed: no tools", listing.problem)
     }
 
     @Test
@@ -177,5 +177,22 @@ class McpHttpClientTest {
         val response: JsonObject? = sseResponse(stream, id)
 
         assertEquals("true", response!!["result"]!!.jsonObject["ok"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun aKeyIsAddedToTheAddressOnlyWhenARequestIsSent() {
+        assertEquals("https://a.test/mcp", withQuery("https://a.test/mcp", emptyMap()))
+        assertEquals("https://a.test/mcp?key=k%201", withQuery("https://a.test/mcp?key=old", mapOf("key" to "k 1")))
+    }
+
+    @Test
+    fun anAppSpeaksItsOwnWordsThroughMessages() = runBlocking {
+        val messages = object : McpClientMessages {
+            override fun httpProblem(status: Int): String? = if (status == 401) "refused-$status" else super.httpProblem(status)
+        }
+        val refusing = FakeServer { _, _, _ -> HttpResponse(401) }
+        val refused = McpHttpClient("https://mcp.test/mcp", { emptyMap() }, refusing, "sample", "1.0", messages = messages).connect()
+
+        assertEquals("refused-401", refused.errorMessage)
     }
 }

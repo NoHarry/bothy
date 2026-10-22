@@ -227,7 +227,7 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
     }
     // The configured servers (设置 → 连接 → MCP), in their order; the workflow skills ride on the tools they bind.
     providers.filter { it.enabled }.mapNotNull { it.server }.forEach { server ->
-        val provider = configure(McpToolProvider.forHttp(context, server))
+        val provider = configure(httpMcpToolProvider(context, server))
         mount(if (workflows.isEmpty()) provider else DebugSkillToolProvider(provider, workflows))
     }
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_CALENDAR)) {

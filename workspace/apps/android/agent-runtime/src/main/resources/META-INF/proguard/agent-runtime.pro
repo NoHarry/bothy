@@ -8,6 +8,7 @@
 -keep class cc.noharry.agent.runtime.NetworkToolConfirmationPolicy { *; }
 -keep class cc.noharry.agent.runtime.eventlog.DurableSessionEventLogPlugin { *; }
 -keep class cc.noharry.agent.dream.** { *; }
+-keep class cc.noharry.agent.mcp.** { *; }
 -keep class cc.noharry.agent.model.** { *; }
 -keep class cc.noharry.agent.policy.** { *; }
 -keep class cc.noharry.agent.transport.** { *; }

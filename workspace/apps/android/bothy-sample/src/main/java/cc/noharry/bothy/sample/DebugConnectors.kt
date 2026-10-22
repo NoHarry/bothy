@@ -31,6 +31,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import cc.noharry.agent.mcp.McpToolsListing
 
 /**
  * One app in 连接应用. An agent (Grok Bot) pairs through the relay and becomes the A2A profile [name] that delegation

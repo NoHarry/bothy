@@ -19,6 +19,8 @@ import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import cc.noharry.agent.mcp.McpHttpClient
+import cc.noharry.agent.mcp.McpToolsListing
 
 /**
  * 连接应用 as an app market (owner 2026-10-14): an MCP app is tried with the typed key, saved as a configured server
@@ -174,12 +176,11 @@ class DebugMcpConnectorsTest {
                 return HttpResponse(200, mapOf("Content-Type" to listOf("application/json")), """{"status":"0","info":"INVALID_USER_KEY"}""".toByteArray())
             }
         }
-        val client = McpHttpClient("https://mcp.amap.com/mcp?key=old", { emptyMap() }, http, "sample", "1.0", query = { mapOf("key" to "k 1") })
+        val client = McpHttpClient("https://mcp.amap.com/mcp?key=old", { emptyMap() }, http, "sample", "1.0", query = { mapOf("key" to "k 1") }, messages = ChineseMcpMessages)
 
         val result = client.connect()
 
         assertEquals("https://mcp.amap.com/mcp?key=k%201", sent.single())
         assertEquals("""服务没有回应 initialize：{"status":"0","info":"INVALID_USER_KEY"}""", result.errorMessage)
-        assertEquals("https://a.test/mcp", withQuery("https://a.test/mcp", emptyMap()))
     }
 }

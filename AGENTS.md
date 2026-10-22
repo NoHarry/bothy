@@ -42,7 +42,7 @@
 - **公开仓卫生**：不得提交任何雇主/内部项目相关的名称、域名、代号、录制数据或凭据。机制：`scripts/lint_public_hygiene.py`（提交身份必须是 NoHarry noreply；通用密钥模式扫描；如存在 ignored 的 `harness/.local/denylist.txt` 则按词表扫描暂存 diff）。词表本身永不提交。
 - 提交身份必须是 `NoHarry <noharry@users.noreply.github.com>`；仓库级 git config 已固定，不得用其他身份提交。
 - 业务代码只进 `workspace/`；不要在仓库根新建业务 `src/`、`tests/`。
-- `agent-runtime` 和 kernel 不得依赖 `bothy-sample` 或任何可选模块；sample 中的示例代码和演示用的 MCP 集成不得反向进入库模块。
+- `agent-runtime` 和 kernel 不得依赖 `bothy-sample` 或任何可选模块；通用的 Streamable HTTP MCP 客户端在 `agent-runtime`（`cc.noharry.agent.mcp`），sample 中的示例代码、具体 MCP 服务、连接池、密钥和中文文案不得反向进入库模块。
 - 包名：SDK 模块（`agent-*`）统一 `cc.noharry.agent.*`，SDK 里不出现 bothy；演示 App 用 `cc.noharry.bothy.sample` / `cc.noharry.bothy.playground`；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
 - 修改 skill 只能改 `.agent-harness/skills/src/` 和 registry，再运行 `python scripts/sync_skills.py --write`；投影目录不手工编辑。
 - `CLAUDE.md` 只能是导入 `AGENTS.md` 的薄 adapter。

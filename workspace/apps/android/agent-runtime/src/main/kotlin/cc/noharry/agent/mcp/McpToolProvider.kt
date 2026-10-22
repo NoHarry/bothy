@@ -1,17 +1,17 @@
-package cc.noharry.bothy.sample
+package cc.noharry.agent.mcp
 
-import android.content.Context
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.agent.kernel.api.ToolCallResult
-import cc.noharry.agent.kernel.api.mcp.McpClientProvider
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.kernel.api.ToolInitializeContext
 import cc.noharry.agent.kernel.api.ToolInitializeResult
-import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.mcp.McpClientProvider
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -21,14 +21,24 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * An MCP server's tools in a run, through any [McpRpcClient], such as a standard MCP server over HTTP
- * (设置 → 连接 → MCP). It speaks JSON-RPC `tools/list` and `tools/call`.
+ * Keeps an MCP server's tool list between runs, so a run need not wait on `tools/list`: [get] returns the kept list or
+ * loads it with `fetch`. Candidate API, not frozen.
  */
-internal class McpToolProvider(
+fun interface McpToolCatalog {
+    suspend fun get(fetch: suspend () -> List<ToolDescriptor>): List<ToolDescriptor>
+}
+
+/**
+ * An MCP server's tools in a run, through any [McpRpcClient], such as a standard MCP server over HTTP
+ * ([McpHttpClient]). It speaks JSON-RPC `tools/list` and `tools/call`; [catalog] keeps the tool list between runs, and
+ * [describe] may adjust each tool before the model sees it. Candidate API, not frozen.
+ */
+class McpToolProvider(
     private val client: McpRpcClient,
-    private val catalogCache: McpToolCatalogCache? = null,
     override val serverId: String,
-    override val displayName: String,
+    override val displayName: String = serverId,
+    private val catalog: McpToolCatalog? = null,
+    private val describe: (ToolDescriptor) -> ToolDescriptor = { it },
 ) : McpClientProvider {
     @OptIn(ExperimentalAgentRuntimeApi::class)
     override val providerConcurrency: ProviderConcurrencyDeclaration =
@@ -44,7 +54,7 @@ internal class McpToolProvider(
     }
 
     override suspend fun listTools(): List<ToolDescriptor> =
-        (catalogCache?.get { listMcpToolsCatalog(client) } ?: listMcpToolsCatalog(client)).map { it.withSpokenHint() }
+        (catalog?.get { listMcpToolsCatalog(client) } ?: listMcpToolsCatalog(client)).map(describe)
 
     override suspend fun callTool(
         toolName: String,
@@ -76,50 +86,45 @@ internal class McpToolProvider(
             resultJson = data.toString(),
         )
     }
-
-    companion object {
-        /** A standard MCP server over HTTP, with the app's shared connection and catalog for it. */
-        fun forHttp(context: Context, server: DebugMcpServer): McpToolProvider =
-            McpToolProvider(McpHttpClients.get(context, server), McpToolCatalogs.cache(server.id), server.id, server.label)
-    }
 }
 
 /** Every page of `tools/list`; empty when any page failed. */
-internal suspend fun listMcpToolsCatalog(client: McpRpcClient): List<ToolDescriptor> =
+suspend fun listMcpToolsCatalog(client: McpRpcClient): List<ToolDescriptor> =
     listMcpTools(client).let { if (it.problem == null) it.tools else emptyList() }
 
-/** A server's whole tool list, or why it could not be read (shown by the tool preview in settings). */
-internal class McpToolsListing(val tools: List<ToolDescriptor>, val problem: String? = null)
+/** A server's whole tool list, or why it could not be read. Candidate API, not frozen. */
+class McpToolsListing(val tools: List<ToolDescriptor>, val problem: String? = null)
 
-internal suspend fun listMcpTools(client: McpRpcClient): McpToolsListing {
+/** Reads every page of the server's `tools/list`; [messages] words a problem. Candidate API, not frozen. */
+suspend fun listMcpTools(
+    client: McpRpcClient,
+    messages: McpClientMessages = McpClientMessages.Default,
+): McpToolsListing {
     val collected = ArrayList<ToolDescriptor>()
     var cursor: String? = null
     val seenCursors = HashSet<String>()
     repeat(MAX_TOOLS_LIST_PAGES) {
-        val page = fetchToolsListPage(client, cursor)
+        val page = fetchToolsListPage(client, cursor, messages)
         page.problem?.let { return McpToolsListing(emptyList(), it) }
         collected += page.tools
         val nextCursor = page.nextCursor ?: return McpToolsListing(collected)
-        if (!seenCursors.add(nextCursor)) return McpToolsListing(emptyList(), "tools/list 的分页游标重复了")
+        if (!seenCursors.add(nextCursor)) return McpToolsListing(emptyList(), messages.toolsListCursorRepeated())
         cursor = nextCursor
     }
-    return McpToolsListing(emptyList(), "tools/list 超过 $MAX_TOOLS_LIST_PAGES 页")
+    return McpToolsListing(emptyList(), messages.toolsListTooManyPages(MAX_TOOLS_LIST_PAGES))
 }
-
-/** An order or payment tool, from any server, says it waits for the user's pick ([TRANSACTION_HINT]). */
-internal fun ToolDescriptor.withSpokenHint(): ToolDescriptor =
-    if (isTransaction(name)) copy(description = "$description $TRANSACTION_HINT") else this
 
 private suspend fun fetchToolsListPage(
     client: McpRpcClient,
     cursor: String?,
+    messages: McpClientMessages,
 ): ToolsListPage {
     val response = client.sendRequest(TOOLS_LIST_METHOD, toolsListParams(cursor))
-    if (!response.ok) return ToolsListPage(problem = response.errorMessage ?: "tools/list 失败（status=${response.statusCode}）")
-    val data = response.dataJson ?: return ToolsListPage(problem = "tools/list 的回应不是 JSON")
+    if (!response.ok) return ToolsListPage(problem = response.errorMessage ?: messages.toolsListFailed(response.statusCode))
+    val data = response.dataJson ?: return ToolsListPage(problem = messages.toolsListNotJson())
     if (data.hasJsonRpcError()) {
         val message = ((data["error"] as? JsonObject)?.get("message") as? JsonPrimitive)?.contentOrNull
-        return ToolsListPage(problem = "tools/list 出错：${message ?: data["error"]}")
+        return ToolsListPage(problem = messages.toolsListError(message ?: data["error"].toString()))
     }
     return ToolsListPage(
         tools = data.toolsArray().mapNotNull(::parseTool),
@@ -149,7 +154,7 @@ private data class ToolsListPage(
     val problem: String? = null,
 )
 
-private fun parseTool(element: kotlinx.serialization.json.JsonElement): ToolDescriptor? {
+private fun parseTool(element: JsonElement): ToolDescriptor? {
     val item = element as? JsonObject ?: return null
     val name = item.stringField("name") ?: return null
     return ToolDescriptor(
@@ -169,7 +174,7 @@ private fun buildToolsCallParams(toolName: String, arguments: JsonObject): JsonO
         put("arguments", arguments)
     }
 
-private fun JsonObject.toolsArray(): List<kotlinx.serialization.json.JsonElement> =
+private fun JsonObject.toolsArray(): List<JsonElement> =
     ((this["result"] as? JsonObject)?.get("tools") as? JsonArray).orEmpty()
 
 private fun JsonObject.hasMcpToolError(): Boolean {
@@ -202,10 +207,6 @@ private fun String.escapeJson(): String =
     replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
 
 private const val TOOLS_LIST_METHOD = "tools/list"
-/** On every order or payment tool ([isTransaction]): a model said 「先帮你下单了」 before [DebugActionGate] refused the call. */
-private const val TRANSACTION_HINT =
-    "这会真的下单或付款：先用预览把门店、商品、价格告诉用户，用 offer_options 给「下单」（绑定这次调用）和「先不下」，等用户选；" +
-        "调用成功之前不要说已经下单。"
 private const val TOOLS_CALL_METHOD = "tools/call"
 private const val CURSOR_PARAM = "cursor"
 private const val NEXT_CURSOR_FIELD = "nextCursor"

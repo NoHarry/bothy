@@ -5,6 +5,8 @@ import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.coroutines.withTimeoutOrNull
+import cc.noharry.agent.mcp.McpRpcClient
+import cc.noharry.agent.mcp.listMcpTools
 
 /** One MCP tool entry shown in the provider preview list. */
 internal data class DebugMcpToolPreview(
@@ -58,7 +60,7 @@ private suspend fun loadServerTools(context: Context, server: DebugMcpServer): D
             McpHttpClients.close(server.id)
             return@withTimeoutOrNull DebugMcpToolsResult.Unavailable(connect.errorMessage ?: "${server.label} 连不上")
         }
-        val listing = listMcpTools(client)
+        val listing = listMcpTools(client, ChineseMcpMessages)
         listing.problem?.let { DebugMcpToolsResult.Unavailable(it) } ?: listing.tools.toPreviewResult()
     } ?: DebugMcpToolsResult.Unavailable("${server.label} tools/list 超时")
 }

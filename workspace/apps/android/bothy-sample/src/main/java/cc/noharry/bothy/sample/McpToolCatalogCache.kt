@@ -10,6 +10,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import cc.noharry.agent.mcp.McpRpcClient
+import cc.noharry.agent.mcp.McpToolCatalog
+import cc.noharry.agent.mcp.listMcpToolsCatalog
 
 /**
  * Host-owned MCP tool catalog. A live `tools/list` can take seconds, so the catalog is fetched when the app starts and
@@ -23,7 +26,7 @@ internal class McpToolCatalogCache(
     private val scope: CoroutineScope,
     private val failureRetryDelayMillis: Long = 0L,
     private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 },
-) {
+) : McpToolCatalog {
     private val lock = Any()
     private var generation = 0L
     private var cached: List<ToolDescriptor>? = null
@@ -31,7 +34,7 @@ internal class McpToolCatalogCache(
     private var retryAtMillis: Long? = null
 
     /** Returns the cached catalog, joins an in-flight fetch, or fetches with [fetch] and caches a non-empty result. */
-    suspend fun get(fetch: suspend () -> List<ToolDescriptor>): List<ToolDescriptor> {
+    override suspend fun get(fetch: suspend () -> List<ToolDescriptor>): List<ToolDescriptor> {
         val (deferred, startedHere) = synchronized(lock) {
             cached?.let { return it }
             retryAtMillis?.let { retryAt ->

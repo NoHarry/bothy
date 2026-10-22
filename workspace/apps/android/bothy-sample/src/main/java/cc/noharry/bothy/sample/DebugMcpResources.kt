@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.put
+import cc.noharry.agent.mcp.McpRpcClient
 
 /** A resource a loaded MCP server offers now: something a plan can watch. */
 internal data class DebugMcpResource(val server: String, val serverLabel: String, val uri: String, val name: String, val description: String)

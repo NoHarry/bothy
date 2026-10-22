@@ -18,6 +18,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
+import cc.noharry.agent.mcp.McpRpcResponse
 
 /** A control a plan runs itself when it comes due: a tool of a loaded MCP server, its arguments, and how it reads. */
 internal data class DebugPlanAction(val server: String, val tool: String, val arguments: JsonObject, val label: String)

@@ -32,6 +32,7 @@ class ReleaseHardeningTest {
         assertTrue(rules.contains("-keep class cc.noharry.agent.runtime.NetworkToolConfirmationPolicy { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.runtime.eventlog.DurableSessionEventLogPlugin { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.dream.** { *; }"))
+        assertTrue(rules.contains("-keep class cc.noharry.agent.mcp.** { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.model.** { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.policy.** { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.transport.** { *; }"))
@@ -203,6 +204,7 @@ private val KERNEL_API_PACKAGE = Regex("""(?m)^package\s+([A-Za-z_][A-Za-z0-9_.]
 
 private val SANCTIONED_HOST_API_PREFIXES = listOf(
     "cc.noharry.agent.dream.",
+    "cc.noharry.agent.mcp.",
     "cc.noharry.agent.model.",
     "cc.noharry.agent.policy.",
     "cc.noharry.agent.transport.",
@@ -355,6 +357,15 @@ private val CANDIDATE_PUBLIC_API_CLASS_NAMES = listOf(
     "cc.noharry.agent.kernel.api.model.ModelEvent",
     "cc.noharry.agent.kernel.api.model.ModelVariant",
     "cc.noharry.agent.kernel.api.model.ServerSideSearchCapability",
+    "cc.noharry.agent.mcp.McpClientMessages",
+    "cc.noharry.agent.mcp.McpConnectResult",
+    "cc.noharry.agent.mcp.McpHttpClient",
+    "cc.noharry.agent.mcp.McpRpcClient",
+    "cc.noharry.agent.mcp.McpRpcResponse",
+    "cc.noharry.agent.mcp.McpStatus",
+    "cc.noharry.agent.mcp.McpToolCatalog",
+    "cc.noharry.agent.mcp.McpToolProvider",
+    "cc.noharry.agent.mcp.McpToolsListing",
     "cc.noharry.agent.model.OpenAiModelClient",
     "cc.noharry.agent.model.AnthropicModelClient",
     "cc.noharry.agent.model.ModelVariantRegistry",

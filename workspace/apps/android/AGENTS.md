@@ -36,8 +36,9 @@ modules, and a demo host app.
   sample, A2A, voice, Android Use or any optional module; optional modules depend at most on `:agent-kernel-api`
   (or `:agent-vfs` / `:agent-a2a-client` for their own adapters).
 - Keep `agent-vfs` free of AGENTS, skills, MCP, session, memory or model semantics; those belong in the runtime.
-- Concrete MCP servers, tools and demo integrations live in `bothy-sample`; nothing from the sample flows back into the
-  libraries. `bothy-playground` stays standalone: Bothy talks to it only over MCP, so it shows what any app can do.
+- The generic Streamable HTTP MCP client (`cc.noharry.agent.mcp`: `McpHttpClient`, `McpToolProvider`) lives in
+  `agent-runtime` and speaks English by default (`McpClientMessages`). Concrete MCP servers, connection pools, keys,
+  wording and demo integrations live in `bothy-sample`; nothing from the sample flows back into the libraries. `bothy-playground` stays standalone: Bothy talks to it only over MCP, so it shows what any app can do.
 - The playground's overlay spots (`SceneSpots.kt`) and the cabin's cut-out doors and tailgate (`CabinParts.kt`, cut from
   the cabin picture over a base with the openings painted in) are measured on its pictures; new pictures need them
   measured and cut again.
