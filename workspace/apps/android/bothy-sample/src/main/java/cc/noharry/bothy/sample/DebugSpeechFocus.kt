@@ -13,9 +13,10 @@ import java.util.IdentityHashMap
 
 /**
  * Audio focus while 小博 speaks (owner 2026-10-22: 「声音混在一起了，要分别申请下焦点」, the head unit's guidance talking
- * over a reply). Transient focus from 小博's first sound to its last ([DebugTtsActivity]): media pauses, and a guidance
- * prompt in progress gives way. A prompt that starts meanwhile takes focus that may duck; the platform does not duck
- * speech, so 小博's players are turned down here until it is over.
+ * over a reply). Transient focus that may duck, from 小博's first sound to its last ([DebugTtsActivity]): nothing pauses
+ * (owner: 「不要暂停…走混音，压低其他的」); the platform turns music and a guidance prompt in progress down under 小博. A
+ * prompt that starts meanwhile takes the same kind of focus; the platform does not duck speech, so 小博's players are
+ * turned down here until it is over.
  */
 internal object DebugSpeechFocus {
     private var audio: AudioManager? = null
@@ -32,7 +33,7 @@ internal object DebugSpeechFocus {
 
     private val request: AudioFocusRequest? by lazy {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return@lazy null
-        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+        AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
             .setAudioAttributes(DebugSpeechAudio.attributes())
             .setWillPauseWhenDucked(true)
             .setOnAudioFocusChangeListener(listener, Handler(Looper.getMainLooper()))
@@ -54,7 +55,7 @@ internal object DebugSpeechFocus {
         val manager = audio ?: return
         holding = true
         val result = request?.let(manager::requestAudioFocus)
-            ?: @Suppress("DEPRECATION") manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+            ?: @Suppress("DEPRECATION") manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
         if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) DebugTtsLog.warn("audio focus not granted ($result): speaking anyway")
     }
 

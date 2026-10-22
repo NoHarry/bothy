@@ -11,42 +11,14 @@ import com.amap.api.navi.TTSPlayListener
 
 /**
  * Audio focus for each guidance prompt (owner 2026-10-22: 「声音混在一起了，要分别申请下焦点」, a prompt over the assistant's
- * reply). A prompt takes transient focus that may duck, so music and the assistant dip under it. When the assistant
- * starts speaking over a prompt (transient focus of its own), the prompt stops and guidance stays [silence]d until the
- * assistant gives focus back, then [resume]s; prompts due meanwhile are skipped, as AMap does when muted.
+ * reply): transient focus that may duck while AMap speaks, so music and the assistant dip under it. Nothing pauses
+ * (owner: 「不要暂停…走混音，压低其他的」): when the assistant speaks over a prompt with focus of its own, the platform
+ * turns the prompt down (AMap plays it as media of unknown content, which the platform ducks) and it goes on.
  */
-internal class GuidanceFocus(
-    context: Context,
-    private val main: Handler,
-    private val silence: () -> Unit,
-    private val resume: () -> Unit,
-) : TTSPlayListener {
+internal class GuidanceFocus(context: Context, private val main: Handler) : TTSPlayListener {
     private val audio = context.applicationContext.getSystemService(AudioManager::class.java)
+    private val listener = AudioManager.OnAudioFocusChangeListener { change -> Log.i(TAG, "focus change $change") }
     private var held = false
-    private var yielded = false
-
-    private val listener = AudioManager.OnAudioFocusChangeListener { change ->
-        when {
-            // The assistant (or a call) speaks now: this prompt and the ones after wait for it.
-            change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT && !yielded -> {
-                Log.i(TAG, "focus taken: guidance quiet until it comes back")
-                yielded = true
-                silence()
-            }
-            change == AudioManager.AUDIOFOCUS_GAIN && yielded -> {
-                Log.i(TAG, "focus back: guidance resumes")
-                yielded = false
-                resume()
-                abandon()
-            }
-            // Taken for good (music started): guidance goes on, under it, from the next prompt.
-            change == AudioManager.AUDIOFOCUS_LOSS -> {
-                if (yielded) resume()
-                yielded = false
-                held = false
-            }
-        }
-    }
 
     private val request: AudioFocusRequest? =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) null
@@ -66,19 +38,16 @@ internal class GuidanceFocus(
             held = true
             val result = request?.let(audio::requestAudioFocus)
                 ?: @Suppress("DEPRECATION") audio.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-            if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) Log.w(TAG, "focus not granted ($result) for 「$text」")
+            Log.i(TAG, "prompt 「$text」: focus ${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "taken" else "not granted ($result)"}")
         }
     }
 
-    // A prompt cut short by the assistant keeps its place in line, so focus comes back here when the assistant is done.
     override fun onPlayEnd(text: String?) {
-        main.post { if (!yielded) abandon() }
-    }
-
-    private fun abandon() {
-        if (!held) return
-        held = false
-        request?.let(audio::abandonAudioFocusRequest) ?: @Suppress("DEPRECATION") audio.abandonAudioFocus(listener)
+        main.post {
+            if (!held) return@post
+            held = false
+            request?.let(audio::abandonAudioFocusRequest) ?: @Suppress("DEPRECATION") audio.abandonAudioFocus(listener)
+        }
     }
 
     private companion object {

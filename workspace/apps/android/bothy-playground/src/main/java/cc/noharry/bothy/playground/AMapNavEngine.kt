@@ -47,8 +47,6 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
     @Volatile private var carLocation: GeoPoint? = null
     /** Where a simulated drive ended: the car stays there, not back where the device (or the demo start) is. */
     @Volatile private var parked: GeoPoint? = null
-    /** The head unit's mute button: guidance given back after the assistant spoke stays off while it is on. */
-    @Volatile private var muted = false
     private val pending = AtomicReference<CountDownLatch?>()
     private val calculated = AtomicReference<AMapCalcRouteResult?>()
     private val rate = Any()
@@ -74,7 +72,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
                 AMapNavi.getInstance(app).also { amap ->
                     amap.addAMapNaviListener(listener)
                     amap.setUseInnerVoice(true)
-                    amap.addTTSPlayListener(GuidanceFocus(app, main, silence = { navi?.stopSpeak() }, resume = { if (!muted) navi?.startSpeak() }))
+                    amap.addTTSPlayListener(GuidanceFocus(app, main))
                     navi = amap
                     startLocating()
                 }
@@ -232,7 +230,6 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
 
     /** Voice guidance on or off (the head unit's mute button). */
     fun setMuted(muted: Boolean) {
-        this.muted = muted
         onMain { navi?.let { if (muted) it.stopSpeak() else it.startSpeak() } }
     }
 
