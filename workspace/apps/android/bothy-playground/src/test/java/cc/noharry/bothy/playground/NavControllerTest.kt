@@ -197,6 +197,32 @@ class NavControllerTest {
         assertTrue(result.isError())
         assertEquals("这个 Playground 没有导航", result.text())
     }
+
+    @Test
+    fun withTheAppOnARoutePlannedHereIsHandedToItToDriveAndChangesAreSentThere() {
+        val handed = mutableListOf<String>()
+        val app = object : AppNavigator {
+            override val name = "高德地图 App"
+            override var on = true
+            override fun hand(end: Place, stops: List<Place>, preference: RoutePreference): String {
+                handed += (stops.map { it.name } + end.name).joinToString(">")
+                return "已交给高德地图 App"
+            }
+        }
+        val nav = NavController(store, engine, clock = { 0L }, later = { _, run -> run() }, app = app)
+        val planned = nav.start(PlaceSpec("海上世界"), listOf(PlaceSpec("南山书城")), null, StopOrder.AS_GIVEN, null, null)
+        assertTrue(planned.text, planned.text.startsWith("规划好了去「海上世界」的路线") && planned.text.contains("秒后交给高德地图 App"))
+        assertEquals(listOf("南山书城>海上世界"), handed)
+        assertEquals("the head unit let the route go", NavStatus.IDLE, now.status)
+        val change = runCatching { nav.addWaypoint(PlaceSpec("蛋糕店"), null) }.exceptionOrNull()
+        assertTrue("$change", change?.message.orEmpty().contains("在高德地图 App里改"))
+        // Said by name, it goes straight there; with the App off, routes are the head unit's again.
+        nav.inApp(PlaceSpec("大梅沙"), emptyList(), null, StopOrder.AS_GIVEN, null)
+        assertEquals("大梅沙", handed.last())
+        app.on = false
+        nav.start(PlaceSpec("海上世界"), emptyList(), null, StopOrder.AS_GIVEN, null, null)
+        assertEquals(NavStatus.NAVIGATING, now.status)
+    }
 }
 
 /** A map with a dozen Shenzhen places, straight-line routes and canned searches. */

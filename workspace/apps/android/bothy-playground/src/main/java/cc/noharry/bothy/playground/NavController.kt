@@ -3,6 +3,18 @@ package cc.noharry.bothy.playground
 import java.util.Calendar
 import kotlin.math.roundToInt
 
+/**
+ * Another App that drives a route in its own navigation (the 高德地图 App, [AmapApp]). While [on], routes planned here
+ * go to it to drive instead of the head unit.
+ */
+interface AppNavigator {
+    val name: String
+    val on: Boolean
+
+    /** Opens the App on the way to [end] through [stops]; says what it did, or refuses. */
+    fun hand(end: Place, stops: List<Place>, preference: RoutePreference): String
+}
+
 /** How the stops of a new route are ordered. */
 enum class StopOrder(val id: String) { AS_GIVEN("as_given"), NEAREST("nearest"), NEAREST_KEEP_FIRST("nearest_keep_first") }
 
@@ -22,6 +34,8 @@ class NavController(
     private val focus: (MapCue) -> Unit = {},
     /** Whether a map shows those one by one now, telling [placesShown] as it does; planning then waits for it. */
     private val mapWatching: () -> Boolean = { false },
+    /** The App routes are handed to while it is [AppNavigator.on]; none, the head unit drives them all. */
+    private val app: AppNavigator? = null,
 ) {
     private val nav: NavState get() = store.read().cabin.nav
     private val generation = java.util.concurrent.atomic.AtomicInteger()
@@ -71,6 +85,7 @@ class NavController(
     fun begin(expected: Int? = null) {
         if (expected != null && expected != generation.get()) return
         val planned = nav.takeIf { it.previewing } ?: return
+        if (app?.on == true && runCatching { handOff(planned) }.isSuccess) return
         engine.startDriving(planned.simulated)
         store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.NAVIGATING, startsAt = 0L, waitsForGo = false, guide = Guide())) }
         store.record("cabin", "navigation", "开始导航去「${planned.destination?.name}」", setOf(Highlight.NAV), fromAssistant = false)
@@ -92,17 +107,45 @@ class NavController(
         ready()
         val area = city?.takeIf { it.isNotBlank() } ?: engine.currentCity()
         val from = start?.let { resolve(it, area, engine.currentLocation()) }
-        val near = from?.point ?: engine.currentLocation()
+        val (end, ordered) = trip(destination, waypoints, order, area, from?.point ?: engine.currentLocation())
+        val done = if (depart && app?.on != true) "开始导航去「${end.name}」" else "规划好了去「${end.name}」的路线"
+        return drive(end, ordered, preference ?: nav.preference, from?.point, done, hold = !depart)
+    }
+
+    /**
+     * Straight to the App's navigation (「用高德导航去…」, owner 2026-10-22): the places found as for [start], the head
+     * unit's own route, if any, given up. The App plans from where the device is.
+     */
+    fun inApp(destination: PlaceSpec, waypoints: List<PlaceSpec>, preference: RoutePreference?, order: StopOrder, city: String?): ToolOutcome {
+        ready()
+        val navigator = app ?: throw ToolRefusal("这里不能交给其它导航 App")
+        val area = city?.takeIf { it.isNotBlank() } ?: engine.currentCity()
+        val (end, ordered) = trip(destination, waypoints, order, area, engine.currentLocation())
+        val said = navigator.hand(end, ordered, preference ?: nav.preference)
+        if (nav.active) stop()
+        store.record("cabin", "navigation", said, setOf(Highlight.NAV), fromAssistant = false)
+        return ToolOutcome(store.read(), "$said。${appDrives(navigator)}", setOf(Highlight.NAV))
+    }
+
+    /** The trip's places found together near [near], the stops in [order]: the destination and the stops. */
+    private fun trip(destination: PlaceSpec, waypoints: List<PlaceSpec>, order: StopOrder, area: String, near: GeoPoint?): Pair<Place, List<Place>> {
         val resolved = resolveTogether(listOf(destination) + waypoints, area, near)
         val end = resolved.first()
         val stops = resolved.drop(1)
-        val ordered = when (order) {
+        return end to when (order) {
             StopOrder.AS_GIVEN -> stops
             StopOrder.NEAREST -> orderedByProximity(near ?: stops.firstOrNull()?.point ?: end.point, stops, end.point, keepFirst = false)
             StopOrder.NEAREST_KEEP_FIRST -> orderedByProximity(near ?: end.point, stops, end.point, keepFirst = true)
         }
-        val done = if (depart) "开始导航去「${end.name}」" else "规划好了去「${end.name}」的路线"
-        return drive(end, ordered, preference ?: nav.preference, from?.point, done, hold = !depart)
+    }
+
+    /** The route planned goes to the App to drive ([app]); the head unit lets it go. What the App was told, or a refusal. */
+    private fun handOff(planned: NavState): String {
+        val said = app!!.hand(planned.destination!!, planned.waypoints, planned.preference)
+        engine.stop()
+        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.IDLE, startsAt = 0L, waitsForGo = false, speedKmh = 0, guide = Guide())) }
+        store.record("cabin", "navigation", said, setOf(Highlight.NAV), fromAssistant = false)
+        return said
     }
 
     /** The route waiting for the user's word ([start] without depart) drives now. */
@@ -111,6 +154,7 @@ class NavController(
         if (nav.driving) return ToolOutcome(store.read(), "已经在导航了。" + nav.describe(clock()))
         val planned = nav.takeIf { it.previewing } ?: throw ToolRefusal("现在没有等出发的路线，先用 start_navigation 规划")
         generation.incrementAndGet()
+        if (app?.on == true) return ToolOutcome(store.read(), handOff(planned) + "。" + appDrives(app), setOf(Highlight.NAV))
         begin()
         return ToolOutcome(store.read(), "开始导航去「${planned.destination?.name}」。" + nav.describe(clock()), setOf(Highlight.NAV))
     }
@@ -250,7 +294,11 @@ class NavController(
         val via = if (stops.isEmpty()) "" else "，途经 ${stops.numbered()}"
         val text = "$done$via。全程 ${result.meters.km()}，约 ${result.seconds.duration()}，预计 ${eta(result.seconds)} 到" +
             (if (result.tolls > 0) "，过路费约 ${result.tolls} 元" else "") + (if (simulated) "（模拟行驶）" else "") +
-            if (hold) "。路线已显示在屏幕上，还没出发：用户说出发再用 begin_navigation 开始导航。" else "。路线已显示在屏幕上，${wait / 1000} 秒后开始导航。"
+            when {
+                hold -> "。路线已显示在屏幕上，还没出发：用户说出发再用 begin_navigation 开始导航" + (if (app?.on == true) "（会交给${app.name}）。" else "。")
+                app?.on == true -> "。路线已显示在屏幕上，${wait / 1000} 秒后交给${app.name}导航。${appDrives(app)}"
+                else -> "。路线已显示在屏幕上，${wait / 1000} 秒后开始导航。"
+            }
         return ToolOutcome(store.read(), text, setOf(Highlight.NAV))
     }
 
@@ -319,8 +367,12 @@ class NavController(
 
     private fun active(): NavState {
         ready()
-        return nav.takeIf { it.active && it.destination != null } ?: throw ToolRefusal("现在没有在导航，先用 start_navigation 开始导航")
+        return nav.takeIf { it.active && it.destination != null }
+            ?: throw ToolRefusal(if (app?.on == true) "导航交给了${app.name}，途经点、终点要在${app.name}里改" else "现在没有在导航，先用 start_navigation 开始导航")
     }
+
+    /** What the assistant is to know once [app] drives: the head unit no longer sees the trip. */
+    private fun appDrives(app: AppNavigator): String = "之后的导航在${app.name}里：到达提醒、改途经点都在${app.name}里做，车机这边看不到进度"
 
     private fun eta(seconds: Int): String = clockText(clock() + seconds * 1000L, clock())
 

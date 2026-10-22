@@ -33,7 +33,9 @@ class PlaygroundService : Service() {
         val store = Playground.store
         HeadUnitModes.load(this)
         val engine = AMapNavEngine(this, store, BuildConfig.AMAP_CONFIGURED).apply { realNav = HeadUnitModes.realNav }
-        val navigation = NavController(store, engine, focus = { Playground.mapCues.tryEmit(it) }, mapWatching = { Playground.mapShowing })
+        val navigation = NavController(
+            store, engine, focus = { Playground.mapCues.tryEmit(it) }, mapWatching = { Playground.mapShowing }, app = AmapApp(this),
+        )
         Playground.engine = engine
         Playground.navigation = navigation
         if (HeadUnitModes.realNav) navigation.setSimulated(false)

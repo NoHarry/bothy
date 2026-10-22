@@ -502,7 +502,13 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
                     Pill(theme.label, selected = mode.layout == theme) { HeadUnitModes.set(context, mode.copy(theme = theme)) }
                 }
             }
-            if (mode.realNav) return@Column
+            if (mode.realNav) {
+                // Routes driven in the 高德地图 App instead, its stock screen with all it shows (owner 2026-10-22: 方案二).
+                SheetSwitch("导航交给高德地图 App（有途经点时在高德里点开始导航）", mode.amapApp) { on ->
+                    scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(amapApp = on)) }
+                }
+                return@Column
+            }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { PlaceSwitch(store) }
             SheetSwitch("导航模拟行驶（不用真开车）", world.cabin.nav.simulated) { on -> scope.launch(Dispatchers.IO) { Playground.navigation?.setSimulated(on) } }
             var demoStart by remember { mutableStateOf(Playground.engine?.demoStart == true) }

@@ -214,7 +214,8 @@ internal fun stepTitle(tool: String): String {
 }
 
 private val TOOL_TITLES: Map<String, String> by lazy {
-    (CABIN_TOOLS + HOME_TOOLS + navTools(NavController(PlaygroundStore(), UnavailableNavEngine("")))).associate { it.name to it.title } +
+    val nav = NavController(PlaygroundStore(), UnavailableNavEngine(""))
+    (CABIN_TOOLS + HOME_TOOLS + navTools(nav) + appNavigationTool(nav)).associate { it.name to it.title } +
         mapOf(
             "web_search" to "联网搜索", "web_fetch" to "打开网页", "spawn_agent" to "派子任务", "wait_agent" to "等子任务",
             "search_tools" to "找工具", "show_card" to "出卡片", "ask_user" to "问你", "read_file" to "读资料", "write_file" to "记下来",

@@ -20,6 +20,8 @@
     <uses-permission android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE" />
     <queries>
         <package android:name="cc.noharry.bothy.sample" />
+        <!-- The 高德地图 App, to hand routes to (AmapApp). -->
+        <package android:name="com.autonavi.minimap" />
     </queries>
 
     <!-- The play bar names the app that plays (NowPlaying): apps with a launcher entry are visible to this one. -->

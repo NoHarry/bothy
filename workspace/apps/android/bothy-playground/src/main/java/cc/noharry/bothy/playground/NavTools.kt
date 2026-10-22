@@ -98,6 +98,35 @@ private fun startNavigationTool(nav: NavController) = McpTool(
     )
 }
 
+/** The 高德地图 App's own navigation, offered with real navigation only ([AmapApp]): it drives where the device is. */
+internal fun appNavigationTool(nav: NavController) = McpTool(
+    name = "navigate_in_amap_app",
+    title = "用高德地图导航",
+    description = "用户点名用高德、高德地图 App 导航时（「用高德导航去…」「打开高德去…」）调用：在高德地图 App 里导航去终点，有途经点时打开高德的路线页，" +
+        "用户在高德里点开始导航。车机上的导航会退出；之后到达提醒、改途经点都在高德里，车机看不到进度。没点名高德就用 start_navigation。",
+    inputSchema = objectSchema(
+        "destination" to placeProperty("终点：名字，或 {name, lat, lng, poi_id}"),
+        "waypoints" to buildJsonObject {
+            put("type", "array")
+            put("description", "途经点，按经过的顺序")
+            put("items", placeProperty("途经点"))
+        },
+        "preference" to property("string", "路线偏好", RoutePreference.entries.map { it.id }),
+        "order" to property("string", "途经点顺序：用户定了先后用 as_given，没定先后用 nearest_keep_first（首站不动）或 nearest", StopOrder.entries.map { it.id }),
+        "city" to property("string", "在哪个城市找这些地点，不给就是车所在的城市"),
+        required = listOf("destination"),
+    ),
+    direct = true,
+) { _, args ->
+    nav.inApp(
+        args.place("destination") ?: throw ToolRefusal("给出 destination"),
+        args.places("waypoints"),
+        args.choice("preference", RoutePreference.entries) { listOf(it.id, it.label) + preferenceAliases(it) },
+        args.choice("order", StopOrder.entries) { listOf(it.id) } ?: StopOrder.AS_GIVEN,
+        args.string("city"),
+    )
+}
+
 private fun beginNavigationTool(nav: NavController) = McpTool(
     name = "begin_navigation",
     title = "出发",

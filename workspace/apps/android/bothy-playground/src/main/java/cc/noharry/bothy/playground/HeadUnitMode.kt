@@ -23,9 +23,17 @@ enum class HeadUnitTheme(val id: String, val label: String) {
  * The simulated car and home ([realNav] off), or real navigation and 小博 alone (owner 2026-10-22: 「切换这个模式后那些模拟的
  * mcp都下掉，就剩真实导航和小博」): the device's own position, real driving, only the navigation tools served.
  */
-data class HeadUnitMode(val realNav: Boolean = false, val theme: HeadUnitTheme = HeadUnitTheme.CLASSIC) {
+data class HeadUnitMode(
+    val realNav: Boolean = false,
+    val theme: HeadUnitTheme = HeadUnitTheme.CLASSIC,
+    /** Routes driven in the 高德地图 App instead ([AmapApp], owner 2026-10-22: 「增加一个开关可以切方案二」); real navigation only. */
+    val amapApp: Boolean = false,
+) {
     /** The layout shown: with real navigation there is no car to show, so the car's layout gives way to the columns. */
     val layout: HeadUnitTheme get() = if (realNav && theme == HeadUnitTheme.CLASSIC) HeadUnitTheme.COLUMNS else theme
+
+    /** Whether a route is handed to the 高德地图 App to drive: it drives where the device is, so never a simulated one. */
+    val handsToApp: Boolean get() = realNav && amapApp
 }
 
 /** The head unit's mode for the process, kept across starts; the screen and the MCP server both read it. */
@@ -39,7 +47,7 @@ object HeadUnitModes {
         if (loaded) return
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val theme = HeadUnitTheme.entries.firstOrNull { it.id == prefs.getString(THEME, null) } ?: HeadUnitTheme.CLASSIC
-        state.value = HeadUnitMode(prefs.getBoolean(REAL_NAV, false), theme)
+        state.value = HeadUnitMode(prefs.getBoolean(REAL_NAV, false), theme, prefs.getBoolean(AMAP_APP, false))
         loaded = true
     }
 
@@ -51,7 +59,7 @@ object HeadUnitModes {
     fun set(context: Context, next: HeadUnitMode) {
         val before = state.value
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(REAL_NAV, next.realNav).putString(THEME, next.theme.id).apply()
+            .putBoolean(REAL_NAV, next.realNav).putString(THEME, next.theme.id).putBoolean(AMAP_APP, next.amapApp).apply()
         state.value = next
         if (before.realNav == next.realNav) return
         Playground.engine?.realNav = next.realNav
@@ -65,4 +73,5 @@ object HeadUnitModes {
     private const val PREFS = "head_unit"
     private const val REAL_NAV = "real_nav"
     private const val THEME = "theme"
+    private const val AMAP_APP = "amap_app"
 }
