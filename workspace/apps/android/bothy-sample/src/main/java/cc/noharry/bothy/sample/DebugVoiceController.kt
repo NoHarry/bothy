@@ -199,6 +199,7 @@ internal object DebugVoiceController {
         this.origin = origin
         this.appContext = appContext
         mutableActive.value = true
+        DebugSpeechFocus.began(DebugSpeechFocus.LISTENING)
         // The wake word's own recording closes before the session's opens; it listens to the session's instead.
         DebugWakeWord.refresh()
         watch(appContext, created)
@@ -256,6 +257,7 @@ internal object DebugVoiceController {
         this.origin = origin
         this.appContext = appContext
         mutableActive.value = true
+        DebugSpeechFocus.began(DebugSpeechFocus.LISTENING)
         DebugWakeWord.refresh()
         watchers = scope.launch { created.state.collect { next -> logChanges(mutableState.value, next); mutableState.value = next } }
         created.start()
@@ -315,6 +317,7 @@ internal object DebugVoiceController {
         active.stop()
         mutableState.value = active.state.value
         mutableActive.value = false
+        DebugSpeechFocus.ended(DebugSpeechFocus.LISTENING)
         // The session's recording closes first; the wake word's opens after it.
         if (resumeWake) DebugWakeWord.refresh()
     }
@@ -342,6 +345,7 @@ internal object DebugVoiceController {
         active.stop()
         mutableState.value = active.state.value
         mutableActive.value = false
+        DebugSpeechFocus.ended(DebugSpeechFocus.LISTENING)
         if (resumeWake) DebugWakeWord.refresh()
     }
 

@@ -30,7 +30,7 @@ internal object DebugTtsActivity {
         holders.remove(holder)
         mutableActive.value = holders.isNotEmpty()
         if (holders.isEmpty()) mutableSpeech.value = ""
-        DebugSpeechFocus.ended(holder, last = holders.isEmpty())
+        DebugSpeechFocus.ended(holder)
     }
 
     /** The text an announcer starts synthesizing; kept until all speech ends. */

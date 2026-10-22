@@ -188,10 +188,14 @@ internal object DebugWakeWord {
             DebugVoiceLog.i(TAG, "wake word heard in the session but far: level=${levelDb?.let { "%.1f".format(it) }} caller=${callerDb?.let { "%.1f".format(it) }}")
             return
         }
-        levelDb?.let { level ->
+        // Over music the phrase measures the music too: the near gate set from it shut out the speaker (2026-10-22, a
+        // wake at -20.8 dBFS over 网易云, then nothing heard), so the level is learnt only with nothing else playing.
+        val overAudio = runCatching { context.getSystemService(android.media.AudioManager::class.java).isMusicActive }.getOrDefault(false)
+        levelDb?.takeUnless { overAudio }?.let { level ->
             lastLevelDb = level
             appContext?.getSharedPreferences(WAKE_PREFS, Context.MODE_PRIVATE)?.edit()?.putFloat(CALLER_LEVEL_KEY, level.toFloat())?.apply()
         }
+        if (overAudio && levelDb != null) DebugVoiceLog.i(TAG, "wake level not learnt: other audio is playing")
         DebugVoiceLog.i(TAG, "wake word heard: $phrase level=${levelDb?.let { "%.1f dBFS".format(it) } ?: "-"}")
         // Lets go of the microphone; the voice session takes it as soon as the recording is closed.
         stopListener()

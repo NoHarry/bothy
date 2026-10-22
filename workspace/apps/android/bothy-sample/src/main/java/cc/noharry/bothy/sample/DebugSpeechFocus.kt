@@ -12,8 +12,10 @@ import java.util.Collections
 import java.util.IdentityHashMap
 
 /**
- * Audio focus while 小博 speaks (owner 2026-10-22: 「声音混在一起了，要分别申请下焦点」, the head unit's guidance talking
- * over a reply). Transient focus that may duck, from 小博's first sound to its last ([DebugTtsActivity]): nothing pauses
+ * Audio focus while 小博 speaks or listens (owner 2026-10-22: 「声音混在一起了，要分别申请下焦点」, the head unit's guidance
+ * talking over a reply; then 「唤醒和识别都不行了，刚才播放了网易云音乐」, music at full volume over the speaker). Transient focus
+ * that may duck, from the first holder to the last: 小博's sounds ([DebugTtsActivity]) and the voice session while it is
+ * open ([LISTENING], [DebugVoiceController]). Nothing pauses
  * (owner: 「不要暂停…走混音，压低其他的」); the platform turns music and a guidance prompt down under 小博. AMap asks for
  * the same kind of focus at each prompt; 小博 takes it straight back (owner: 「语音说话应该压低导航的」), so the prompt is
  * turned down under 小博 rather than 小博 under the prompt. Only a call or an app taking focus outright turns 小博 down;
@@ -22,7 +24,11 @@ import java.util.IdentityHashMap
 internal object DebugSpeechFocus {
     private var audio: AudioManager? = null
     private val players: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
+    private val holders: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
     private var holding = false
+
+    /** The voice session's hold: open, 小博 hears the speaker over music turned down. */
+    val LISTENING = Any()
     private var ducked = false
     /** Times focus was taken back from prompts while this speech lasts: a source that grabs it back each time gives up first. */
     private var reclaims = 0
@@ -57,13 +63,14 @@ internal object DebugSpeechFocus {
         audio = context.applicationContext.getSystemService(AudioManager::class.java)
     }
 
-    /** [holder] began speaking ([DebugTtsActivity.begin]); the first one takes focus. */
+    /** [holder] began speaking ([DebugTtsActivity.begin]) or listening ([LISTENING]); the first one takes focus. */
     @Synchronized
     fun began(holder: Any) {
         if (holder is AudioTrack || holder is MediaPlayer) {
             players += holder
             volume(holder, if (ducked) DUCKED_VOLUME else 1f)
         }
+        holders += holder
         if (holding) return
         val manager = audio ?: return
         holding = true
@@ -84,11 +91,12 @@ internal object DebugSpeechFocus {
     private fun requestFocus(manager: AudioManager): Int = request?.let(manager::requestAudioFocus)
         ?: @Suppress("DEPRECATION") manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
 
-    /** [holder] is done; with [last] (no speech left) focus goes back. */
+    /** [holder] is done; once none is left, focus goes back. */
     @Synchronized
-    fun ended(holder: Any, last: Boolean) {
+    fun ended(holder: Any) {
         players -= holder
-        if (!last || !holding) return
+        holders -= holder
+        if (holders.isNotEmpty() || !holding) return
         holding = false
         ducked = false
         main.removeCallbacks(reclaim)
