@@ -214,7 +214,7 @@ private fun HomeCards(world: World, grid: Grid) {
  * every stop); the quick actions under it; the progress along the right edge.
  */
 @Composable
-internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: PlaygroundStore, slots: RouteSlots, onMore: () -> Unit) {
+internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: PlaygroundStore, slots: RouteSlots, onMore: (() -> Unit)?) {
     val nav = world.cabin.nav
     val scope = rememberCoroutineScope()
     var details by remember { mutableStateOf(false) }

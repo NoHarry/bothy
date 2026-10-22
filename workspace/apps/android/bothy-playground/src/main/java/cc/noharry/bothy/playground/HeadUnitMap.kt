@@ -157,14 +157,14 @@ internal fun IdleNavCard(nav: NavState, ready: String?, modifier: Modifier = Mod
     }
 }
 
-/** The navigation's quick actions, as on the head unit: exit, overview, mute, more. */
+/** The navigation's quick actions, as on the head unit: exit, overview, mute, and more (the settings) unless [onMore] is null. */
 @Composable
-internal fun NavActionBar(overview: Boolean, muted: Boolean, onExit: () -> Unit, onOverview: () -> Unit, onMute: () -> Unit, onMore: () -> Unit, modifier: Modifier = Modifier) {
+internal fun NavActionBar(overview: Boolean, muted: Boolean, onExit: () -> Unit, onOverview: () -> Unit, onMute: () -> Unit, onMore: (() -> Unit)?, modifier: Modifier = Modifier) {
     Row(modifier.clip(RoundedCornerShape(16.dp)).background(UnitColors.card).padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
         ActionItem(Icons.AutoMirrored.Filled.ExitToApp, "退出导航", onExit)
         ActionItem(if (overview) Icons.Filled.MyLocation else Icons.Filled.Route, if (overview) "回到车辆" else "查看全览", onOverview)
         ActionItem(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "已静音" else "播报中", onMute)
-        ActionItem(Icons.Filled.MoreHoriz, "更多", onMore)
+        if (onMore != null) ActionItem(Icons.Filled.MoreHoriz, "更多", onMore)
     }
 }
 

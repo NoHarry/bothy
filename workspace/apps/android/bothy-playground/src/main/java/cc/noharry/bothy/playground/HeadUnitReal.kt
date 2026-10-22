@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -194,25 +193,23 @@ internal fun RealNavHeadUnit(
             }
             FollowTheCar(map, nav, cuedAt)
             MapLayer(mapBlocked(context), map, slots.map, corner = if (theme == HeadUnitTheme.COLUMNS) 18.dp else 0.dp)
-            if (routeCards) {
-                MapOverlays(world, now, map, store, slots.route) { onSheet(true) }
-            } else {
-                MapToolbar(Modifier.offset(slots.route.x, slots.route.top).width(slots.route.width))
-            }
+            // Search and what to look for nearby are on the bar: nothing over the map until there is a route.
+            // The bar holds the settings: no 「更多」 on the route's actions.
+            if (routeCards) MapOverlays(world, now, map, store, slots.route, onMore = null)
             slots.assistant?.let { box ->
                 val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
                 if (shows == AssistantShows.PANEL) AssistantChatPanel(assistant, null, close, placed) else AssistantBar(assistant, close, placed)
             }
-            RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd)) { onSheet(true) }
+            RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
             RealBar(theme, assistant, playing, slots.bar) { onSheet(true) }
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
 }
 
-/** Top right: that this is real navigation, the server, the weather where the device is, the time and the settings. */
+/** Top right: that this is real navigation, the server, the weather where the device is and the time (the settings are on the bar). */
 @Composable
-private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier, onSettings: () -> Unit) {
+private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
     Row(
         modifier.clip(RoundedCornerShape(14.dp)).background(UnitColors.card).padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -222,7 +219,6 @@ private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, 
         StatusLabel("真实导航")
         weather?.let { StatusLabel("${it.weather} ${it.temperature}°") }
         StatusLabel(clockText(now, now))
-        PlainIcon(Icons.Filled.Settings, size = 20, onClick = onSettings)
     }
 }
 
@@ -232,8 +228,9 @@ private fun StatusLabel(text: String) {
 }
 
 /**
- * Along the bottom: 小博 (tapped, it listens; its face is where it went when it retreated), search, what to look for
- * nearby, the settings. In columns a card like the simulated dock; with the map first, a flat strip along the edge.
+ * Along the bottom, each control once (owner 2026-10-22: 「很多重复控件」): 小博 (tapped, it listens: search is said to it;
+ * its face is where it went when it retreated), what to look for nearby, the play bar, the settings. In columns a card
+ * like the simulated dock; with the map first, a flat strip along the edge.
  */
 @Composable
 private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: MediaNow, box: MapBox, onSettings: () -> Unit) {
@@ -255,15 +252,6 @@ private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: Med
                 Text("小博", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 Text("说「你好小博」或点我", color = UnitColors.muted, fontSize = 11.sp, maxLines = 1)
             }
-        }
-        Row(
-            Modifier.clip(RoundedCornerShape(12.dp)).background(UnitColors.raised).clickable { Assistant.wake(context) }
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp))
-            Text("去哪儿", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
         }
         NEARBY_REAL.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
         Spacer(Modifier.weight(1f))

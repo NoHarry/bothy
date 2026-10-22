@@ -163,6 +163,8 @@ fun playgroundEndpoints(
     store: PlaygroundStore,
     nav: NavController = NavController(store, UnavailableNavEngine("这个 Playground 没有导航")),
     realNav: () -> Boolean = { HeadUnitModes.realNav },
+    /** The device's own media ([mediaTools]), served with real navigation. */
+    media: List<McpTool> = emptyList(),
 ): Map<String, McpEndpoint> = listOf(
     McpEndpoint(
         id = "cabin",
@@ -184,8 +186,9 @@ fun playgroundEndpoints(
             title = "Bothy Playground 车机导航",
             instructions = "这是平板上的车机导航（高德），用设备的真实定位、真实行驶，不模拟；车的其它部分（空调、座椅、车窗等）这里没有。" +
                 "地点直接给名字就行，多个地点一次 start_navigation 算好；开着导航改途经点用 add_waypoint / remove_waypoint / replace_waypoint / " +
-                "reorder_waypoints，路上找吃饭、加油、充电用 search_along_route；到达时提醒或办事，可以监听资源 playground://cabin/state 的 navigation.arrived。",
-            tools = navTools(nav),
+                "reorder_waypoints，路上找吃饭、加油、充电用 search_along_route；到达时提醒或办事，可以监听资源 playground://cabin/state 的 navigation.arrived。" +
+                "平板上在放的音乐、播客和媒体音量用 control_media 控制。",
+            tools = navTools(nav) + media,
             resources = listOf(McpResource("playground://cabin/state", "车机导航状态", "导航状态 JSON，字段：$NAV_FIELDS", ::navigationJson)),
         ),
     ),
