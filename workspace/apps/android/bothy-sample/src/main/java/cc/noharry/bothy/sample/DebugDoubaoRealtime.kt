@@ -94,15 +94,36 @@ internal fun saveDebugRealtimeConfig(context: Context, config: DebugRealtimeConf
 }
 
 /**
- * What the realtime model is told: the persona, then the fixed rule for handing tasks to 小博. With 记忆 on
- * ([remembers]), remembering is 小博's task too, and [profile] says what it remembers ([memoryProfileText]).
+ * What the realtime model is told: the persona, then the fixed rule for handing tasks to 小博, then what was said in
+ * this session before this conversation ([recent], [realtimeRecentText]). With 记忆 on ([remembers]), remembering is
+ * 小博's task too, and [profile] says what it remembers ([memoryProfileText]).
  */
-internal fun realtimeInstructions(persona: String, profile: String = "", remembers: Boolean = false): String =
+internal fun realtimeInstructions(
+    persona: String,
+    profile: String = "",
+    remembers: Boolean = false,
+    recent: List<Pair<String, String>> = emptyList(),
+): String =
     listOf(
         persona.trim().ifEmpty { DEFAULT_REALTIME_PERSONA },
         REALTIME_TOOL_RULE + if (remembers) REALTIME_MEMORY_RULE else "",
+        realtimeRecentText(recent),
         profile.takeIf { remembers }.orEmpty(),
     ).filter(String::isNotBlank).joinToString("\n")
+
+/**
+ * The session's latest exchanges, the user's words and the answer, clipped (owner 2026-10-22: 「上下文丢了吗」). Each
+ * wake opens a new conversation with the service, which knew nothing of the trip planned a minute before: it asked
+ * 「你是要规划从哪里出发」 instead of handing 「接到他先去福田香格里拉酒店放行李，再去吃饭」 to 小博.
+ */
+internal fun realtimeRecentText(recent: List<Pair<String, String>>): String =
+    if (recent.isEmpty()) ""
+    else REALTIME_RECENT_RULE + recent.joinToString("") { (words, answer) ->
+        "\n用户：${clipRecent(withoutUserWords(words))}\n回答：${clipRecent(answer)}"
+    }
+
+private fun clipRecent(text: String): String =
+    text.replace(Regex("\\s+"), " ").trim().let { if (it.length > RECENT_CHARS) it.take(RECENT_CHARS) + "…" else it }
 
 /** One server event, as the session acts on it; unknown types are dropped. */
 internal sealed interface DoubaoRealtimeEvent {
@@ -176,11 +197,15 @@ private fun errorMessage(event: JsonObject): String {
  * `session.create`: the model, persona and rule (with what 小博 remembers, [memories], when 记忆 is on), the ask_xiaobo
  * tool, 16 kHz PCM16 in and 24 kHz PCM out in [config]'s voice.
  */
-internal fun doubaoRealtimeSessionCreate(config: DebugRealtimeConfig, memories: List<DebugUserMemory>? = null): String = buildJsonObject {
+internal fun doubaoRealtimeSessionCreate(
+    config: DebugRealtimeConfig,
+    memories: List<DebugUserMemory>? = null,
+    recent: List<Pair<String, String>> = emptyList(),
+): String = buildJsonObject {
     put("type", "session.create")
     putJsonObject("session") {
         put("model", DOUBAO_REALTIME_MODEL)
-        put("instructions", realtimeInstructions(config.effectivePersona, memoryProfileText(memories.orEmpty()), remembers = memories != null))
+        put("instructions", realtimeInstructions(config.effectivePersona, memoryProfileText(memories.orEmpty()), remembers = memories != null, recent))
         putJsonArray("tools") {
             addJsonObject {
                 put("type", "function")
@@ -405,6 +430,12 @@ private const val REALTIME_TOOL_RULE =
         // 2026-10-20: 「下周六」 went to 小博 as 「2026年10月27日」, a Tuesday.
         "交给 ask_xiaobo 时，日期和时间照用户原话说（「下周六」「明早九点」），不要自己换算成几月几号；" +
         "用户没说的细节不要自己补，用户没说「再」「继续」也不要加。"
+private const val REALTIME_RECENT_RULE =
+    "这次唤醒前，用户和你在这段对话里刚说过下面这些，现在接着聊：用户说的「他」「那家」「刚才那条路线」指的就是这里的人、地方和行程；" +
+        "改行程、加一站、换地方，照样交给 ask_xiaobo。"
+/** Exchanges told to a new conversation, and how much of each side. */
+internal const val REALTIME_CONTEXT_TURNS = 4
+private const val RECENT_CHARS = 160
 private const val REALTIME_MEMORY_RULE = "用户让你记住、修改或忘掉关于他自己的事（比如「记住我家在…」「叫我老王」「忘掉我公司地址」），也交给 ask_xiaobo，由小博记下。"
 internal const val DOUBAO_REALTIME_URL = "wss://openspeech.bytedance.com/api/v3/duplex/realtime/dialogue"
 private const val DOUBAO_REALTIME_MODEL = "1.2.6.1"

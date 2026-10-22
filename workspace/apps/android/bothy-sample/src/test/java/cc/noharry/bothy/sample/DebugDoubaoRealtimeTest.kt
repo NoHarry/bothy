@@ -216,6 +216,22 @@ class DebugDoubaoRealtimeTest {
     }
 
     @Test
+    fun aNewConversationIsToldTheSessionsLatestExchanges() {
+        val request = "规划接机再吃素的路线（用户原话：「先去机场接她，再去吃素」）"
+        val result = "导航已经在走了：先去宝安机场 T3 接人，再开去若蘭慈素食馆。" + "路上".repeat(100)
+        val told = realtimeInstructions("你是小博。", "- 称呼与身份：叫我老王", remembers = true, recent = listOf(request to result))
+        assertTrue(told.contains("\n用户：规划接机再吃素的路线\n回答：导航已经在走了：先去宝安机场 T3 接人，再开去若蘭慈素食馆。"))
+        assertFalse(told.contains("先去机场接她"))
+        val answer = told.lines().first { it.startsWith("回答：") }.removePrefix("回答：")
+        assertTrue(answer.endsWith("…") && answer.length == 161)
+        // What 小博 remembers stays last; with nothing said before, nothing is added.
+        assertTrue(told.endsWith("叫我老王"))
+        assertEquals(realtimeInstructions("你是小博。"), realtimeInstructions("你是小博。", recent = emptyList()))
+        val session = Json.parseToJsonElement(doubaoRealtimeSessionCreate(DebugRealtimeConfig(), recent = listOf("你好" to "你好呀"))).jsonObject
+        assertTrue(session["session"]!!.jsonObject["instructions"]!!.jsonPrimitive.content.endsWith("用户：你好\n回答：你好呀"))
+    }
+
+    @Test
     fun aPresetIsWhatTheModelIsToldAndATypedPersonaIsKept() {
         val savage = DebugRealtimeConfig(persona = "你是小博", personaPreset = DoubaoRealtimePersona.SAVAGE.id)
         assertTrue(realtimeInstructions(savage.effectivePersona).startsWith(DoubaoRealtimePersona.SAVAGE.text + "\n"))

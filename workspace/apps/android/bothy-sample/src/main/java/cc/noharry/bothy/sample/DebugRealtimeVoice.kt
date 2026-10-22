@@ -157,9 +157,14 @@ internal class DebugRealtimeVoice(
 
     private fun open(next: DoubaoRealtimeConnection) {
         next.open()
-        // OkHttp holds it until the handshake is done. What 小博 remembers is read again on a reconnect.
+        // OkHttp holds it until the handshake is done. What 小博 remembers, and what this session said before this
+        // conversation (each wake opens a new one, which otherwise starts from nothing), are read again on a reconnect.
         val memories = if (debugUserMemoryEnabled(context)) DebugUserMemoryStore.inUse(context) else null
-        next.send(doubaoRealtimeSessionCreate(config, memories))
+        scope.launch {
+            val recent = runCatching { DebugRuntimeSession.recentExchanges(context, REALTIME_CONTEXT_TURNS) }.getOrDefault(emptyList())
+            if (recent.isNotEmpty()) DebugVoiceLog.i(TAG, "told ${recent.size} earlier exchange(s) of this session")
+            next.send(doubaoRealtimeSessionCreate(config, memories, recent))
+        }
     }
 
     /**
