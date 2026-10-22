@@ -16,7 +16,8 @@ import com.amap.api.navi.model.AMapNaviLocation
 /**
  * AMap's own navigation page, to hold the head unit against (owner 2026-10-22: 「你和公版的对比改下」): the route planned
  * now, its stops and destination, driven in AMap's stock screen, simulated or real as the head unit drives. A bench tool:
- * `adb shell am start -n cc.noharry.bothy.playground/.PlaygroundActivity --ez stock_navi true` after planning.
+ * `adb shell am start --activity-single-top -n cc.noharry.bothy.playground/.PlaygroundActivity --ez stock_navi true` after
+ * planning (single-top, or a running head unit is only brought to the front).
  */
 internal object StockNavi {
     const val EXTRA = "stock_navi"

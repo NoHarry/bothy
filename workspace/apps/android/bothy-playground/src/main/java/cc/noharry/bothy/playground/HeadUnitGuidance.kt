@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -40,16 +43,28 @@ internal fun LaneBar(lanes: AMapLaneInfo, modifier: Modifier = Modifier) {
     }
 }
 
-/** The junction ahead as AMap pictures it ([Guidance.cross]), in the place of the next stop's card while it shows. */
+/**
+ * The junction ahead as AMap pictures it ([Guidance.cross]), as its stock screen shows it (owner 2026-10-22: 「有些大小也
+ * 参考下」): big, over the map's left part, the turn shrunk to a line on top; the route's cards give it their place.
+ */
 @Composable
-internal fun JunctionCard(cross: AMapNaviCross, modifier: Modifier = Modifier) {
+internal fun JunctionCard(nav: NavState, cross: AMapNaviCross, modifier: Modifier = Modifier) {
     val picture = cross.bitmap ?: return
-    Image(
-        picture.asImageBitmap(),
-        contentDescription = "路口放大图",
-        contentScale = ContentScale.Crop,
-        modifier = modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height.coerceAtLeast(1)).clip(RoundedCornerShape(18.dp)),
-    )
+    Column(modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.card)) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
+            val (number, unit) = nav.stepMeters.stepDistanceParts()
+            Text(number, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            Text(unit, color = Color.White, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp))
+            Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        Image(
+            picture.asImageBitmap(),
+            contentDescription = "路口放大图",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height.coerceAtLeast(1)),
+        )
+    }
 }
 
 /** The next service area or toll station ahead and how far ([Guide.stopName]). */
@@ -68,9 +83,9 @@ internal fun RoadsideCard(guide: Guide, modifier: Modifier = Modifier) {
 @Composable
 internal fun LimitSign(kmh: Int) {
     Box(
-        Modifier.size(30.dp).background(Color.White, CircleShape).border(3.dp, LIMIT_RED, CircleShape),
+        Modifier.size(36.dp).background(Color.White, CircleShape).border(3.5.dp, LIMIT_RED, CircleShape),
         contentAlignment = Alignment.Center,
-    ) { Text("$kmh", color = Color.Black, fontSize = if (kmh >= 100) 11.sp else 13.sp, fontWeight = FontWeight.Bold) }
+    ) { Text("$kmh", color = Color.Black, fontSize = if (kmh >= 100) 13.sp else 15.sp, fontWeight = FontWeight.Bold) }
 }
 
 /** How a stretch of the route flows, coloured as AMap's traffic bar colours it. */
@@ -83,3 +98,6 @@ internal fun trafficColor(status: Int): Color = when (status) {
 }
 
 internal val LIMIT_RED = Color(0xFFE5483C)
+
+/** How much more of the map's left the junction's picture takes than the route's column: a column and its gap. */
+internal fun junctionExtra(column: Dp, gap: Dp): Dp = column + gap

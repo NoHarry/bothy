@@ -31,8 +31,11 @@ import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.navi.AMapNaviView
+import com.amap.api.navi.AMapNaviViewListener
+import com.amap.api.navi.AmapPageType
 import com.amap.api.navi.AMapNaviViewOptions
 import com.amap.api.navi.enums.MapStyle
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.math.abs
 
 /**
@@ -41,6 +44,12 @@ import kotlin.math.abs
  * clear of the cards over the map's left part and the progress bar at its right ([cover]).
  */
 internal class NaviMapHandle {
+    /**
+     * Whether the user moved the map off the car while driving, as on AMap's stock screen: AMap leaves it there for
+     * [LOCK_DELAY_MS] after the last touch, then locks back on the car; meanwhile the head unit offers 继续导航.
+     */
+    val browsing = MutableStateFlow(false)
+
     var view: AMapNaviView? = null
         set(value) {
             field = value
@@ -129,12 +138,23 @@ internal class NaviMapHandle {
      */
     fun keepCarCentred(point: GeoPoint) {
         val view = view ?: return
-        if (!drawing || view.isRouteOverviewNow || view.width == 0) return
+        // Moved by the user, the map is left where they put it until AMap locks it again.
+        if (!drawing || browsing.value || view.isRouteOverviewNow || view.width == 0) return
         val seen = view.map.projection.toScreenLocation(LatLng(point.lat, point.lng)) ?: return
         if (drift.seen(view.width, carShare(view.width) - seen.x.toDouble() / view.width)) relock()
     }
 
     internal fun options(): AMapNaviViewOptions = naviOptions(drawing, anchor)
+
+    /** Back on the car now, as 继续导航 does on AMap's stock screen. */
+    fun relockNow() {
+        browsing.value = false
+        overview(false)
+    }
+
+    fun zoom(closer: Boolean) {
+        view?.let { if (closer) it.zoomIn() else it.zoomOut() }
+    }
 
     fun overview(on: Boolean) {
         val view = view ?: return
@@ -344,6 +364,7 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
                     runCatching { view.map.setRenderFps(MAP_FPS) }
                     // Drawn every frame, the map is kept light as AMap's stock screen keeps it: no 3D buildings.
                     runCatching { view.map.showBuildings(false) }
+                    view.setAMapNaviViewListener(LockWatch(handle))
                     view.onResume()
                     view.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
                         if (right - left != oldRight - oldLeft) handle.resized()
@@ -372,6 +393,36 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
     }
 }
 
+/** Whether AMap holds the map on the car ([NaviMapHandle.browsing]); the rest of its view's news is for its own panels. */
+private class LockWatch(private val handle: NaviMapHandle) : AMapNaviViewListener {
+    /** 1 locked on the car, 2 the overview, 3 moved by the user (seen on the tablet; [onLockMap] never came). */
+    override fun onNaviViewShowMode(mode: Int) {
+        handle.browsing.value = mode == SHOW_MODE_BROWSING
+    }
+
+    override fun onNaviSetting() = Unit
+    override fun onNaviCancel() = Unit
+    override fun onNaviBackClick(): Boolean = false
+    override fun onNaviMapMode(mode: Int) = Unit
+    override fun onNaviTurnClick() = Unit
+    override fun onNextRoadClick() = Unit
+    override fun onScanViewButtonClick() = Unit
+    override fun onNaviViewLoaded() = Unit
+    override fun onMapTypeChanged(type: Int) = Unit
+    override fun onLockMap(locked: Boolean) = Unit
+    override fun onStopSpeaking() = Unit
+    override fun onViewTypeChanged(type: AmapPageType?) = Unit
+    override fun onAMapNaviViewExit() = Unit
+    override fun onStrategyChanged(strategy: Int) = Unit
+    override fun onBroadcastModeChanged(mode: Int) = Unit
+    override fun onDayAndNightModeChanged(mode: Int) = Unit
+    override fun onScaleAutoChanged(auto: Boolean) = Unit
+    override fun onListenToVoiceDuringCallChanged(on: Boolean) = Unit
+    override fun onControlMusicVolumeModeChanged(mode: Int) = Unit
+    override fun onEagleChanged(on: Boolean) = Unit
+    override fun onNaviRouteHighlightChange(id: Long, index: Int) = Unit
+}
+
 /** Where the map would be, while AMap cannot run yet. */
 @Composable
 internal fun MapPlaceholder(reason: String, modifier: Modifier = Modifier) {
@@ -393,6 +444,7 @@ private fun naviOptions(drawRoute: Boolean, anchor: Pair<Double, Double>): AMapN
     setCompassEnabled(false)
     // At rest the map stays where it was put (flat, the car's district); only a route locks it onto the car.
     setAutoLockCar(drawRoute)
+    setLockMapDelayed(LOCK_DELAY_MS)
     // Flatter than AMap's default, as its stock screen drives: more road ahead, less to draw.
     setTilt(DRIVING_TILT)
     setAutoDisplayOverview(false)
@@ -473,3 +525,7 @@ private const val RENDER_WHEN_DIRTY = 0
 private const val RENDER_CONTINUOUSLY = 1
 /** The camera's tilt while driving, degrees. */
 private const val DRIVING_TILT = 30
+
+/** How long the map stays where the user moved it before locking back on the car: AMap's own default, as its stock screen. */
+internal const val LOCK_DELAY_MS = 7_000L
+private const val SHOW_MODE_BROWSING = 3

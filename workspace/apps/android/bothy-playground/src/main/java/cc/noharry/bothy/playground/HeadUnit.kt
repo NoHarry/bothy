@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -111,7 +112,9 @@ private fun SimulatedHeadUnit(
             // The cards over the map's left part: the route's, when there is one.
             val routeCards = showMap && (nav.driving || (nav.previewing && revealed))
             // The map's left under the route's cards (and the column gap), its right under the progress bar.
-            map.cover(with(density) { (grid.columnWidth + grid.gap).roundToPx() }.takeIf { routeCards } ?: 0, progressSpace(nav.driving && showMap))
+            val crossing = Guidance.cross.collectAsState().value != null && nav.driving
+            val covered = grid.columnWidth + grid.gap + if (crossing) junctionExtra(grid.columnWidth, grid.gap) else 0.dp
+            map.cover(with(density) { covered.roundToPx() }.takeIf { routeCards } ?: 0, progressSpace(nav.driving && showMap))
             RestTheMap(map, showMap, nav.active, cuedAt)
             PlayMapCues(map, showMap) { cue ->
                 cuedAt = System.currentTimeMillis()
@@ -169,7 +172,7 @@ private class Grid(val width: Dp, val height: Dp) {
     /** The route's cards in the map's first column ([from]), [below] the listening bar when it shows. */
     fun routeSlots(from: Int, below: Dp) = RouteSlots(
         x = col(from), top = contentTop + below, width = columnWidth, actionsBottom = barTop - gap,
-        progressX = width - 30.dp, progressTop = contentTop + 30.dp, progressHeight = contentHeight * 0.75f,
+        progressX = width - PROGRESS_INSET, progressTop = contentTop + 30.dp, progressHeight = contentHeight * 0.85f,
         roadX = col(4), roadY = barTop + 8.dp,
     )
 }
@@ -221,44 +224,69 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
     var details by remember { mutableStateOf(false) }
     // The stops listed, the map shows the whole route they are on; folded, it follows the car again.
     LaunchedEffect(details) { if (nav.driving) map.overview(details) }
-    var overview by remember { mutableStateOf(false) }
-    var muted by remember { mutableStateOf(false) }
     val navigation = Playground.navigation
     val lanes by Guidance.lanes.collectAsState()
     val cross by Guidance.cross.collectAsState()
-    val traffic by Guidance.traffic.collectAsState()
     Column(Modifier.offset(slots.x, slots.top).width(slots.width), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (nav.previewing) {
             RoutePreviewCard(nav, { scope.launch(Dispatchers.IO) { navigation?.begin() } }, { scope.launch(Dispatchers.IO) { navigation?.stop() } })
             RouteDetails(nav, now)
         } else {
-            TurnCard(nav, now)
-            // The junction's picture while AMap shows it, as its stock screen does, in the next stop's place.
+            val replay: () -> Unit = { scope.launch(Dispatchers.IO) { Playground.engine?.replay() } }
+            // The junction's picture while AMap shows it, as its stock screen does: over the next column too, the turn on top.
             val junction = cross.takeIf { nav.driving }
             when {
-                junction != null -> JunctionCard(junction)
-                details -> RouteDetails(nav, now, Modifier.clickable { details = false })
-                else -> NextStopCard(nav, now, { details = true })
+                junction != null -> JunctionCard(
+                    nav, junction,
+                    Modifier.wrapContentWidth(Alignment.Start, unbounded = true).width(slots.width + junctionExtra(slots.width, JUNCTION_GAP)),
+                )
+                details -> {
+                    TurnCard(nav, now, onReplay = replay.takeIf { nav.driving })
+                    RouteDetails(nav, now, Modifier.clickable { details = false })
+                }
+                else -> {
+                    TurnCard(nav, now, onReplay = replay.takeIf { nav.driving })
+                    NextStopCard(nav, now, { details = true })
+                }
             }
             if (nav.driving && nav.guide.stopName.isNotBlank()) RoadsideCard(nav.guide)
         }
     }
     lanes?.takeIf { nav.driving }?.let { LanesOverMap(it, slots) }
-    if (nav.driving) {
-        NavActionBar(
-            overview, muted,
-            onExit = {
-                scope.launch {
-                    withContext(Dispatchers.IO) { navigation?.stop() }
-                    store.record("cabin", PlaygroundStore.MANUAL, "退出导航", setOf(Highlight.NAV), fromAssistant = false)
-                }
-            },
-            onOverview = { overview = !overview; map.overview(overview) },
-            onMute = { muted = !muted; Playground.engine?.setMuted(muted) },
-            onMore = onMore,
-            modifier = Modifier.offset(slots.x, slots.actionsBottom - ACTION_BAR_HEIGHT).width(slots.width),
-        )
-        RouteProgressBar(nav, traffic, Modifier.offset(slots.progressX, slots.progressTop).height(slots.progressHeight))
+    if (nav.driving) DrivingControls(nav, map, store, slots, onMore)
+}
+
+/**
+ * Driving, the controls along the map, as AMap's stock screen has them: the actions, the traffic bar, the road; once the
+ * user moves the map off the car, 继续导航 and zoom in the road's place until AMap locks it on the car again.
+ */
+@Composable
+private fun DrivingControls(nav: NavState, map: NaviMapHandle, store: PlaygroundStore, slots: RouteSlots, onMore: (() -> Unit)?) {
+    val scope = rememberCoroutineScope()
+    var overview by remember { mutableStateOf(false) }
+    var muted by remember { mutableStateOf(false) }
+    // A simulated drive can be held, as on AMap's stock screen; a new route drives again.
+    var paused by remember(nav.destination, nav.totalMeters) { mutableStateOf(false) }
+    val browsing by map.browsing.collectAsState()
+    val traffic by Guidance.traffic.collectAsState()
+    NavActionBar(
+        overview, muted, paused.takeIf { nav.simulated },
+        onExit = {
+            scope.launch {
+                withContext(Dispatchers.IO) { Playground.navigation?.stop() }
+                store.record("cabin", PlaygroundStore.MANUAL, "退出导航", setOf(Highlight.NAV), fromAssistant = false)
+            }
+        },
+        onOverview = { overview = !overview; map.overview(overview) },
+        onMute = { muted = !muted; Playground.engine?.setMuted(muted) },
+        onPause = { paused = !paused; scope.launch(Dispatchers.IO) { Playground.engine?.pause(paused) } },
+        onMore = onMore,
+        modifier = Modifier.offset(slots.x, slots.actionsBottom - ACTION_BAR_HEIGHT).width(slots.width),
+    )
+    RouteProgressBar(nav, traffic, Modifier.offset(slots.progressX, slots.progressTop).height(slots.progressHeight))
+    if (browsing && !overview) {
+        BrowseControls({ map.relockNow() }, map::zoom, Modifier.offset(slots.roadX, slots.roadY - 10.dp))
+    } else {
         RoadChip(nav.currentRoad, Modifier.offset(slots.roadX, slots.roadY))
     }
 }
@@ -567,6 +595,8 @@ private const val DRIVING_OVERVIEW_MS = 15_000L
 internal fun progressSpace(shows: Boolean): Int = if (shows) with(LocalDensity.current) { PROGRESS_SPACE.roundToPx() } else 0
 
 private val PROGRESS_SPACE = 44.dp
+/** Between the route's column and the next, which the junction's picture spans. */
+internal val JUNCTION_GAP = 10.dp
 /** Room above the route's cards for the listening bar. */
 internal val BAR_SPACE = 62.dp
 private const val CENTRE_RETRY_MS = 2_000L

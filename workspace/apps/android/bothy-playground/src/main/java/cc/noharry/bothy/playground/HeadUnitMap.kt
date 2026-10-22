@@ -28,7 +28,11 @@ import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Place
@@ -53,7 +57,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,33 +65,55 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-/** The next manoeuvre: the turn arrow, how far, onto which road; then what is left of the whole route. */
+/**
+ * The next manoeuvre: the turn arrow, how far, onto which road, the exit to take; then what is left of the whole route.
+ * Sized after AMap's stock panel (owner 2026-10-22: 「有些大小也参考下」): its arrow is about 55 dp and its distance about
+ * 36 sp on this tablet. Tapped, the guidance is said again ([onReplay]), as tapping the stock panel does.
+ */
 @Composable
-internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier) {
-    UnitCard(modifier) {
+internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier, onReplay: (() -> Unit)? = null) {
+    UnitCard(if (onReplay == null) modifier else modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onReplay)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(52.dp))
+            Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(TURN_ARROW))
             Column {
+                val (number, unit) = nav.stepMeters.stepDistanceParts()
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text(nav.stepMeters.stepDistance(), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                    Text(" 进入", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 5.dp))
+                    Text(number, color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold, lineHeight = 40.sp)
+                    Text(unit, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 3.dp, bottom = 5.dp))
+                    Text(" 后进入", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
                 }
-                Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                // An exit to take, and where it leads, as AMap's stock panel says it (「出口 · 去 南山」).
-                val exit = listOfNotNull(
-                    nav.guide.exit.takeIf(String::isNotBlank)?.let { if ("出口" in it) it else "出口 $it" },
-                    nav.guide.toward.takeIf(String::isNotBlank)?.let { "去 $it" },
-                )
-                if (exit.isNotEmpty()) Text(exit.joinToString(" · "), color = UnitColors.teal, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Spacer(Modifier.height(8.dp))
+        ExitLine(nav.guide)
+        if (nav.guide.gpsWeak) Text("GPS 信号弱，位置可能不准", color = Color(0xFFFFC72C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        Spacer(Modifier.height(10.dp))
         SpeedLine(nav)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth()) {
-            Text("${nav.remainingSeconds.duration()} · ${nav.remainingMeters.km()}", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            Text("${clockText(now + nav.remainingSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)
+            Text("${nav.remainingSeconds.duration()} · ${nav.remainingMeters.km()}", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text("${clockText(now + nav.remainingSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 14.sp)
         }
+    }
+}
+
+/** The exit to take and where it leads, as AMap's stock panel shows it: 去, the exit on a road sign's green, the way. */
+@Composable
+private fun ExitLine(guide: Guide) {
+    if (guide.exit.isBlank() && guide.toward.isBlank()) return
+    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("去", color = UnitColors.muted, fontSize = 15.sp)
+        if (guide.exit.isNotBlank()) {
+            Text(
+                if ("出口" in guide.exit) guide.exit else "出口 ${guide.exit}",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                modifier = Modifier.background(EXIT_GREEN, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 1.dp),
+            )
+        }
+        if (guide.toward.isNotBlank()) Text(guide.toward, color = Color.White, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -95,18 +121,19 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier) {
 @Composable
 private fun SpeedLine(nav: NavState) {
     // How fast the car goes and the lights still ahead (owner 2026-10-22: 「确认下红绿灯，车速等信息能正常显示吗」).
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         // Over the limit of the camera ahead, the speed turns red beside the limit's sign.
         if (nav.guide.limitKmh > 0) {
             LimitSign(nav.guide.limitKmh)
             Spacer(Modifier.width(6.dp))
         }
-        Text("${nav.speedKmh}", color = if (nav.guide.over(nav.speedKmh)) LIMIT_RED else Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        Text("${nav.speedKmh}", color = if (nav.guide.over(nav.speedKmh)) LIMIT_RED else Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
         if (nav.lightsLeft > 0) {
-            Spacer(Modifier.width(12.dp))
+            // On the right, kept to one line beside the limit's sign.
+            Spacer(Modifier.weight(1f))
             Icon(Icons.Filled.Traffic, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
-            Text("还有 ${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
+            Text("${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
     if (nav.guide.sectionLimitKmh > 0) {
@@ -196,46 +223,90 @@ internal fun IdleNavCard(nav: NavState, ready: String?, modifier: Modifier = Mod
     }
 }
 
-/** The navigation's quick actions, as on the head unit: exit, overview, mute, and more (the settings) unless [onMore] is null. */
+/**
+ * The navigation's quick actions, worded as AMap's stock buttons are: exit, overview, mute, pause while simulating
+ * ([paused] null when not), and more (the settings) unless [onMore] is null.
+ */
 @Composable
-internal fun NavActionBar(overview: Boolean, muted: Boolean, onExit: () -> Unit, onOverview: () -> Unit, onMute: () -> Unit, onMore: (() -> Unit)?, modifier: Modifier = Modifier) {
-    Row(modifier.clip(RoundedCornerShape(16.dp)).background(UnitColors.card).padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-        ActionItem(Icons.AutoMirrored.Filled.ExitToApp, "退出导航", onExit)
-        ActionItem(if (overview) Icons.Filled.MyLocation else Icons.Filled.Route, if (overview) "回到车辆" else "查看全览", onOverview)
-        ActionItem(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "已静音" else "播报中", onMute)
+internal fun NavActionBar(
+    overview: Boolean,
+    muted: Boolean,
+    paused: Boolean?,
+    onExit: () -> Unit,
+    onOverview: () -> Unit,
+    onMute: () -> Unit,
+    onPause: () -> Unit,
+    onMore: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier.clip(RoundedCornerShape(16.dp)).background(UnitColors.card).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+        ActionItem(Icons.AutoMirrored.Filled.ExitToApp, "退出", onExit)
+        ActionItem(if (overview) Icons.Filled.MyLocation else Icons.Filled.Route, if (overview) "退出全览" else "全览", onOverview)
+        ActionItem(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "已静音" else "播报", onMute)
+        if (paused != null) ActionItem(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, if (paused) "继续" else "暂停", onPause)
         if (onMore != null) ActionItem(Icons.Filled.MoreHoriz, "更多", onMore)
     }
 }
 
 @Composable
 private fun ActionItem(icon: ImageVector, label: String, onClick: () -> Unit) {
-    Column(Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 10.dp, vertical = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        Modifier.clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 3.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(28.dp))
+        Text(label, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+    }
+}
+
+/** Off the car, as on AMap's stock screen: back to it at once, or a little closer or farther. */
+@Composable
+internal fun BrowseControls(onBack: () -> Unit, onZoom: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            Modifier.clip(RoundedCornerShape(24.dp)).background(CAR_BLUE).clickable(onClick = onBack).padding(horizontal = 18.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+            Text(" 继续导航", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+        ZoomButton(Icons.Filled.Remove, "缩小") { onZoom(false) }
+        ZoomButton(Icons.Filled.Add, "放大") { onZoom(true) }
+    }
+}
+
+@Composable
+private fun ZoomButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(UnitColors.card).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(24.dp))
-        Text(label, color = UnitColors.muted, fontSize = 11.sp)
     }
 }
 
 /**
- * The route as a vertical bar on the map's edge, start at the bottom: driven part dim, the rest teal, a dot for each stop
- * ahead, a flag at the end, the car where it is now.
+ * The route as a vertical bar on the map's edge, start at the bottom, as AMap's stock traffic bar (owner 2026-10-22:
+ * 「有些大小也参考下」, its bar about 18 dp wide on this tablet): white-rimmed, the driven part grey, the road ahead
+ * coloured by its traffic (teal while unknown), a dot for each stop ahead, the end on top, the car where it is now.
  */
 @Composable
 internal fun RouteProgressBar(nav: NavState, traffic: List<TrafficStretch> = emptyList(), modifier: Modifier = Modifier) {
     val total = nav.totalMeters.coerceAtLeast(1)
     val done = (1f - nav.remainingMeters.toFloat() / total).coerceIn(0f, 1f)
     val stops = nav.toWaypoints.map { done + (1f - done) * (it.meters.toFloat() / nav.remainingMeters.coerceAtLeast(1)).coerceIn(0f, 1f) }
-    Canvas(modifier.width(18.dp)) {
+    Canvas(modifier.width(PROGRESS_WIDTH)) {
         val x = size.width / 2
-        fun y(fraction: Float) = size.height * (1f - fraction)
-        val bar = 6.dp.toPx()
-        drawLine(Color.White.copy(alpha = 0.18f), Offset(x, y(0f)), Offset(x, y(done)), bar, StrokeCap.Round)
+        val bar = 12.dp.toPx()
+        // Inside the rounded ends, so the car and the end sit on the bar.
+        val inset = bar / 2 + 2.dp.toPx()
+        fun y(fraction: Float) = inset + (size.height - inset * 2) * (1f - fraction)
+        drawLine(Color.White, Offset(x, y(0f)), Offset(x, y(1f)), bar + 5.dp.toPx(), StrokeCap.Round)
+        drawLine(DRIVEN_GREY, Offset(x, y(0f)), Offset(x, y(done)), bar, StrokeCap.Round)
         drawLine(UnitColors.teal, Offset(x, y(done)), Offset(x, y(1f)), bar, StrokeCap.Round)
         // The road ahead coloured by its traffic, as AMap's bar is (its stretches run from the route's start).
         val routeMeters = traffic.sumOf { it.meters }.coerceAtLeast(1)
         var from = 0
         traffic.forEach { stretch ->
             val a = (from.toFloat() / routeMeters).coerceAtLeast(done)
-            val b = (from + stretch.meters).toFloat() / routeMeters
+            val b = ((from + stretch.meters).toFloat() / routeMeters).coerceAtMost(0.995f)
             if (b > a) drawLine(trafficColor(stretch.status), Offset(x, y(a)), Offset(x, y(b)), bar, StrokeCap.Butt)
             from += stretch.meters
         }
@@ -243,17 +314,23 @@ internal fun RouteProgressBar(nav: NavState, traffic: List<TrafficStretch> = emp
             drawCircle(Color.White, 6.dp.toPx(), Offset(x, y(it)))
             drawCircle(UnitColors.teal, 3.5.dp.toPx(), Offset(x, y(it)))
         }
-        drawCircle(PlaygroundColors.ember, 6.dp.toPx(), Offset(x, y(1f)))
-        val car = Path().apply {
-            moveTo(x, y(done) - 9.dp.toPx())
-            lineTo(x + 7.dp.toPx(), y(done) + 6.dp.toPx())
-            lineTo(x, y(done) + 2.dp.toPx())
-            lineTo(x - 7.dp.toPx(), y(done) + 6.dp.toPx())
-            close()
-        }
-        drawPath(car, Color.White)
-        drawPath(car, UnitColors.teal, style = Stroke(1.5.dp.toPx()))
+        drawCircle(Color.White, 9.dp.toPx(), Offset(x, y(1f)))
+        drawCircle(PlaygroundColors.ember, 6.5.dp.toPx(), Offset(x, y(1f)))
+        drawCarMark(Offset(x, y(done)))
     }
+}
+
+/** The car on the bar: AMap's blue arrow in a white disc. */
+private fun DrawScope.drawCarMark(at: Offset) {
+    drawCircle(Color.White, 11.dp.toPx(), at)
+    val car = Path().apply {
+        moveTo(at.x, at.y - 7.dp.toPx())
+        lineTo(at.x + 5.5.dp.toPx(), at.y + 5.dp.toPx())
+        lineTo(at.x, at.y + 2.dp.toPx())
+        lineTo(at.x - 5.5.dp.toPx(), at.y + 5.dp.toPx())
+        close()
+    }
+    drawPath(car, CAR_BLUE)
 }
 
 /** The road the car is on, at the bottom of the map. */
@@ -277,7 +354,7 @@ internal fun UnitCard(modifier: Modifier = Modifier, content: @Composable () -> 
 }
 
 /** The arrow for AMap's turn type (com.amap.api.navi.enums.IconType). */
-private fun turnIcon(type: Int): ImageVector = when (type) {
+internal fun turnIcon(type: Int): ImageVector = when (type) {
     2 -> Icons.Filled.TurnLeft
     3 -> Icons.Filled.TurnRight
     4 -> Icons.Filled.TurnSlightLeft
@@ -295,7 +372,17 @@ private fun turnIcon(type: Int): ImageVector = when (type) {
     else -> Icons.Filled.Straight
 }
 
-private fun Int.stepDistance(): String = if (this < 1000) "$this 米" else "${(this / 100) / 10.0} 公里".replace(".0 ", " ")
+/** How far to the turn, the number and its unit apart, as AMap's panel sets them (「421」「米」). */
+internal fun Int.stepDistanceParts(): Pair<String, String> =
+    if (this < 1000) "$this" to "米" else "${(this / 100) / 10.0}".removeSuffix(".0") to "公里"
+
+private val TURN_ARROW = 64.dp
+internal val PROGRESS_WIDTH = 26.dp
+/** From the screen's right edge to the bar's left: the bar about 10 dp in from the edge, as AMap's. */
+internal val PROGRESS_INSET = PROGRESS_WIDTH + 6.dp
+private val DRIVEN_GREY = Color(0xFFB9BEC6)
+private val CAR_BLUE = Color(0xFF2F7BFF)
+private val EXIT_GREEN = Color(0xFF0E8A43)
 
 private const val COUNT_TICK_MS = 250L
 

@@ -101,7 +101,7 @@ private fun columnSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards
         },
         route = RouteSlots(
             x = routeX, top = STATUS_HEIGHT + if (shows == AssistantShows.BAR) BAR_SPACE else 0.dp, width = column, actionsBottom = barTop - GAP,
-            progressX = width - 30.dp, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = contentHeight * 0.75f,
+            progressX = width - PROGRESS_INSET, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = contentHeight * 0.85f,
             roadX = col(4), roadY = barTop - GAP - 36.dp,
         ),
         statusTop = 0.dp,
@@ -128,7 +128,7 @@ private fun fullMapSlots(width: Dp, height: Dp, shows: AssistantShows, routeCard
         },
         route = RouteSlots(
             x = routeX, top = PAD + STATUS_HEIGHT, width = routeWidth, actionsBottom = mapHeight - PAD,
-            progressX = width - 30.dp, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = mapHeight * 0.7f,
+            progressX = width - PROGRESS_INSET, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = mapHeight * 0.8f,
             roadX = width / 2 - 80.dp, roadY = mapHeight - PAD - 36.dp,
         ),
         statusTop = PAD / 2,
@@ -189,7 +189,10 @@ internal fun MapHeadUnit(
             val routeCards = nav.driving || (nav.previewing && revealed)
             val slots = realSlots(theme, maxWidth, maxHeight, shows, routeCards)
             val density = LocalDensity.current
-            map.cover(with(density) { slots.coverLeft.roundToPx() }, progressSpace(nav.driving))
+            // The junction's picture spans the next column too: the car moves over, as on AMap's stock screen.
+            val crossing = Guidance.cross.collectAsState().value != null && nav.driving && routeCards
+            val covered = slots.coverLeft + if (crossing) junctionExtra(slots.route.width, JUNCTION_GAP) else 0.dp
+            map.cover(with(density) { covered.roundToPx() }, progressSpace(nav.driving))
             map.liftLogo(with(density) { slots.logoLift.roundToPx() })
             RestTheMap(map, true, nav.active, cuedAt, slots.map)
             PlayMapCues(map, true) { cue ->

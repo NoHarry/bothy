@@ -252,6 +252,18 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         result.get()
     }
 
+    /** Says the guidance for where the car is now again, as tapping AMap's stock turn panel does. */
+    fun replay() {
+        onMain { navi?.readNaviInfo() }
+    }
+
+    /** A simulated drive held where it is, or going on (AMap's stock 暂停 / 继续). */
+    fun pause(held: Boolean) {
+        onMain { navi?.let { if (held) it.pauseNavi() else it.resumeNavi() } }
+        // Held, AMap sends nothing more: the car stands still.
+        if (held) store.quietly { it.withNav(it.cabin.nav.copy(speedKmh = 0)) }
+    }
+
     /** Voice guidance on or off (the head unit's mute button). */
     fun setMuted(muted: Boolean) {
         onMain { navi?.let { if (muted) it.stopSpeak() else it.startSpeak() } }
