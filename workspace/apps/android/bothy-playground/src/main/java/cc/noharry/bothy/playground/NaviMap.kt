@@ -326,6 +326,10 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
                     view.onCreate(null)
                     // The head unit is always at night; the options alone leave the map in day colours.
                     view.viewOptions = handle.options()
+                    // AMap's own bubbles on the map, as its stock screen shows them (owner 2026-10-22: 「红绿灯的倒计时没看见」):
+                    // the light's countdown at the next junction and how long a jam ahead lasts.
+                    view.setShowTrafficLightView(true)
+                    view.setShowDriveCongestion(true)
                     view.onResume()
                     view.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
                         if (right - left != oldRight - oldLeft) handle.resized()
@@ -368,6 +372,8 @@ private fun naviOptions(drawRoute: Boolean, anchor: Pair<Double, Double>): AMapN
     setMapStyle(MapStyle.NIGHT, null)
     setTrafficBarEnabled(false)
     setTrafficLayerEnabled(true)
+    // Speed cameras ahead as bubbles on the route, with their limits.
+    setCameraBubbleShow(true)
     setRouteListButtonShow(false)
     setSettingMenuEnabled(false)
     setCompassEnabled(false)

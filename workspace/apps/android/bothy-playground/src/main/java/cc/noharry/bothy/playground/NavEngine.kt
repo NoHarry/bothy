@@ -63,6 +63,8 @@ data class NavProgress(
     val stepMeters: Int,
     val turnIcon: Int,
     val speedKmh: Int,
+    /** Traffic lights still ahead on the route. */
+    val lightsLeft: Int = 0,
 )
 
 /** A reading counts only while driving: one arriving late, after a stop for a new plan, must not undo it. */
@@ -75,6 +77,7 @@ internal fun NavState.withProgress(progress: NavProgress): NavState = if (!drivi
     stepMeters = progress.stepMeters,
     turnIcon = progress.turnIcon,
     speedKmh = progress.speedKmh,
+    lightsLeft = progress.lightsLeft,
 )
 
 /** The first stop ahead reached: it leaves the list, so 「第 1 个途经点」 is always the next one. */

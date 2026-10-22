@@ -142,13 +142,13 @@ private fun MediaCard(media: Media, store: PlaygroundStore) {
             Text(media.title.ifEmpty { "没有在放" }, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(media.artist.ifEmpty { "音量 ${media.volume}" }, color = UnitColors.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        PlainIcon(Icons.Filled.SkipPrevious) { store.playMedia("next") }
+        PlainIcon(Icons.Filled.SkipPrevious) { store.playMedia("previous") }
         PlainIcon(if (media.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow) { store.playMedia(if (media.playing) "pause" else "resume") }
         PlainIcon(Icons.Filled.SkipNext) { store.playMedia("next") }
     }
 }
 
-private fun PlaygroundStore.playMedia(action: String) {
+internal fun PlaygroundStore.playMedia(action: String) {
     val media = read().cabin.media.played(action, null)
     cabin(if (media.playing) "播放《${media.title}》" else "音乐暂停", Highlight.SCREEN) { it.copy(media = media) }
 }

@@ -73,6 +73,8 @@ data class NavState(
     val stepMeters: Int = 0,
     val turnIcon: Int = 0,
     val speedKmh: Int = 0,
+    /** Traffic lights still ahead on the route, as AMap counts them. */
+    val lightsLeft: Int = 0,
     val reachedWaypoints: List<String> = emptyList(),
     /** When a planned route starts driving, epoch millis; 0 when not waiting. */
     val startsAt: Long = 0L,

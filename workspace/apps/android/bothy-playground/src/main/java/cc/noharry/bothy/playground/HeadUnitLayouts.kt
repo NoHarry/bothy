@@ -77,8 +77,8 @@ internal class RealSlots(
  * the map and its listening bar sits over the bottom left; the route's cards go top left, beside the panel when it is up.
  */
 internal fun realSlots(theme: HeadUnitTheme, width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots = when (theme) {
-    HeadUnitTheme.COLUMNS -> columnSlots(width, height, shows, routeCards)
     HeadUnitTheme.FULL_MAP -> fullMapSlots(width, height, shows, routeCards)
+    HeadUnitTheme.COLUMNS, HeadUnitTheme.CLASSIC -> columnSlots(width, height, shows, routeCards)
 }
 
 private fun columnSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots {
@@ -144,18 +144,20 @@ private val GAP = 10.dp
 private val STATUS_HEIGHT = 44.dp
 
 /**
- * The head unit with real navigation (owner 2026-10-22): the map, the route's cards, 小博 and a bar along the bottom;
- * nothing simulated. 小博 shows its bar while it listens and its panel while it works and a while after it answered
- * ([AssistantView.open]), then retreats, and the map has almost the whole screen. [theme] places them ([realSlots]).
+ * The head unit around the map (owner 2026-10-22): the map, the route's cards, 小博 and a bar along the bottom, with
+ * real navigation ([real]: the device's own media on the play bar) or the simulated car (its music). 小博 shows its bar
+ * while it listens and its panel while it works and a while after it answered ([AssistantView.open]), then retreats,
+ * and the map has almost the whole screen. [theme] places them ([realSlots]).
  */
 @Composable
-internal fun RealNavHeadUnit(
+internal fun MapHeadUnit(
     world: World,
     calls: List<CallRecord>,
     server: ServerState,
     flashLevel: Float,
     store: PlaygroundStore,
     theme: HeadUnitTheme,
+    real: Boolean,
     sheet: Boolean,
     onSheet: (Boolean) -> Unit,
 ) {
@@ -169,10 +171,13 @@ internal fun RealNavHeadUnit(
     val now = rememberClock()
     val assistant by Assistant.state.collectAsState()
     val weather = rememberWeather()
-    val playing by NowPlaying.state.collectAsState()
+    val device by NowPlaying.state.collectAsState()
     val nav = world.cabin.nav
     TakeOverAssistant()
-    FollowTheMedia()
+    if (real) FollowTheMedia()
+    // The simulated car's music: named only when something was put on, else 「没有在放」.
+    val playing = if (real) device else world.cabin.media.let { MediaNow(true, it.title, it.artist, if (it.title.isEmpty()) "" else "车载音乐", it.playing) }
+    val controls = if (real) DEVICE_MEDIA else simulatedMedia(store)
     val shows = when {
         assistant.open(now, dismissed) -> AssistantShows.PANEL
         assistant.hearing(now, dismissed) -> AssistantShows.BAR
@@ -200,23 +205,23 @@ internal fun RealNavHeadUnit(
                 val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
                 if (shows == AssistantShows.PANEL) AssistantChatPanel(assistant, null, close, placed) else AssistantBar(assistant, close, placed)
             }
-            RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
-            RealBar(theme, assistant, playing, slots.bar) { onSheet(true) }
+            RealStatus(if (real) "真实导航" else "模拟 · 你在${world.userAt.label}", server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
+            RealBar(theme, assistant, playing, controls, slots.bar) { onSheet(true) }
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
 }
 
-/** Top right: that this is real navigation, the server, the weather where the device is and the time (the settings are on the bar). */
+/** Top right: the mode ([label]), the server, the weather where the car is and the time (the settings are on the bar). */
 @Composable
-private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
+private fun RealStatus(label: String, server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
     Row(
         modifier.clip(RoundedCornerShape(14.dp)).background(UnitColors.card).padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
-        StatusLabel("真实导航")
+        StatusLabel(label)
         weather?.let { StatusLabel("${it.weather} ${it.temperature}°") }
         StatusLabel(clockText(now, now))
     }
@@ -233,7 +238,7 @@ private fun StatusLabel(text: String) {
  * like the simulated dock; with the map first, a flat strip along the edge.
  */
 @Composable
-private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: MediaNow, box: MapBox, onSettings: () -> Unit) {
+private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: MediaNow, controls: MediaControls, box: MapBox, onSettings: () -> Unit) {
     val context = LocalContext.current
     val shape = if (theme == HeadUnitTheme.COLUMNS) RoundedCornerShape(18.dp) else RoundedCornerShape(0.dp)
     Row(
@@ -255,7 +260,7 @@ private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: Med
         }
         NEARBY_REAL.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
         Spacer(Modifier.weight(1f))
-        PlayStrip(playing)
+        PlayStrip(playing, controls)
         PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
     }
 }
@@ -280,7 +285,7 @@ private fun FollowTheMedia() {
  * media session ([NowPlaying]). Without notification access it offers the settings page that grants it.
  */
 @Composable
-private fun PlayStrip(now: MediaNow) {
+private fun PlayStrip(now: MediaNow, controls: MediaControls) {
     val context = LocalContext.current
     Row(
         Modifier.clip(RoundedCornerShape(14.dp)).background(UnitColors.raised)
@@ -299,15 +304,27 @@ private fun PlayStrip(now: MediaNow) {
                     val under = listOf(now.artist, now.app).filter(String::isNotBlank).joinToString(" · ")
                     if (under.isNotEmpty()) Text(under, color = UnitColors.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                PlainIcon(Icons.Filled.SkipPrevious, size = 24) { NowPlaying.previous() }
-                PlainIcon(if (now.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, UnitColors.teal, size = 28) { NowPlaying.playPause() }
-                PlainIcon(Icons.Filled.SkipNext, size = 24) { NowPlaying.next() }
+                PlainIcon(Icons.Filled.SkipPrevious, size = 24, onClick = controls.previous)
+                PlainIcon(if (now.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, UnitColors.teal, size = 28, onClick = controls.playPause)
+                PlainIcon(Icons.Filled.SkipNext, size = 24, onClick = controls.next)
             }
         }
     }
 }
 
 private val PLAY_TEXT_WIDTH = 240.dp
+
+/** What the play bar's buttons do: the device's media session, or the simulated car's music. */
+internal class MediaControls(val previous: () -> Unit, val playPause: () -> Unit, val next: () -> Unit)
+
+// Lambdas, not references: NowPlaying is made on first use, never when this file loads (it needs the main looper).
+private val DEVICE_MEDIA = MediaControls({ NowPlaying.previous() }, { NowPlaying.playPause() }, { NowPlaying.next() })
+
+private fun simulatedMedia(store: PlaygroundStore) = MediaControls(
+    previous = { store.playMedia("previous") },
+    playPause = { store.playMedia(if (store.read().cabin.media.playing) "pause" else "resume") },
+    next = { store.playMedia("next") },
+)
 
 /** What the bar offers to look for nearby, and what each says to 小博. */
 private val NEARBY_REAL = listOf("充电站" to "找一下附近的充电站", "停车场" to "找一下附近的停车场", "加油站" to "找一下附近的加油站")

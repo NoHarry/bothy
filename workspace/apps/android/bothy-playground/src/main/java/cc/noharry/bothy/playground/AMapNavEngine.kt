@@ -426,6 +426,7 @@ private fun NaviInfo.toProgress(): NavProgress = NavProgress(
     stepMeters = curStepRetainDistance,
     turnIcon = iconType,
     speedKmh = currentSpeed,
+    lightsLeft = routeRemainLightCount,
 )
 
 private fun RoutePreference.strategy(amap: AMapNavi): Int = when (this) {

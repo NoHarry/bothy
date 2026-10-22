@@ -67,10 +67,10 @@ internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState
     val mode by HeadUnitModes.mode.collectAsState()
     // Held above the switch, so the sheet stays open across it (the switch is in the sheet).
     var sheet by remember { mutableStateOf(false) }
-    if (mode.realNav) {
-        RealNavHeadUnit(world, calls, server, flashLevel, store, mode.theme, sheet) { sheet = it }
-    } else {
+    if (mode.layout == HeadUnitTheme.CLASSIC) {
         SimulatedHeadUnit(world, calls, server, flash, flashLevel, store, onHome, sheet) { sheet = it }
+    } else {
+        MapHeadUnit(world, calls, server, flashLevel, store, mode.layout, mode.realNav, sheet) { sheet = it }
     }
 }
 
@@ -475,15 +475,14 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
             SheetSwitch("真实导航模式（用设备的真实定位，不模拟车和家）", mode.realNav) { on ->
                 scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = on)) }
             }
-            if (mode.realNav) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("主题", color = PlaygroundColors.text, fontSize = 14.sp)
-                    HeadUnitTheme.entries.forEach { theme ->
-                        Pill(theme.label, selected = mode.theme == theme) { HeadUnitModes.set(context, mode.copy(theme = theme)) }
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("主题", color = PlaygroundColors.text, fontSize = 14.sp)
+                // The car's layout only with the simulated car.
+                HeadUnitTheme.entries.filter { !mode.realNav || it != HeadUnitTheme.CLASSIC }.forEach { theme ->
+                    Pill(theme.label, selected = mode.layout == theme) { HeadUnitModes.set(context, mode.copy(theme = theme)) }
                 }
-                return@Column
             }
+            if (mode.realNav) return@Column
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { PlaceSwitch(store) }
             SheetSwitch("导航模拟行驶（不用真开车）", world.cabin.nav.simulated) { on -> scope.launch(Dispatchers.IO) { Playground.navigation?.setSimulated(on) } }
             var demoStart by remember { mutableStateOf(Playground.engine?.demoStart == true) }

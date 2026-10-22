@@ -432,6 +432,7 @@ internal fun NavState.describe(now: Long): String = buildString {
     if (reachedWaypoints.isNotEmpty()) append("已经过：${reachedWaypoints.joinToString("、")}。")
     if (currentRoad.isNotEmpty()) append("当前在$currentRoad，")
     append("车速 $speedKmh km/h。")
+    if (driving && lightsLeft > 0) append("前方还有 $lightsLeft 个红绿灯。")
 }
 
 internal fun Int.km(): String = if (this < 1000) "$this 米" else "${(this / 100) / 10.0} 公里".replace(".0 ", " ")

@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.RoundaboutRight
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Straight
+import androidx.compose.material.icons.filled.Traffic
 import androidx.compose.material.icons.filled.UTurnLeft
 import androidx.compose.material.icons.filled.UTurnRight
 import androidx.compose.material3.Icon
@@ -74,7 +75,18 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier) {
                 Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
+        // How fast the car goes and the lights still ahead (owner 2026-10-22: 「确认下红绿灯，车速等信息能正常显示吗」).
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("${nav.speedKmh}", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
+            if (nav.lightsLeft > 0) {
+                Spacer(Modifier.width(12.dp))
+                Icon(Icons.Filled.Traffic, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
+                Text("还有 ${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 2.dp))
+            }
+        }
+        Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth()) {
             Text("${nav.remainingSeconds.duration()} · ${nav.remainingMeters.km()}", color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
             Text("${clockText(now + nav.remainingSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)

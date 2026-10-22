@@ -104,7 +104,8 @@ internal const val HOME_FIELDS = "user_here（用户在不在家）、outdoor_te
 
 /** The navigation alone, as the real-navigation head unit serves it ([HeadUnitModes]): the same paths plans watch. */
 internal const val NAV_FIELDS = "navigation.status（idle / planned / navigating / arrived）/ waits_for_go（路线显示着等出发）/ arrived / destination / " +
-    "remaining_km / remaining_min / next_waypoint / next_waypoint_km / waypoints / reached_waypoints / current_road / speed_kmh"
+    "remaining_km / remaining_min / next_waypoint / next_waypoint_km / waypoints / reached_waypoints / current_road / speed_kmh / " +
+    "lights_left（前方还有几个红绿灯）"
 
 internal fun navigationJson(world: World): JsonObject = buildJsonObject { put("navigation", world.cabin.nav.toJson()) }
 
@@ -123,6 +124,7 @@ private fun NavState.toJson(): JsonObject = buildJsonObject {
     put("simulated", simulated)
     put("current_road", currentRoad)
     put("speed_kmh", speedKmh)
+    put("lights_left", lightsLeft)
 }
 
 private fun Double.oneDecimal(): Double = (this * 10).roundToInt() / 10.0
