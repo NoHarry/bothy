@@ -4,36 +4,20 @@
 
 [English](README.md) | **中文**
 
-**Bothy 是一个可嵌入 Android App 的设备端 AI agent SDK，附带一个展示能力的演示 App。**
+**Bothy 是 [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime)（可嵌入的 Android agent 运行时）的平板优先演示。**
 
-Bothy（苏格兰山间小屋）向所有路人开放。Bothy 给你的 Android App 一间自给自足的小屋，让 AI agent 住在里面干活：完整的
-agent 循环跑在你的 App 进程里，带沙箱化的虚拟工作区、MCP 工具、skill 和子 agent，对外只暴露一套小巧的 Kotlin API。语音、
-屏幕操作（Android Use）、A2A 和设备能力都是按需引入的可选模块。
+Bothy（苏格兰山间小屋）向所有路人开放。小博就住在里面：一个能对话的悬浮助手，会操作别的 App、连公开的 MCP 服务、按计划盯着外面的变化，还能开一辆模拟的车、管一个模拟的家。agent 做的每件事都走运行时的公开 API；这个仓库里没有库。
 
-> **状态：0.x，持续开发中。** 公开 API 尚未冻结，版本之间可能变化。
+> **状态：0.x，持续开发中。**
 
-## 模块
+## 两个 App
 
-| 模块 | 作用 |
-|------|------|
-| `agent-kernel-api` | 与 Android 无关的契约：模型、工具、插件、能力、工作区、完成判定、事件日志、生命周期 |
-| `agent-kernel-core` | agent 循环本身：调度器、原生工具循环、profile 编译、`KernelRuntimeBuilder` |
-| `agent-minimal` | 直接搭在 kernel 上的最小 agent，不含 Android 门面 |
-| `agent-runtime` | 运行时和宿主门面（纯 JVM）：`AgentRuntimeBuilder`、模型客户端（OpenAI / Anthropic 兼容）、MCP、skill、子 agent、会话与记忆、联网搜索与读网页、hook 与策略 |
-| `agent-runtime-android` | Android 层：SQLite 会话存储、App 私有的持久化事件日志 |
-| `agent-vfs` | agent 沙箱工作区的虚拟文件系统；宿主可挂载目录、assets 或内存数据源 |
-| `agent-vfs-saf` | 可选：挂载用户通过系统文件选择器授权的文件夹 |
-| `agent-exec-js` | 可选：`exec_js`，沙箱里的 JavaScript（Zipline 上的 QuickJS），可以回调 agent 的工具 |
-| `agent-device-capabilities` | 可选：日历和通知工具 |
-| `agent-android-use` | 可选：agent 通过无障碍服务观察并操作屏幕 |
-| `agent-voice` | 可选：语音会话，支持设备端 sherpa-onnx 识别和唤醒词，也可用云端识别 |
-| `agent-a2a-client`、`-direct`、`-official` | 可选：把任务委托给远端 A2A agent（两种可互换的传输实现） |
-| `agent-a2a-server` | 可选：把 agent 自己暴露成本地 A2A 端点 |
-| `samples/quickstart-jvm`、`samples/quickstart-android` | 最小可用示例：JVM 命令行 agent、单屏 Android App |
+| 模块 | 做什么 |
+|------|--------|
 | `bothy-sample` | 演示 App（平板优先）：调试控制台、设置、计划、语音、悬浮助手卡片 |
 | `bothy-playground` | 第二个演示 App：用本机 MCP 服务提供一辆虚构的车和一个虚构的家，给 Bothy 操作（见[下文](#bothy-playground)） |
 
-runtime 依赖 kernel 和 `agent-vfs`；可选模块最多依赖 `agent-kernel-api`；没有任何模块依赖 sample；playground 不依赖这里的任何模块，Bothy 像连其他 MCP 服务一样连它。
+sample 依赖运行时的构件（`cc.noharry:agent-*`）；playground 不依赖任何模块，Bothy 像连其他 MCP 服务一样连它。
 
 ## 演示 App 能看到什么
 
@@ -81,45 +65,14 @@ runtime 依赖 kernel 和 `agent-vfs`；可选模块最多依赖 `agent-kernel-a
 `workspace/apps/android/local.properties` 里写 `AMAP_ANDROID_KEY=…`（这个文件不会提交）。没有 key 时导航工具会说明缺什么。
 车机接管助手靠签名级权限，所以两个 App 要用同一个签名（签名方法见[运行演示 App](#运行演示-app)）。
 
-## 快速开始
-
-Bothy 暂未发布到 Maven，先以 Gradle 项目依赖的方式使用：
-
-```bash
-git clone https://github.com/NoHarry/bothy.git
-```
-
-```kotlin
-// 你的 App 的 settings.gradle.kts：把 runtime 和它依赖的模块 include 进来
-val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime", "agent-runtime-android").forEach { name ->
-    include(":$name")
-    project(":$name").projectDir = bothy.resolve(name)
-}
-
-// App 模块的 build.gradle.kts
-dependencies {
-    implementation(project(":agent-runtime-android"))
-}
-```
-
-```kotlin
-val runtime = AgentRuntimeBuilder.create()
-    .modelClient(myModelClient)          // OpenAI 或 Anthropic 兼容的客户端
-    .toolProvider(myMcpProvider)         // 可选：来自 MCP 服务的工具
-    .workspaceRoot(filesDir)             // 可选：agent 的沙箱工作区
-    .build()
-
-runtime.run(AgentRequest(requestId = "r1", sessionId = "s1", input = "帮我规划去成都三天的行程"))
-    .collect { event -> /* 文本增量、工具调用、完成 */ }
-```
-
-完整的接入示例见演示 App：模型配置、MCP 服务、skill、工作区挂载、计划、语音和事件处理。
-
 ## 运行演示 App
 
+把运行时 clone 到本仓库旁边，Gradle 会从源码构建它，代替已发布的构件（见 `settings.gradle.kts`；加 `-PagentRuntimeDir=` 则用已发布的 `agentRuntimeVersion`）：
+
 ```bash
-cd workspace/apps/android
+git clone https://github.com/NoHarry/android-agent-runtime.git
+git clone https://github.com/NoHarry/bothy.git
+cd bothy/workspace/apps/android
 ./gradlew :bothy-sample:assembleDebug
 ./gradlew :bothy-playground:assembleDebug   # 可选：给 Bothy 操作的车和家
 ```
@@ -148,12 +101,12 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 签名文件和密码要备份好：丢了以后，新打的包就不能覆盖安装旧的了。
 
-设备端语音模型和 sherpa-onnx 原生库已经提交在仓库里，arm64 设备上开箱即用；`tools/voice/fetch_voice_assets.py`
-可以重新下载并校验它们。
+设备端语音模型已经提交在仓库里（sherpa-onnx 原生库随运行时的 `agent-voice` 提供），arm64 设备上开箱即用；
+`tools/voice/fetch_voice_assets.py` 可以重新下载并校验它们。
 
 ## 环境要求
 
-- 库：Android `minSdk 23`；演示 App：`minSdk 24`、`compileSdk 37`
+- 演示 App：`minSdk 24`、`compileSdk 37`
 - JDK 17、Gradle 9.6、Android Gradle Plugin 9.4、Kotlin 2.4
 
 ## 许可证

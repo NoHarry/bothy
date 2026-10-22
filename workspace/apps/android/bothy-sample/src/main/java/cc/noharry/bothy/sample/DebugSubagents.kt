@@ -450,7 +450,7 @@ internal const val DEBUG_PICTURE_CARD_HINT =
 
 private const val TAG = "DebugSubagents"
 private const val MAX_BOARD_ROWS = 8
-/** In the parent conversation's event-log folder; `tools/session_cache.py --children` reads it. */
+/** In the parent conversation's event-log folder; the runtime repo's `tools/session_cache.py --children` reads it. */
 internal const val SUBAGENT_RECORDS = "subagents.jsonl"
 /** A late result waiting for its turn, in [DebugSubagents.deliveries]. */
 internal const val REPORT_QUEUED = 0L

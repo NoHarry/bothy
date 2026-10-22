@@ -16,22 +16,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "bothy"
 
-include(":agent-kernel-api")
-include(":agent-kernel-core")
-include(":agent-minimal")
-include(":agent-runtime")
-include(":agent-runtime-android")
-include(":agent-vfs")
-include(":agent-vfs-saf")
-include(":agent-exec-js")
-include(":agent-device-capabilities")
-include(":agent-android-use")
-include(":agent-voice")
-include(":agent-a2a-client")
-include(":agent-a2a-client-direct")
-include(":agent-a2a-client-official")
-include(":agent-a2a-server")
-include(":samples:quickstart-jvm")
-include(":samples:quickstart-android")
+// The demo apps build on Android Agent Runtime (cc.noharry:agent-*). With its repository checked out beside this one,
+// Gradle builds it from source in place of the published artifacts; -PagentRuntimeDir=… points elsewhere, and
+// -PagentRuntimeDir= (empty) uses the published version.
+val agentRuntimeDir = providers.gradleProperty("agentRuntimeDir").getOrElse("../../../../android-agent-runtime")
+if (agentRuntimeDir.isNotEmpty() && file(agentRuntimeDir).resolve("settings.gradle.kts").isFile) {
+    includeBuild(agentRuntimeDir)
+}
+
 include(":bothy-sample")
 include(":bothy-playground")

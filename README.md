@@ -4,38 +4,24 @@
 
 **English** | [中文](README.zh-CN.md)
 
-**Bothy is an embeddable, on-device AI agent SDK for Android, with a demo app that shows what it can do.**
+**Bothy is a tablet-first demo of [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), an
+embeddable agent runtime for Android.**
 
-A bothy is a small mountain shelter, open to any traveller. Bothy gives your Android app a small, self-contained
-shelter where an AI agent can live and work: a full agent loop running in your app process, a sandboxed virtual
-workspace, MCP tools, skills and subagents, all behind a small Kotlin API. Optional modules add voice, screen
-operation (Android Use), A2A and device capabilities when you need them.
+A bothy is a small mountain shelter, open to any traveller. 小博 (Xiao Bo) lives in one: a floating assistant you talk
+to, that drives other apps, public MCP servers, plans that watch the world, and a simulated car and flat. Everything the
+agent does, it does through the runtime's public API; nothing here is a library.
 
-> **Status: 0.x, under active development.** The public API is not frozen yet and may change between releases.
+> **Status: 0.x, under active development.**
 
-## Modules
+## The apps
 
 | Module | What it does |
 |--------|--------------|
-| `agent-kernel-api` | Android-neutral contracts: model, tool, plugin, capability, workspace, completion, event log, lifecycle |
-| `agent-kernel-core` | The agent loop: scheduler, native tool loop, profile compiler, `KernelRuntimeBuilder` |
-| `agent-minimal` | A minimal agent profile built straight on the kernel, without the Android facade |
-| `agent-runtime` | The runtime and host facade (plain JVM): `AgentRuntimeBuilder`, model clients (OpenAI / Anthropic compatible), MCP integration, skills, subagents, sessions and memory, web search and fetch, hooks and policy |
-| `agent-runtime-android` | The Android layer: SQLite session store and app-private durable event log |
-| `agent-vfs` | Virtual file system for the agent's sandboxed workspace; the host mounts directories, assets or in-memory sources |
-| `agent-vfs-saf` | Optional: mount a folder the user picks through the Storage Access Framework |
-| `agent-exec-js` | Optional: `exec_js`, sandboxed JavaScript (QuickJS through Zipline) that can call the agent's tools |
-| `agent-device-capabilities` | Optional: calendar and notification tools |
-| `agent-android-use` | Optional: the agent observes and operates the screen through an accessibility service |
-| `agent-voice` | Optional: voice sessions with on-device sherpa-onnx recognition and wake word, or a cloud recognizer |
-| `agent-a2a-client`, `-direct`, `-official` | Optional: delegate tasks to remote A2A agents (two interchangeable transports) |
-| `agent-a2a-server` | Optional: expose the agent itself as a local A2A endpoint |
-| `samples/quickstart-jvm`, `samples/quickstart-android` | Smallest working agents: a command-line one on the JVM, a one-screen Android app |
 | `bothy-sample` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 
-The runtime depends on the kernel and `agent-vfs`; optional modules depend at most on `agent-kernel-api`. Nothing
-depends on the sample, and the playground depends on nothing here: Bothy reaches it like any other MCP server.
+The sample depends on the runtime's artifacts (`cc.noharry:agent-*`); the playground depends on nothing: Bothy reaches
+it like any other MCP server.
 
 ## What the demo shows
 
@@ -102,46 +88,15 @@ you sign with: put `AMAP_ANDROID_KEY=…` in `workspace/apps/android/local.prope
 navigation tools say what is missing. The head unit takes the assistant over through a signature permission, so it
 works only when both apps are signed with the same key (see [Running the demo](#running-the-demo) for signing).
 
-## Getting started
-
-Bothy is not published to Maven yet. Consume it as a Gradle project dependency:
-
-```bash
-git clone https://github.com/NoHarry/bothy.git
-```
-
-```kotlin
-// settings.gradle.kts of your app: include the runtime and the modules it depends on
-val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime", "agent-runtime-android").forEach { name ->
-    include(":$name")
-    project(":$name").projectDir = bothy.resolve(name)
-}
-
-// build.gradle.kts of your app module
-dependencies {
-    implementation(project(":agent-runtime-android"))
-}
-```
-
-```kotlin
-val runtime = AgentRuntimeBuilder.create()
-    .modelClient(myModelClient)          // an OpenAI- or Anthropic-compatible client
-    .toolProvider(myMcpProvider)         // optional: tools from MCP servers
-    .workspaceRoot(filesDir)             // optional: the agent's sandboxed workspace
-    .build()
-
-runtime.run(AgentRequest(requestId = "r1", sessionId = "s1", input = "Plan a three-day trip to Chengdu"))
-    .collect { event -> /* text deltas, tool calls, completion */ }
-```
-
-The sample app is the complete integration: provider configuration, MCP servers, skills, workspace mounts, plans,
-voice and event handling.
-
 ## Running the demo
 
+Clone the runtime beside this repository; Gradle then builds it from source in place of the published artifacts
+(`settings.gradle.kts`; `-PagentRuntimeDir=` uses the published `agentRuntimeVersion` instead):
+
 ```bash
-cd workspace/apps/android
+git clone https://github.com/NoHarry/android-agent-runtime.git
+git clone https://github.com/NoHarry/bothy.git
+cd bothy/workspace/apps/android
 ./gradlew :bothy-sample:assembleDebug
 ./gradlew :bothy-playground:assembleDebug   # optional: the car and home to drive
 ```
@@ -170,12 +125,12 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 Keep the key file and its passwords backed up: without them a new build no longer installs over the old one.
 
-The on-device voice models and the sherpa-onnx native libraries are committed, so voice works out of the box on arm64
-devices; `tools/voice/fetch_voice_assets.py` re-downloads and verifies them.
+The on-device voice models are committed (the sherpa-onnx native libraries come with the runtime's `agent-voice`), so
+voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py` re-downloads and verifies them.
 
 ## Requirements
 
-- Libraries: Android `minSdk 23`; demo app: `minSdk 24`, `compileSdk 37`
+- Demo app: `minSdk 24`, `compileSdk 37`
 - JDK 17, Gradle 9.6, Android Gradle Plugin 9.4, Kotlin 2.4
 
 ## License

@@ -212,17 +212,18 @@ listOf("Debug", "Release").forEach { variant ->
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation(project(":agent-runtime-android"))
+    implementation(platform("cc.noharry:agent-bom:${providers.gradleProperty("agentRuntimeVersion").get()}"))
+    implementation("cc.noharry:agent-runtime-android")
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
-        add(scope, project(":agent-vfs-saf"))
-        add(scope, project(":agent-exec-js"))
-        add(scope, project(":agent-device-capabilities"))
-        add(scope, project(":agent-android-use"))
-        add(scope, project(":agent-voice"))
-        add(scope, project(":agent-a2a-client"))
-        add(scope, project(":agent-a2a-client-direct"))
-        add(scope, project(":agent-a2a-client-official"))
-        add(scope, project(":agent-a2a-server"))
+        add(scope, "cc.noharry:agent-vfs-saf")
+        add(scope, "cc.noharry:agent-exec-js")
+        add(scope, "cc.noharry:agent-device-capabilities")
+        add(scope, "cc.noharry:agent-android-use")
+        add(scope, "cc.noharry:agent-voice")
+        add(scope, "cc.noharry:agent-a2a-client")
+        add(scope, "cc.noharry:agent-a2a-client-direct")
+        add(scope, "cc.noharry:agent-a2a-client-official")
+        add(scope, "cc.noharry:agent-a2a-server")
     }
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.13.0")

@@ -29,25 +29,8 @@ platforms:
   android:
     path: "workspace/apps/android"
     build: "./gradlew assembleDebug"
-    test: "./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-vfs:test :agent-runtime:test :agent-minimal:test"
+    test: "./gradlew :bothy-sample:testDebugUnitTest :bothy-playground:testDebugUnitTest"
     gradle_modules:
-      - ":agent-kernel-api"
-      - ":agent-kernel-core"
-      - ":agent-minimal"
-      - ":agent-runtime"
-      - ":agent-runtime-android"
-      - ":agent-vfs"
-      - ":agent-vfs-saf"
-      - ":agent-exec-js"
-      - ":agent-device-capabilities"
-      - ":agent-android-use"
-      - ":agent-voice"
-      - ":agent-a2a-client"
-      - ":agent-a2a-client-direct"
-      - ":agent-a2a-client-official"
-      - ":agent-a2a-server"
-      - ":samples:quickstart-jvm"
-      - ":samples:quickstart-android"
       - ":bothy-sample"
       - ":bothy-playground"
 
@@ -115,22 +98,6 @@ architecture:
       path: "workspace/apps/android/bothy-sample/src/main/**"
       level: 0
       import_prefix: "cc.noharry.bothy.sample"
-    - name: "agent_runtime"
-      path: "workspace/apps/android/agent-runtime/src/main/**"
-      level: 1
-      import_prefix: "cc.noharry.agent.runtime"
-    - name: "agent_kernel_core"
-      path: "workspace/apps/android/agent-kernel-core/src/main/**"
-      level: 2
-      import_prefix: "cc.noharry.agent.kernel.core"
-    - name: "agent_vfs"
-      path: "workspace/apps/android/agent-vfs/src/main/**"
-      level: 2
-      import_prefix: "cc.noharry.agent.vfs"
-    - name: "agent_kernel_api"
-      path: "workspace/apps/android/agent-kernel-api/src/main/**"
-      level: 3
-      import_prefix: "cc.noharry.agent.kernel.api"
   exclude_paths:
     - ".agent-harness/**"
     - ".agents/**"

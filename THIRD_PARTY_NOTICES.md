@@ -1,6 +1,8 @@
 # Third-party notices
 
-Bothy's own source code is licensed under the repository [MIT license](LICENSE). Dependencies resolved by Gradle, and
+Bothy's own source code is licensed under the repository [MIT license](LICENSE). The agent runtime it builds on,
+[Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), lists its own third-party files and
+dependencies (sherpa-onnx native libraries, A2A Java SDK sources, Zipline and others) in its `THIRD_PARTY_NOTICES.md`. Dependencies resolved by Gradle, and
 the third-party files committed in this repository, remain under their respective upstream licenses and terms; Bothy's
 MIT license does not replace them.
 
@@ -10,15 +12,8 @@ transitive dependencies and the versions your build actually packages.
 
 ## Committed third-party files
 
-### On-device speech (`agent-voice`, `bothy-sample`)
+### On-device speech models (`bothy-sample`)
 
-- **sherpa-onnx Kotlin API** (`agent-voice/src/main/kotlin/com/k2fsa/sherpa/onnx/`) — Apache License 2.0, Copyright
-  Xiaomi Corporation and the sherpa-onnx authors. Copied from tag v1.13.8; see the `NOTICE` file in that directory.
-  Upstream: <https://github.com/k2-fsa/sherpa-onnx>
-- **`libsherpa-onnx-jni.so`** (`agent-voice/src/main/jniLibs/arm64-v8a/`) — Apache License 2.0, from the sherpa-onnx
-  v1.13.8 Android release.
-- **`libonnxruntime.so`** (same directory) — MIT License, Copyright Microsoft Corporation, as bundled in the sherpa-onnx
-  v1.13.8 Android release. Upstream: <https://github.com/microsoft/onnxruntime>
 - **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
   model** `sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01` (`bothy-sample/src/main/assets/voice-models/`) —
   published by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). The
@@ -26,8 +21,9 @@ transitive dependencies and the versions your build actually packages.
   (<https://www.openslr.org/121>) and whose official download requires accepting the WenetSpeech access agreement.
   Check the upstream model pages and the dataset terms before using these models in a commercial product.
 
-`workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the native libraries and models from the pinned
-upstream archives and checks their SHA-256, so the committed files can be verified or replaced.
+`workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the models (and, into a runtime checkout beside
+this repository, the native libraries) from the pinned upstream archives and checks their SHA-256, so the committed
+files can be verified or replaced.
 
 ### Wake-answer clips (`bothy-sample/src/main/assets/voice-acks/`)
 
@@ -36,17 +32,9 @@ Short spoken answers (「我在」「在呢」…) synthesized with Xiaomi MiMo 
 before redistributing them in your own product, or regenerate them with a TTS service and voice you are licensed to use.
 Without them the app synthesizes the answer on the device the first time it needs it.
 
-### A2A Java SDK sources (`agent-a2a-client-official`)
-
-Seven small classes from A2A Java SDK `1.1.0.Final` (Apache License 2.0) are included as source; see that module's
-`THIRD_PARTY_NOTICES.md`. Upstream: <https://github.com/a2aproject/a2a-java>
-
 ## Notable Gradle dependencies
 
-- **JavaScript execution** (`agent-exec-js`): `app.cash.zipline:zipline` — Apache License 2.0
-  (<https://github.com/cashapp/zipline>). The Zipline Android artifact includes native QuickJS libraries, distributed
-  upstream under the MIT license (<https://bellard.org/quickjs/>).
-- **A2A**: A2A Java SDK client artifacts — Apache License 2.0 (<https://github.com/a2aproject/a2a-java>).
+- **Android Agent Runtime** (`cc.noharry:agent-*`) — MIT License, with the notices in its repository.
 - **A2UI rendering** (sample): AndroidX A2UI alpha artifacts — Apache License 2.0 (<https://github.com/androidx/androidx>).
 - **AndroidX, Jetpack Compose, Material** — Apache License 2.0 (<https://github.com/androidx/androidx>).
 - **Kotlin coroutines and serialization** — Apache License 2.0 (<https://github.com/Kotlin/kotlinx.coroutines>,
