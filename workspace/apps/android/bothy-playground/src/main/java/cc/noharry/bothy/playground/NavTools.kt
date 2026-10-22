@@ -38,11 +38,12 @@ private fun searchPlacesTool(nav: NavController) = McpTool(
     title = "搜地点",
     description = "按名字或类别搜地点（高德），返回名称、地址、距离、评分、今天营业时间和坐标。默认在车所在的城市里搜，城市大时片区名" +
         "（「科技园」「香蜜湖」）和连锁店可能搜到别的区：这时用 near 在同一趟的另一个地点附近搜。只是规划路线的话不用先搜，" +
-        "直接把名字交给 start_navigation，它会按同一趟其他地点附近找。",
+        "直接把名字交给 start_navigation，它会按同一趟其他地点附近找。用户说附近、周边、这边、旁边（「附近的停车场」）时 around_car=true，在车的周围由近到远搜。",
     inputSchema = objectSchema(
         "keyword" to property("string", "要搜的：名字或类别，比如「素食餐厅」「宝安机场T3」「蛋糕店」"),
         "near" to placeProperty("在这个地点附近搜，比如同一趟里的「南山书城」"),
-        "radius" to property("integer", "near 附近多大范围，米", min = 500, max = 50_000),
+        "radius" to property("integer", "near 或车附近多大范围，米（车附近默认 5000）", min = 500, max = 50_000),
+        "around_car" to property("boolean", "true 在车的周围由近到远搜（用户说附近、周边）；不给就按名字在全城搜"),
         "city" to property("string", "城市，比如「深圳」；不给就用车所在的城市"),
         "limit" to property("integer", "最多几个", min = 1, max = 10),
         required = listOf("keyword"),
@@ -54,7 +55,8 @@ private fun searchPlacesTool(nav: NavController) = McpTool(
         args.string("city"),
         args.int("limit", 1..10) ?: 5,
         args.place("near"),
-        args.int("radius", 500..50_000) ?: NavController.AREA_RADIUS_M,
+        args.int("radius", 500..50_000),
+        args.bool("around_car") ?: false,
     )
 }
 

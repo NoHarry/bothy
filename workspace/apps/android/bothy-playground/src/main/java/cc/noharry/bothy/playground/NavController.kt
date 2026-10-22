@@ -177,14 +177,23 @@ class NavController(
         return ToolOutcome(store.read(), "导航已退出。", setOf(Highlight.NAV))
     }
 
-    /** Places called [keyword]: across [city], or around [near] (another stop of the trip) within [radiusMeters]. */
-    fun search(keyword: String, city: String?, limit: Int, near: PlaceSpec? = null, radiusMeters: Int = AREA_RADIUS_M): ToolOutcome {
+    /**
+     * Places called [keyword]: across [city], around [near] (another stop of the trip) within [radiusMeters], or, with
+     * [aroundCar] (「附近的停车场」), around the car nearest first, within [radiusMeters] or [AROUND_CAR_M]. A search by
+     * name across the city found 「附近」 places 25 km away once the car stood where the device really is (2026-10-22).
+     */
+    fun search(keyword: String, city: String?, limit: Int, near: PlaceSpec? = null, radiusMeters: Int? = null, aroundCar: Boolean = false): ToolOutcome {
         ready()
         val area = city?.takeIf { it.isNotBlank() } ?: engine.currentCity()
         val center = near?.let { resolve(it, area, engine.currentLocation()) }
-        val found = if (center != null) engine.searchNearby(keyword, center.point, radiusMeters, limit) else engine.search(keyword, area, engine.currentLocation(), limit)
-        val where = center?.let { "在「${it.name}」附近" } ?: area.takeIf { it.isNotEmpty() }?.let { "在$it" }.orEmpty()
-        if (found.isEmpty()) throw ToolRefusal("${where}没搜到「$keyword」，换个说法${if (center == null) "，或者用 near 在某个地点附近搜" else "或放大 radius"}")
+        val car = engine.currentLocation().takeIf { aroundCar && center == null }
+        val found = when {
+            center != null -> engine.searchNearby(keyword, center.point, radiusMeters ?: AREA_RADIUS_M, limit)
+            car != null -> engine.searchNearby(keyword, car, radiusMeters ?: AROUND_CAR_M, limit)
+            else -> engine.search(keyword, area, engine.currentLocation(), limit)
+        }
+        val where = center?.let { "在「${it.name}」附近" } ?: car?.let { "在车附近" } ?: area.takeIf { it.isNotEmpty() }?.let { "在$it" }.orEmpty()
+        if (found.isEmpty()) throw ToolRefusal("${where}没搜到「$keyword」，换个说法${if (center == null && car == null) "，或者用 near 在某个地点附近搜" else "或放大 radius"}")
         pin(found, adding = false)
         val listed = found.mapIndexed { i, p -> "${i + 1}. ${p.describe()}" }.joinToString("\n")
         return ToolOutcome(store.read(), "${where}搜到 ${found.size} 个「$keyword」${if (center != null) "（距离是到「${center.name}」的）" else ""}：\n$listed")
@@ -327,6 +336,8 @@ class NavController(
         private const val RESOLVE_CANDIDATES = 6
         /** How far around the trip an area name is looked for, and how many places there are weighed. */
         const val AREA_RADIUS_M = 12_000
+        /** How far 「附近」 reaches around the car unless asked otherwise. */
+        const val AROUND_CAR_M = 5_000
         private const val AREA_CANDIDATES = 10
         /** AMap's POI types an area's name stands for: 产业园区, 地名地址信息, 地铁站. */
         private const val AREA_TYPES = "120100|190000|150500"

@@ -65,6 +65,17 @@ class NavControllerTest {
     }
 
     @Test
+    fun nearbyMeansAroundTheCarNearestFirst() {
+        val result = call("search_places", """{"keyword":"蛋糕店","around_car":true}""")
+        assertFalse(result.text(), result.isError())
+        assertTrue(result.text(), result.text().startsWith("在车附近搜到"))
+        assertEquals(listOf("蛋糕店"), engine.nearbyAsked)
+        // By name, across the city as before.
+        call("search_places", """{"keyword":"南山书城"}""")
+        assertEquals(listOf("蛋糕店"), engine.nearbyAsked)
+    }
+
+    @Test
     fun aRouteOnlyPlannedWaitsForTheWordToGoThroughChanges() {
         val waiting = mutableListOf<() -> Unit>()
         val nav = NavController(store, engine, clock = { 0L }, later = { _, run -> waiting += run })
