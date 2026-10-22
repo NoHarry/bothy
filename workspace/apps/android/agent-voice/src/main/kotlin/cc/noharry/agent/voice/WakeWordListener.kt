@@ -101,7 +101,7 @@ class WakeWordListener(
         fun availabilityError(assets: AssetManager, modelDir: String = WAKE_MODEL_ASSET_DIR): String? {
             val files = runCatching { assets.list(modelDir)?.toSet().orEmpty() }.getOrDefault(emptySet())
             val missing = WAKE_MODEL_FILES.filterNot(files::contains)
-            if (missing.isNotEmpty()) return "唤醒词模型未安装（缺少 ${missing.joinToString()}），运行 tools/voice/fetch_voice_assets.py 后重新打包"
+            if (missing.isNotEmpty()) return "唤醒词模型未安装：assets/$modelDir 里缺少 ${missing.joinToString()}，放进去后重新打包"
             return SherpaOnnxAsrEngine.nativeLibraryError
         }
     }

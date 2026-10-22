@@ -68,13 +68,13 @@ class SherpaOnnxAsrEngine(
         fun availabilityError(assets: AssetManager, modelDir: String = SHERPA_MODEL_ASSET_DIR): String? {
             val files = runCatching { assets.list(modelDir)?.toSet().orEmpty() }.getOrDefault(emptySet())
             val missing = SHERPA_MODEL_FILES.filterNot(files::contains)
-            if (missing.isNotEmpty()) return "本地模型未安装（缺少 ${missing.joinToString()}），运行 tools/voice/fetch_voice_assets.py 后重新打包"
+            if (missing.isNotEmpty()) return "本地模型未安装：assets/$modelDir 里缺少 ${missing.joinToString()}，放进去后重新打包"
             return nativeLibraryError
         }
 
         internal val nativeLibraryError: String? by lazy {
             runCatching { System.loadLibrary("sherpa-onnx-jni") }
-                .exceptionOrNull()?.let { "sherpa-onnx 原生库未打包（${it.message}），运行 tools/voice/fetch_voice_assets.py 后重新打包" }
+                .exceptionOrNull()?.let { "sherpa-onnx 原生库加载失败（${it.message}），这台设备的 ABI 可能不在 agent-voice 自带的库里" }
         }
     }
 }
