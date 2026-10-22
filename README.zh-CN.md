@@ -29,6 +29,7 @@ agent 循环跑在你的 App 进程里，带沙箱化的虚拟工作区、MCP �
 | `agent-voice` | 可选：语音会话，支持设备端 sherpa-onnx 识别和唤醒词，也可用云端识别 |
 | `agent-a2a-client`、`-direct`、`-official` | 可选：把任务委托给远端 A2A agent（两种可互换的传输实现） |
 | `agent-a2a-server` | 可选：把 agent 自己暴露成本地 A2A 端点 |
+| `samples/quickstart-jvm`、`samples/quickstart-android` | 最小可用示例：JVM 命令行 agent、单屏 Android App |
 | `bothy-sample` | 演示 App（平板优先）：调试控制台、设置、计划、语音、悬浮助手卡片 |
 | `bothy-playground` | 第二个演示 App：用本机 MCP 服务提供一辆虚构的车和一个虚构的家，给 Bothy 操作（见[下文](#bothy-playground)） |
 

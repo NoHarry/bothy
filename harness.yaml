@@ -46,6 +46,8 @@ platforms:
       - ":agent-a2a-client-direct"
       - ":agent-a2a-client-official"
       - ":agent-a2a-server"
+      - ":samples:quickstart-jvm"
+      - ":samples:quickstart-android"
       - ":bothy-sample"
       - ":bothy-playground"
 

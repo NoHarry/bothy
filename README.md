@@ -30,6 +30,7 @@ operation (Android Use), A2A and device capabilities when you need them.
 | `agent-voice` | Optional: voice sessions with on-device sherpa-onnx recognition and wake word, or a cloud recognizer |
 | `agent-a2a-client`, `-direct`, `-official` | Optional: delegate tasks to remote A2A agents (two interchangeable transports) |
 | `agent-a2a-server` | Optional: expose the agent itself as a local A2A endpoint |
+| `samples/quickstart-jvm`, `samples/quickstart-android` | Smallest working agents: a command-line one on the JVM, a one-screen Android app |
 | `bothy-sample` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 

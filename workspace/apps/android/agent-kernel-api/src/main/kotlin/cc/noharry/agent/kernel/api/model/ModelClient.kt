@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface ModelClient {
     /**
-     * Candidate concurrency declaration. Implementations must choose
-     * [ProviderConcurrencyDeclaration.threadSafe],
-     * [ProviderConcurrencyDeclaration.serialized], or
-     * [ProviderConcurrencyDeclaration.sessionFactory] explicitly.
+     * Candidate concurrency declaration: how many requests the runtime may send at once. The default,
+     * [ProviderConcurrencyDeclaration.serialized], sends one at a time; a client that can take overlapping requests
+     * declares [ProviderConcurrencyDeclaration.threadSafe] or [ProviderConcurrencyDeclaration.sessionFactory].
      */
     @ExperimentalAgentRuntimeApi
     val providerConcurrency: ProviderConcurrencyDeclaration
+        get() = ProviderConcurrencyDeclaration.serialized()
 
     fun complete(request: ModelRequest): Flow<ModelEvent>
 }

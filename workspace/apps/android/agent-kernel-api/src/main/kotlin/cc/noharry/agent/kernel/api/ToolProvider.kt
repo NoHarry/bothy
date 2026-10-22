@@ -14,13 +14,14 @@ interface ToolProvider {
     val providerId: String
 
     /**
-     * Candidate concurrency declaration. Implementations must choose
-     * [ProviderConcurrencyDeclaration.threadSafe],
-     * [ProviderConcurrencyDeclaration.serialized], or
-     * [ProviderConcurrencyDeclaration.sessionFactory] explicitly.
+     * Candidate concurrency declaration: how many calls the runtime may make to this provider at once. The default,
+     * [ProviderConcurrencyDeclaration.serialized], makes one call at a time, so a provider that is not thread-safe
+     * need not override it; a provider whose calls may overlap declares [ProviderConcurrencyDeclaration.threadSafe] or
+     * [ProviderConcurrencyDeclaration.sessionFactory].
      */
     @ExperimentalAgentRuntimeApi
     val providerConcurrency: ProviderConcurrencyDeclaration
+        get() = ProviderConcurrencyDeclaration.serialized()
 
     /** Human-readable provider label for catalog listings. */
     val displayName: String

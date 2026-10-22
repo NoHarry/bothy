@@ -18,4 +18,10 @@ fun AgentRuntimeBuilder.androidSqliteSessions(): AgentRuntimeBuilder =
 /** The durable session event log in the app's no-backup storage. Candidate API, not frozen. */
 @ExperimentalAgentRuntimeApi
 fun DurableSessionEventLogPlugin.Companion.appPrivate(context: Context): DurableSessionEventLogPlugin =
-    DurableSessionEventLogPlugin.forRoot(File(context.noBackupFilesDir, DurableSessionEventLogPlugin.ROOT_DIRECTORY))
+    DurableSessionEventLogPlugin.forRoot(appStorage(context.noBackupFilesDir, DurableSessionEventLogPlugin.ROOT_DIRECTORY))
+
+/**
+ * [name] under an app directory, as its canonical path. An app's directories sit under `/data/user/0`, a link to
+ * `/data/data`, and the event log refuses a path that goes through a link.
+ */
+internal fun appStorage(dir: File, name: String): File = File(dir, name).let { runCatching { it.canonicalFile }.getOrDefault(it.absoluteFile) }

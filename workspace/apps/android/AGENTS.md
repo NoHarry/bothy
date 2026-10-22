@@ -22,6 +22,8 @@ modules, and a demo host app.
 | `agent-a2a-client-direct` | Optional direct JSON-RPC/SSE A2A client adapter. |
 | `agent-a2a-client-official` | Optional adapter over the official A2A Java SDK, packaged in the sample for comparison. |
 | `agent-a2a-server` | Optional inbound A2A 0.3 JSON-RPC/SSE loopback transport with bounded tasks. |
+| `samples/quickstart-jvm` | Command-line agent on `agent-runtime` alone: an OpenAI-compatible model, a `functionTools` tool and an optional MCP server (`MCP_URL`). |
+| `samples/quickstart-android` | One-screen Android agent on `AndroidAgentRuntime.builder(context)`; the key is typed in and never stored. |
 | `bothy-sample` | Demo host app and debug console (tablet first): model providers, MCP servers and 连接应用, skills, subagents, plans, voice, A2A and the floating assistant card. |
 | `bothy-playground` | Second demo app: a fictional car cabin and flat served as two loopback MCP servers (`127.0.0.1:8790/cabin/mcp`, `/home/mcp`) with live state, manual controls and resources for plans. Depends on no module here. |
 

@@ -26,7 +26,7 @@ class FileBackedSessionEventLogDeviceSmokeTest {
     @Test
     fun deviceFilesystemReopenRecoverySmoke() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val root = File(context.noBackupFilesDir, "$TEST_DIR_PREFIX-${UUID.randomUUID()}")
+        val root = appStorage(context.noBackupFilesDir, "$TEST_DIR_PREFIX-${UUID.randomUUID()}")
         try {
             assertRootIsNoBackupNotFiles(root, context.noBackupFilesDir, context.filesDir)
             val writer = openFileBackedSessionEventLog(root, eventIdFactory = incrementalIds("write"))
