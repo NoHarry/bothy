@@ -1,5 +1,9 @@
 # Bothy
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
+[![Platform](https://img.shields.io/badge/platform-Android%20tablet-3DDC84?logo=android&logoColor=white)](#requirements)
+
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="Bothy's mascot 小博 (Xiao Bo) by a mountain bothy at dusk" width="880"></p>
 
 **English** | [中文](README.zh-CN.md)

@@ -1,5 +1,9 @@
 # Bothy
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
+[![Platform](https://img.shields.io/badge/platform-Android%20tablet-3DDC84?logo=android&logoColor=white)](#环境要求)
+
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="小博在黄昏的山间小屋旁" width="880"></p>
 
 [English](README.md) | **中文**
