@@ -29,8 +29,52 @@ it like any other MCP server.
 
 ## What the demo shows
 
-- **A car and a home to drive**: [Bothy Playground](#bothy-playground) puts a fictional cabin and a fictional flat on
-  screen; say 「你好小博，我有点冷」 and watch the seat warm up.
+Every clip is the demo on a tablet, asked out loud; some are sped up, as each caption says.
+
+### Talk to 小博 in the car
+
+<p align="center"><img src="docs/images/demo-car-voice.gif" alt="Saying 「你好小博，我有点冷」 in the head unit: 小博's card lists the tools it calls and the air conditioning goes from 24 to 26 °C" width="880"></p>
+
+Say 「你好小博」 and ask. While it listens, a slim bar shows the words it hears; once it takes the request, its card
+shows what you asked, each tool it calls and the answer. It knows who is speaking: the seat marked 说话中 is yours, so
+「我这边好热」 lands on it. Here 「我有点冷」 turns the air conditioning up from 24 to 26 °C. *(Real time.)*
+
+### Plan a trip and drive it
+
+<p align="center"><img src="docs/images/demo-navigation.gif" alt="「先去深圳北站，再去世界之窗」: the route through both stops is shown whole, then a simulated drive starts" width="880"></p>
+
+「先去深圳北站，再去世界之窗」: 小博 finds both places by name, plans a route through them with AMap's navigation SDK,
+shows it whole for a few seconds, then starts a simulated drive with turn-by-turn guidance. Stops can be added,
+removed, replaced or reordered while driving (up to 16), and a vague name such as 「科技园」 is looked for around the
+trip's other stops. In the demo the car starts at 深圳市民中心, not where the device is. *(2× speed.)*
+
+### Cards and panels it draws
+
+<p align="center"><img src="docs/images/demo-a2ui-panel.gif" alt="「空调给我个面板，我自己调」: a climate panel appears in 小博's card; dragging to 22 °C and confirming sets the car to cooling at 22 °C" width="880"></p>
+
+When an answer needs a pick or a setting, 小博 sends UI instead of words (A2UI): information cards, choices and control
+panels the head unit draws itself. Drag, tap, confirm, and the choice goes back to 小博, which carries it out; here 22 °C
+and cooling. *(1.6× speed.)*
+
+### A home too
+
+<p align="center"><img src="docs/images/demo-home.gif" alt="「我回家了，客厅开灯，空调开到二十五度」: the living room lights up, its air conditioning comes on and the room starts to cool" width="880"></p>
+
+The playground also has a small flat: lights, curtains and air conditioning in four rooms, a motion sensor per room,
+the front door lock, a robot vacuum, and scenes (回家, 离家, 睡觉, 观影, 起床). Readings move, so the room above cools
+toward 25 °C and a plan like 「客厅超过 28 度就开空调」 fires within minutes. Away from the head unit, 小博 answers in
+Bothy's floating card. *(1.5× speed.)*
+
+### It can use other apps
+
+<p align="center"><img src="docs/images/demo-android-use.gif" alt="「帮我用计算器算一下 23 乘以 47」: 小博's avatar moves to each key it taps on the calculator and the answer is 1,081" width="880"></p>
+
+With Android Use on (an accessibility service you switch on), 小博 reads the screen and taps, swipes and types in other
+apps. Its avatar shows where it is about to tap, and the screen's edge glows while it is in control; here it works out
+23 × 47 on the calculator. *(1.3× speed.)*
+
+### And more
+
 - **Bring your own model**: any OpenAI- or Anthropic-compatible endpoint, configured in the app; streaming, thinking,
   server-side web search and prompt caching where the provider offers them.
 - **MCP from the public internet**: 连接应用 (Connect apps) lists ready-made remote MCP servers. Open ones connect with one
@@ -42,16 +86,12 @@ it like any other MCP server.
 - **Plans**: reminders and timed tasks, and watches on a server's state, either an MCP resource or a read-only tool
   polled on a schedule, e.g. "remind me when the cheapest Shenzhen–Chengdu flight on 7 Nov drops below 800 yuan" runs on
   Kiwi.com's open search.
-- **Generative UI**: cards, sliders, switches and choices rendered with A2UI; answers that need a pick become buttons.
-- **Voice**: on-device wake word (「你好，小博」) and recognition, turn taking and barge-in, TTS; optionally an
-  end-to-end speech model.
-- **Android Use**: the agent reads the screen and taps, swipes and types in other apps (you enable the accessibility
-  service).
+- **Voice**: on-device wake word (「你好，小博」) and recognition, turn taking (an optional judge decides when you have
+  finished and whether you are talking to 小博), barge-in, TTS; optionally an end-to-end speech model.
 - **Your own cloud agent**: pair a personal agent (such as Grok Bot) through the self-hosted relay in
   `workspace/apps/android/tools/agent-relay`, then hand it tasks that need your accounts.
-
-The demo can also run fully offline with a simulated model and the example tools in
-`bothy-sample/src/main/assets/mcp/tools.json`.
+- **Offline**: the demo also runs with a simulated model and the example tools in
+  `bothy-sample/src/main/assets/mcp/tools.json`.
 
 ## Bothy Playground
 
