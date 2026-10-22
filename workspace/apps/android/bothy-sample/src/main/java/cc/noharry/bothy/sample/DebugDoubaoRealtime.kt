@@ -392,7 +392,10 @@ private const val END_CONVERSATION_DESCRIPTION =
     "用户要结束这次对话时调用：退出语音、关闭语音、让你退下、说不用了没事了、再见等。调用后对话立即结束，不用再回复。" +
         "用户只是停顿、应答「好」「嗯」，或只是让某个应用、页面退出时，不要调用。"
 private const val REALTIME_TOOL_RULE =
-    "用户要办事时：先用很短的一句话回应（比如「好，我来办」），然后调用 ask_xiaobo，把要办的事交给它；拿到结果后用一两句话" +
+    // Straight to the call, no words first (owner 2026-10-22: 「提前主动播的那句去掉，这样可以等120秒也能续播」): after words of
+    // its own the service's voice gives up on the result near 30 s, so the call is answered within SPOKEN_CALL_REPLY_MILLIS
+    // with 「还在办」; without them it waits up to AGENT_REPLY_MILLIS and the model says the result itself.
+    "用户要办事时：不要先说话（不要说「好，我来办」「我帮你规划」这类话），直接调用 ask_xiaobo，把要办的事交给它；拿到结果后用一两句话" +
         "告诉用户，不要念长列表、网址和编号。结果是小博的提问时，把问题转述给用户。闲聊、陪伴、常识问答直接回答，不调用工具。" +
         "不要编造办事的结果。周围的歌声和视频声、别人之间的聊天、听不清的半句话，都不要回应。用户要结束对话、退出语音时调用 end_conversation。" +
         "设提醒、定时要办的事、机票价格或天气到了某个条件时提醒，也交给 ask_xiaobo，不要只口头答应。" +
