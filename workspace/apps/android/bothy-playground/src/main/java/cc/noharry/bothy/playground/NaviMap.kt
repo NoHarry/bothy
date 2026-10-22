@@ -33,6 +33,7 @@ import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.navi.AMapNaviView
 import com.amap.api.navi.AMapNaviViewOptions
 import com.amap.api.navi.enums.MapStyle
+import kotlin.math.abs
 
 /**
  * The map view, kept so the head unit can drive it: the whole route or the car, places found (numbered pins, the camera
@@ -59,6 +60,9 @@ internal class NaviMapHandle {
         private set
     private var coveredRight = 0
 
+    /** Where the car was seen against where it was asked to sit ([keepCarCentred]). */
+    private val drift = CarDrift()
+
     /**
      * Where the car sits while driving, as shares of the map: in the middle of the map left open beside the cards,
      * horizontally and vertically (owner 2026-10-21: 「车的位置没有居中」; a fixed spot low on the right left it in a corner).
@@ -67,18 +71,43 @@ internal class NaviMapHandle {
         get() {
             val view = view ?: return DEFAULT_ANCHOR
             val width = view.width.takeIf { it > 0 } ?: return DEFAULT_ANCHOR
-            val open = (width - coveredLeft - coveredRight).coerceAtLeast(width / 3)
-            val share = (coveredLeft + open / 2.0) / width
-            return (if (width > view.height) landscapeLockX(share) else share) to CAR_AT_HEIGHT
+            val share = carShare(width)
+            val asked = if (width > view.height) landscapeLockX(share) else share
+            return (asked + drift.nudge(width)).coerceIn(0.0, 1.0) to CAR_AT_HEIGHT
         }
+
+    /** The middle of the map the cards leave open, as a share of its [width]. */
+    private fun carShare(width: Int): Double {
+        val open = (width - coveredLeft - coveredRight).coerceAtLeast(width / 3)
+        return (coveredLeft + open / 2.0) / width
+    }
 
     /** The screen's cards now cover [left] and [right] pixels of the map: driving, the car moves to the middle of the rest. */
     fun cover(left: Int, right: Int) {
         if (left == coveredLeft && right == coveredRight) return
         coveredLeft = left
         coveredRight = right
+        relock()
+    }
+
+    /** The map changed width (the assistant's card opened or closed beside it): the car's place is a share of it. */
+    fun resized() = relock()
+
+    private fun relock() {
         val view = view ?: return
         if (drawing && !view.isRouteOverviewNow) view.viewOptions = naviOptions(drawRoute = true, anchor)
+    }
+
+    /**
+     * Driving, locked on the car at [point]: where AMap really drew it, and its place moved by what it missed. AMap's
+     * landscape map keeps room for its own (hidden) guidance panel by an amount that changes with the map's state, so
+     * [landscapeLockX] is only a first guess (seen on the tablet: 0.508 asked once landed at 0.529, not 0.635).
+     */
+    fun keepCarCentred(point: GeoPoint) {
+        val view = view ?: return
+        if (!drawing || view.isRouteOverviewNow || view.width == 0) return
+        val seen = view.map.projection.toScreenLocation(LatLng(point.lat, point.lng)) ?: return
+        if (drift.seen(view.width, carShare(view.width) - seen.x.toDouble() / view.width)) relock()
     }
 
     internal fun options(): AMapNaviViewOptions = naviOptions(drawing, anchor)
@@ -170,6 +199,8 @@ internal class NaviMapHandle {
         stops = 0
         centred = false
         drawing = false
+        // A new map view: what the old one missed by says nothing of it.
+        drift.reset()
         generation++
     }
 
@@ -209,7 +240,7 @@ internal class NaviMapHandle {
         map.moveCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(LatLng(point.lat, point.lng), HOME_ZOOM, 0f, 0f)))
         val now = map.cameraPosition
         centred = now != null && GeoPoint(now.target.latitude, now.target.longitude).metersTo(point) < CENTRED_WITHIN_M &&
-            kotlin.math.abs(now.zoom - HOME_ZOOM) < 1f
+            abs(now.zoom - HOME_ZOOM) < 1f
     }
 }
 
@@ -278,6 +309,9 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
                     // The head unit is always at night; the options alone leave the map in day colours.
                     view.viewOptions = handle.options()
                     view.onResume()
+                    view.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+                        if (right - left != oldRight - oldLeft) handle.resized()
+                    }
                     handle.view = view
                     made = view
                 }
@@ -331,9 +365,54 @@ private fun naviOptions(drawRoute: Boolean, anchor: Pair<Double, Double>): AMapN
 }
 
 /**
+ * What the car's place across the map is moved by, learnt from where it was seen: only once it is off the same way
+ * twice running, by the two together, as one sighting can catch the car between AMap's updates or turning. Learnt for
+ * each width of the map apart: what AMap misses by on the whole map says nothing of the map beside the assistant's card.
+ */
+internal class CarDrift {
+    private val nudges = mutableMapOf<Int, Double>()
+    private var last = 0.0
+    private var lastWidth = 0
+
+    /** Added to the share asked for, on a map [width] pixels wide. */
+    fun nudge(width: Int): Double = nudges[width] ?: 0.0
+
+    /** Seen [off] (the share of the map's width it should move right by); true when [nudge] changed. */
+    fun seen(width: Int, off: Double): Boolean {
+        if (width != lastWidth) {
+            last = 0.0
+            lastWidth = width
+        }
+        // Close enough, or far off because the map is not on the car (moved by hand, or framing places).
+        if (abs(off) < CAR_OFF_SHARE || abs(off) > CAR_LOST_SHARE) {
+            last = 0.0
+            return false
+        }
+        if (last * off <= 0.0) {
+            last = off
+            return false
+        }
+        nudges[width] = (nudge(width) + (last + off) / 2).coerceIn(-MAX_NUDGE, MAX_NUDGE)
+        last = 0.0
+        return true
+    }
+
+    fun reset() {
+        nudges.clear()
+        last = 0.0
+    }
+}
+
+/** Off by less than this share of the map's width, the car counts as in the middle. */
+private const val CAR_OFF_SHARE = 0.025
+/** Off by more, the map is not on the car. */
+private const val CAR_LOST_SHARE = 0.3
+private const val MAX_NUDGE = 0.4
+
+/**
  * What to ask AMap for so the car sits at [share] of a landscape map's width: there it keeps the left part for its own
  * guidance panel (hidden here) and puts the car at [LANDSCAPE_LOCK_FROM] + [LANDSCAPE_LOCK_SPAN] × the share asked for,
- * as measured on the tablet (0.68 asked → 0.743, 0.637 → 0.716).
+ * as measured on the tablet (0.68 asked → 0.743, 0.637 → 0.716). Not always: [CarDrift] corrects it from the car seen.
  */
 internal fun landscapeLockX(share: Double): Double = ((share - LANDSCAPE_LOCK_FROM) / LANDSCAPE_LOCK_SPAN).coerceIn(0.0, 1.0)
 

@@ -313,6 +313,7 @@ private fun PlayMapCues(map: NaviMapHandle, showing: Boolean, onCue: (MapCue) ->
 @Composable
 private fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
     val driving by rememberUpdatedState(nav.driving)
+    val cued by rememberUpdatedState(cuedAt)
     LaunchedEffect(cuedAt) {
         if (cuedAt == 0L) return@LaunchedEffect
         delay(DRIVING_OVERVIEW_MS)
@@ -337,6 +338,8 @@ private fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
             Playground.engine?.currentLocation()?.let {
                 map.centreOnce(it)
                 map.markCar(it, density)
+                // Locked on the car once the route's overview is over: it is kept in the middle of the open map.
+                if (driving && System.currentTimeMillis() - cued > DRIVING_OVERVIEW_MS) map.keepCarCentred(it)
                 // Parked somewhere else (the demo start switched, the device moved far): the map goes with it.
                 val moved = centredOn?.let { at -> at.metersTo(it) > RECENTRE_M } ?: false
                 if (moved && !driving) map.showCar(it, density)

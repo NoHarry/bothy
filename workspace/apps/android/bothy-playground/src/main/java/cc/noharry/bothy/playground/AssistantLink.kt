@@ -88,12 +88,21 @@ object Assistant {
         runCatching { context.sendBroadcast(Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE).putExtra("command", name), PERMISSION) }
     }
 
-    /** A new report; when 小博 last worked on the request is kept across reports that only change what is heard. */
+    /** A new report. */
     fun received(next: AssistantView) {
-        val before = current.value
-        val worked = next.running || next.request != before.request || next.reply != before.reply || next.a2ui != before.a2ui
-        current.value = next.copy(workedAt = if (worked) next.updatedAt else before.workedAt)
+        current.value = next.after(current.value)
     }
+}
+
+/**
+ * This report after [before], with when 小博 last worked on the request: kept across reports that only change what is
+ * heard. The first since the head unit started carries Bothy's last turn, done before: it opens no card unless 小博 is
+ * still on it.
+ */
+internal fun AssistantView.after(before: AssistantView): AssistantView {
+    val changed = request != before.request || reply != before.reply || a2ui != before.a2ui
+    val worked = running || (before.updatedAt > 0L && changed)
+    return copy(workedAt = if (worked) updatedAt else before.workedAt)
 }
 
 /** Bothy's reports, sent only by an app holding [Assistant.PERMISSION]. */
