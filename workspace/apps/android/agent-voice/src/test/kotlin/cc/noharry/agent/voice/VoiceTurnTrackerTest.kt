@@ -288,22 +288,22 @@ class VoiceTurnTrackerTest {
 
     @Test
     fun aCloudRecognizersRevisedFinalIsNotHandedOverTwice() {
-        val version = speak("小泊，导航去深圳北站", at = 0)
+        val version = speak("阿洁，导航去深圳北站", at = 0)
         tracker.onMic(true, 100)
         tracker.onMic(false, 200)
         tracker.onJudgment(version, VoiceJudgment(turnComplete = 0.9, holdingFloor = 0.0, addressedToAgent = 0.96))
-        assertEquals("小泊，导航去深圳北站", (tracker.poll(600) as VoiceTurnAction.End).text)
+        assertEquals("阿洁，导航去深圳北站", (tracker.poll(600) as VoiceTurnAction.End).text)
 
         // The segment closes later with a homophone fixed and punctuation added: the same words, already handed over.
-        tracker.onFinal("小伯，导航去深圳北站。", 900)
+        tracker.onFinal("阿杰，导航去深圳北站。", 900)
         assertEquals("", tracker.transcript)
         assertNull(tracker.poll(2_000))
     }
 
     @Test
     fun strippingTheConsumedStartToleratesRevisionsButNotNewWords() {
-        assertEquals("然后找停车场", stripConsumed("小伯，导航去深圳北站，然后找停车场", "小泊，导航去深圳北站"))
-        assertEquals("", stripConsumed("小伯，导航去深圳北站。", "小泊，导航去深圳北站"))
+        assertEquals("然后找停车场", stripConsumed("阿杰，导航去深圳北站，然后找停车场", "阿洁，导航去深圳北站"))
+        assertEquals("", stripConsumed("阿杰，导航去深圳北站。", "阿洁，导航去深圳北站"))
         assertEquals("打开窗帘", stripConsumed("打开窗帘", "导航去深圳北站"))
         assertEquals("他还要写专栏", stripConsumed("还没起来干活他还要写专栏", "还没起来干活"))
     }
@@ -417,9 +417,9 @@ class VoiceTurnTrackerTest {
 
     @Test
     fun theWakePhraseMidTurnEndsWhatCameBeforeAndOpensACalledTurn() {
-        tracker.wakePhrase = DEFAULT_WAKE_PHRASE_HEARD
+        tracker.wakePhrase = TEST_WAKE_HEARD
         tracker.onMic(true, 0)
-        tracker.onPartial("你可能得调一下那个能量，让它消掉一点。你好小博", 0)
+        tracker.onPartial("你可能得调一下那个能量，让它消掉一点。你好助手", 0)
 
         val head = tracker.poll(100) as VoiceTurnAction.End
         assertEquals(VoiceEndReason.WAKE_PHRASE, head.reason)
@@ -428,16 +428,16 @@ class VoiceTurnTrackerTest {
         assertEquals("", tracker.transcript)
 
         // The recognizer goes on revising the same open segment; only the words after the wake phrase are new.
-        tracker.onPartial("你可能得调一下那个能量，让它消掉一点。你好小博你觉得这5家里面哪家最好吃", 1_000)
+        tracker.onPartial("你可能得调一下那个能量，让它消掉一点。你好助手你觉得这5家里面哪家最好吃", 1_000)
         assertEquals("你觉得这5家里面哪家最好吃", tracker.transcript)
         assertTrue((tracker.poll(1_000 + JUDGE_DEBOUNCE_MILLIS) as VoiceTurnAction.Judge).snapshot.called)
     }
 
     @Test
     fun theWakePhraseInAClosedSegmentKeepsOnlyWhatFollows() {
-        tracker.wakePhrase = DEFAULT_WAKE_PHRASE_HEARD
+        tracker.wakePhrase = TEST_WAKE_HEARD
         tracker.onMic(true, 0)
-        tracker.onFinal("你好，小伯。", 0)
+        tracker.onFinal("你好，助手。", 0)
         tracker.onPartial("打开空调", 200)
 
         assertTrue("nothing before the wake phrase, so nothing ends", tracker.poll(200) !is VoiceTurnAction.End)

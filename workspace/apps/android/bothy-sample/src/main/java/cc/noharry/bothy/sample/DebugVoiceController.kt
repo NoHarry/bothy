@@ -8,7 +8,6 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import cc.noharry.agent.voice.CLOUD_TRANSCRIPT_NOTES
-import cc.noharry.agent.voice.DEFAULT_WAKE_PHRASE_HEARD
 import cc.noharry.agent.voice.DashScopeAsrEngine
 import cc.noharry.agent.voice.DashScopeAsrModel
 import cc.noharry.agent.voice.DirectTurnJudge
@@ -186,7 +185,7 @@ internal object DebugVoiceController {
             onAgentTurn = { handOver -> main.post { handOver(appContext, handOver) } },
             // Only a hands-free session may be dismissed by voice; the console's mic is tapped off.
             onDismiss = if (origin.handsFree) ({ main.post(::dismissed) }) else null,
-            wakePhrase = DEFAULT_WAKE_PHRASE_HEARD,
+            wakePhrase = XIAOBO_WAKE_PROFILE.heardInTranscript,
             // 「退出」 on its own ends a woken session at once, as in 端到端.
             dismissal = ::dismisses,
             // A wake or a tap is the speaker calling the assistant; a follow-up is the assistant's own doing.
@@ -273,6 +272,7 @@ internal object DebugVoiceController {
         model = jev.model,
         timeoutMillis = jev.timeoutMillis,
         transcriptNotes = if (punctuated) CLOUD_TRANSCRIPT_NOTES else SHERPA_TRANSCRIPT_NOTES,
+        identity = XIAOBO_VOICE_IDENTITY,
         onUsage = { input, output -> DebugUsageStore.record(jev.model, DebugModelUsage(1, input.toLong(), outputTokens = output.toLong())) },
     )
 

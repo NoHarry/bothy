@@ -51,7 +51,7 @@ class DirectTurnJudgeTest {
         assertEquals(0.0, judged("顺便查下明天", task = "规划行程").replacesTask!!, 0.0)
         assertNull(judged("顺便查下明天").replacesTask)
         assertEquals(1.0, judged("好了再见", canEnd = true).endsSession!!, 0.0)
-        assertEquals(0.0, judged("再见的英文怎么说呀小博", canEnd = true).endsSession!!, 0.0)
+        assertEquals(0.0, judged("再见的英文怎么说呀助手", canEnd = true).endsSession!!, 0.0)
         assertNull(judged("再见").endsSession)
     }
 }

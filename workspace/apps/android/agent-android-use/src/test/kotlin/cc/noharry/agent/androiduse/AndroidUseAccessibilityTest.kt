@@ -58,7 +58,7 @@ class AndroidUseAccessibilityTest {
         val nodes = listOf(
             screenNode(1, "标题", PixelRect(0, 0, 100, 50)),
             screenNode(2, "确定", PixelRect(0, 100, 100, 150), clickable = true),
-            screenNode(3, "小博", PixelRect(0, 200, 100, 250), clickable = true, packageName = "host"),
+            screenNode(3, "助手", PixelRect(0, 200, 100, 250), clickable = true, packageName = "host"),
             screenNode(4, "", PixelRect(0, 300, 100, 350), clickable = true),
         )
 

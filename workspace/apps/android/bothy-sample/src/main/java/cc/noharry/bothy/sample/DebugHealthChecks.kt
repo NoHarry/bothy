@@ -185,7 +185,7 @@ private suspend fun checkJev(context: Context): DebugCheckResult {
     val key = loadDebugJevKey(context)
     if (key.isEmpty()) return DebugCheckResult(DebugCheckState.OFF, "没配置：语音的每句话直接交给 agent（到「密钥」页填 Jev key 可开启判断）", DebugCheckFix.VOICE)
     if (!loadDebugVoiceConfig(context).jevTurns) return DebugCheckResult(DebugCheckState.OFF, "已关闭：语音的每句话直接交给 agent", DebugCheckFix.VOICE)
-    val judge = JevTurnJudge(jev.endpoint, key, jev.model, jev.timeoutMillis, onUsage = { input, output ->
+    val judge = JevTurnJudge(jev.endpoint, key, jev.model, jev.timeoutMillis, identity = XIAOBO_VOICE_IDENTITY, onUsage = { input, output ->
         DebugUsageStore.record(jev.model, DebugModelUsage(1, input.toLong(), outputTokens = output.toLong()))
     })
     val started = SystemClock.elapsedRealtime()

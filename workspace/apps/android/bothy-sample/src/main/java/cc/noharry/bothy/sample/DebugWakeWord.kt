@@ -113,7 +113,7 @@ internal object DebugWakeWord {
     /** 唤醒阈值: saved, then the spotter starts again with its threshold and phrases. */
     fun setSensitivity(context: Context, sensitivity: WakeSensitivity): Boolean {
         if (!saveDebugWakeSensitivity(context, sensitivity)) return false
-        DebugVoiceLog.i(TAG, "wake sensitivity ${sensitivity.wireName}: ${sensitivity.paths} paths, threshold ${sensitivity.threshold}, ${sensitivity.phrases.map { it.phrase }.distinct().joinToString("/")}")
+        DebugVoiceLog.i(TAG, "wake sensitivity ${sensitivity.wireName}: ${sensitivity.paths} paths, threshold ${sensitivity.threshold}, ${XIAOBO_WAKE_PROFILE.phrasesFor(sensitivity).map { it.phrase }.distinct().joinToString("/")}")
         reload()
         return true
     }
@@ -149,6 +149,7 @@ internal object DebugWakeWord {
                 assets = context.assets,
                 // The spotter needs the echo canceller as much as the session does: 小博's own replies must not wake it.
                 audio = within ?: LeasedAudioSource(micLease, debugMicrophone(config)),
+                profile = XIAOBO_WAKE_PROFILE,
                 sensitivity = config.wakeSensitivity,
                 onWake = { phrase ->
                     val level = created.lastHitLevelDb

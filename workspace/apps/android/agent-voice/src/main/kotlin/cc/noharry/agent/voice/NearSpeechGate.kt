@@ -111,7 +111,7 @@ fun wakeLevelDb(recentDb: List<Double>): Double? {
     return loudest[loudest.size / 2]
 }
 
-/** About the syllables of 你好小博 at 100 ms a frame. */
+/** About the syllables of a four-syllable wake phrase at 100 ms a frame. */
 internal const val WAKE_LEVEL_FRAMES = 6
 /** 1.5 s of frames before a wake hit: the phrase and the spotter's delay. */
 internal const val WAKE_LEVEL_WINDOW_FRAMES = 15

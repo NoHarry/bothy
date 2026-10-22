@@ -60,8 +60,8 @@ class VoiceTurnTracker(
     private val thresholds: VoiceTurnThresholds = VoiceTurnThresholds(),
 ) {
     /**
-     * The wake phrase as the recognizer writes it ("你好小博", "你好，小伯"): heard mid-turn, it calls the assistant
-     * afresh. Null turns this off (no wake phrase, or the assistant is saying it).
+     * The wake phrase as the recognizer writes it, punctuation and homophones included ([WakeWordProfile.heardInTranscript]):
+     * heard mid-turn, it calls the assistant afresh. Null turns this off (no wake phrase, or the assistant is saying it).
      */
     var wakePhrase: Regex? = null
 
@@ -245,7 +245,7 @@ class VoiceTurnTracker(
         val heard = VoiceTurnPolicy.label(thresholds, answer, called())
         val (label, text) = when {
             // A called turn Jev never answered is for the assistant, as it would be unless Jev read it as side talk
-            // (owner 2026-10-18: 「华强北附近有什么好吃的」 right after 你好小博 was dropped while Jev timed out); a lone
+            // (owner 2026-10-18: 「华强北附近有什么好吃的」 right after the wake phrase was dropped while Jev timed out); a lone
             // filler is not.
             answer == null && called() && reason in UNJUDGED_ENDS && transcript.hasWords() -> VoiceSegmentLabel.AGENT to transcript
             reason == VoiceEndReason.JUDGE_FAILED -> VoiceSegmentLabel.UNCERTAIN to transcript
@@ -294,7 +294,7 @@ class VoiceTurnTracker(
     }
 
     /**
-     * The wake phrase heard mid-turn ("…让它消掉一点。你好小博，你觉得哪家最好吃"): the words before it end here and are not
+     * The wake phrase heard mid-turn ("…让它消掉一点。<wake phrase>，你觉得哪家最好吃"): the words before it end here and are not
      * handed over, and the words after it open a new turn expected to be for the assistant. Null when there is no
      * wake phrase, or nothing came before it.
      */
@@ -334,7 +334,7 @@ class VoiceTurnTracker(
     /**
      * The newest closed segment dismisses the assistant ([dismissal]): the turn ends there with that segment as its text,
      * without waiting for Jev or for talk around it to stop; words before it in the turn go with it. Owner 2026-10-20:
-     * 「唤醒小博后，马上说退出他不会退出」: talk nearby kept the turn open, and Jev read 「我一退出」 (recognizer residue in
+     * 「唤醒之后马上说退出，它不会退出」: talk nearby kept the turn open, and Jev read 「我一退出」 (recognizer residue in
      * front) as no dismissal; on the bench a clean 「退出」 still waited 4.6 s for Jev, the first call taking 3.5 s.
      */
     private fun dismissedNow(): VoiceTurnAction.End? {

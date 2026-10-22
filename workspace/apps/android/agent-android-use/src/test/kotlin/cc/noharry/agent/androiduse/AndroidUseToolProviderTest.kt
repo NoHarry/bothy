@@ -361,7 +361,7 @@ private class FakeDevice : AndroidUseDevice {
             node(1, text = "下一首", bounds = PixelRect(2200, 300, 2400, 400), clickable = true),
             node(2, text = "晴天", bounds = PixelRect(100, 300, 600, 380)),
             node(3, description = "播放", bounds = PixelRect(1900, 300, 2100, 400), inClickableContext = true),
-            node(4, text = "小博", bounds = PixelRect(0, 0, 100, 100), clickable = true, packageName = "com.example.host"),
+            node(4, text = "助手", bounds = PixelRect(0, 0, 100, 100), clickable = true, packageName = "com.example.host"),
             node(5, text = "搜索", bounds = PixelRect(100, 100, 800, 180), editable = true),
         ),
     )

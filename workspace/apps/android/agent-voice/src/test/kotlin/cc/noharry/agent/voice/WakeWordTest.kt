@@ -16,30 +16,27 @@ import org.junit.Test
 class WakeWordTest {
     @Test
     fun theWakePhraseIsItsPinyinTokensThenThePhrase() {
-        assertEquals("n ǐ h ǎo x iǎo b ó @你好小博", wakeKeyword(DEFAULT_WAKE_TOKENS, DEFAULT_WAKE_PHRASE))
-        assertEquals("x iǎo b ó @小博", wakeKeyword("  x  iǎo b ó ", "小博"))
+        assertEquals("n ǐ h ǎo zh ù sh ǒu @你好助手", wakeKeyword("n ǐ h ǎo zh ù sh ǒu", "你好助手"))
+        assertEquals("zh ù sh ǒu @助手", wakeKeyword("  zh  ù sh ǒu ", "助手"))
     }
 
     @Test
-    fun everyLevelHearsHiXiaoBoAndItsDecoysAndOnlyTheLowOneTakesBo() {
-        val standard = WakeSensitivity.STANDARD.keywords().split("/")
-        assertEquals("n ǐ h ǎo x iǎo b ó @你好小博", standard.first())
-        assertTrue("h āi x iǎo b ó @嗨小博" in standard && "h ēi x iǎo b ó @嘿小博" in standard)
-        assertTrue("n ǐ h ǎo x iǎo w áng @${DECOY_MARK}你好小王" in standard)
-        assertEquals(standard, WakeSensitivity.HIGH.keywords().split("/"))
-        val low = WakeSensitivity.LOW.keywords().split("/")
-        assertTrue(low.containsAll(standard) && "n ǐ h ǎo x iǎo b ō @你好小波" in low)
-        // Fewer syllables would wake on 「你好你好」 or on every 「你好小王」「你好小哥」.
-        assertFalse(low.any { it.startsWith("h ǎo x iǎo b ó @") || it.startsWith("n ǐ h ǎo x iǎo @") })
+    fun everyLevelHearsTheProfilesPhrasesAndDecoysAndOnlyTheLowOneTakesItsLenientOnes() {
+        val standard = WakeSensitivity.STANDARD.keywords(TEST_WAKE_PROFILE).split("/")
+        assertEquals(listOf("n ǐ h ǎo zh ù sh ǒu @你好助手", "h āi zh ù sh ǒu @嗨助手", "n ǐ h ǎo zh ù sh ù @${DECOY_MARK}你好助术"), standard)
+        assertEquals(standard, WakeSensitivity.HIGH.keywords(TEST_WAKE_PROFILE).split("/"))
+        val low = WakeSensitivity.LOW.keywords(TEST_WAKE_PROFILE).split("/")
+        assertTrue(low.containsAll(standard) && "n ǐ h ǎo zh ǔ sh ǒu @你好主手" in low)
         assertTrue(WakeSensitivity.HIGH.paths < WakeSensitivity.STANDARD.paths)
-        assertTrue(WakeSensitivity.entries.none { level -> level.phrases.any { it.phrase.startsWith(DECOY_MARK) } })
+        assertTrue(WakeSensitivity.entries.none { level -> TEST_WAKE_PROFILE.phrasesFor(level).any { it.phrase.startsWith(DECOY_MARK) } })
         assertEquals(WakeSensitivity.LOW, WakeSensitivity.of("low"))
     }
 
     @Test
-    fun aWakePhraseInsideATurnIsHeardInEachForm() {
-        listOf("你好小博", "你好，小伯", "嗨小博", "Hi，小伯", "hey 小泊", "嘿，小博").forEach { assertTrue(it, DEFAULT_WAKE_PHRASE_HEARD.containsMatchIn(it)) }
-        listOf("你好小宝", "黑小妞", "海小镇", "小博").forEach { assertFalse(it, DEFAULT_WAKE_PHRASE_HEARD.containsMatchIn(it)) }
+    fun aProfileRefusesDecoysThatWouldWakeAndPhrasesThatWouldNot() {
+        assertTrue(runCatching { WakeWordProfile(emptyList()) }.isFailure)
+        assertTrue(runCatching { WakeWordProfile(TEST_WAKE_PROFILE.phrases, decoys = listOf(WakePhrase("a b", "你好"))) }.isFailure)
+        assertTrue(runCatching { WakeWordProfile(listOf(WakePhrase("a b", "${DECOY_MARK}你好"))) }.isFailure)
     }
 
     @Test

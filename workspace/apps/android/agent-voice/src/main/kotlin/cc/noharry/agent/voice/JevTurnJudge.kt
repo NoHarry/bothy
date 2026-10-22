@@ -65,6 +65,8 @@ class JevTurnJudge(
     private val model: String,
     timeoutMillis: Long,
     private val transcriptNotes: String = SHERPA_TRANSCRIPT_NOTES,
+    /** Who the user talks to, named in the judge's instructions; unnamed by default. */
+    private val identity: VoiceAssistantIdentity = VoiceAssistantIdentity.UNNAMED,
     client: OkHttpClient = JEV_TURN_HTTP_CLIENT,
     /** Each answered call's token usage as reported (0 when the response has none), for cost accounting. */
     private val onUsage: (inputTokens: Int, outputTokens: Int) -> Unit = { _, _ -> },
@@ -77,7 +79,7 @@ class JevTurnJudge(
 
     override suspend fun judge(request: VoiceJudgeRequest): VoiceJudgment {
         val started = System.nanoTime()
-        val body = jevTurnBody(model, request, transcriptNotes)
+        val body = jevTurnBody(model, request, transcriptNotes, identity)
         val httpRequest = Request.Builder().url(endpoint).header("Authorization", "Bearer $apiKey")
             .post(body.toRequestBody(JSON_MEDIA_TYPE)).build()
         val response = try {
@@ -95,16 +97,21 @@ class JevTurnJudge(
     }
 }
 
-fun jevTurnBody(model: String, request: VoiceJudgeRequest, transcriptNotes: String = SHERPA_TRANSCRIPT_NOTES): String {
+fun jevTurnBody(
+    model: String,
+    request: VoiceJudgeRequest,
+    transcriptNotes: String = SHERPA_TRANSCRIPT_NOTES,
+    identity: VoiceAssistantIdentity = VoiceAssistantIdentity.UNNAMED,
+): String {
     val snapshot = request.snapshot
     val history = request.history.filter { it.text.isNotBlank() }.takeLast(HISTORY_SENT)
     return buildJsonObject {
         put("model", model)
         putJsonObject("state") {
-            put("setting", SETTING)
+            put("setting", SETTING.naming(identity))
             put("transcript_notes", transcriptNotes)
             put("timing_notes", TIMING_NOTES)
-            if (snapshot.called) put("addressing_notes", CALLED_NOTES)
+            if (snapshot.called) put("addressing_notes", CALLED_NOTES.naming(identity))
             put("conversation_history", buildJsonArray {
                 history.forEach { message -> add(buildJsonObject { put("role", message.role); put("text", message.text) }) }
             })
@@ -128,7 +135,7 @@ fun jevTurnBody(model: String, request: VoiceJudgeRequest, transcriptNotes: Stri
         putJsonObject("questions") {
             noul(TURN_COMPLETE, EOS_INSTRUCTIONS, EOS_TRUE, EOS_FALSE)
             noul(HOLDING_FLOOR, HOLDING_INSTRUCTIONS, HOLDING_TRUE, HOLDING_FALSE)
-            noul(ADDRESSED, ADDRESSEE_INSTRUCTIONS, ADDRESSEE_TRUE, ADDRESSEE_FALSE)
+            noul(ADDRESSED, ADDRESSEE_INSTRUCTIONS.naming(identity), ADDRESSEE_TRUE, ADDRESSEE_FALSE)
             if (request.assistantState == ASSISTANT_SPEAKING) {
                 noul(TAKING_FLOOR, TAKING_FLOOR_INSTRUCTIONS, TAKING_FLOOR_TRUE, TAKING_FLOOR_FALSE)
             }
@@ -136,7 +143,7 @@ fun jevTurnBody(model: String, request: VoiceJudgeRequest, transcriptNotes: Stri
                 noul(REPLACES_TASK, REPLACES_TASK_INSTRUCTIONS, REPLACES_TASK_TRUE, REPLACES_TASK_FALSE)
             }
             if (request.canEndSession) noul(ENDS_SESSION, ENDS_SESSION_INSTRUCTIONS, ENDS_SESSION_TRUE, ENDS_SESSION_FALSE)
-            if (request.askSmallTalk && request.currentTask.isBlank()) noul(SMALL_TALK, SMALL_TALK_INSTRUCTIONS, SMALL_TALK_TRUE, SMALL_TALK_FALSE)
+            if (request.askSmallTalk && request.currentTask.isBlank()) noul(SMALL_TALK, SMALL_TALK_INSTRUCTIONS.naming(identity), SMALL_TALK_TRUE, SMALL_TALK_FALSE)
         }
     }.toString()
 }
@@ -203,9 +210,15 @@ private const val REPLACES_TASK = "replaces_task"
 private const val ENDS_SESSION = "ends_session"
 private const val SMALL_TALK = "small_talk"
 
+// Where the assistant's name and wake phrase go in the instructions ([naming]).
+private const val CALLED = "{called}"
+private const val WAKE = "{wake}"
+private const val NAME = "{name}"
+private const val NAMED = "{named}"
+
 // Prompts adapted from AgoraIO-Community/convoai-jev-vad (server/src/jev_eos.py): same questions, our setting.
 private const val SETTING =
-    "Open-mic voice session with an AI assistant called 小博 (Xiaobo) on a tablet or a phone. The user " +
+    "Open-mic voice session with an AI assistant$CALLED on a tablet or a phone. The user " +
         "tapped to wake it and the microphone then stays open until they end the session, so it hears everyone " +
         "nearby: people talking to each other, phone calls, radio or video. Speech is mostly Mandarin Chinese, " +
         "sometimes with English words. The assistant controls the device and apps and replies as soon as a turn " +
@@ -230,7 +243,7 @@ private const val TIMING_NOTES =
         "means the speaker is in full flow. turn_elapsed_ms: time since the turn opened."
 
 private const val CALLED_NOTES =
-    "The speaker called the assistant just before this turn (said its wake word 「你好小博」 or pressed its mic " +
+    "The speaker called the assistant just before this turn (said its wake word$WAKE or pressed its mic " +
         "button), and current_user_transcript is what they said right after. Words right after calling the " +
         "assistant are almost always for it; score them as addressed unless they plainly talk to someone else."
 
@@ -268,11 +281,11 @@ private const val HOLDING_FALSE =
 
 private const val ADDRESSEE_INSTRUCTIONS =
     "The microphone picks up everyone nearby. Judging from the TEXT only, is this utterance directed at the " +
-        "assistant 小博, as opposed to another person nearby, a phone call, the speaker talking to themselves, or " +
+        "assistant$NAME, as opposed to another person nearby, a phone call, the speaker talking to themselves, or " +
         "radio/video audio? Use conversation_history and assistant_last_message: a reply that fits what the " +
         "assistant just said or asked is almost certainly for it, even if short ('第一个', '对', '不用了'). " +
         "Requests the assistant can act on (navigation, music, alarms, lights, phone, apps, settings, " +
-        "questions to look up) and anything naming 小博 are addressed to it. Cues pointing away: another person " +
+        "questions to look up) and anything naming $NAMED are addressed to it. Cues pointing away: another person " +
         "named or addressed ('老婆', '妈', '你吃了吗'), chat between people ('昨天那个电影挺好看的', '晚上吃什么'), " +
         "replying to something the assistant never said, or fragments that read like a call or a broadcast. " +
         "Narration, storytelling, a lecture, lyrics or dialogue that sounds like a video, podcast, audiobook or radio " +
@@ -337,7 +350,7 @@ private const val REPLACES_TASK_FALSE =
 // 闲聊 (owner 2026-10-13): small talk goes to a companion chat service, everything else to the agent. A request
 // misread as small talk goes undone, so the question leans hard towards the agent.
 private const val SMALL_TALK_INSTRUCTIONS =
-    "The words in current_user_transcript are for the assistant 小博, which is idle. Decide whether they are small " +
+    "The words in current_user_transcript are for the assistant$NAME, which is idle. Decide whether they are small " +
         "talk or companionship: chatting, sharing feelings or the day, banter, greetings, compliments, asking its " +
         "opinion, or asking it for a joke, a story or a few kind words ('今天有点累', '你觉得我穿这个好看吗', '讲个笑话', " +
         "'陪我聊会儿', '你喜欢什么颜色'). NOT small talk: anything it must act on or look up: the device and home (闹钟, 蓝牙, 亮度, " +
@@ -352,3 +365,14 @@ private const val SMALL_TALK_TRUE =
 private const val SMALL_TALK_FALSE =
     "A request to act, control, play, navigate, call, remind, look up or show something, a factual question, an " +
         "answer about a task, or a mix that includes any of these."
+
+/** These instructions with [identity]'s name and wake phrase filled in, or worded for an unnamed assistant. */
+private fun String.naming(identity: VoiceAssistantIdentity): String {
+    val name = identity.name.trim()
+    val spokenAs = identity.spokenAs.trim().takeIf { it.isNotEmpty() && name.isNotEmpty() }?.let { " ($it)" }.orEmpty()
+    val wake = identity.wakePhrase.trim()
+    return replace(CALLED, if (name.isEmpty()) "" else " called $name$spokenAs")
+        .replace(WAKE, if (wake.isEmpty()) "" else " 「$wake」")
+        .replace(NAME, if (name.isEmpty()) "" else " $name")
+        .replace(NAMED, name.ifEmpty { "it" })
+}

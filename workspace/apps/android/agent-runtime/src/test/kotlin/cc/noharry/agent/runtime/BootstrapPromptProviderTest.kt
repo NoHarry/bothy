@@ -55,14 +55,14 @@ class BootstrapPromptProviderTest {
             contextCatalog = defaultContextCatalog(),
             skillsCatalog = skills,
             scene = "debug-console",
-            hostPrompt = "You are 小博.",
+            hostPrompt = "You are Ada.",
         ).text
 
         val static = prompt.substringBefore("\n\nHost instructions:\n")
         assertTrue(static.toByteArray(Charsets.UTF_8).size <= STATIC_PROMPT_SOFT_BUDGET_BYTES)
         assertTrue("summaries go first; every domain stays", prompt.contains("- domain1 (39 tools)\n") && prompt.contains("- domain30 (10 tools)"))
         assertFalse(prompt.contains(summary))
-        assertTrue(prompt.contains("Host instructions:\nYou are 小博."))
+        assertTrue(prompt.contains("Host instructions:\nYou are Ada."))
     }
 
     @Test

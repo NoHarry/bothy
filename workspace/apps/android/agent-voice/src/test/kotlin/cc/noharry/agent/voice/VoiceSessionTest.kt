@@ -342,13 +342,13 @@ class VoiceSessionTest {
 
     @Test
     fun wordsBeforeTheWakePhraseAreNotHandedOver() = test.runTest {
-        val engine = ScriptedEngine(mapOf(3 to "让它消掉一点你好小博", 5 to "让它消掉一点你好小博打开窗帘"))
+        val engine = ScriptedEngine(mapOf(3 to "让它消掉一点你好助手", 5 to "让它消掉一点你好助手打开窗帘"))
         val session = VoiceSession(
             engine = engine,
             judge = { VoiceJudgment(0.95, 0.0, 0.9, latencyMillis = 1) },
             audio = { flow { repeat(FRAMES) { index -> delay(100); emit(frame(voiced = index in 1..6)) } } },
             onAgentTurn = { handed += it.text },
-            wakePhrase = DEFAULT_WAKE_PHRASE_HEARD,
+            wakePhrase = TEST_WAKE_HEARD,
             clock = { dispatcher.scheduler.currentTime },
             dispatchers = dispatchers,
         ).also { engine.handedOver = { handed.isNotEmpty() } }

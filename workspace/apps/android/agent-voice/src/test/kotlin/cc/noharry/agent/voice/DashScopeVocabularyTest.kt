@@ -22,10 +22,10 @@ class DashScopeVocabularyTest {
 
     @Test
     fun wordsBecomeWeightedEntriesInTheirLanguage() {
-        val entries = vocabularyEntries(listOf("小博", " 你好小博 ", "小博", "", "CarPlay"))
+        val entries = vocabularyEntries(listOf("助手", " 你好助手 ", "助手", "", "CarPlay"))
         assertEquals(3, entries.size)
         val first = entries[0].jsonObject
-        assertEquals("小博", first["text"]!!.jsonPrimitive.content)
+        assertEquals("助手", first["text"]!!.jsonPrimitive.content)
         assertEquals("zh", first["lang"]!!.jsonPrimitive.content)
         assertEquals("4", first["weight"]!!.jsonPrimitive.content)
         assertEquals("en", entries[2].jsonObject["lang"]!!.jsonPrimitive.content)
@@ -33,7 +33,7 @@ class DashScopeVocabularyTest {
 
     @Test
     fun overlongHotwordsAreRefused() {
-        assertNull(hotwordProblem("你好小博"))
+        assertNull(hotwordProblem("你好助手"))
         assertTrue(hotwordProblem("一二三四五六七八九十一二三四五六")!!.contains("15"))
         assertTrue(hotwordProblem("one two three four five six seven eight")!!.contains("7"))
         assertTrue(hotwordProblem(" ") != null)

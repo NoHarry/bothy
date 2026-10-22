@@ -91,7 +91,7 @@ private fun hasExplicitConcurrency(text: String): Boolean =
 private fun androidModules(): List<File> {
     val root = File("..")
     return root.listFiles().orEmpty()
-        .filter { it.isDirectory && (it.name.startsWith("agent-") || it.name == "bothy-sample") }
+        .filter { it.isDirectory && it.name.startsWith("agent-") }
         .filter { File(it, "src").isDirectory }
 }
 

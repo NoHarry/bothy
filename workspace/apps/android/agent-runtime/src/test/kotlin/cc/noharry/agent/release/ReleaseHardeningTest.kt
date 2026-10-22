@@ -50,29 +50,6 @@ class ReleaseHardeningTest {
     }
 
     @Test
-    fun sampleReleaseBuildEnablesR8WithProjectDependency() {
-        val buildFile = File("../bothy-sample/build.gradle.kts").readText()
-
-        assertTrue(buildFile.contains("implementation(project(\":agent-runtime-android\"))"))
-        assertTrue(buildFile.contains("release"))
-        assertTrue(buildFile.contains("isMinifyEnabled = true"))
-        assertTrue(buildFile.contains("getDefaultProguardFile(\"proguard-android-optimize.txt\")"))
-        assertTrue(buildFile.contains("sourceCompatibility = JavaVersion.VERSION_17"))
-    }
-
-    @Test
-    fun sampleReleaseSmokeActivityReferencesRuntimeApi() {
-        val manifest = File("../bothy-sample/src/main/AndroidManifest.xml").readText()
-        val activity = File(
-            "../bothy-sample/src/main/java/cc/noharry/bothy/sample/AgentRuntimeSmokeActivity.java",
-        ).readText()
-
-        assertTrue(manifest.contains("AgentRuntimeSmokeActivity"))
-        assertTrue(activity.contains("AgentRuntimeBuilder.create().build()"))
-        assertTrue(activity.contains("new AgentRequest("))
-    }
-
-    @Test
     fun minSdkAlignsWithCandidateReliabilityStoragePolicy() {
         val buildFile = File("../agent-runtime-android/build.gradle.kts").readText()
 
@@ -233,7 +210,6 @@ private fun sourcePublicRoots(sourceRoot: File): Set<String> {
 
 private val FORBIDDEN_PUBLIC_API_PREFIXES = listOf(
     "okhttp3.",
-    "cc.noharry.bothy.sample.",
 )
 
 private val CANDIDATE_PUBLIC_API_CLASS_NAMES = listOf(

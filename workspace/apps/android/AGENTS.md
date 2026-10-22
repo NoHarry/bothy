@@ -17,7 +17,7 @@ modules, and a demo host app.
 | `agent-exec-js` | Optional Zipline-backed `ExecEngine` for `exec_js` and nested tool bridge calls. |
 | `agent-device-capabilities` | Optional calendar and notification MCP providers with permission error envelopes. |
 | `agent-android-use` | Optional Android Use: accessibility service plus `android_observe` / `android_action` tools (screenshot first, elements to aim), a process-wide screen lease and a UI-free presenter SPI. |
-| `agent-voice` | Optional voice session: microphone capture, streaming ASR SPI with on-device sherpa-onnx and DashScope engines, wake word, turn and addressee judgment. Depends on no project module. |
+| `agent-voice` | Optional voice session: microphone capture, streaming ASR SPI with on-device sherpa-onnx and DashScope engines, wake word, turn and addressee judgment. Depends on no project module. The host supplies the wake phrases (`WakeWordProfile`) and the assistant's name (`VoiceAssistantIdentity`); 小博's live in the sample. |
 | `agent-a2a-client` | Optional, transport-neutral outbound A2A client facade and packaged-module SPI. |
 | `agent-a2a-client-direct` | Optional direct JSON-RPC/SSE A2A client adapter. |
 | `agent-a2a-client-official` | Optional adapter over the official A2A Java SDK, packaged in the sample for comparison. |

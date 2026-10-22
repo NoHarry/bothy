@@ -32,8 +32,9 @@ import kotlinx.coroutines.sync.withLock
 class WakeWordListener(
     private val assets: AssetManager,
     private val audio: VoiceAudioSource,
+    profile: WakeWordProfile,
     sensitivity: WakeSensitivity = WakeSensitivity.STANDARD,
-    private val keywords: String = sensitivity.keywords(),
+    private val keywords: String = sensitivity.keywords(profile),
     private val modelDir: String = WAKE_MODEL_ASSET_DIR,
     private val threshold: Float = sensitivity.threshold,
     private val boost: Float = sensitivity.boost,
@@ -78,7 +79,7 @@ class WakeWordListener(
                     // The stream must be reset right after a hit, or the same phrase fires again.
                     if (heard.isNotEmpty()) {
                         spotter.reset(stream)
-                        // A near miss that outscored the phrase ([DECOY_WAKE_PHRASES]): heard, and let go.
+                        // A near miss that outscored the phrase ([WakeWordProfile.decoys]): heard, and let go.
                         if (heard.startsWith(DECOY_MARK)) continue
                         lastHitLevelDb = wakeLevelDb(recentDb.toList())
                         onWake(heard)
@@ -150,9 +151,33 @@ fun wakeKeyword(tokens: String, phrase: String): String = "${tokens.trim().split
 data class WakePhrase(val tokens: String, val phrase: String)
 
 /**
- * How readily the spotter wakes (Settings → 语音 → 唤醒阈值): how many paths its search keeps ([paths]) and the phrases
- * it listens for, 嗨/嘿小博 (「hi 小博」) besides 你好小博 on every level. [LOW] also takes 博 heard as 波. Every level
- * also listens for [DECOY_WAKE_PHRASES], which never wake.
+ * The assistant's wake phrases for the spotter: [phrases] wake it at every [WakeSensitivity], [lenientPhrases] (near
+ * misses of the phrase still meant for it) only at [WakeSensitivity.LOW], and [decoys] are listened for so that they,
+ * not the phrase, win on their own words; a hit on a decoy never wakes, so each decoy's phrase starts with
+ * [DECOY_MARK]. [heardInTranscript] finds the wake phrase as a recognizer writes it inside a turn, so saying it again
+ * mid-turn calls the assistant ([VoiceTurnTracker.wakePhrase]). Phrases need at least four syllables: fewer wake on
+ * everyday speech.
+ */
+data class WakeWordProfile(
+    val phrases: List<WakePhrase>,
+    val lenientPhrases: List<WakePhrase> = emptyList(),
+    val decoys: List<WakePhrase> = emptyList(),
+    val heardInTranscript: Regex? = null,
+) {
+    init {
+        require(phrases.isNotEmpty()) { "A wake word profile needs at least one phrase." }
+        require(decoys.all { it.phrase.startsWith(DECOY_MARK) }) { "Every decoy's phrase starts with $DECOY_MARK." }
+        require((phrases + lenientPhrases).none { it.phrase.startsWith(DECOY_MARK) }) { "Only decoys start with $DECOY_MARK." }
+    }
+
+    /** The phrases that wake the assistant at [sensitivity]. */
+    fun phrasesFor(sensitivity: WakeSensitivity): List<WakePhrase> =
+        if (sensitivity.lenient) phrases + lenientPhrases else phrases
+}
+
+/**
+ * How readily the spotter wakes: how many paths its search keeps ([paths]) and whether it also takes the profile's
+ * lenient phrases ([lenient]). Every level also listens for the profile's decoys, which never wake.
  *
  * More paths keep the phrase in the search, at some cost: each spotter used about 11% more time at 12 paths than at 4.
  * The decoys keep a wider search from waking on near misses. Re-measure on recordings of the phrase before tuning.
@@ -162,15 +187,16 @@ enum class WakeSensitivity(
     val threshold: Float,
     val boost: Float,
     val paths: Int,
-    val phrases: List<WakePhrase>,
+    val lenient: Boolean,
 ) {
-    HIGH("high", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 6, CORE_WAKE_PHRASES),
-    STANDARD("standard", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 12, CORE_WAKE_PHRASES),
-    LOW("low", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 12, CORE_WAKE_PHRASES + BO_LEVEL_WAKE_PHRASE),
+    HIGH("high", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 6, lenient = false),
+    STANDARD("standard", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 12, lenient = false),
+    LOW("low", DEFAULT_WAKE_THRESHOLD, DEFAULT_WAKE_BOOST, 12, lenient = true),
     ;
 
-    /** The spotter's keywords: one line per phrase, the decoys after them, `/` between them. */
-    fun keywords(): String = (phrases + DECOY_WAKE_PHRASES).joinToString("/") { wakeKeyword(it.tokens, it.phrase) }
+    /** The spotter's keywords for [profile]: one line per phrase, the decoys after them, `/` between them. */
+    fun keywords(profile: WakeWordProfile): String =
+        (profile.phrasesFor(this) + profile.decoys).joinToString("/") { wakeKeyword(it.tokens, it.phrase) }
 
     companion object {
         fun of(wireName: String?): WakeSensitivity? = entries.firstOrNull { it.wireName == wireName }
@@ -200,41 +226,8 @@ internal fun spotterConfig(
     maxActivePaths = paths,
 )
 
-/** 你好，小博: 博 is bó, so 小伯 and 小泊 wake it too. */
-const val DEFAULT_WAKE_PHRASE = "你好小博"
-const val DEFAULT_WAKE_TOKENS = "n ǐ h ǎo x iǎo b ó"
-/** Every level's phrases: 你好小博, and 「hi 小博」 as 嗨 in either tone or 嘿 (hey). */
-private val CORE_WAKE_PHRASES = listOf(
-    WakePhrase(DEFAULT_WAKE_TOKENS, DEFAULT_WAKE_PHRASE),
-    WakePhrase("h āi x iǎo b ó", "嗨小博"),
-    WakePhrase("h ài x iǎo b ó", "嗨小博"),
-    WakePhrase("h ēi x iǎo b ó", "嘿小博"),
-)
-/** [WakeSensitivity.LOW]'s extra: 博 heard as 波. */
-private val BO_LEVEL_WAKE_PHRASE = WakePhrase("n ǐ h ǎo x iǎo b ō", "你好小波")
-
-/**
- * Near misses the spotter listens for so that they, not the phrase, win on their own words: a hit on one ([DECOY_MARK])
- * never wakes.
- */
-val DECOY_WAKE_PHRASES = listOf(
-    WakePhrase("n ǐ h ǎo x iǎo w áng", "${DECOY_MARK}你好小王"),
-    WakePhrase("n ǐ h ǎo x iǎo g ē", "${DECOY_MARK}你好小哥"),
-    WakePhrase("n ǐ h ǎo x iǎo m ěi", "${DECOY_MARK}你好小美"),
-    WakePhrase("n ǐ h ǎo x iǎo p éng", "${DECOY_MARK}你好小朋"),
-    WakePhrase("n ǐ h ǎo x iǎo b ǎo", "${DECOY_MARK}你好小宝"),
-    WakePhrase("n ǐ h ǎo x iǎo j iě", "${DECOY_MARK}你好小姐"),
-    WakePhrase("n ǐ h ǎo x iǎo q ì", "${DECOY_MARK}你好小气"),
-    WakePhrase("n ǐ h ǎo x iǎo q ū", "${DECOY_MARK}你好小区"),
-)
-
 /** Starts a decoy's phrase. */
 const val DECOY_MARK = "~"
-/**
- * A wake phrase as a recognizer writes it inside a turn: punctuation may split it ("你好，小博", "Hi，小伯") and 博 comes
- * back as any of its homophones. 宝 is left out: "你好小宝" greets a person.
- */
-val DEFAULT_WAKE_PHRASE_HEARD = Regex("(?:你好|[嗨嘿]|hi|hey)[，,、。.！!？?\\s]*[小晓][博伯泊勃铂]", RegexOption.IGNORE_CASE)
 /** sherpa-onnx's default; higher wakes less often by mistake and misses more. */
 const val DEFAULT_WAKE_THRESHOLD = 0.25f
 /** The Kotlin binding's keywords score, which the spotter always ran with. */
@@ -247,7 +240,7 @@ private const val WAKE_ENCODER = "encoder-epoch-12-avg-2-chunk-16-left-64.int8.o
 private const val WAKE_DECODER = "decoder-epoch-12-avg-2-chunk-16-left-64.onnx"
 private const val WAKE_JOINER = "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx"
 private const val WAKE_TOKENS = "tokens.txt"
-/** Written by the fetch script with the default phrase; each stream is created with [WakeWordListener]'s own. */
+/** Written by the asset fetch script; each stream is created with [WakeWordListener]'s own keywords. */
 private const val WAKE_KEYWORDS_FILE = "keywords.txt"
 private val WAKE_MODEL_FILES = listOf(WAKE_ENCODER, WAKE_DECODER, WAKE_JOINER, WAKE_TOKENS, WAKE_KEYWORDS_FILE)
 private const val PCM_SCALE = 32_768f

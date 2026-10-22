@@ -123,11 +123,25 @@ class JevTurnJudgeTest {
 
     @Test
     fun aCalledTurnTellsJevTheSpeakerJustCalledTheAssistant() {
-        val called = Json.parseToJsonElement(jevTurnBody("m", VoiceJudgeRequest(snapshot.copy(called = true), emptyList()))).jsonObject
+        val identity = VoiceAssistantIdentity(name = "助手", wakePhrase = "你好助手")
+        val called = Json.parseToJsonElement(
+            jevTurnBody("m", VoiceJudgeRequest(snapshot.copy(called = true), emptyList()), identity = identity),
+        ).jsonObject
         val plain = Json.parseToJsonElement(jevTurnBody("m", VoiceJudgeRequest(snapshot, emptyList()))).jsonObject
 
-        assertTrue(called["state"]!!.jsonObject["addressing_notes"]!!.jsonPrimitive.content.contains("你好小博"))
+        assertTrue(called["state"]!!.jsonObject["addressing_notes"]!!.jsonPrimitive.content.contains("「你好助手」"))
+        assertTrue(called.toString().contains("an AI assistant called 助手 on a tablet"))
         assertFalse("addressing_notes" in plain["state"]!!.jsonObject)
+    }
+
+    @Test
+    fun anUnnamedAssistantIsCalledTheAssistant() {
+        val body = jevTurnBody("m", VoiceJudgeRequest(snapshot.copy(called = true), emptyList()))
+
+        assertTrue(body.contains("an AI assistant on a tablet"))
+        assertTrue(body.contains("said its wake word or pressed its mic"))
+        assertTrue(body.contains("anything naming it are addressed to it"))
+        assertFalse(body.contains("{name}") || body.contains("{called}") || body.contains("{wake}") || body.contains("{named}"))
     }
 
     @Test

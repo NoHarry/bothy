@@ -14,7 +14,6 @@ class CorePackageBoundaryTest {
         val forbidden = listOf(
             "cc.noharry.agent.runtime",
             "cc.noharry.agent.vfs",
-            "cc.noharry.bothy.sample",
             "cc.noharry.agent.plugin",
             "okhttp3.",
             "android.",

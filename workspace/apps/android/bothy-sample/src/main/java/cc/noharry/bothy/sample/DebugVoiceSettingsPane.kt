@@ -552,7 +552,7 @@ private fun WakeSensitivityOptions(onSaved: (failed: Boolean) -> Unit) {
 }
 
 private fun WakeSensitivity.labels(): Pair<String, String> {
-    val phrases = phrases.map { it.phrase }.distinct().joinToString("、") { "「$it」" }
+    val phrases = XIAOBO_WAKE_PROFILE.phrasesFor(this).map { it.phrase }.distinct().joinToString("、") { "「$it」" }
     return when (this) {
         WakeSensitivity.HIGH -> "高 · 不易误唤醒" to "只认 $phrases，要说得清楚"
         WakeSensitivity.STANDARD -> "中 · 默认" to "认 $phrases"

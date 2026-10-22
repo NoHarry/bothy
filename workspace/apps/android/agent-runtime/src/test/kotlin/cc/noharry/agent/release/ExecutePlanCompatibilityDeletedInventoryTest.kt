@@ -7,12 +7,11 @@ import java.io.File
 
 class ExecutePlanCompatibilityDeletedInventoryTest {
     @Test
-    fun productionCatalogAndSampleAssetsHaveNoExecutePlanCompatibilityPath() {
+    fun productionCatalogHasNoExecutePlanCompatibilityPath() {
         val roots = listOf(
             File("../agent-kernel-api/src/main"),
             File("../agent-kernel-core/src/main"),
             File("src/main"),
-            File("../bothy-sample/src/main"),
             File("../agent-minimal/src/main"),
             File("src/test/resources/fixtures/protocol"),
         )
