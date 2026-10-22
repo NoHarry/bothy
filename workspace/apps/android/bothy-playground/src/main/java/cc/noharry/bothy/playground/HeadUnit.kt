@@ -369,6 +369,7 @@ internal fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
     }
     var was by remember { mutableStateOf(nav.status) }
     LaunchedEffect(nav.status) {
+        map.moving(nav.status == NavStatus.NAVIGATING)
         when {
             nav.status == NavStatus.NAVIGATING -> map.overview(false)
             // Stopped or arrived, the route it drew would otherwise stay on the map.

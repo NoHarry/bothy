@@ -50,6 +50,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- AMap's stock navigation page, to compare the head unit with (StockNavi). -->
+        <activity
+            android:name="com.amap.api.navi.AmapRouteActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize|navigation"
+            android:theme="@android:style/Theme.NoTitleBar" />
         <receiver
             android:name=".AssistantEventReceiver"
             android:exported="true"

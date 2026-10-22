@@ -1,5 +1,6 @@
 package cc.noharry.bothy.playground
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -56,6 +57,12 @@ class PlaygroundActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
+        // preferred rate alone lost to the map surface's own vote: the display's 60 Hz mode is asked for outright.
+        @Suppress("DEPRECATION") val screen = windowManager.defaultDisplay
+        screen.supportedModes.filter { it.physicalWidth == screen.mode.physicalWidth && it.physicalHeight == screen.mode.physicalHeight }
+            .minByOrNull { kotlin.math.abs(it.refreshRate - SCREEN_HZ) }
+            ?.let { mode -> window.attributes = window.attributes.apply { preferredDisplayModeId = mode.modeId } }
         window.statusBarColor = PlaygroundColors.bg.toArgb()
         window.navigationBarColor = PlaygroundColors.bg.toArgb()
         hideSystemBars()
@@ -70,6 +77,12 @@ class PlaygroundActivity : ComponentActivity() {
         }
         PlaygroundService.start(this)
         setContent { PlaygroundApp(Playground.store) }
+        if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (intent.getBooleanExtra(StockNavi.EXTRA, false)) StockNavi.open(this)
     }
 
     private val rehide = Runnable { hideSystemBars() }
@@ -218,3 +231,6 @@ private const val FLASH_MS = 1800
 private val WIDE_LAYOUT = 840.dp
 private val SIDE_WIDTH = 420.dp
 private val NARROW_PANEL_HEIGHT = 300.dp
+
+/** The head unit's refresh rate. */
+private const val SCREEN_HZ = 60f

@@ -106,6 +106,14 @@ internal class NaviMapHandle {
         relock()
     }
 
+    /**
+     * Driving, the map draws every frame so the car and the road glide; otherwise only when something changes, as a
+     * map at rest needs no more (left continuous, an arrived map kept a core busy).
+     */
+    fun moving(on: Boolean) {
+        runCatching { view?.map?.setRenderMode(if (on) RENDER_CONTINUOUSLY else RENDER_WHEN_DIRTY) }
+    }
+
     /** The map changed width (the assistant's card opened or closed beside it): the car's place is a share of it. */
     fun resized() = relock()
 
@@ -330,6 +338,12 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
                     // the light's countdown at the next junction and how long a jam ahead lasts.
                     view.setShowTrafficLightView(true)
                     view.setShowDriveCongestion(true)
+                    // Smooth as AMap's stock screen (owner 2026-10-22: 「明显比公版卡顿」): drawn only when changed, driving drew
+                    // the map at ~10 fps (a frame every 100 ms, the car stepping); driving it now draws every frame ([moving]).
+                    view.setDriveGuideNaviAnimation(true)
+                    runCatching { view.map.setRenderFps(MAP_FPS) }
+                    // Drawn every frame, the map is kept light as AMap's stock screen keeps it: no 3D buildings.
+                    runCatching { view.map.showBuildings(false) }
                     view.onResume()
                     view.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
                         if (right - left != oldRight - oldLeft) handle.resized()
@@ -379,6 +393,8 @@ private fun naviOptions(drawRoute: Boolean, anchor: Pair<Double, Double>): AMapN
     setCompassEnabled(false)
     // At rest the map stays where it was put (flat, the car's district); only a route locks it onto the car.
     setAutoLockCar(drawRoute)
+    // Flatter than AMap's default, as its stock screen drives: more road ahead, less to draw.
+    setTilt(DRIVING_TILT)
     setAutoDisplayOverview(false)
     setRealCrossDisplayShow(false)
     setModeCrossDisplayShow(false)
@@ -447,3 +463,11 @@ private const val LANDSCAPE_LOCK_SPAN = 0.63
 private val DEFAULT_ANCHOR = 0.5 to 0.58
 /** Driving, the car a little below the middle: the road ahead gets more of the screen than the road behind. */
 private const val CAR_AT_HEIGHT = 0.58
+
+/** The map's frame rate while it moves. */
+private const val MAP_FPS = 30
+/** GLSurfaceView's render modes, which AMap's follows: on change only, or every frame. */
+private const val RENDER_WHEN_DIRTY = 0
+private const val RENDER_CONTINUOUSLY = 1
+/** The camera's tilt while driving, degrees. */
+private const val DRIVING_TILT = 30
