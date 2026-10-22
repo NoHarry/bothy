@@ -65,6 +65,30 @@ class NavControllerTest {
     }
 
     @Test
+    fun aRouteOnlyPlannedWaitsForTheWordToGoThroughChanges() {
+        val waiting = mutableListOf<() -> Unit>()
+        val nav = NavController(store, engine, clock = { 0L }, later = { _, run -> waiting += run })
+        val cabin = playgroundEndpoints(store, nav).getValue("/cabin/mcp")
+        fun call(tool: String, arguments: String) =
+            cabin.handle(Json.parseToJsonElement("""{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"$tool","arguments":$arguments}}""").jsonObject)!!
+                .getValue("result").jsonObject
+        val planned = call("start_navigation", """{"destination":{"name":"海上世界"},"waypoints":[{"name":"南山书城"}],"order":"as_given","depart":false}""")
+        assertTrue(planned.text(), planned.text().startsWith("规划好了去「海上世界」的路线") && "begin_navigation" in planned.text())
+        assertTrue(now.previewing && now.waitsForGo)
+        assertEquals("no count", 0L, now.startsAt)
+        nav.routeShown()
+        call("add_waypoint", """{"place":{"name":"蛋糕店"}}""")
+        assertTrue("nothing scheduled to drive", waiting.isEmpty())
+        assertTrue(now.waitsForGo && now.waypoints.map { it.name } == listOf("南山书城", "蛋糕店"))
+        assertTrue(call("get_route", "{}").text().startsWith("路线已规划、还没出发"))
+        val went = call("begin_navigation", "{}")
+        assertTrue(went.text(), went.text().startsWith("开始导航去「海上世界」"))
+        assertEquals(NavStatus.NAVIGATING, now.status)
+        assertFalse(now.waitsForGo)
+        assertTrue(call("begin_navigation", "{}").text().startsWith("已经在导航了"))
+    }
+
+    @Test
     fun withAMapShowingThePlacesPlanningWaitsUntilItShowedThem() {
         val shownBeforePlanning = mutableListOf<Int>()
         lateinit var nav: NavController

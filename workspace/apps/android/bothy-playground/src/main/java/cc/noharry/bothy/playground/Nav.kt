@@ -76,6 +76,8 @@ data class NavState(
     val reachedWaypoints: List<String> = emptyList(),
     /** When a planned route starts driving, epoch millis; 0 when not waiting. */
     val startsAt: Long = 0L,
+    /** A route only planned (「规划下路线」): it stays shown, with no count, until the user's word to go. */
+    val waitsForGo: Boolean = false,
 ) {
     /** A route is in hand: planned and shown, or being driven. */
     val active: Boolean get() = status == NavStatus.NAVIGATING || status == NavStatus.PLANNED

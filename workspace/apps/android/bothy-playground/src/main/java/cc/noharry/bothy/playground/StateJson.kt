@@ -95,7 +95,7 @@ private fun RoomState.toJson(room: Room): JsonObject = buildJsonObject {
 internal const val CABIN_FIELDS = "user_here（用户在不在车上）、inside_temp_c（车内温度）、outside_temp_c、battery_pct（电量 %）、range_km（续航）、speed_kmh、" +
     "moving、doors_locked、doors_open.<座位>（车门开没开）、trunk_open、screen_brightness（中控屏亮度 0–100）、volume（音量 0–30）、speaker（正在说话的人的座位）、occupant_count、occupants.<座位>（有没有人）、climate.on / driver_temp_c / passenger_temp_c / fan / mode、seats.<driver|passenger|rear_left|rear_right>.heat / " +
     "ventilation（0–3）、windows.<同上>（开度 0–100）、ambient.on / color / brightness、media.playing / title、" +
-    "navigation.status（idle / navigating / arrived）/ arrived / destination / remaining_km / remaining_min / " +
+    "navigation.status（idle / planned / navigating / arrived）/ waits_for_go（路线显示着等出发）/ arrived / destination / remaining_km / remaining_min / " +
     "next_waypoint / next_waypoint_km / waypoints / reached_waypoints / current_road / speed_kmh"
 
 internal const val HOME_FIELDS = "user_here（用户在不在家）、outdoor_temp_c、door_locked、scene、rooms.<living|bedroom|kitchen|study>.temp_c / humidity_pct / " +
@@ -105,6 +105,7 @@ internal const val HOME_FIELDS = "user_here（用户在不在家）、outdoor_te
 private fun NavState.toJson(): JsonObject = buildJsonObject {
     put("status", status.id)
     put("arrived", status == NavStatus.ARRIVED)
+    put("waits_for_go", waitsForGo)
     put("destination", destination?.name.orEmpty())
     put("remaining_km", (remainingMeters / 100) / 10.0)
     put("remaining_min", (remainingSeconds + 59) / 60)

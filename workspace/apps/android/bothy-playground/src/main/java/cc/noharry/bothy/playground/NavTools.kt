@@ -15,7 +15,7 @@ import kotlinx.serialization.json.put
  * ask how far, search along the route, stop. These wait on the map, so they run outside the store's lock ([McpTool.direct]).
  */
 internal fun navTools(nav: NavController): List<McpTool> = listOf(
-    searchPlacesTool(nav), startNavigationTool(nav), addWaypointTool(nav), removeWaypointTool(nav), replaceWaypointTool(nav),
+    searchPlacesTool(nav), startNavigationTool(nav), beginNavigationTool(nav), addWaypointTool(nav), removeWaypointTool(nav), replaceWaypointTool(nav),
     reorderWaypointsTool(nav), changeDestinationTool(nav), routePreferenceTool(nav), getRouteTool(nav), searchAlongTool(nav),
     stopNavigationTool(nav),
 )
@@ -61,7 +61,8 @@ private fun searchPlacesTool(nav: NavController) = McpTool(
 private fun startNavigationTool(nav: NavController) = McpTool(
     name = "start_navigation",
     title = "开始导航",
-    description = "规划一条从车现在的位置出发、经过若干途经点到终点的路线并马上开始导航（最多 16 个途经点）。地点直接给名字就行：会在车所在的" +
+    description = "规划一条从车现在的位置出发、经过若干途经点到终点的路线（最多 16 个途经点）。depart 必填：用户说导航去、出发、走吧、现在就去时 true，" +
+        "路线显示几秒后开始行驶；用户只让规划、排一条路线、看看怎么走时 false，路线显示在屏幕上不走，等用户说出发再用 begin_navigation。地点直接给名字就行：会在车所在的" +
         "城市里找，片区名（「科技园」「香蜜湖」）按同一趟其他地点附近找；只有要选具体某一家时才先 search_places 再传坐标。order 必填：as_given 按给的顺序、nearest 全部按顺路重排、" +
         "nearest_keep_first 第一个途经点不动其余顺路重排。用户定了先后（先接老大再接老四）用 as_given；没定先后的几个地方（打卡几个景点，" +
         "只说了先去哪、最后去哪）用 nearest_keep_first 或 nearest，导航按实际位置算出最短的顺序，不要自己凭印象排了再用 as_given。用户点名要去的地方都放进这条路线，不要自己删掉：哪处今天来不及、关门早，在回答里说明，问用户要不要去掉（remove_waypoint）。destination 是这一趟最后到的地方：接完人再去吃饭、过生日、住酒店，那家店才是终点，" +
@@ -77,9 +78,10 @@ private fun startNavigationTool(nav: NavController) = McpTool(
         "order" to property("string", "途经点顺序：用户定了先后用 as_given，没定先后用 nearest_keep_first（首站不动）或 nearest", StopOrder.entries.map { it.id }),
         "start" to placeProperty("起点，不给就是车现在的位置"),
         "city" to property("string", "在哪个城市找这些地点，不给就是车所在的城市"),
+        "depart" to property("boolean", "true 马上出发（导航去、出发、走吧）；false 只规划显示路线，等用户说出发"),
         // Asked for every time: left out, a model ran an eight-sight tour in the order it guessed (2026-10-21, 97 km
-        // where the shortest was 60).
-        required = listOf("destination", "order"),
+        // where the shortest was 60). depart too: 「你规划下路线」 set off before the plan was told (2026-10-22).
+        required = listOf("destination", "order", "depart"),
     ),
     direct = true,
 ) { _, args ->
@@ -90,8 +92,17 @@ private fun startNavigationTool(nav: NavController) = McpTool(
         args.choice("order", StopOrder.entries) { listOf(it.id) } ?: StopOrder.AS_GIVEN,
         args.place("start"),
         args.string("city"),
+        args.bool("depart") ?: true,
     )
 }
+
+private fun beginNavigationTool(nav: NavController) = McpTool(
+    name = "begin_navigation",
+    title = "出发",
+    description = "路线已规划、显示在屏幕上等出发时（start_navigation 的 depart=false），用户说出发、走吧、现在就去、开始导航时调用，马上开始行驶。",
+    inputSchema = objectSchema(),
+    direct = true,
+) { _, _ -> nav.go() }
 
 private fun addWaypointTool(nav: NavController) = McpTool(
     name = "add_waypoint",

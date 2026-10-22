@@ -39,7 +39,7 @@ class NavController(
      */
     fun routeShown() {
         val ticket = generation.get()
-        if (!nav.previewing) return
+        if (!nav.previewing || nav.waitsForGo) return
         store.quietly { it.withNav(it.cabin.nav.copy(startsAt = clock() + previewFor)) }
         later(previewFor) { begin(ticket) }
     }
@@ -72,11 +72,23 @@ class NavController(
         if (expected != null && expected != generation.get()) return
         val planned = nav.takeIf { it.previewing } ?: return
         engine.startDriving(planned.simulated)
-        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.NAVIGATING, startsAt = 0L)) }
+        store.quietly { it.withNav(it.cabin.nav.copy(status = NavStatus.NAVIGATING, startsAt = 0L, waitsForGo = false)) }
         store.record("cabin", "navigation", "开始导航去「${planned.destination?.name}」", setOf(Highlight.NAV), fromAssistant = false)
     }
 
-    fun start(destination: PlaceSpec, waypoints: List<PlaceSpec>, preference: RoutePreference?, order: StopOrder, start: PlaceSpec?, city: String?): ToolOutcome {
+    /**
+     * A new route through [waypoints] to [destination]. With [depart] it drives a moment after the map shows it; without
+     * (owner 2026-10-22: the drive set off before the assistant had said the plan), it waits for [go].
+     */
+    fun start(
+        destination: PlaceSpec,
+        waypoints: List<PlaceSpec>,
+        preference: RoutePreference?,
+        order: StopOrder,
+        start: PlaceSpec?,
+        city: String?,
+        depart: Boolean = true,
+    ): ToolOutcome {
         ready()
         val area = city?.takeIf { it.isNotBlank() } ?: engine.currentCity()
         val from = start?.let { resolve(it, area, engine.currentLocation()) }
@@ -89,7 +101,18 @@ class NavController(
             StopOrder.NEAREST -> orderedByProximity(near ?: stops.firstOrNull()?.point ?: end.point, stops, end.point, keepFirst = false)
             StopOrder.NEAREST_KEEP_FIRST -> orderedByProximity(near ?: end.point, stops, end.point, keepFirst = true)
         }
-        return drive(end, ordered, preference ?: nav.preference, from?.point, "开始导航去「${end.name}」")
+        val done = if (depart) "开始导航去「${end.name}」" else "规划好了去「${end.name}」的路线"
+        return drive(end, ordered, preference ?: nav.preference, from?.point, done, hold = !depart)
+    }
+
+    /** The route waiting for the user's word ([start] without depart) drives now. */
+    fun go(): ToolOutcome {
+        ready()
+        if (nav.driving) return ToolOutcome(store.read(), "已经在导航了。" + nav.describe(clock()))
+        val planned = nav.takeIf { it.previewing } ?: throw ToolRefusal("现在没有等出发的路线，先用 start_navigation 规划")
+        generation.incrementAndGet()
+        begin()
+        return ToolOutcome(store.read(), "开始导航去「${planned.destination?.name}」。" + nav.describe(clock()), setOf(Highlight.NAV))
     }
 
     fun addWaypoint(spec: PlaceSpec, position: Int?): ToolOutcome {
@@ -184,7 +207,15 @@ class NavController(
 
     fun route(): ToolOutcome = ToolOutcome(store.read(), nav.describe(clock()))
 
-    private fun drive(end: Place, stops: List<Place>, preference: RoutePreference, start: GeoPoint?, done: String): ToolOutcome {
+    /** Plans and shows the route; it drives after a count, or, with [hold] (a route still waiting for the word), waits on. */
+    private fun drive(
+        end: Place,
+        stops: List<Place>,
+        preference: RoutePreference,
+        start: GeoPoint?,
+        done: String,
+        hold: Boolean = nav.previewing && nav.waitsForGo,
+    ): ToolOutcome {
         if (stops.size > MAX_WAYPOINTS) throw ToolRefusal("途经点最多 $MAX_WAYPOINTS 个，现在是 ${stops.size} 个")
         val simulated = nav.simulated
         val fresh = !nav.active
@@ -201,16 +232,16 @@ class NavController(
                 NavState(
                     status = NavStatus.PLANNED, destination = end, waypoints = stops, preference = preference, simulated = simulated,
                     totalMeters = result.meters, totalSeconds = result.seconds, remainingMeters = result.meters, remainingSeconds = result.seconds,
-                    startsAt = clock() + wait + UNSHOWN_GRACE_MS,
+                    startsAt = if (hold) 0L else clock() + wait + UNSHOWN_GRACE_MS, waitsForGo = hold,
                 ),
             )
         }
-        later(wait + UNSHOWN_GRACE_MS) { begin(ticket) }
+        if (!hold) later(wait + UNSHOWN_GRACE_MS) { begin(ticket) }
         focus(MapCue.Route)
         val via = if (stops.isEmpty()) "" else "，途经 ${stops.numbered()}"
         val text = "$done$via。全程 ${result.meters.km()}，约 ${result.seconds.duration()}，预计 ${eta(result.seconds)} 到" +
             (if (result.tolls > 0) "，过路费约 ${result.tolls} 元" else "") + (if (simulated) "（模拟行驶）" else "") +
-            "。路线已显示在屏幕上，${wait / 1000} 秒后开始导航。"
+            if (hold) "。路线已显示在屏幕上，还没出发：用户说出发再用 begin_navigation 开始导航。" else "。路线已显示在屏幕上，${wait / 1000} 秒后开始导航。"
         return ToolOutcome(store.read(), text, setOf(Highlight.NAV))
     }
 
@@ -372,7 +403,12 @@ internal fun NavState.describe(now: Long): String = buildString {
         append(if (status == NavStatus.ARRIVED) "已经到达「${destination?.name}」。" else "现在没有在导航。")
         return@buildString
     }
-    append("正在导航去「${destination?.name}」（${preference.label}${if (simulated) "，模拟行驶" else ""}）：")
+    val heading = when {
+        waitsForGo -> "路线已规划、还没出发（用户说出发再用 begin_navigation）：去"
+        previewing -> "路线已规划、马上出发：去"
+        else -> "正在导航去"
+    }
+    append("$heading「${destination?.name}」（${preference.label}${if (simulated) "，模拟行驶" else ""}）：")
     append("还有 ${remainingMeters.km()}，约 ${remainingSeconds.duration()}，预计 ${clockText(now + remainingSeconds * 1000L, now)} 到。")
     if (waypoints.isNotEmpty()) {
         append("途经点：")

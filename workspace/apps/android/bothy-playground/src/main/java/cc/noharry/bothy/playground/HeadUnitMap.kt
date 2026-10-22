@@ -123,10 +123,11 @@ internal fun RoutePreviewCard(nav: NavState, onStart: () -> Unit, onCancel: () -
         Text("路线已规划", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
         Text("全程 ${nav.totalMeters.km()} · 约 ${nav.totalSeconds.duration()} · ${clockText(now + nav.totalSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)
+        if (nav.waitsForGo) Text("说「出发」就走", color = UnitColors.muted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "开始导航 ${left}s",
+                if (nav.waitsForGo) "开始导航" else "开始导航 ${left}s",
                 color = UnitColors.screen,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
