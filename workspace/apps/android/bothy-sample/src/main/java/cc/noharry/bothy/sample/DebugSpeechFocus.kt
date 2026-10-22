@@ -14,21 +14,34 @@ import java.util.IdentityHashMap
 /**
  * Audio focus while 小博 speaks (owner 2026-10-22: 「声音混在一起了，要分别申请下焦点」, the head unit's guidance talking
  * over a reply). Transient focus that may duck, from 小博's first sound to its last ([DebugTtsActivity]): nothing pauses
- * (owner: 「不要暂停…走混音，压低其他的」); the platform turns music and a guidance prompt in progress down under 小博. A
- * prompt that starts meanwhile takes the same kind of focus; the platform does not duck speech, so 小博's players are
- * turned down here until it is over.
+ * (owner: 「不要暂停…走混音，压低其他的」); the platform turns music and a guidance prompt down under 小博. AMap asks for
+ * the same kind of focus at each prompt; 小博 takes it straight back (owner: 「语音说话应该压低导航的」), so the prompt is
+ * turned down under 小博 rather than 小博 under the prompt. Only a call or an app taking focus outright turns 小博 down;
+ * the platform does not duck speech, so 小博's players are turned down here.
  */
 internal object DebugSpeechFocus {
     private var audio: AudioManager? = null
     private val players: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
     private var holding = false
     private var ducked = false
+    /** Times focus was taken back from prompts while this speech lasts: a source that grabs it back each time gives up first. */
+    private var reclaims = 0
+    private val main by lazy { Handler(Looper.getMainLooper()) }
+    private val reclaim = Runnable { takeBack() }
 
     private val listener = AudioManager.OnAudioFocusChangeListener { change ->
-        // Any loss while 小博 holds focus is something else to hear over it: a guidance prompt, a call, another app.
-        val duck = change < 0
-        DebugTtsLog.info("audio focus ${focusName(change)}${if (duck) ": speech turned down" else ""}")
-        setDucked(duck)
+        when {
+            // A prompt, asking for focus that may duck: taken back once its request has settled (AMap asks twice).
+            change == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                main.removeCallbacks(reclaim)
+                main.postDelayed(reclaim, RECLAIM_DELAY_MILLIS)
+            }
+            change == AudioManager.AUDIOFOCUS_GAIN -> setDucked(false)
+            change < 0 -> {
+                DebugTtsLog.info("audio focus ${focusName(change)}: speech turned down")
+                setDucked(true)
+            }
+        }
     }
 
     private val request: AudioFocusRequest? by lazy {
@@ -54,10 +67,22 @@ internal object DebugSpeechFocus {
         if (holding) return
         val manager = audio ?: return
         holding = true
-        val result = request?.let(manager::requestAudioFocus)
-            ?: @Suppress("DEPRECATION") manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+        reclaims = 0
+        val result = requestFocus(manager)
         if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) DebugTtsLog.warn("audio focus not granted ($result): speaking anyway")
     }
+
+    @Synchronized
+    private fun takeBack() {
+        val manager = audio ?: return
+        if (!holding || reclaims >= MAX_RECLAIMS) return
+        reclaims += 1
+        val result = requestFocus(manager)
+        DebugTtsLog.info("audio focus taken back from a prompt${if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) "" else " (not granted: $result)"}")
+    }
+
+    private fun requestFocus(manager: AudioManager): Int = request?.let(manager::requestAudioFocus)
+        ?: @Suppress("DEPRECATION") manager.requestAudioFocus(listener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
 
     /** [holder] is done; with [last] (no speech left) focus goes back. */
     @Synchronized
@@ -66,6 +91,7 @@ internal object DebugSpeechFocus {
         if (!last || !holding) return
         holding = false
         ducked = false
+        main.removeCallbacks(reclaim)
         val manager = audio ?: return
         request?.let(manager::abandonAudioFocusRequest) ?: @Suppress("DEPRECATION") manager.abandonAudioFocus(listener)
     }
@@ -94,6 +120,8 @@ internal object DebugSpeechFocus {
         else -> change.toString()
     }
 
-    /** About -10 dB: a prompt over 小博 stays clear, and 小博 can still be followed under it. */
+    /** About -10 dB: a call or an app over 小博 stays clear, and 小博 can still be followed under it. */
     private const val DUCKED_VOLUME = 0.3f
+    private const val RECLAIM_DELAY_MILLIS = 150L
+    private const val MAX_RECLAIMS = 30
 }
