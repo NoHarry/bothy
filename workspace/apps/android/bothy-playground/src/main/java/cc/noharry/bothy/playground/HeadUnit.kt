@@ -64,8 +64,30 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState, flash: Flash, flashLevel: Float, store: PlaygroundStore, onHome: () -> Unit) {
-    val context = LocalContext.current
+    val mode by HeadUnitModes.mode.collectAsState()
+    // Held above the switch, so the sheet stays open across it (the switch is in the sheet).
     var sheet by remember { mutableStateOf(false) }
+    if (mode.realNav) {
+        RealNavHeadUnit(world, calls, server, flashLevel, store, mode.theme, sheet) { sheet = it }
+    } else {
+        SimulatedHeadUnit(world, calls, server, flash, flashLevel, store, onHome, sheet) { sheet = it }
+    }
+}
+
+/** The simulated car's head unit ([HeadUnit]); the settings sheet shows while [sheet]. */
+@Composable
+private fun SimulatedHeadUnit(
+    world: World,
+    calls: List<CallRecord>,
+    server: ServerState,
+    flash: Flash,
+    flashLevel: Float,
+    store: PlaygroundStore,
+    onHome: () -> Unit,
+    sheet: Boolean,
+    onSheet: (Boolean) -> Unit,
+) {
+    val context = LocalContext.current
     var mapMode by remember { mutableStateOf(false) }
     // The request whose card was closed with its X: it stays closed, while voice ends.
     var dismissed by remember { mutableStateOf<String?>(null) }
@@ -95,22 +117,22 @@ internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState
                 revealed = cue == MapCue.Route
             }
             FollowTheCar(map, nav, cuedAt)
-            LeftColumn(world, flash, store, grid, assistant.listening, onHome, { mapMode = !mapMode; if (!mapMode) map.overview(false) }) { sheet = true }
+            LeftColumn(world, flash, store, grid, assistant.listening, onHome, { mapMode = !mapMode; if (!mapMode) map.overview(false) }) { onSheet(true) }
             if (!showMap && !panel) {
                 AssistantMiniCard(Playground.engine?.currentCity().orEmpty(), assistant, close, { mapMode = true }, grid.column(2))
             }
             MapLayer(mapBlocked(context), map, if (showMap) grid.bigMap(mapFrom) else grid.miniMap())
             if (!showMap) HomeCards(world, grid)
             val hearing = assistant.hearing(now, dismissed)
-            if (routeCards) MapOverlays(world, now, map, store, grid, mapFrom, if (hearing) BAR_SPACE else 0.dp) { sheet = true }
+            if (routeCards) MapOverlays(world, now, map, store, grid.routeSlots(mapFrom, if (hearing) BAR_SPACE else 0.dp)) { onSheet(true) }
             if (showMap && hearing) AssistantBar(assistant, close, grid.barSlot(mapFrom))
             // The map's own bar stays at its top left, beside 小博's card too, as on the head unit.
             if (showMap && !hearing && !routeCards) MapToolbar(grid.barSlot(mapFrom))
             if (panel) AssistantChatPanel(assistant, world.cabin.speaker, close, grid.column(2))
-            StatusRow(world, server, now, grid) { sheet = true }
+            StatusRow(world, server, now, grid) { onSheet(true) }
             ClimateBar(world.cabin, store, Modifier.offset(grid.col(2), grid.barTop).width(grid.col(4) - grid.col(2) - grid.gap).height(grid.barHeight))
         }
-        if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { sheet = false }
+        if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
 }
 
@@ -142,7 +164,30 @@ private class Grid(val width: Dp, val height: Dp) {
 
     /** The listening bar's place: the top of the map's first column. */
     fun barSlot(from: Int): Modifier = Modifier.offset(col(from), contentTop).width(columnWidth)
+
+    /** The route's cards in the map's first column ([from]), [below] the listening bar when it shows. */
+    fun routeSlots(from: Int, below: Dp) = RouteSlots(
+        x = col(from), top = contentTop + below, width = columnWidth, actionsBottom = barTop - gap,
+        progressX = width - 30.dp, progressTop = contentTop + 30.dp, progressHeight = contentHeight * 0.75f,
+        roadX = col(4), roadY = barTop + 8.dp,
+    )
 }
+
+/**
+ * Where the route's things go over the map: the cards' column ([x], [top], [width]), the action bar ending at
+ * [actionsBottom], the progress bar along the right edge and the road's name.
+ */
+internal class RouteSlots(
+    val x: Dp,
+    val top: Dp,
+    val width: Dp,
+    val actionsBottom: Dp,
+    val progressX: Dp,
+    val progressTop: Dp,
+    val progressHeight: Dp,
+    val roadX: Dp,
+    val roadY: Dp,
+)
 
 internal data class MapBox(val x: Dp, val y: Dp, val width: Dp, val height: Dp)
 
@@ -164,12 +209,12 @@ private fun HomeCards(world: World, grid: Grid) {
 }
 
 /**
- * Over the map, in its first column ([from]; the third while 小博's card holds the second), [below] the listening bar
- * when it shows: the route (its preview, or the turn and the next stop, or every stop); the quick actions under it; the
- * progress along the right edge.
+ * Over the map, in the route's column ([slots]; on the simulated head unit the map's first, the third while 小博's card
+ * holds the second, below the listening bar when it shows): the route (its preview, or the turn and the next stop, or
+ * every stop); the quick actions under it; the progress along the right edge.
  */
 @Composable
-private fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: PlaygroundStore, grid: Grid, from: Int, below: Dp, onMore: () -> Unit) {
+internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: PlaygroundStore, slots: RouteSlots, onMore: () -> Unit) {
     val nav = world.cabin.nav
     val scope = rememberCoroutineScope()
     var details by remember { mutableStateOf(false) }
@@ -177,9 +222,8 @@ private fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Play
     LaunchedEffect(details) { if (nav.driving) map.overview(details) }
     var overview by remember { mutableStateOf(false) }
     var muted by remember { mutableStateOf(false) }
-    val x = grid.col(from)
     val navigation = Playground.navigation
-    Column(Modifier.offset(x, grid.contentTop + below).width(grid.columnWidth), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.offset(slots.x, slots.top).width(slots.width), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (nav.previewing) {
             RoutePreviewCard(nav, { scope.launch(Dispatchers.IO) { navigation?.begin() } }, { scope.launch(Dispatchers.IO) { navigation?.stop() } })
             RouteDetails(nav, now)
@@ -200,16 +244,16 @@ private fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Play
             onOverview = { overview = !overview; map.overview(overview) },
             onMute = { muted = !muted; Playground.engine?.setMuted(muted) },
             onMore = onMore,
-            modifier = Modifier.offset(x, grid.barTop - grid.gap - ACTION_BAR_HEIGHT).width(grid.columnWidth),
+            modifier = Modifier.offset(slots.x, slots.actionsBottom - ACTION_BAR_HEIGHT).width(slots.width),
         )
-        RouteProgressBar(nav, Modifier.offset(grid.width - 30.dp, grid.contentTop + 30.dp).height(grid.contentHeight * 0.75f))
-        RoadChip(nav.currentRoad, Modifier.offset(grid.col(4), grid.barTop + 8.dp))
+        RouteProgressBar(nav, Modifier.offset(slots.progressX, slots.progressTop).height(slots.progressHeight))
+        RoadChip(nav.currentRoad, Modifier.offset(slots.roadX, slots.roadY))
     }
 }
 
 /** The map's own bar while nothing else is on it: search (小博 listens) and what to look for nearby (said to 小博). */
 @Composable
-private fun MapToolbar(modifier: Modifier) {
+internal fun MapToolbar(modifier: Modifier) {
     val context = LocalContext.current
     Row(
         modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.card).padding(horizontal = 12.dp, vertical = 10.dp),
@@ -239,20 +283,21 @@ private fun StatusRow(world: World, server: ServerState, now: Long, grid: Grid, 
 
 /** The one map, moved and resized between the small one at home and the big one, never made again. */
 @Composable
-private fun MapLayer(blocked: String?, map: NaviMapHandle, box: MapBox) {
+internal fun MapLayer(blocked: String?, map: NaviMapHandle, box: MapBox, corner: Dp = 18.dp) {
     val x by animateDpAsState(box.x, tween(MOVE_MS.toInt()), label = "mapX")
     val y by animateDpAsState(box.y, tween(MOVE_MS.toInt()), label = "mapY")
     val w by animateDpAsState(box.width, tween(MOVE_MS.toInt()), label = "mapW")
     val h by animateDpAsState(box.height, tween(MOVE_MS.toInt()), label = "mapH")
-    val placed = Modifier.offset(x, y).size(w, h).clip(RoundedCornerShape(18.dp))
+    val placed = Modifier.offset(x, y).size(w, h).clip(RoundedCornerShape(corner))
     if (blocked == null) NaviMap(map, placed) else MapPlaceholder(blocked, placed)
 }
 
 /** Grown or shrunk with nothing on it ([active] no route, nothing found lately), the map shows the car's district again. */
 @Composable
-private fun RestTheMap(map: NaviMapHandle, showing: Boolean, active: Boolean, cuedAt: Long) {
+internal fun RestTheMap(map: NaviMapHandle, showing: Boolean, active: Boolean, cuedAt: Long, box: MapBox? = null) {
     val density = LocalDensity.current.density
-    LaunchedEffect(showing, active) {
+    // [box]: a map that only changed size (real navigation, 小博's panel opening or closing) comes back to the car too.
+    LaunchedEffect(showing, active, box) {
         if (active || System.currentTimeMillis() - cuedAt < CUED_MAP_MS) return@LaunchedEffect
         delay(MOVE_MS + GROW_SETTLE_MS)
         Playground.engine?.currentLocation()?.let { map.showCar(it, density) }
@@ -266,7 +311,7 @@ private fun RestTheMap(map: NaviMapHandle, showing: Boolean, active: Boolean, cu
  * up, it is first given time to grow.
  */
 @Composable
-private fun PlayMapCues(map: NaviMapHandle, showing: Boolean, onCue: (MapCue) -> Unit) {
+internal fun PlayMapCues(map: NaviMapHandle, showing: Boolean, onCue: (MapCue) -> Unit) {
     val density = LocalDensity.current.density
     val shown by rememberUpdatedState(showing)
     // While it plays them, planning waits for it (a route drawn pulls the map away from the place it shows).
@@ -311,7 +356,7 @@ private fun PlayMapCues(map: NaviMapHandle, showing: Boolean, onCue: (MapCue) ->
  * route once stopped; before anything, it opens where the car is.
  */
 @Composable
-private fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
+internal fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
     val driving by rememberUpdatedState(nav.driving)
     val cued by rememberUpdatedState(cuedAt)
     LaunchedEffect(cuedAt) {
@@ -352,7 +397,7 @@ private fun FollowTheCar(map: NaviMapHandle, nav: NavState, cuedAt: Long) {
 
 /** While the head unit is in front it shows the assistant: Bothy hides its card. Renewed, so a dead head unit lapses. */
 @Composable
-private fun TakeOverAssistant() {
+internal fun TakeOverAssistant() {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     DisposableEffect(lifecycle) {
@@ -378,7 +423,7 @@ private fun TakeOverAssistant() {
 }
 
 @Composable
-private fun rememberClock(): Long {
+internal fun rememberClock(): Long {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -391,7 +436,7 @@ private fun rememberClock(): Long {
 
 /** AMap's weather where the car is, fetched in the background, again every so often. */
 @Composable
-private fun rememberWeather(): WeatherReport? {
+internal fun rememberWeather(): WeatherReport? {
     var weather by remember { mutableStateOf<WeatherReport?>(null) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -403,7 +448,7 @@ private fun rememberWeather(): WeatherReport? {
 }
 
 /** Why the map cannot show yet, or null when it can (key built in, terms agreed, the SDK started). */
-private fun mapBlocked(context: android.content.Context): String? = when {
+internal fun mapBlocked(context: android.content.Context): String? = when {
     !BuildConfig.AMAP_CONFIGURED -> "没有高德 key：在 local.properties 写上 AMAP_ANDROID_KEY 后重新打包"
     !AMapPrivacy.agreed(context) -> "同意高德地图隐私政策后显示地图"
     Playground.engine?.ensureStarted() == null -> "高德导航启动中…"
@@ -412,8 +457,10 @@ private fun mapBlocked(context: android.content.Context): String? = when {
 
 /** Settings and every manual control, over the right of the screen. */
 @Composable
-private fun SettingsSheet(world: World, calls: List<CallRecord>, server: ServerState, flash: Float, store: PlaygroundStore, onClose: () -> Unit) {
+internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: ServerState, flash: Float, store: PlaygroundStore, onClose: () -> Unit) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val mode by HeadUnitModes.mode.collectAsState()
     Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(remember { MutableInteractionSource() }, null, onClick = onClose)) {
         Column(
             Modifier.align(Alignment.CenterEnd).width(SHEET_WIDTH).fillMaxHeight().background(PlaygroundColors.bg)
@@ -423,6 +470,19 @@ private fun SettingsSheet(world: World, calls: List<CallRecord>, server: ServerS
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("设置与控制", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 PlainIcon(Icons.Filled.Close, onClick = onClose)
+            }
+            // Real navigation: the device's own position and real driving, the simulated car and home taken down.
+            SheetSwitch("真实导航模式（用设备的真实定位，不模拟车和家）", mode.realNav) { on ->
+                scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = on)) }
+            }
+            if (mode.realNav) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("主题", color = PlaygroundColors.text, fontSize = 14.sp)
+                    HeadUnitTheme.entries.forEach { theme ->
+                        Pill(theme.label, selected = mode.theme == theme) { HeadUnitModes.set(context, mode.copy(theme = theme)) }
+                    }
+                }
+                return@Column
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { PlaceSwitch(store) }
             SheetSwitch("导航模拟行驶（不用真开车）", world.cabin.nav.simulated) { on -> scope.launch(Dispatchers.IO) { Playground.navigation?.setSimulated(on) } }
@@ -462,7 +522,7 @@ private val SUGGESTIONS = listOf(
 )
 
 private const val LEFT_SHARE = 0.25f
-private val ACTION_BAR_HEIGHT = 66.dp
+internal val ACTION_BAR_HEIGHT = 66.dp
 private val SHEET_WIDTH = 460.dp
 private const val MOVE_MS = 380L
 private const val CLOCK_TICK_MS = 1_000L
@@ -479,11 +539,11 @@ private const val ROUTE_DRAWN_MS = 900L
 private const val DRIVING_OVERVIEW_MS = 15_000L
 /** The right edge of the map under the route's progress bar, in pixels, while it shows. */
 @Composable
-private fun progressSpace(shows: Boolean): Int = if (shows) with(LocalDensity.current) { PROGRESS_SPACE.roundToPx() } else 0
+internal fun progressSpace(shows: Boolean): Int = if (shows) with(LocalDensity.current) { PROGRESS_SPACE.roundToPx() } else 0
 
 private val PROGRESS_SPACE = 44.dp
 /** Room above the route's cards for the listening bar. */
-private val BAR_SPACE = 62.dp
+internal val BAR_SPACE = 62.dp
 private const val CENTRE_RETRY_MS = 2_000L
 private const val RECENTRE_M = 2_000.0
 private const val WEATHER_RETRY_MS = 15_000L

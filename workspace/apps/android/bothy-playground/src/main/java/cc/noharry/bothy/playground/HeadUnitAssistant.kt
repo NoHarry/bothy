@@ -98,7 +98,7 @@ private fun AssistantHeader(view: AssistantView, line: String, live: Boolean, on
 
 /** 小博's face, breathing while it listens or talks. */
 @Composable
-private fun Mascot(view: AssistantView, size: Dp, modifier: Modifier = Modifier) {
+internal fun Mascot(view: AssistantView, size: Dp, modifier: Modifier = Modifier) {
     val breath by rememberInfiniteTransition(label = "breath").animateFloat(
         initialValue = 1f,
         targetValue = 1.08f,

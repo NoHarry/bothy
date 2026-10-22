@@ -102,6 +102,12 @@ internal const val HOME_FIELDS = "user_here（用户在不在家）、outdoor_te
     "presence（有没有人）/ light.on / light.brightness / light.tone / curtain_open_pct / climate.on / climate.target_temp_c（厨房没有空调）、" +
     "vacuum.status（docked / cleaning / paused / returning）/ room / progress_pct / battery_pct"
 
+/** The navigation alone, as the real-navigation head unit serves it ([HeadUnitModes]): the same paths plans watch. */
+internal const val NAV_FIELDS = "navigation.status（idle / planned / navigating / arrived）/ waits_for_go（路线显示着等出发）/ arrived / destination / " +
+    "remaining_km / remaining_min / next_waypoint / next_waypoint_km / waypoints / reached_waypoints / current_road / speed_kmh"
+
+internal fun navigationJson(world: World): JsonObject = buildJsonObject { put("navigation", world.cabin.nav.toJson()) }
+
 private fun NavState.toJson(): JsonObject = buildJsonObject {
     put("status", status.id)
     put("arrived", status == NavStatus.ARRIVED)

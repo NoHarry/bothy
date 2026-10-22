@@ -31,14 +31,18 @@ class PlaygroundService : Service() {
         super.onCreate()
         startInForeground()
         val store = Playground.store
-        val engine = AMapNavEngine(this, store, BuildConfig.AMAP_CONFIGURED)
+        HeadUnitModes.load(this)
+        val engine = AMapNavEngine(this, store, BuildConfig.AMAP_CONFIGURED).apply { realNav = HeadUnitModes.realNav }
         val navigation = NavController(store, engine, focus = { Playground.mapCues.tryEmit(it) }, mapWatching = { Playground.mapShowing })
         Playground.engine = engine
         Playground.navigation = navigation
+        if (HeadUnitModes.realNav) navigation.setSimulated(false)
         server = McpHttpServer(McpHttpServer.DEFAULT_PORT, playgroundEndpoints(store, navigation)).also { mcp ->
             try {
                 mcp.start()
                 store.setServer(ServerState(ServerStatus.RUNNING, "http://127.0.0.1:${mcp.boundPort}"))
+                // Bothy may hold the tools of the other mode from before this start: told once the server answers.
+                Assistant.toolsChanged(this)
             } catch (taken: IOException) {
                 store.setServer(ServerState(ServerStatus.FAILED, problem = "端口 ${McpHttpServer.DEFAULT_PORT} 被占用：${taken.message}"))
             }

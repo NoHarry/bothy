@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 /** The playground's one screen; it also starts [PlaygroundService], which serves the world to Bothy. */
 class PlaygroundActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        HeadUnitModes.load(this)
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -98,6 +99,7 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
     val world by store.world.collectAsState()
     val calls by store.calls.collectAsState()
     val server by store.server.collectAsState()
+    val mode by HeadUnitModes.mode.collectAsState()
     var scene by rememberSaveable { mutableStateOf(PlaygroundScene.CABIN) }
     val latest = calls.firstOrNull()
     val level = remember { Animatable(0f) }
@@ -110,7 +112,8 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
     }
     val flash = Flash(latest?.highlights.orEmpty(), level.asState())
     MaterialTheme(colorScheme = darkColorScheme(primary = PlaygroundColors.sage, background = PlaygroundColors.bg, surface = PlaygroundColors.panel)) {
-        if (scene == PlaygroundScene.CABIN) {
+        // Real navigation has no home to show: the head unit only.
+        if (scene == PlaygroundScene.CABIN || mode.realNav) {
             HeadUnit(world, calls, server, flash, level.value, store) { scene = PlaygroundScene.HOME }
             AMapConsent()
             return@MaterialTheme

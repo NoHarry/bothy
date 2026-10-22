@@ -94,10 +94,17 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
             parked = null
         }
 
-    override fun currentLocation(): GeoPoint? =
-        carLocation.takeIf { store.read().cabin.nav.active } ?: parked ?: if (demoStart) DEMO_START else deviceLocation
+    /** Real navigation ([HeadUnitModes]): the car is where the device is, whatever the demo start and a simulated drive say. */
+    @Volatile var realNav: Boolean = false
+        set(value) {
+            field = value
+            cachedWeather = null
+        }
 
-    override fun currentCity(): String = if (demoStart) DEMO_CITY else city
+    override fun currentLocation(): GeoPoint? = carLocation.takeIf { store.read().cabin.nav.active }
+        ?: if (realNav) deviceLocation else parked ?: if (demoStart) DEMO_START else deviceLocation
+
+    override fun currentCity(): String = if (demoStart && !realNav) DEMO_CITY else city
 
     override fun search(keyword: String, city: String, near: GeoPoint?, limit: Int): List<Place> {
         // By name across the city: biased to the car, 「南山书城」 came back as the bookshops near it instead. The car only

@@ -84,6 +84,9 @@ object Assistant {
     /** As Bothy's card X: listening ends and 小博 stops talking; what it is doing carries on, silently. */
     fun close(context: Context) = command(context, "close")
 
+    /** The servers here offer other tools now ([HeadUnitModes]): Bothy lists them again. */
+    fun toolsChanged(context: Context) = command(context, "tools_changed")
+
     private fun command(context: Context, name: String) {
         runCatching { context.sendBroadcast(Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE).putExtra("command", name), PERMISSION) }
     }

@@ -22,6 +22,14 @@
         <package android:name="cc.noharry.bothy.sample" />
     </queries>
 
+    <!-- The play bar names the app that plays (NowPlaying): apps with a launcher entry are visible to this one. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -57,6 +65,16 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Local MCP server for a simulated car cabin and home used in assistant demos" />
+        </service>
+        <!-- Notification access lets the head unit see and control what other apps play (NowPlaying); it reads no notification. -->
+        <service
+            android:name=".MediaListener"
+            android:exported="true"
+            android:label="Bothy Playground 播放控制"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
     </application>
 </manifest>

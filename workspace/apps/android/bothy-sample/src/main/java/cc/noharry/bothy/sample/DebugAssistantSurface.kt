@@ -29,6 +29,10 @@ internal object DebugAssistantSurface {
     const val EXTRA_COMMAND = "command"
     const val COMMAND_WAKE = "wake"
     const val COMMAND_CLOSE = "close"
+    /** Bothy Playground switched between its simulated car and real navigation: its servers offer other tools now. */
+    const val COMMAND_TOOLS_CHANGED = "tools_changed"
+    /** The Playground's servers, as its connectors name them ([DebugMcpConnectors]). */
+    val PLAYGROUND_SERVERS = listOf("cabin", "home")
 
     private val main = Handler(Looper.getMainLooper())
     private val surface = MutableStateFlow<String?>(null)
@@ -168,6 +172,11 @@ class DebugAssistantSurfaceReceiver : BroadcastReceiver() {
             // As the card's X: voice ends and 小博 stops talking.
             DebugAssistantSurface.COMMAND_CLOSE -> {
                 DebugVoiceController.closedByHand()
+                return
+            }
+            // The next run sees what the Playground's servers offer now, not what they offered at start.
+            DebugAssistantSurface.COMMAND_TOOLS_CHANGED -> {
+                DebugAssistantSurface.PLAYGROUND_SERVERS.forEach { McpToolCatalogs.onServerChanged(context.applicationContext, it) }
                 return
             }
         }

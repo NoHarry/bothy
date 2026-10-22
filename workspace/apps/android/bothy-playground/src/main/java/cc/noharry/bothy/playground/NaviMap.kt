@@ -42,6 +42,22 @@ import kotlin.math.abs
  */
 internal class NaviMapHandle {
     var view: AMapNaviView? = null
+        set(value) {
+            field = value
+            applyLogoLift()
+        }
+    private var logoLift = 0
+
+    /** The map's bottom [pixels] lie under the head unit's bar: AMap's logo is raised above it, kept in view. */
+    fun liftLogo(pixels: Int) {
+        if (pixels == logoLift) return
+        logoLift = pixels
+        applyLogoLift()
+    }
+
+    private fun applyLogoLift() {
+        runCatching { view?.map?.uiSettings?.setLogoBottomMargin(logoLift) }
+    }
     private val pins = mutableListOf<Marker>()
     private var car: Marker? = null
     /** Numbered pins up now; the destination's pin has no number. */
@@ -213,6 +229,8 @@ internal class NaviMapHandle {
     /** The car's district, flat: the map at rest after it changed size (AMap zooms right in on its own then). */
     fun showCar(point: GeoPoint, density: Float) {
         val view = view ?: return
+        // Not laid out yet, the map ignores the move: left to centreOnce, which tries until it holds.
+        if (view.width == 0) return
         val map = view.map
         centred = true
         markCar(point, density)

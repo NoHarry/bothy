@@ -14,6 +14,9 @@ import kotlinx.serialization.json.putJsonObject
 /** A resource a server offers: the state as JSON, for a client to read or a plan to watch. */
 class McpResource(val uri: String, val name: String, val description: String, val read: (World) -> JsonObject)
 
+/** What a server offers: its name, how to use it, its tools and its resources. */
+class McpFace(val title: String, val instructions: String, val tools: List<McpTool>, val resources: List<McpResource>)
+
 /**
  * One MCP server over JSON-RPC: `initialize`, `ping`, `tools/list`, `tools/call`, `resources/list`, `resources/read`.
  * Tool calls change [store]; a refused call answers as a tool error (`isError`), an unknown tool or method as a
@@ -21,26 +24,27 @@ class McpResource(val uri: String, val name: String, val description: String, va
  */
 class McpEndpoint(
     val id: String,
-    private val title: String,
-    private val instructions: String,
-    private val tools: List<McpTool>,
-    private val resources: List<McpResource>,
+    private val face: McpFace,
     private val store: PlaygroundStore,
+    /** Whether the head unit runs real navigation ([HeadUnitModes]): the server then offers [realFace], or, without one, nothing. */
+    private val realNav: () -> Boolean = { false },
+    private val realFace: McpFace? = face,
 ) {
     /** The answer to [message], or null for a notification. */
     fun handle(message: JsonObject): JsonObject? {
         val id = message["id"]?.takeUnless { it is JsonNull } ?: return null
         val method = (message["method"] as? JsonPrimitive)?.contentOrNull ?: return error(id, INVALID_REQUEST, "缺少 method")
         val params = message["params"] as? JsonObject ?: JsonObject(emptyMap())
+        val offered = (if (realNav()) realFace else face) ?: return error(id, METHOD_NOT_FOUND, "${face.title}已关闭：车机切到了真实导航模式")
         return try {
             when (method) {
-                "initialize" -> result(id, initialize(params))
+                "initialize" -> result(id, initialize(offered, params))
                 "ping" -> result(id, JsonObject(emptyMap()))
-                "tools/list" -> result(id, buildJsonObject { put("tools", JsonArray(tools.map { it.describe() })) })
-                "tools/call" -> call(id, params)
-                "resources/list" -> result(id, buildJsonObject { put("resources", JsonArray(resources.map { it.describe() })) })
+                "tools/list" -> result(id, buildJsonObject { put("tools", JsonArray(offered.tools.map { it.describe() })) })
+                "tools/call" -> call(offered, id, params)
+                "resources/list" -> result(id, buildJsonObject { put("resources", JsonArray(offered.resources.map { it.describe() })) })
                 "resources/templates/list" -> result(id, buildJsonObject { put("resourceTemplates", JsonArray(emptyList())) })
-                "resources/read" -> read(id, params)
+                "resources/read" -> read(offered, id, params)
                 "prompts/list" -> result(id, buildJsonObject { put("prompts", JsonArray(emptyList())) })
                 else -> error(id, METHOD_NOT_FOUND, "不支持 $method")
             }
@@ -49,7 +53,7 @@ class McpEndpoint(
         }
     }
 
-    private fun initialize(params: JsonObject): JsonObject = buildJsonObject {
+    private fun initialize(face: McpFace, params: JsonObject): JsonObject = buildJsonObject {
         val asked = (params["protocolVersion"] as? JsonPrimitive)?.contentOrNull
         put("protocolVersion", asked?.takeIf { it in SUPPORTED_VERSIONS } ?: SUPPORTED_VERSIONS.first())
         putJsonObject("capabilities") {
@@ -61,15 +65,15 @@ class McpEndpoint(
         }
         putJsonObject("serverInfo") {
             put("name", "bothy-playground-$id")
-            put("title", title)
+            put("title", face.title)
             put("version", SERVER_VERSION)
         }
-        put("instructions", instructions)
+        put("instructions", face.instructions)
     }
 
-    private fun call(id: JsonElement, params: JsonObject): JsonObject {
+    private fun call(face: McpFace, id: JsonElement, params: JsonObject): JsonObject {
         val name = (params["name"] as? JsonPrimitive)?.contentOrNull ?: return error(id, INVALID_PARAMS, "缺少 name")
-        val tool = tools.firstOrNull { it.name == name } ?: return error(id, INVALID_PARAMS, "没有工具 $name")
+        val tool = face.tools.firstOrNull { it.name == name } ?: return error(id, INVALID_PARAMS, "没有工具 $name")
         val args = ToolArgs(params["arguments"] as? JsonObject ?: JsonObject(emptyMap()))
         val outcome = if (tool.readOnly || tool.direct) {
             try {
@@ -89,13 +93,13 @@ class McpEndpoint(
                 }
             }
         }
-        val structured = if (outcome.isError) null else resources.firstOrNull()?.read?.invoke(outcome.world)
+        val structured = if (outcome.isError) null else face.resources.firstOrNull()?.read?.invoke(outcome.world)
         return result(id, toolResult(outcome, structured))
     }
 
-    private fun read(id: JsonElement, params: JsonObject): JsonObject {
+    private fun read(face: McpFace, id: JsonElement, params: JsonObject): JsonObject {
         val uri = (params["uri"] as? JsonPrimitive)?.contentOrNull ?: return error(id, INVALID_PARAMS, "缺少 uri")
-        val resource = resources.firstOrNull { it.uri == uri } ?: return error(id, RESOURCE_NOT_FOUND, "没有资源 $uri")
+        val resource = face.resources.firstOrNull { it.uri == uri } ?: return error(id, RESOURCE_NOT_FOUND, "没有资源 $uri")
         return result(id, buildJsonObject {
             put("contents", buildJsonArray {
                 add(buildJsonObject {
@@ -158,28 +162,46 @@ class McpEndpoint(
 fun playgroundEndpoints(
     store: PlaygroundStore,
     nav: NavController = NavController(store, UnavailableNavEngine("这个 Playground 没有导航")),
+    realNav: () -> Boolean = { HeadUnitModes.realNav },
 ): Map<String, McpEndpoint> = listOf(
     McpEndpoint(
         id = "cabin",
-        title = "Bothy Playground 虚拟座舱",
-        instructions = "这是一辆虚构的车，只在 Bothy Playground 里显示，不连接任何真车。调之前不知道现状就先 get_cabin_status。" +
-            "用户要么在车上要么在家（状态里的 user_here）；「我这边」「我这里」「有点热」这类话按他在的地方去调。" +
-            "座椅、车窗用 driver/passenger/rear_left/rear_right；用户说「我」「我这边」时 seat 填 speaker（正在说话的人坐的位置），" +
-            "「乘客」填 passengers，「车上的人」填 occupied。导航是真实的高德导航（可能是模拟行驶）：地点可以直接给名字，" +
-            "多个地点一次 start_navigation 算好；开着导航改途经点用 add_waypoint / remove_waypoint / replace_waypoint / reorder_waypoints，" +
-            "路上找吃饭、加油、充电用 search_along_route；想在某个读数到了时自动做事，可以监听资源 playground://cabin/state。",
-        tools = CABIN_TOOLS + navTools(nav),
-        resources = listOf(McpResource("playground://cabin/state", "虚拟座舱状态", "车内状态 JSON，字段：$CABIN_FIELDS") { it.cabin.toJson(userHere = it.userAt == UserPlace.CABIN) }),
+        face = McpFace(
+            title = "Bothy Playground 虚拟座舱",
+            instructions = "这是一辆虚构的车，只在 Bothy Playground 里显示，不连接任何真车。调之前不知道现状就先 get_cabin_status。" +
+                "用户要么在车上要么在家（状态里的 user_here）；「我这边」「我这里」「有点热」这类话按他在的地方去调。" +
+                "座椅、车窗用 driver/passenger/rear_left/rear_right；用户说「我」「我这边」时 seat 填 speaker（正在说话的人坐的位置），" +
+                "「乘客」填 passengers，「车上的人」填 occupied。导航是真实的高德导航（可能是模拟行驶）：地点可以直接给名字，" +
+                "多个地点一次 start_navigation 算好；开着导航改途经点用 add_waypoint / remove_waypoint / replace_waypoint / reorder_waypoints，" +
+                "路上找吃饭、加油、充电用 search_along_route；想在某个读数到了时自动做事，可以监听资源 playground://cabin/state。",
+            tools = CABIN_TOOLS + navTools(nav),
+            resources = listOf(McpResource("playground://cabin/state", "虚拟座舱状态", "车内状态 JSON，字段：$CABIN_FIELDS") { it.cabin.toJson(userHere = it.userAt == UserPlace.CABIN) }),
+        ),
         store = store,
+        realNav = realNav,
+        // Real navigation: the car's navigation alone, where the device really is; nothing simulated is offered.
+        realFace = McpFace(
+            title = "Bothy Playground 车机导航",
+            instructions = "这是平板上的车机导航（高德），用设备的真实定位、真实行驶，不模拟；车的其它部分（空调、座椅、车窗等）这里没有。" +
+                "地点直接给名字就行，多个地点一次 start_navigation 算好；开着导航改途经点用 add_waypoint / remove_waypoint / replace_waypoint / " +
+                "reorder_waypoints，路上找吃饭、加油、充电用 search_along_route；到达时提醒或办事，可以监听资源 playground://cabin/state 的 navigation.arrived。",
+            tools = navTools(nav),
+            resources = listOf(McpResource("playground://cabin/state", "车机导航状态", "导航状态 JSON，字段：$NAV_FIELDS", ::navigationJson)),
+        ),
     ),
     McpEndpoint(
         id = "home",
-        title = "Bothy Playground 虚拟小家",
-        instructions = "这是一个虚构的小家（客厅、卧室、厨房、书房），只在 Bothy Playground 里显示，不连接任何真实家电。" +
-            "调之前不知道现状就先 get_home_status；用户要么在家要么在车上（状态里的 user_here），「我这边」按他在的地方理解；" +
-            "开门锁前先向用户确认；想在某个读数到了时自动做事，可以监听资源 playground://home/state。",
-        tools = HOME_TOOLS,
-        resources = listOf(McpResource("playground://home/state", "虚拟小家状态", "家里状态 JSON，字段：$HOME_FIELDS") { it.home.toJson(userHere = it.userAt == UserPlace.HOME) }),
+        face = McpFace(
+            title = "Bothy Playground 虚拟小家",
+            instructions = "这是一个虚构的小家（客厅、卧室、厨房、书房），只在 Bothy Playground 里显示，不连接任何真实家电。" +
+                "调之前不知道现状就先 get_home_status；用户要么在家要么在车上（状态里的 user_here），「我这边」按他在的地方理解；" +
+                "开门锁前先向用户确认；想在某个读数到了时自动做事，可以监听资源 playground://home/state。",
+            tools = HOME_TOOLS,
+            resources = listOf(McpResource("playground://home/state", "虚拟小家状态", "家里状态 JSON，字段：$HOME_FIELDS") { it.home.toJson(userHere = it.userAt == UserPlace.HOME) }),
+        ),
         store = store,
+        realNav = realNav,
+        // Simulated through and through: closed while the head unit runs real navigation.
+        realFace = null,
     ),
 ).associateBy { "/${it.id}/mcp" }
