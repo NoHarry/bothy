@@ -106,7 +106,7 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 ## 环境要求
 
-- 演示 App：`minSdk 24`、`compileSdk 37`
+- 演示 App：`minSdk 24`、`compileSdk 37`（运行时用到 `java.nio.file`，所以用 `desugar_jdk_libs_nio` 做 core library desugaring）
 - JDK 17、Gradle 9.6、Android Gradle Plugin 9.4、Kotlin 2.4
 
 ## 许可证

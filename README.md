@@ -130,7 +130,8 @@ voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py`
 
 ## Requirements
 
-- Demo app: `minSdk 24`, `compileSdk 37`
+- Demo app: `minSdk 24`, `compileSdk 37` (core library desugaring with `desugar_jdk_libs_nio`, since the runtime uses
+  `java.nio.file`)
 - JDK 17, Gradle 9.6, Android Gradle Plugin 9.4, Kotlin 2.4
 
 ## License

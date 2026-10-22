@@ -69,6 +69,7 @@ python scripts/validate.py
 - 执行契约：`WORKFLOW.md`；机械约束：`CONSTRAINTS.md`
 
 ## 坑点
+- sample 的 minSdk 是 24，低于 API 26：运行时的工作区和事件日志用 `java.nio.file`，所以 sample 必须用 `desugar_jdk_libs_nio` 做 core library desugaring，不能换回普通的 `desugar_jdk_libs`。
 - 不要把 build 产物、`local.properties` 或 `harness/.local/` 提交进仓库。
 - `bothy-sample` 的 provider 配置 asset 打进 APK，不得含真实 key；真实 key 走 ignored 的 `workspace/apps/android/local.properties`。
 - `SampleReleaseHardeningTest` 按模块内相对路径读取 sample 的构建文件和 Manifest；移动或改名时同步更新。

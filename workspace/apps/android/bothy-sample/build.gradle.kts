@@ -211,7 +211,8 @@ listOf("Debug", "Release").forEach { variant ->
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    // The runtime's workspace and event log use java.nio.file, which Android has from API 26 (minSdk here is 24).
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
     implementation(platform("cc.noharry:agent-bom:${providers.gradleProperty("agentRuntimeVersion").get()}"))
     implementation("cc.noharry:agent-runtime-android")
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
