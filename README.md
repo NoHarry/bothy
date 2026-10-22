@@ -73,6 +73,18 @@ With Android Use on (an accessibility service you switch on), 小博 reads the s
 apps. Its avatar shows where it is about to tap, and the screen's edge glows while it is in control; here it works out
 23 × 47 on the calculator. *(1.3× speed.)*
 
+### Every step on the record
+
+<p align="center"><img src="docs/images/demo-console.gif" alt="Bothy's console: a request runs, its five tool calls unfold with their durations, then the Trajectory tab replays the run event by event" width="880"></p>
+
+Bothy's own screen is a developer console in the spirit of Codex. The conversation shows each tool call with its
+duration and what it said along the way; the board tracks the run, token usage and cache hits, the workspace, the MCP
+servers, memory and skills. The Trajectory tab replays a run from its durable event log: a timeline of model and tool
+spans, then every event in order, from the request through each model call and token count to every tool call as the
+model asks for it, the backend runs it and it completes, with calls that ran side by side. Here 小博 turns the
+passenger seat heating off, sets the ambient light warm and checks the doors and the trunk. *(1.15× speed; past sessions
+hidden.)*
+
 ### And more
 
 - **Bring your own model**: any OpenAI- or Anthropic-compatible endpoint, configured in the app; streaming, thinking,
