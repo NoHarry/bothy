@@ -19,7 +19,8 @@ agent 循环跑在你的 App 进程里，带沙箱化的虚拟工作区、MCP �
 | `agent-kernel-api` | 与 Android 无关的契约：模型、工具、插件、能力、工作区、完成判定、事件日志、生命周期 |
 | `agent-kernel-core` | agent 循环本身：调度器、原生工具循环、profile 编译、`KernelRuntimeBuilder` |
 | `agent-minimal` | 直接搭在 kernel 上的最小 agent，不含 Android 门面 |
-| `agent-runtime` | Android 运行时和宿主门面：`AgentRuntimeBuilder`、模型客户端（OpenAI / Anthropic 兼容）、MCP、skill、子 agent、会话与记忆、联网搜索与读网页、hook 与策略 |
+| `agent-runtime` | 运行时和宿主门面（纯 JVM）：`AgentRuntimeBuilder`、模型客户端（OpenAI / Anthropic 兼容）、MCP、skill、子 agent、会话与记忆、联网搜索与读网页、hook 与策略 |
+| `agent-runtime-android` | Android 层：SQLite 会话存储、App 私有的持久化事件日志 |
 | `agent-vfs` | agent 沙箱工作区的虚拟文件系统；宿主可挂载目录、assets 或内存数据源 |
 | `agent-vfs-saf` | 可选：挂载用户通过系统文件选择器授权的文件夹 |
 | `agent-exec-js` | 可选：`exec_js`，沙箱里的 JavaScript（Zipline 上的 QuickJS），可以回调 agent 的工具 |
@@ -90,14 +91,14 @@ git clone https://github.com/NoHarry/bothy.git
 ```kotlin
 // 你的 App 的 settings.gradle.kts：把 runtime 和它依赖的模块 include 进来
 val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime").forEach { name ->
+listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime", "agent-runtime-android").forEach { name ->
     include(":$name")
     project(":$name").projectDir = bothy.resolve(name)
 }
 
 // App 模块的 build.gradle.kts
 dependencies {
-    implementation(project(":agent-runtime"))
+    implementation(project(":agent-runtime-android"))
 }
 ```
 

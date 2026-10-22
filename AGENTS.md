@@ -4,8 +4,8 @@
 
 ## 仓库定位
 - 这是 **Bothy** —— 可嵌入的 Android 设备端 AI agent 运行时，公开开源仓库（MIT）。
-- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：kernel（`agent-kernel-api`、`agent-kernel-core`）、运行时 `agent-runtime`、虚拟文件系统 `agent-vfs`，可选模块（SAF、JS 执行、设备能力、Android Use、语音、A2A 客户端与服务端），以及演示 App `bothy-sample`。模块地图见 `workspace/apps/android/AGENTS.md`。
-- 依赖方向：`bothy-sample -> agent-runtime -> agent-kernel-core -> agent-kernel-api`，`agent-runtime -> agent-vfs`；可选模块最多依赖 `agent-kernel-api`；没有模块依赖 sample。`bothy-playground`（虚拟座舱和小家的本机 MCP 服务）不依赖 workspace 里的任何模块。
+- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：kernel（`agent-kernel-api`、`agent-kernel-core`）、运行时 `agent-runtime`（纯 JVM）及其 Android 层 `agent-runtime-android`、虚拟文件系统 `agent-vfs`，可选模块（SAF、JS 执行、设备能力、Android Use、语音、A2A 客户端与服务端），以及演示 App `bothy-sample`。模块地图见 `workspace/apps/android/AGENTS.md`。
+- 依赖方向：`bothy-sample -> agent-runtime-android -> agent-runtime -> agent-kernel-core -> agent-kernel-api`，`agent-runtime -> agent-vfs`；可选模块最多依赖 `agent-kernel-api`；没有模块依赖 sample。`bothy-playground`（虚拟座舱和小家的本机 MCP 服务）不依赖 workspace 里的任何模块。
 - 本仓是 harness 目标项目；`harness.yaml` 是真实配置资产，模板来源见 `harness_framework.source`。
 - **这是公开仓库**：所有提交必须通过 `scripts/lint_public_hygiene.py` 门禁（身份、密钥模式、本地词表）。
 
@@ -52,7 +52,7 @@
 
 ## 常用命令
 ```bash
-cd workspace/apps/android && ./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-minimal:test
+cd workspace/apps/android && ./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-vfs:test :agent-runtime:test :agent-minimal:test
 cd workspace/apps/android && ./gradlew :bothy-sample:assembleDebug :bothy-sample:assembleRelease
 node --test workspace/apps/android/tools/agent-relay/relay.test.cjs
 python scripts/workspace_doctor.py --fix-safe --run-checks --write-trace

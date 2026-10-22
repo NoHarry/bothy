@@ -1,13 +1,15 @@
 @file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
-package cc.noharry.agent.runtime.eventlog
+package cc.noharry.agent.runtime.android
 
 import androidx.test.runner.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import cc.noharry.agent.kernel.api.SessionEventAppend
+import cc.noharry.agent.kernel.api.SessionEventLog
 import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
 import cc.noharry.agent.kernel.api.SessionEventType
 import cc.noharry.agent.kernel.core.encodeFileName
+import cc.noharry.agent.runtime.eventlog.openFileBackedSessionEventLog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -27,19 +29,19 @@ class FileBackedSessionEventLogDeviceSmokeTest {
         val root = File(context.noBackupFilesDir, "$TEST_DIR_PREFIX-${UUID.randomUUID()}")
         try {
             assertRootIsNoBackupNotFiles(root, context.noBackupFilesDir, context.filesDir)
-            val writer = FileBackedSessionEventLog(root, eventIdFactory = incrementalIds("write"))
+            val writer = openFileBackedSessionEventLog(root, eventIdFactory = incrementalIds("write"))
             appendStartedThenFinished(writer, SESSION_A, SHARED_RUN)
             appendStartedThenFinished(writer, SESSION_B, SHARED_RUN)
             assertIsolatedCompleteStreams(writer, root)
 
-            val reopened = FileBackedSessionEventLog(root, eventIdFactory = incrementalIds("reopen"))
+            val reopened = openFileBackedSessionEventLog(root, eventIdFactory = incrementalIds("reopen"))
             assertReopenedComplete(reopened)
 
             val corruptFile = eventFile(root, SESSION_A, SHARED_RUN)
             corruptFile.appendText(TRUNCATED_EVENT_LINE)
             val corruptedA = corruptFile.readBytes()
 
-            val recovered = FileBackedSessionEventLog(root, eventIdFactory = incrementalIds("recover"))
+            val recovered = openFileBackedSessionEventLog(root, eventIdFactory = incrementalIds("recover"))
             assertEquals(
                 listOf(FIRST_EVENT_SEQUENCE, SECOND_EVENT_SEQUENCE),
                 sequencesOf(recovered, SESSION_A),
@@ -79,7 +81,7 @@ private fun assertRootIsNoBackupNotFiles(root: File, noBackup: File, filesDir: F
 }
 
 private fun appendStartedThenFinished(
-    log: FileBackedSessionEventLog,
+    log: SessionEventLog,
     sessionId: String,
     runId: String,
 ) {
@@ -96,7 +98,7 @@ private fun appendStartedThenFinished(
     assertEquals(SECOND_EVENT_SEQUENCE, finished.sequence)
 }
 
-private fun assertIsolatedCompleteStreams(log: FileBackedSessionEventLog, root: File) {
+private fun assertIsolatedCompleteStreams(log: SessionEventLog, root: File) {
     val pathA = eventFile(root, SESSION_A, SHARED_RUN)
     val pathB = eventFile(root, SESSION_B, SHARED_RUN)
     assertTrue(pathA.isFile)
@@ -108,14 +110,14 @@ private fun assertIsolatedCompleteStreams(log: FileBackedSessionEventLog, root: 
     assertEquals(SessionEventLogHealthStatus.COMPLETE, log.health(SESSION_B, SHARED_RUN).status)
 }
 
-private fun assertReopenedComplete(log: FileBackedSessionEventLog) {
+private fun assertReopenedComplete(log: SessionEventLog) {
     assertEquals(listOf(FIRST_EVENT_SEQUENCE, SECOND_EVENT_SEQUENCE), sequencesOf(log, SESSION_A))
     assertEquals(listOf(FIRST_EVENT_SEQUENCE, SECOND_EVENT_SEQUENCE), sequencesOf(log, SESSION_B))
     assertEquals(SessionEventLogHealthStatus.COMPLETE, log.health(SESSION_A, SHARED_RUN).status)
     assertEquals(SessionEventLogHealthStatus.COMPLETE, log.health(SESSION_B, SHARED_RUN).status)
 }
 
-private fun sequencesOf(log: FileBackedSessionEventLog, sessionId: String): List<Long> =
+private fun sequencesOf(log: SessionEventLog, sessionId: String): List<Long> =
     log.replay(sessionId, SHARED_RUN).map { it.sequence }
 
 private fun event(

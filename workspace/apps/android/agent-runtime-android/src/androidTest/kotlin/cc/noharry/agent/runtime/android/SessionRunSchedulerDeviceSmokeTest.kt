@@ -1,4 +1,4 @@
-package cc.noharry.agent.runtime
+package cc.noharry.agent.runtime.android
 
 import androidx.test.runner.AndroidJUnit4
 import cc.noharry.agent.kernel.core.SessionRunAdmission

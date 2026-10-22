@@ -54,7 +54,6 @@ import cc.noharry.agent.kernel.core.ReliabilityRetentionPolicy
 import cc.noharry.agent.kernel.core.ReliabilityStorage
 import cc.noharry.agent.kernel.core.RuntimeBlueprint
 import cc.noharry.agent.kernel.core.RuntimeCompositionMessages
-import cc.noharry.agent.kernel.core.SESSION_STORE_DB_FILE
 import cc.noharry.agent.kernel.core.SessionRunSchedulerConfig
 import cc.noharry.agent.kernel.core.SessionStore
 import cc.noharry.agent.kernel.core.ToolDomainIndexer
@@ -85,6 +84,7 @@ class AgentRuntimeBuilder {
     private val plugins = mutableListOf<AgentPlugin>()
     private var profile: AgentProfile? = null
     private var workspaceRoot: File? = null
+    private var sessionStoreFactory: ((File) -> SessionStore)? = null
     private var virtualWorkspace: VfsFileSystem? = null
     private val runtimeWorkspaces = linkedMapOf<String, RuntimeWorkspaceRef>()
     private var defaultWorkspaceId: String? = null
@@ -190,6 +190,15 @@ class AgentRuntimeBuilder {
     @ExperimentalAgentRuntimeApi
     fun turnObserver(observer: RuntimeTurnObserver): AgentRuntimeBuilder = apply {
         declarations.turnObserver(observer)
+    }
+
+    /**
+     * Keeps sessions, runs, messages and usage in the store [factory] opens under the [workspaceRoot]; without a
+     * workspace root there is no session store. `agent-runtime-android` supplies an SQLite store. Candidate API.
+     */
+    @ExperimentalAgentRuntimeApi
+    fun sessionStore(factory: (workspaceRoot: File) -> SessionStore): AgentRuntimeBuilder = apply {
+        sessionStoreFactory = factory
     }
 
     fun workspaceRoot(root: File): AgentRuntimeBuilder = apply {
@@ -713,9 +722,7 @@ class AgentRuntimeBuilder {
             schemaCache = reliabilityStorageRoot?.let(::FileBackedMaterializerSchemaCache),
             loopHistoryStore = reliabilityStorageRoot?.let { FileBackedLoopHistoryStore(it, historyByteBudget) }
                 ?: InMemoryLoopHistoryStore(historyByteBudget),
-            sessionStore = workspaceRoot?.takeIf { isAndroidRuntimeVm() }?.let {
-                AndroidSqliteSessionStore(File(it, SESSION_STORE_DB_FILE))
-            },
+            sessionStore = workspaceRoot?.let { root -> sessionStoreFactory?.invoke(root) },
         )
 
     private fun buildHookChain(

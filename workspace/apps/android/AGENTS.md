@@ -10,8 +10,9 @@ modules, and a demo host app.
 | `agent-kernel-api` | Android-neutral Kernel SPI/DTO: plugin, capability, `WorkspacePort`, model, tool, completion, EventLog and lifecycle contracts. Depends on no project module. |
 | `agent-kernel-core` | Scheduler, `NativeToolLoop`, `ProfileCompiler`, `KernelRuntimeBuilder` and `CoreAgentRuntime`. Depends only on `:agent-kernel-api`; never on VFS, runtime, sample or plugins. |
 | `agent-minimal` | `MinimalAgent` profile composing core + api directly through `KernelRuntimeBuilder`; no runtime facade or VFS. |
-| `agent-vfs` | Semantic-free virtual filesystem primitives: manifest parsing, mount resolution, path normalization, snapshots. |
-| `agent-runtime` | Android composition artifact and host facade: `AgentRuntimeBuilder.create()`, VFS adapters, EventLog wiring and platform policy. Depends on core + api + `agent-vfs`. |
+| `agent-vfs` | JVM, semantic-free virtual filesystem primitives: manifest parsing, mount resolution, path normalization, snapshots. |
+| `agent-runtime` | JVM composition artifact and host facade: `AgentRuntimeBuilder.create()`, model clients, VFS adapters, EventLog wiring and platform policy. Depends on core + api + `agent-vfs`; no Android dependency. |
+| `agent-runtime-android` | Thin Android layer over `agent-runtime`: SQLite session store (`androidSqliteSessions()`) and the app-private durable EventLog (`DurableSessionEventLogPlugin.appPrivate(context)`). |
 | `agent-vfs-saf` | Optional Storage Access Framework `VfsSource` backed by DocumentFile tree permissions. |
 | `agent-exec-js` | Optional Zipline-backed `ExecEngine` for `exec_js` and nested tool bridge calls. |
 | `agent-device-capabilities` | Optional calendar and notification MCP providers with permission error envelopes. |
@@ -30,7 +31,8 @@ modules, and a demo host app.
 ## Rules
 
 - Keep business code under this directory; do not place Android source directly in the repository root.
-- Dependency direction: sample → runtime → kernel-core → kernel-api, runtime → vfs. The runtime never depends on the
+- Dependency direction: sample → runtime-android → runtime → kernel-core → kernel-api, runtime → vfs. kernel-api, kernel-core,
+  vfs and runtime are plain JVM modules; Android APIs belong in `agent-runtime-android` or an optional module. The runtime never depends on the
   sample, A2A, voice, Android Use or any optional module; optional modules depend at most on `:agent-kernel-api`
   (or `:agent-vfs` / `:agent-a2a-client` for their own adapters).
 - Keep `agent-vfs` free of AGENTS, skills, MCP, session, memory or model semantics; those belong in the runtime.
@@ -51,7 +53,7 @@ modules, and a demo host app.
 ## Verify
 
 ```bash
-./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-minimal:test
+./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-vfs:test :agent-runtime:test :agent-minimal:test
 ./gradlew :bothy-sample:assembleDebug :bothy-sample:assembleRelease :bothy-playground:assembleDebug
 node --test tools/agent-relay/relay.test.cjs
 ```

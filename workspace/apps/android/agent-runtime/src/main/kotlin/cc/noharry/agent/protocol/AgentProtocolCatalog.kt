@@ -41,7 +41,7 @@ internal object AgentProtocolCatalog {
             agentsMd build buildAsync contextProvider contextWindow create defaultWorkspace deferredBackendTools disabledNativeTools execEngine hook hookTimeoutMillis imageInput loopBudget
             modelClient modelConcurrency modelRetry nativeDeferredTools nativeWebFetchEnabled networkConfirmationPolicy nowEpochMillis
             plugin policyConfig policyConfigJson policyConfigPath policyRule profile runContext runContextAsSystem runtimeEvidence sceneAgentsMd
-            sessionActivationInheritance sessionConcurrency sessionEventLog sessionEventLogRoot sessionHistory sessionToolActivations skill subagents systemPrompt toolConcurrency toolProvider toolProviders turnObserver virtualWorkspace webFetchFallback webSearch workspace
+            sessionActivationInheritance sessionConcurrency sessionEventLog sessionEventLogRoot sessionHistory sessionStore sessionToolActivations skill subagents systemPrompt toolConcurrency toolProvider toolProviders turnObserver virtualWorkspace webFetchFallback webSearch workspace
             workspaceRoot
             """,
         ),
@@ -109,7 +109,7 @@ internal object AgentProtocolCatalog {
             AgentRuntimeBuilder.plugin AgentRuntimeBuilder.profile AgentRuntimeBuilder.runContext
             AgentRuntimeBuilder.runContextAsSystem AgentRuntimeBuilder.runtimeEvidence
             AgentRuntimeBuilder.sessionEventLog AgentRuntimeBuilder.sessionEventLogRoot
-            AgentRuntimeBuilder.sessionHistory AgentRuntimeBuilder.sessionToolActivations AgentRuntimeBuilder.subagents
+            AgentRuntimeBuilder.sessionHistory AgentRuntimeBuilder.sessionStore AgentRuntimeBuilder.sessionToolActivations AgentRuntimeBuilder.subagents
             AgentRuntimeBuilder.turnObserver AgentRuntimeBuilder.webFetchFallback AgentRuntimeBuilder.webSearch
             CapabilityCardinality CapabilityKey ExecEngine ExecRequest ExecResult ExecToolBridge HookDecision
             HookFailurePolicy KernelApiRange KernelApiVersion KernelApiVersions MinimalAgent

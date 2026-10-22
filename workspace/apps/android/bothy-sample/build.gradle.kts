@@ -212,7 +212,7 @@ listOf("Debug", "Release").forEach { variant ->
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation(project(":agent-runtime"))
+    implementation(project(":agent-runtime-android"))
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
         add(scope, project(":agent-vfs-saf"))
         add(scope, project(":agent-exec-js"))

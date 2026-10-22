@@ -20,7 +20,7 @@ import cc.noharry.agent.runtime.ReliabilityStorageRootKind
 class ReleaseHardeningTest {
     @Test
     fun consumerRulesKeepPublicApiAndMetadata() {
-        val rules = File("consumer-proguard-rules.pro").readText()
+        val rules = File("src/main/resources/META-INF/proguard/agent-runtime.pro").readText()
 
         assertTrue(rules.contains("-keep class cc.noharry.agent.kernel.api.** { *; }"))
         assertTrue(rules.contains("-keep class cc.noharry.agent.kernel.core.KernelRuntimeBuilder { *; }"))
@@ -52,7 +52,7 @@ class ReleaseHardeningTest {
     fun sampleReleaseBuildEnablesR8WithProjectDependency() {
         val buildFile = File("../bothy-sample/build.gradle.kts").readText()
 
-        assertTrue(buildFile.contains("implementation(project(\":agent-runtime\"))"))
+        assertTrue(buildFile.contains("implementation(project(\":agent-runtime-android\"))"))
         assertTrue(buildFile.contains("release"))
         assertTrue(buildFile.contains("isMinifyEnabled = true"))
         assertTrue(buildFile.contains("getDefaultProguardFile(\"proguard-android-optimize.txt\")"))
@@ -73,7 +73,7 @@ class ReleaseHardeningTest {
 
     @Test
     fun minSdkAlignsWithCandidateReliabilityStoragePolicy() {
-        val buildFile = File("build.gradle.kts").readText()
+        val buildFile = File("../agent-runtime-android/build.gradle.kts").readText()
 
         assertEquals(23, ANDROID_RELIABILITY_STORAGE_MIN_SDK)
         assertTrue(buildFile.contains("minSdk = $ANDROID_RELIABILITY_STORAGE_MIN_SDK"))

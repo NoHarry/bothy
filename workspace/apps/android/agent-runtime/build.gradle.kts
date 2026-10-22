@@ -1,21 +1,10 @@
 plugins {
-    id("com.android.library")
+    kotlin("jvm")
 }
 
-android {
-    namespace = "cc.noharry.agent"
-    compileSdk = 34
-
-    defaultConfig {
-        minSdk = 23
-        consumerProguardFiles("consumer-proguard-rules.pro")
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 kotlin {
@@ -33,7 +22,4 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.robolectric:robolectric:4.12.2")
-    androidTestImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test:runner:1.5.2")
 }

@@ -758,9 +758,6 @@ private data class RunIdentity(
     val requestId: String,
 )
 
-internal fun isAndroidRuntimeVm(): Boolean =
-    System.getProperty("java.vm.name").orEmpty().contains("Dalvik", ignoreCase = true)
-
 private fun RuntimeRunStatus.isTerminal(): Boolean =
     this == RuntimeRunStatus.COMPLETED || this == RuntimeRunStatus.FAILED || this == RuntimeRunStatus.CANCELLED
 

@@ -1,0 +1,1 @@
+-keep class cc.noharry.agent.runtime.android.AndroidRuntimeKt { *; }

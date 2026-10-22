@@ -1,4 +1,4 @@
-package cc.noharry.agent.runtime
+package cc.noharry.agent.runtime.android
 
 internal const val SQLITE_SESSION_SCHEMA_VERSION = 5
 internal const val SQLITE_SESSION_MAX_QUERY_LIMIT = 500

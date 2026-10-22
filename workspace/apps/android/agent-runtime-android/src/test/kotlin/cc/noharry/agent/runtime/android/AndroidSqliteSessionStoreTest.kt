@@ -1,4 +1,4 @@
-package cc.noharry.agent.runtime
+package cc.noharry.agent.runtime.android
 
 import android.database.sqlite.SQLiteDatabase
 import org.junit.Assert.assertEquals

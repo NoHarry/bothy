@@ -103,6 +103,7 @@ private val CANDIDATE_BUILDER_METHODS = listOf(
     "sessionEventLog",
     "sessionEventLogRoot",
     "sessionHistory",
+    "sessionStore",
     "sessionToolActivations",
     "skill",
     "subagents",

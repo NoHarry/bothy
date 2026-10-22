@@ -20,7 +20,8 @@ operation (Android Use), A2A and device capabilities when you need them.
 | `agent-kernel-api` | Android-neutral contracts: model, tool, plugin, capability, workspace, completion, event log, lifecycle |
 | `agent-kernel-core` | The agent loop: scheduler, native tool loop, profile compiler, `KernelRuntimeBuilder` |
 | `agent-minimal` | A minimal agent profile built straight on the kernel, without the Android facade |
-| `agent-runtime` | The Android runtime and host facade: `AgentRuntimeBuilder`, model clients (OpenAI / Anthropic compatible), MCP integration, skills, subagents, sessions and memory, web search and fetch, hooks and policy |
+| `agent-runtime` | The runtime and host facade (plain JVM): `AgentRuntimeBuilder`, model clients (OpenAI / Anthropic compatible), MCP integration, skills, subagents, sessions and memory, web search and fetch, hooks and policy |
+| `agent-runtime-android` | The Android layer: SQLite session store and app-private durable event log |
 | `agent-vfs` | Virtual file system for the agent's sandboxed workspace; the host mounts directories, assets or in-memory sources |
 | `agent-vfs-saf` | Optional: mount a folder the user picks through the Storage Access Framework |
 | `agent-exec-js` | Optional: `exec_js`, sandboxed JavaScript (QuickJS through Zipline) that can call the agent's tools |
@@ -111,14 +112,14 @@ git clone https://github.com/NoHarry/bothy.git
 ```kotlin
 // settings.gradle.kts of your app: include the runtime and the modules it depends on
 val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime").forEach { name ->
+listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime", "agent-runtime-android").forEach { name ->
     include(":$name")
     project(":$name").projectDir = bothy.resolve(name)
 }
 
 // build.gradle.kts of your app module
 dependencies {
-    implementation(project(":agent-runtime"))
+    implementation(project(":agent-runtime-android"))
 }
 ```
 

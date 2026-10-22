@@ -1,4 +1,4 @@
-package cc.noharry.agent.runtime
+package cc.noharry.agent.runtime.android
 
 import android.content.ContentValues
 import android.database.Cursor
