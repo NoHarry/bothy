@@ -34,10 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.vfs.VfsEntry
-import cc.noharry.bothy.vfs.VfsFileSystem
-import cc.noharry.bothy.vfs.VfsListResult
-import cc.noharry.bothy.vfs.VfsReadResult
+import cc.noharry.agent.vfs.VfsEntry
+import cc.noharry.agent.vfs.VfsFileSystem
+import cc.noharry.agent.vfs.VfsListResult
+import cc.noharry.agent.vfs.VfsReadResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

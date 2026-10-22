@@ -1,11 +1,11 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.SessionEventPayload.UserInteraction
-import cc.noharry.bothy.kernel.api.SessionEventType
-import cc.noharry.bothy.a2a.server.A2aOutput
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.SessionEventPayload.UserInteraction
+import cc.noharry.agent.kernel.api.SessionEventType
+import cc.noharry.agent.a2a.server.A2aOutput
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -46,11 +46,11 @@ class DebugUserQuestionsTest {
         assertTrue(replied.questionCards(null).isEmpty())
         val late = lateAnswerText(DebugUserQuestion("run-2/q/0", "run-2", "s1", "去哪？", emptyList(), "EXPIRED"), "苏州")
         assertTrue(late.contains("去哪？") && late.endsWith("苏州"))
-        assertEquals(DebugAnswerRoute.Late, debugAnswerRoute(cc.noharry.bothy.kernel.api.PostUserInputResult.RunNotActive, selected = true, running = false, ownsRun = false))
-        assertEquals(DebugAnswerRoute.Failed("任务已结束且当前会话正在执行其他任务"), debugAnswerRoute(cc.noharry.bothy.kernel.api.PostUserInputResult.NotFound, selected = true, running = true, ownsRun = false))
-        assertEquals(DebugAnswerRoute.Silent, debugAnswerRoute(cc.noharry.bothy.kernel.api.PostUserInputResult.RunNotActive, selected = false, running = false, ownsRun = false))
-        assertEquals(DebugAnswerRoute.Delivered, debugAnswerRoute(cc.noharry.bothy.kernel.api.PostUserInputResult.Duplicate, selected = true, running = true, ownsRun = true))
-        assertEquals(DebugAnswerRoute.Failed("QUESTION_NOT_FOUND"), debugAnswerRoute(cc.noharry.bothy.kernel.api.PostUserInputResult.Rejected("QUESTION_NOT_FOUND"), selected = true, running = true, ownsRun = true))
+        assertEquals(DebugAnswerRoute.Late, debugAnswerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.RunNotActive, selected = true, running = false, ownsRun = false))
+        assertEquals(DebugAnswerRoute.Failed("任务已结束且当前会话正在执行其他任务"), debugAnswerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.NotFound, selected = true, running = true, ownsRun = false))
+        assertEquals(DebugAnswerRoute.Silent, debugAnswerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.RunNotActive, selected = false, running = false, ownsRun = false))
+        assertEquals(DebugAnswerRoute.Delivered, debugAnswerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.Duplicate, selected = true, running = true, ownsRun = true))
+        assertEquals(DebugAnswerRoute.Failed("QUESTION_NOT_FOUND"), debugAnswerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.Rejected("QUESTION_NOT_FOUND"), selected = true, running = true, ownsRun = true))
     }
 
     @Test fun asyncQuestionsSpeakOncePerIdWithoutFinalizingTheOriginalTask() = runBlocking {

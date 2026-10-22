@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.ToolCallContext
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import java.io.File
 import java.nio.file.Files
 import java.time.ZoneId

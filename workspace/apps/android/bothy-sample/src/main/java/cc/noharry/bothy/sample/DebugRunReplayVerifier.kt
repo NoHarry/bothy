@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 
 internal data class DebugRunReplayResult(
     val passed: Boolean,

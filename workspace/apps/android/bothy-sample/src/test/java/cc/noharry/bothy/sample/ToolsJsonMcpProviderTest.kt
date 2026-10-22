@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.ToolCallContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

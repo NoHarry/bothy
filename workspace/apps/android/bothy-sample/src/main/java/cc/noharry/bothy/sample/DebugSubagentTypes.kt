@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.runtime.SubagentType
+import cc.noharry.agent.runtime.SubagentType
 
 /**
  * Kinds of subagent with their own instructions (owner 2026-10-17: 专门做成一个子 agent，可以配置是否加载，里面可以特化

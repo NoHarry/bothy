@@ -19,8 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 
 /**
  * The finished reply's picks in the full-screen console, the same host-compiled A2UI surface as the overlay card in

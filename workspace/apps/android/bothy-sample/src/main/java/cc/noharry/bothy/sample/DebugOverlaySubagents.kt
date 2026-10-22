@@ -59,9 +59,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.runtime.SubagentState
-import cc.noharry.bothy.runtime.SubagentStatus
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.runtime.SubagentState
+import cc.noharry.agent.runtime.SubagentStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

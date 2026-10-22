@@ -2,7 +2,7 @@
 name: android-use
 description: 只在没有专用接口、接口失败，或要在界面里找到并进入某个设置项时，查看并操作屏幕（点击、滑动、输入）；打开应用和页面先用 search_tools 找专用接口。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.1.0"
 ---
 

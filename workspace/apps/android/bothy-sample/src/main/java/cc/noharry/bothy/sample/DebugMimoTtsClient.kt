@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
+import cc.noharry.agent.transport.HttpTransport
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.serialization.json.Json

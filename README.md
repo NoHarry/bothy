@@ -17,22 +17,22 @@ operation (Android Use), A2A and device capabilities when you need them.
 
 | Module | What it does |
 |--------|--------------|
-| `bothy-kernel-api` | Android-neutral contracts: model, tool, plugin, capability, workspace, completion, event log, lifecycle |
-| `bothy-kernel-core` | The agent loop: scheduler, native tool loop, profile compiler, `KernelRuntimeBuilder` |
-| `bothy-minimal` | A minimal agent profile built straight on the kernel, without the Android facade |
-| `bothy-runtime` | The Android runtime and host facade: `AgentRuntimeBuilder`, model clients (OpenAI / Anthropic compatible), MCP integration, skills, subagents, sessions and memory, web search and fetch, hooks and policy |
-| `bothy-vfs` | Virtual file system for the agent's sandboxed workspace; the host mounts directories, assets or in-memory sources |
-| `bothy-vfs-saf` | Optional: mount a folder the user picks through the Storage Access Framework |
-| `bothy-exec-js` | Optional: `exec_js`, sandboxed JavaScript (QuickJS through Zipline) that can call the agent's tools |
-| `bothy-device-capabilities` | Optional: calendar and notification tools |
-| `bothy-android-use` | Optional: the agent observes and operates the screen through an accessibility service |
-| `bothy-voice` | Optional: voice sessions with on-device sherpa-onnx recognition and wake word, or a cloud recognizer |
-| `bothy-a2a-client`, `-direct`, `-official` | Optional: delegate tasks to remote A2A agents (two interchangeable transports) |
-| `bothy-a2a-server` | Optional: expose the agent itself as a local A2A endpoint |
+| `agent-kernel-api` | Android-neutral contracts: model, tool, plugin, capability, workspace, completion, event log, lifecycle |
+| `agent-kernel-core` | The agent loop: scheduler, native tool loop, profile compiler, `KernelRuntimeBuilder` |
+| `agent-minimal` | A minimal agent profile built straight on the kernel, without the Android facade |
+| `agent-runtime` | The Android runtime and host facade: `AgentRuntimeBuilder`, model clients (OpenAI / Anthropic compatible), MCP integration, skills, subagents, sessions and memory, web search and fetch, hooks and policy |
+| `agent-vfs` | Virtual file system for the agent's sandboxed workspace; the host mounts directories, assets or in-memory sources |
+| `agent-vfs-saf` | Optional: mount a folder the user picks through the Storage Access Framework |
+| `agent-exec-js` | Optional: `exec_js`, sandboxed JavaScript (QuickJS through Zipline) that can call the agent's tools |
+| `agent-device-capabilities` | Optional: calendar and notification tools |
+| `agent-android-use` | Optional: the agent observes and operates the screen through an accessibility service |
+| `agent-voice` | Optional: voice sessions with on-device sherpa-onnx recognition and wake word, or a cloud recognizer |
+| `agent-a2a-client`, `-direct`, `-official` | Optional: delegate tasks to remote A2A agents (two interchangeable transports) |
+| `agent-a2a-server` | Optional: expose the agent itself as a local A2A endpoint |
 | `bothy-sample` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 
-The runtime depends on the kernel and `bothy-vfs`; optional modules depend at most on `bothy-kernel-api`. Nothing
+The runtime depends on the kernel and `agent-vfs`; optional modules depend at most on `agent-kernel-api`. Nothing
 depends on the sample, and the playground depends on nothing here: Bothy reaches it like any other MCP server.
 
 ## What the demo shows
@@ -111,14 +111,14 @@ git clone https://github.com/NoHarry/bothy.git
 ```kotlin
 // settings.gradle.kts of your app: include the runtime and the modules it depends on
 val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("bothy-kernel-api", "bothy-kernel-core", "bothy-vfs", "bothy-runtime").forEach { name ->
+listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime").forEach { name ->
     include(":$name")
     project(":$name").projectDir = bothy.resolve(name)
 }
 
 // build.gradle.kts of your app module
 dependencies {
-    implementation(project(":bothy-runtime"))
+    implementation(project(":agent-runtime"))
 }
 ```
 

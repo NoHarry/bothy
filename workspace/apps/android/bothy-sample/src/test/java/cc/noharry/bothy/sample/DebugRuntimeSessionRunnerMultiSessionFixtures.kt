@@ -1,22 +1,22 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.ConfirmationDecision
-import cc.noharry.bothy.kernel.api.ConfirmationResumeResult
-import cc.noharry.bothy.kernel.api.PendingConfirmation
-import cc.noharry.bothy.kernel.api.PostUserInputRequest
-import cc.noharry.bothy.kernel.api.PostUserInputResult
-import cc.noharry.bothy.kernel.api.SessionEventLogDurability
-import cc.noharry.bothy.kernel.api.SessionEventLogHealth
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.bothy.kernel.api.reliability.RuntimeResult
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunSnapshot
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.ConfirmationDecision
+import cc.noharry.agent.kernel.api.ConfirmationResumeResult
+import cc.noharry.agent.kernel.api.PendingConfirmation
+import cc.noharry.agent.kernel.api.PostUserInputRequest
+import cc.noharry.agent.kernel.api.PostUserInputResult
+import cc.noharry.agent.kernel.api.SessionEventLogDurability
+import cc.noharry.agent.kernel.api.SessionEventLogHealth
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.kernel.api.reliability.RuntimeResult
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunSnapshot
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicBoolean

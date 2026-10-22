@@ -4,10 +4,10 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.a2a.A2aClientConfig
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
-import cc.noharry.bothy.a2a.server.A2aRequest
+import cc.noharry.agent.a2a.A2aClientConfig
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.server.A2aRequest
 import java.net.URI
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CoroutineScope

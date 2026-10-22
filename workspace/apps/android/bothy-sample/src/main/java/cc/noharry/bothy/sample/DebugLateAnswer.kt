@@ -1,8 +1,8 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.PostUserInputResult
+import cc.noharry.agent.kernel.api.PostUserInputResult
 
 /** A late reply must carry the question, since the new run's model request starts from this text. */
 internal fun lateAnswerText(question: DebugUserQuestion, text: String): String =

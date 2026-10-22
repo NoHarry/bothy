@@ -2,7 +2,7 @@
 name: travel-planning
 description: 用户要规划几天的旅行（行程、机票、高铁或自驾、酒店）时：三路子 agent 并行查交通、住宿和每天的去处（含天气），汇总成一张按天分组、带天气和照片的行程卡片，最后问要不要设提醒或导航。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.4.1"
 ---
 

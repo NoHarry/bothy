@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 
 internal class DebugSessionTurnRecorder(
     private val request: AgentRequest,

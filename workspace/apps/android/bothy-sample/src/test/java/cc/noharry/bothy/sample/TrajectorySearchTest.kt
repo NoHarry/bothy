@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

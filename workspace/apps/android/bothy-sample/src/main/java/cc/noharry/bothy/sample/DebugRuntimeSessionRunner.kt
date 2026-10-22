@@ -1,14 +1,14 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.ConfirmationChoice
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.ConfirmationChoice
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -182,7 +182,7 @@ internal class DebugRuntimeSessionRunner(
     }
 
     /** Shared control input for UI and transports; never starts or replaces an execution. */
-    suspend fun postInput(sessionId: String, runId: String, requestId: String, text: String, questionId: String?): cc.noharry.bothy.kernel.api.PostUserInputResult =
+    suspend fun postInput(sessionId: String, runId: String, requestId: String, text: String, questionId: String?): cc.noharry.agent.kernel.api.PostUserInputResult =
         postDebugRunInput(registry, sessionId, runId, requestId, text, questionId)
 
     /** Answers into the exact run; a reply to an ended run becomes a new selected-session turn via [lateAnswer]. */
@@ -194,7 +194,7 @@ internal class DebugRuntimeSessionRunner(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                cc.noharry.bothy.kernel.api.PostUserInputResult.Rejected("INPUT_RECORD_FAILED")
+                cc.noharry.agent.kernel.api.PostUserInputResult.Rejected("INPUT_RECORD_FAILED")
             }
             val route = debugAnswerRoute(result, isSelected(question.sessionId), isRunning, stillOwnsSelected(question.sessionId, question.runId))
             if (route is DebugAnswerRoute.Failed) transcript.appendError("回答未发送", route.reason)

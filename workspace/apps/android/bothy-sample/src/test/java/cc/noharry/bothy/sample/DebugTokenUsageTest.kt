@@ -95,7 +95,7 @@ class DebugTokenUsageTest {
 
     @Test
     fun mapsAgentEventTokenUsageWithoutDoubleCountingInclusiveInput() {
-        val delta = cc.noharry.bothy.kernel.api.AgentEvent.TokenUsageDelta(
+        val delta = cc.noharry.agent.kernel.api.AgentEvent.TokenUsageDelta(
             runId = "run-1",
             inputTokens = 2000,
             outputTokens = 20,

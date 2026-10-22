@@ -1,10 +1,10 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.vfs.VFS_ENTRY_DIR
-import cc.noharry.bothy.vfs.VfsFileSystem
-import cc.noharry.bothy.vfs.VfsListResult
-import cc.noharry.bothy.vfs.VfsReadResult
+import cc.noharry.agent.vfs.VFS_ENTRY_DIR
+import cc.noharry.agent.vfs.VfsFileSystem
+import cc.noharry.agent.vfs.VfsListResult
+import cc.noharry.agent.vfs.VfsReadResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject

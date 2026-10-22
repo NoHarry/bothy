@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
 
 /**
  * Todo board projection rules for the debug console.

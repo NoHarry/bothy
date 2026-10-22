@@ -2,13 +2,13 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.a2a.A2aClient
-import cc.noharry.bothy.a2a.A2aPart
-import cc.noharry.bothy.a2a.A2aResult
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.A2aValue
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.A2aClient
+import cc.noharry.agent.a2a.A2aPart
+import cc.noharry.agent.a2a.A2aResult
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.A2aValue
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineScope

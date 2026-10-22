@@ -1,29 +1,29 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.androiduse.AndroidUseOptions
-import cc.noharry.bothy.androiduse.AndroidUseToolProvider
-import cc.noharry.bothy.device.DeviceCalendarMcpProvider
-import cc.noharry.bothy.device.DeviceNotificationMcpProvider
-import cc.noharry.bothy.kernel.api.model.ServerSideSearchCapability
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.ToolCatalogCacheIdentity
-import cc.noharry.bothy.kernel.api.ToolProvider
-import cc.noharry.bothy.kernel.api.RuntimeHook
-import cc.noharry.bothy.runtime.AgentRuntimeBuilder
-import cc.noharry.bothy.runtime.NetworkToolConfirmationPolicy
-import cc.noharry.bothy.runtime.SessionHistory
-import cc.noharry.bothy.runtime.SessionToolActivations
-import cc.noharry.bothy.exec.js.ZiplineExecEngine
+import cc.noharry.agent.androiduse.AndroidUseOptions
+import cc.noharry.agent.androiduse.AndroidUseToolProvider
+import cc.noharry.agent.device.DeviceCalendarMcpProvider
+import cc.noharry.agent.device.DeviceNotificationMcpProvider
+import cc.noharry.agent.kernel.api.model.ServerSideSearchCapability
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.ToolCatalogCacheIdentity
+import cc.noharry.agent.kernel.api.ToolProvider
+import cc.noharry.agent.kernel.api.RuntimeHook
+import cc.noharry.agent.runtime.AgentRuntimeBuilder
+import cc.noharry.agent.runtime.NetworkToolConfirmationPolicy
+import cc.noharry.agent.runtime.SessionHistory
+import cc.noharry.agent.runtime.SessionToolActivations
+import cc.noharry.agent.exec.js.ZiplineExecEngine
 import java.io.File
 
 /**
  * @param sessionEventLogRoot app-private no-backup root for this session's durable EventLog.
  *   This is the lowest-priority EventLog source, so the sample must not also install a
  *   packaged or custom `SESSION_EVENT_LOG` capability; doing so silently wins over the root.
- * @param userInput text that will be sent as [cc.noharry.bothy.kernel.api.AgentRequest.input].
+ * @param userInput text that will be sent as [cc.noharry.agent.kernel.api.AgentRequest.input].
  * @param benchCaseBound production flag; default **false**. When **true**, enables experimental
  *   [runtimeEvidence] for sample.debug.v1 using a hash of **[userInput]** (must be the bench
  *   prompt). Ordinary runs leave this false and do not call [runtimeEvidence].

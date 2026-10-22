@@ -2,21 +2,21 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.content.res.AssetManager
-import cc.noharry.bothy.vfs.VfsEntry
-import cc.noharry.bothy.vfs.VfsFileSource
-import cc.noharry.bothy.vfs.VfsFileSystem
-import cc.noharry.bothy.vfs.VfsListResult
-import cc.noharry.bothy.vfs.VfsMemorySource
-import cc.noharry.bothy.vfs.VfsReadResult
-import cc.noharry.bothy.vfs.VfsRoomResource
-import cc.noharry.bothy.vfs.VfsRoomResourceAdapter
-import cc.noharry.bothy.vfs.VfsRoomSource
-import cc.noharry.bothy.vfs.VfsRoomUpdateRow
-import cc.noharry.bothy.vfs.VfsSearchMatch
-import cc.noharry.bothy.vfs.VfsSearchResult
-import cc.noharry.bothy.vfs.VfsSource
-import cc.noharry.bothy.vfs.VfsSourceResolver
-import cc.noharry.bothy.vfs.saf.SafVfsSource
+import cc.noharry.agent.vfs.VfsEntry
+import cc.noharry.agent.vfs.VfsFileSource
+import cc.noharry.agent.vfs.VfsFileSystem
+import cc.noharry.agent.vfs.VfsListResult
+import cc.noharry.agent.vfs.VfsMemorySource
+import cc.noharry.agent.vfs.VfsReadResult
+import cc.noharry.agent.vfs.VfsRoomResource
+import cc.noharry.agent.vfs.VfsRoomResourceAdapter
+import cc.noharry.agent.vfs.VfsRoomSource
+import cc.noharry.agent.vfs.VfsRoomUpdateRow
+import cc.noharry.agent.vfs.VfsSearchMatch
+import cc.noharry.agent.vfs.VfsSearchResult
+import cc.noharry.agent.vfs.VfsSource
+import cc.noharry.agent.vfs.VfsSourceResolver
+import cc.noharry.agent.vfs.saf.SafVfsSource
 import java.io.File
 
 internal fun debugWorkspaceVfs(

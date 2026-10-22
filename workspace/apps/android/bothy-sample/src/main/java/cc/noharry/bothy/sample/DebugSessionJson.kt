@@ -111,10 +111,10 @@ private fun JsonObject.int(name: String): Int =
 
 private fun JsonObject.decodedCompletionOutcome(): String {
     val raw = string("completionOutcome")
-    return cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.entries
+    return cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.entries
         .firstOrNull { it.name == raw }
         ?.name
-        ?: cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name
+        ?: cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name
 }
 
 private fun JsonObject.decodedReplayStatus(): String =

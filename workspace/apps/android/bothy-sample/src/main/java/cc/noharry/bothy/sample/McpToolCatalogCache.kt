@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred

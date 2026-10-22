@@ -2,8 +2,8 @@ package cc.noharry.bothy.sample
 
 import android.os.Handler
 import android.os.Looper
-import cc.noharry.bothy.androiduse.AndroidUseGesturePreview
-import cc.noharry.bothy.androiduse.AndroidUsePresenter
+import cc.noharry.agent.androiduse.AndroidUseGesturePreview
+import cc.noharry.agent.androiduse.AndroidUsePresenter
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 

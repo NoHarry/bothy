@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.core.MAX_HOST_SYSTEM_PROMPT_BYTES
-import cc.noharry.bothy.kernel.core.validateHostSystemPrompt
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.core.MAX_HOST_SYSTEM_PROMPT_BYTES
+import cc.noharry.agent.kernel.core.validateHostSystemPrompt
 
 /**
  * The host prompt in two parts. [system] is the same every run (base, tool settings, voice skill); [runContext] is what

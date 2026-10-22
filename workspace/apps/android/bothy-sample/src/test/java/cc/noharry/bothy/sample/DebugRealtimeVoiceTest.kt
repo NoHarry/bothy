@@ -3,9 +3,9 @@ package cc.noharry.bothy.sample
 import android.content.Context
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.voice.NearSpeechGate
-import cc.noharry.bothy.voice.VoiceAudioSource
-import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.agent.voice.NearSpeechGate
+import cc.noharry.agent.voice.VoiceAudioSource
+import cc.noharry.agent.voice.VoiceSessionStatus
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred

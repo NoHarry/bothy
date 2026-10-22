@@ -1,12 +1,12 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.a2a.server.A2aOutput
-import cc.noharry.bothy.kernel.api.SessionEventQuery
+import cc.noharry.agent.a2a.server.A2aOutput
+import cc.noharry.agent.kernel.api.SessionEventQuery
 import java.util.UUID
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking

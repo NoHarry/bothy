@@ -2,11 +2,11 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.api.ToolDescriptor
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
+import cc.noharry.agent.transport.HttpTransport
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking

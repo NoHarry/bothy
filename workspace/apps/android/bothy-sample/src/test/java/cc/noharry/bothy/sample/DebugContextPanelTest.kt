@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.vfs.VfsFileSystem
-import cc.noharry.bothy.vfs.VfsMemorySource
-import cc.noharry.bothy.vfs.VfsSourceResolver
+import cc.noharry.agent.vfs.VfsFileSystem
+import cc.noharry.agent.vfs.VfsMemorySource
+import cc.noharry.agent.vfs.VfsSourceResolver
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

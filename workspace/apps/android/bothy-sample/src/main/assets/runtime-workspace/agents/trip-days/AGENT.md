@@ -2,7 +2,7 @@
 name: trip-days
 description: 旅行每天去哪：先查天气，再按顺路排每天 2–3 处，带时间段，下雨换室内。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.0.0"
 ---
 

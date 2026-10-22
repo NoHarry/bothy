@@ -1,12 +1,12 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.runtime.WebFallbackPage
-import cc.noharry.bothy.runtime.WebFetchFallback
-import cc.noharry.bothy.runtime.WebSearchProvider
-import cc.noharry.bothy.runtime.WebSearchResult
+import cc.noharry.agent.runtime.WebFallbackPage
+import cc.noharry.agent.runtime.WebFetchFallback
+import cc.noharry.agent.runtime.WebSearchProvider
+import cc.noharry.agent.runtime.WebSearchResult
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException

@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aClient
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aClient
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 
 /** Owns independently configured Sample A2A clients keyed by packaged profile id. */
 @OptIn(ExperimentalA2aClientApi::class)

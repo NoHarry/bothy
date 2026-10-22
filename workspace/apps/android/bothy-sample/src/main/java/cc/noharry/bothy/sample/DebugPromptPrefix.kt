@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.api.model.ModelRequest
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.api.model.ModelRequest
 import java.util.concurrent.ConcurrentHashMap
 
 /**

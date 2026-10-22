@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

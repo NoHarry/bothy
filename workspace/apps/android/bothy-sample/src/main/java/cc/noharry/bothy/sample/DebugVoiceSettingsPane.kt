@@ -42,10 +42,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.voice.DashScopeAsrModel
-import cc.noharry.bothy.voice.SherpaOnnxAsrEngine
-import cc.noharry.bothy.voice.echoCancellerAvailable
-import cc.noharry.bothy.voice.WakeSensitivity
+import cc.noharry.agent.voice.DashScopeAsrModel
+import cc.noharry.agent.voice.SherpaOnnxAsrEngine
+import cc.noharry.agent.voice.echoCancellerAvailable
+import cc.noharry.agent.voice.WakeSensitivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

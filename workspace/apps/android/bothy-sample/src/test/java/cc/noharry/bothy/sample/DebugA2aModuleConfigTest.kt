@@ -2,11 +2,11 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.a2a.A2aClient
-import cc.noharry.bothy.a2a.A2aClientConfig
-import cc.noharry.bothy.a2a.A2aClientFactory
-import cc.noharry.bothy.a2a.A2aClientModule
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aClient
+import cc.noharry.agent.a2a.A2aClientConfig
+import cc.noharry.agent.a2a.A2aClientFactory
+import cc.noharry.agent.a2a.A2aClientModule
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import java.lang.reflect.Proxy
 import java.net.URI
 import org.junit.Assert.assertEquals
@@ -195,7 +195,7 @@ class DebugA2aModuleConfigTest {
         assertTrue(DebugA2aModuleConfig.hasEnabledProfiles(context))
         val headers = mutableMapOf<String, String>()
         requireNotNull(loaded.clientConfig(profile.id)).authProvider
-            .headers(cc.noharry.bothy.a2a.A2aAuthContext(profile.id, cc.noharry.bothy.a2a.A2aMethod.SEND_MESSAGE, "r1"))
+            .headers(cc.noharry.agent.a2a.A2aAuthContext(profile.id, cc.noharry.agent.a2a.A2aMethod.SEND_MESSAGE, "r1"))
             .forEachValue { name, value -> headers[name] = value }
         assertEquals(mapOf("authorization" to "Bearer tok-0123456789"), headers)
         assertFalse(preferences().all.values.joinToString().contains("tok-0123456789"))

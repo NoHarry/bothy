@@ -86,7 +86,7 @@ internal data class DebugTokenUsageState(
         )
 }
 
-internal fun cc.noharry.bothy.kernel.api.AgentEvent.TokenUsageDelta.toDebugUsageDelta(): DebugTokenUsageDelta {
+internal fun cc.noharry.agent.kernel.api.AgentEvent.TokenUsageDelta.toDebugUsageDelta(): DebugTokenUsageDelta {
     // One event is one model request: the runtime sums the call's usage frames and normalizes Anthropic's exclusive
     // cache counts into inclusive inputTokens, so input already covers the cache reads.
     val input = inputTokens.coerceAtLeast(cacheReadTokens + cacheWriteTokens)

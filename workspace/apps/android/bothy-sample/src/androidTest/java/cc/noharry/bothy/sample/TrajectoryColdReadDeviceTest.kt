@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
@@ -6,10 +6,10 @@ import android.content.Context
 import android.content.ContextWrapper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.SessionEventLogDurability
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.bothy.kernel.api.SessionEventQuery
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.SessionEventLogDurability
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.SessionEventQuery
 import java.util.UUID
 import java.io.File
 import java.util.concurrent.CountDownLatch

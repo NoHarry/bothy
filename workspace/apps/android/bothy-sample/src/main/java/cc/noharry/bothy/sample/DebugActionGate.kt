@@ -1,10 +1,10 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.HookContext
-import cc.noharry.bothy.kernel.api.HookDecision
-import cc.noharry.bothy.kernel.api.RuntimeHook
-import cc.noharry.bothy.kernel.api.ToolUse
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.HookContext
+import cc.noharry.agent.kernel.api.HookDecision
+import cc.noharry.agent.kernel.api.RuntimeHook
+import cc.noharry.agent.kernel.api.ToolUse
 
 /**
  * Placing an order or paying ([isTransaction]) waits for the user (a request like 「…的时候帮我点一杯咖啡」 once placed an

@@ -2,16 +2,16 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aClient
-import cc.noharry.bothy.a2a.A2aClientError
-import cc.noharry.bothy.a2a.A2aMessage
-import cc.noharry.bothy.a2a.A2aPart
-import cc.noharry.bothy.a2a.A2aResult
-import cc.noharry.bothy.a2a.A2aSendMessageRequest
-import cc.noharry.bothy.a2a.A2aStreamEvent
-import cc.noharry.bothy.a2a.A2aValue
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.A2aClient
+import cc.noharry.agent.a2a.A2aClientError
+import cc.noharry.agent.a2a.A2aMessage
+import cc.noharry.agent.a2a.A2aPart
+import cc.noharry.agent.a2a.A2aResult
+import cc.noharry.agent.a2a.A2aSendMessageRequest
+import cc.noharry.agent.a2a.A2aStreamEvent
+import cc.noharry.agent.a2a.A2aValue
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
 import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope

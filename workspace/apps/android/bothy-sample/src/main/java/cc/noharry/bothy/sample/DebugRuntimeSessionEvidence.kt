@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRequest
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

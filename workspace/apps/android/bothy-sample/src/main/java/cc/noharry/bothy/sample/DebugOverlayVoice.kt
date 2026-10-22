@@ -43,10 +43,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.bothy.voice.VoiceHandOverMode
-import cc.noharry.bothy.voice.VoiceSegmentLabel
-import cc.noharry.bothy.voice.VoiceSessionState
-import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.agent.voice.VoiceHandOverMode
+import cc.noharry.agent.voice.VoiceSegmentLabel
+import cc.noharry.agent.voice.VoiceSessionState
+import cc.noharry.agent.voice.VoiceSessionStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

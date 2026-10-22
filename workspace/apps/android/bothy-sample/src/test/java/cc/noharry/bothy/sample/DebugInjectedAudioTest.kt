@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.voice.VoiceAudioSource
+import cc.noharry.agent.voice.VoiceAudioSource
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking

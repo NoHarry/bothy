@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRequest
 
 internal const val DEBUG_SESSION_ID = "debug-console-session"
 internal const val DEFAULT_USE_SIMULATED_MODEL = false

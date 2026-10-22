@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import androidx.compose.foundation.BorderStroke
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column

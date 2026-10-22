@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionEventLogDurability
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.SessionEventLogDurability
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
 
 @JvmInline
 internal value class TrajectoryRecordId(val value: String)
@@ -85,7 +85,7 @@ internal data class TrajectoryRichDetails(
     val thinkingText: String? = null,
     val outputText: String? = null,
     val usageText: String? = null,
-    val rawEvent: cc.noharry.bothy.kernel.api.SessionEvent? = null,
+    val rawEvent: cc.noharry.agent.kernel.api.SessionEvent? = null,
     val timing: Map<String, Long> = emptyMap(),
 ) {
     /** Full canonical data is rendered only when an inspector actually asks for it. */

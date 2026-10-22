@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.a2a.A2aAuthProvider
-import cc.noharry.bothy.a2a.A2aProtectedHeaders
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aAuthProvider
+import cc.noharry.agent.a2a.A2aProtectedHeaders
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest

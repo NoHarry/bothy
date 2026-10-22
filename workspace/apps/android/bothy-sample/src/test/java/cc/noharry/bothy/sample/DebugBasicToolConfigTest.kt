@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.core.NATIVE_TOOLS
+import cc.noharry.agent.kernel.core.NATIVE_TOOLS
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test

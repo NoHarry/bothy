@@ -1,30 +1,30 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.CancelPendingConfirmationRequest
-import cc.noharry.bothy.kernel.api.CancelPendingResult
-import cc.noharry.bothy.kernel.api.ConfirmationChoice
-import cc.noharry.bothy.kernel.api.ConfirmationDecision
-import cc.noharry.bothy.kernel.api.ConfirmationResumeResult
-import cc.noharry.bothy.kernel.api.PendingConfirmation
-import cc.noharry.bothy.kernel.api.PostUserInputRequest
-import cc.noharry.bothy.kernel.api.PostUserInputResult
-import cc.noharry.bothy.kernel.api.ProtocolRequestCancellation
-import cc.noharry.bothy.kernel.api.ProtocolRequestCloseLoopResult
-import cc.noharry.bothy.kernel.api.ProtocolRequestRejection
-import cc.noharry.bothy.kernel.api.ProtocolRequestResolution
-import cc.noharry.bothy.kernel.api.reliability.OpenConfusion
-import cc.noharry.bothy.kernel.api.reliability.RuntimeEvidence
-import cc.noharry.bothy.kernel.api.reliability.RuntimeHandoff
-import cc.noharry.bothy.kernel.api.reliability.RuntimeProtocolRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.bothy.kernel.api.reliability.RuntimeResult
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunSnapshot
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
-import cc.noharry.bothy.kernel.api.reliability.RuntimeTraceEvent
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.CancelPendingConfirmationRequest
+import cc.noharry.agent.kernel.api.CancelPendingResult
+import cc.noharry.agent.kernel.api.ConfirmationChoice
+import cc.noharry.agent.kernel.api.ConfirmationDecision
+import cc.noharry.agent.kernel.api.ConfirmationResumeResult
+import cc.noharry.agent.kernel.api.PendingConfirmation
+import cc.noharry.agent.kernel.api.PostUserInputRequest
+import cc.noharry.agent.kernel.api.PostUserInputResult
+import cc.noharry.agent.kernel.api.ProtocolRequestCancellation
+import cc.noharry.agent.kernel.api.ProtocolRequestCloseLoopResult
+import cc.noharry.agent.kernel.api.ProtocolRequestRejection
+import cc.noharry.agent.kernel.api.ProtocolRequestResolution
+import cc.noharry.agent.kernel.api.reliability.OpenConfusion
+import cc.noharry.agent.kernel.api.reliability.RuntimeEvidence
+import cc.noharry.agent.kernel.api.reliability.RuntimeHandoff
+import cc.noharry.agent.kernel.api.reliability.RuntimeProtocolRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.kernel.api.reliability.RuntimeResult
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunSnapshot
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeTraceEvent
 import java.nio.file.Files
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -68,7 +68,7 @@ class DebugRuntimeRunCollectionTest {
                 message
             }
             assertEquals(DebugExecutionMessage.Speech("正在核对目的地信息。", false), progress)
-            assertEquals(cc.noharry.bothy.a2a.server.A2aOutput.Speech("正在核对目的地信息。", false), a2aExecutionOutput(progress))
+            assertEquals(cc.noharry.agent.a2a.server.A2aOutput.Speech("正在核对目的地信息。", false), a2aExecutionOutput(progress))
             assertTrue(job.isActive)
             release.countDown()
             job.join()

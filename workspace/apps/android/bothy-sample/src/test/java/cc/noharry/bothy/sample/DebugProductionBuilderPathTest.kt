@@ -1,16 +1,16 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.SessionEventLogDurability
-import cc.noharry.bothy.kernel.api.SessionEventPayload
-import cc.noharry.bothy.kernel.api.SessionEventQuery
-import cc.noharry.bothy.kernel.api.SessionEventType
-import cc.noharry.bothy.kernel.core.RUN_CONTEXT_HEADER
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.SessionEventLogDurability
+import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.SessionEventQuery
+import cc.noharry.agent.kernel.api.SessionEventType
+import cc.noharry.agent.kernel.core.RUN_CONTEXT_HEADER
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
@@ -181,9 +181,9 @@ class DebugProductionBuilderPathTest {
         assertFalse(payload.systemPrompt.contains("需要我为您打开空调设置页面吗？"))
         assertFalse(payload.systemPrompt.contains(previous.prompt(true)))
         // The input comes first, exactly as sent; the session context and previous exchange follow it as one message.
-        val messages = payload.messages as cc.noharry.bothy.kernel.api.SessionJson.Array
+        val messages = payload.messages as cc.noharry.agent.kernel.api.SessionJson.Array
         val contents = messages.values.map {
-            ((it as cc.noharry.bothy.kernel.api.SessionJson.Object).values["content"] as cc.noharry.bothy.kernel.api.SessionJson.Text).value
+            ((it as cc.noharry.agent.kernel.api.SessionJson.Object).values["content"] as cc.noharry.agent.kernel.api.SessionJson.Text).value
         }
         assertEquals(2, contents.size)
         assertEquals("可以", contents[0])

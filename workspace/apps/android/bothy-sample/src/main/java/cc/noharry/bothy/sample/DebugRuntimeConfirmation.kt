@@ -1,12 +1,12 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.ConfirmationChoice
-import cc.noharry.bothy.kernel.api.ConfirmationDecision
-import cc.noharry.bothy.kernel.api.ConfirmationResumeResult
-import cc.noharry.bothy.kernel.api.PendingConfirmation
-import cc.noharry.bothy.kernel.api.reliability.RuntimeResult
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.ConfirmationChoice
+import cc.noharry.agent.kernel.api.ConfirmationDecision
+import cc.noharry.agent.kernel.api.ConfirmationResumeResult
+import cc.noharry.agent.kernel.api.PendingConfirmation
+import cc.noharry.agent.kernel.api.reliability.RuntimeResult
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 
 internal data class DebugConfirmationPostUiResult(
     val status: String,
@@ -99,7 +99,7 @@ private fun RuntimeResult.toDebugConfirmationUiResult(
 ): DebugConfirmationPostUiResult =
     DebugConfirmationPostUiResult(
         status = status.name,
-        transcript = if (cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary.firstPartyPass(status, completion)) {
+        transcript = if (cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary.firstPartyPass(status, completion)) {
             DebugSteeringTranscript.Runtime(
                 title = "Runtime result after confirmation",
                 body = response,

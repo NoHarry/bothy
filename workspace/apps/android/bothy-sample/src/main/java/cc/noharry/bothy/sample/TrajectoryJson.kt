@@ -1,8 +1,8 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionJson
+import cc.noharry.agent.kernel.api.SessionJson
 
 internal fun SessionJson.render(pretty: Boolean = true): String = renderTo(StringBuilder(), 0, pretty).toString()
 

@@ -1,16 +1,16 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.HookContext
-import cc.noharry.bothy.kernel.api.HookDecision
-import cc.noharry.bothy.kernel.api.ToolSource
-import cc.noharry.bothy.kernel.api.ToolUse
-import cc.noharry.bothy.kernel.api.model.ModelRef
-import cc.noharry.bothy.runtime.SubagentReport
-import cc.noharry.bothy.runtime.SubagentSpec
-import cc.noharry.bothy.runtime.SubagentState
-import cc.noharry.bothy.runtime.SubagentStatus
+import cc.noharry.agent.kernel.api.HookContext
+import cc.noharry.agent.kernel.api.HookDecision
+import cc.noharry.agent.kernel.api.ToolSource
+import cc.noharry.agent.kernel.api.ToolUse
+import cc.noharry.agent.kernel.api.model.ModelRef
+import cc.noharry.agent.runtime.SubagentReport
+import cc.noharry.agent.runtime.SubagentSpec
+import cc.noharry.agent.runtime.SubagentState
+import cc.noharry.agent.runtime.SubagentStatus
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

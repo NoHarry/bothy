@@ -1,13 +1,13 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.ToolDescriptor
-import cc.noharry.bothy.kernel.api.ToolPrefetchProvider
-import cc.noharry.bothy.kernel.api.ToolPrefetchRequest
-import cc.noharry.bothy.kernel.api.ToolPrefetchTrace
-import cc.noharry.bothy.kernel.api.ToolProvider
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolPrefetchProvider
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.kernel.api.ToolPrefetchTrace
+import cc.noharry.agent.kernel.api.ToolProvider
 
 /** Catalogue-only enrichment; tool execution, identity and permissions remain on the delegate. */
 internal class DebugSkillToolProvider(

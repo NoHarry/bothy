@@ -2,9 +2,9 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

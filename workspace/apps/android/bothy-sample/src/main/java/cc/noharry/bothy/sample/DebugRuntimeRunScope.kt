@@ -1,11 +1,11 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.runtime.NetworkToolConfirmationPolicy
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.runtime.NetworkToolConfirmationPolicy
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -121,7 +121,7 @@ internal fun buildScopedDebugRuntime(
 }
 
 /** The profile a child runs on: the parent's, with the model the subagent settings chose (same provider only). */
-private fun DebugProviderProfile.forSubagent(config: DebugProviderConfig, ref: cc.noharry.bothy.kernel.api.model.ModelRef?): DebugProviderProfile {
+private fun DebugProviderProfile.forSubagent(config: DebugProviderConfig, ref: cc.noharry.agent.kernel.api.model.ModelRef?): DebugProviderProfile {
     if (ref == null || (ref.providerId == provider.wireName && ref.modelId == model)) return this
     val base = if (ref.providerId == provider.wireName) this else config.profiles.firstOrNull { it.provider.wireName == ref.providerId } ?: return this
     return base.copy(model = ref.modelId, variant = ref.variant.orEmpty())

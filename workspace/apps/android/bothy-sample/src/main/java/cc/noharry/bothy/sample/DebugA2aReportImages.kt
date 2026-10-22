@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
 import java.io.File
 import java.io.IOException
 import java.net.URI

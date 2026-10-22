@@ -1,10 +1,10 @@
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.9/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 
-> Task :bothy-a2a-client-official:dependencies
+> Task :agent-a2a-client-official:dependencies
 
 ------------------------------------------------------------
-Project ':bothy-a2a-client-official'
+Project ':agent-a2a-client-official'
 ------------------------------------------------------------
 
 releaseRuntimeClasspath - Runtime classpath of /release.
@@ -13,7 +13,7 @@ releaseRuntimeClasspath - Runtime classpath of /release.
 |    +--- org.jetbrains.kotlin:kotlin-stdlib-common:1.9.22 (c)
 |    +--- org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0 -> 1.8.20 (c)
 |    \--- org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.0 -> 1.8.20 (c)
-+--- project :bothy-a2a-client
++--- project :agent-a2a-client
 |    +--- org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1
 |    |    \--- org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.7.1
 |    |         +--- org.jetbrains:annotations:23.0.0

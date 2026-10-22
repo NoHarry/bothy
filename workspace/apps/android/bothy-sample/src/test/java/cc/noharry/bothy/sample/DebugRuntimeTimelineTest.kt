@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRequest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

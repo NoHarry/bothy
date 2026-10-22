@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -437,8 +437,8 @@ class DebugTranscriptTest {
             finishedAt = id + 1,
         )
 
-    private fun pendingConfirmation(): cc.noharry.bothy.kernel.api.PendingConfirmation =
-        cc.noharry.bothy.kernel.api.PendingConfirmation(
+    private fun pendingConfirmation(): cc.noharry.agent.kernel.api.PendingConfirmation =
+        cc.noharry.agent.kernel.api.PendingConfirmation(
             pendingId = "confirm-1",
             sessionId = "session-1",
             runId = "run-1",

@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.device.DeviceCalendarMcpProvider
-import cc.noharry.bothy.device.DeviceNotificationMcpProvider
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.device.DeviceCalendarMcpProvider
+import cc.noharry.agent.device.DeviceNotificationMcpProvider
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.coroutines.withTimeoutOrNull
 
 /** One MCP tool entry shown in the provider preview list. */

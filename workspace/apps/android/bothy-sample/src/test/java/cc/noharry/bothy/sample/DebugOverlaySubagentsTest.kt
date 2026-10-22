@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.runtime.SubagentState
-import cc.noharry.bothy.runtime.SubagentStatus
+import cc.noharry.agent.runtime.SubagentState
+import cc.noharry.agent.runtime.SubagentStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

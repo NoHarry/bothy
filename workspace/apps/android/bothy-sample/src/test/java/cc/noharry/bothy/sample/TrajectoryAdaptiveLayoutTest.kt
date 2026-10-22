@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
@@ -54,10 +54,10 @@ class TrajectoryAdaptiveLayoutTest {
 
     @Test
     fun inspectorTabsAreDynamicByKindAndRawIsPaginatedCanonicalPayload() {
-        val user = inspectorTabsFor(sessionEvent(type = cc.noharry.bothy.kernel.api.SessionEventType.USER_MESSAGE).toTrajectoryRecord())
+        val user = inspectorTabsFor(sessionEvent(type = cc.noharry.agent.kernel.api.SessionEventType.USER_MESSAGE).toTrajectoryRecord())
         val tool = inspectorTabsFor(
             sessionEvent(
-                type = cc.noharry.bothy.kernel.api.SessionEventType.TOOL_RESULT,
+                type = cc.noharry.agent.kernel.api.SessionEventType.TOOL_RESULT,
                 safeMetadata = mapOf("callId" to "c1", "toolName" to "read_file"),
             ).toTrajectoryRecord(),
         )

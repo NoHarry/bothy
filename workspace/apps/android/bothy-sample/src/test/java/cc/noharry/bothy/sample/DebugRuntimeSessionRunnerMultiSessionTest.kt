@@ -1,10 +1,10 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

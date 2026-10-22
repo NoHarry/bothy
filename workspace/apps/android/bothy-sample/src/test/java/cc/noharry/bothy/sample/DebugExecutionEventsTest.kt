@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentEvent
 import java.nio.file.Files
 import java.util.UUID
 import kotlinx.coroutines.*
@@ -73,9 +73,9 @@ class DebugExecutionEventsTest {
 
     @Test fun remoteAdapterProjectsSpeechAndStopsWithoutRawPayloadDisclosure() {
         assertNull(a2aExecutionOutput(DebugExecutionMessage.RawTool("arguments", "secret")))
-        assertTrue(a2aExecutionOutput(DebugExecutionMessage.Speech("你好", true)) is cc.noharry.bothy.a2a.server.A2aOutput.Speech)
-        assertEquals(cc.noharry.bothy.a2a.server.A2aOutput.State.CANCELED,
-            (a2aExecutionOutput(DebugExecutionMessage.Stopped) as cc.noharry.bothy.a2a.server.A2aOutput.Result).state)
+        assertTrue(a2aExecutionOutput(DebugExecutionMessage.Speech("你好", true)) is cc.noharry.agent.a2a.server.A2aOutput.Speech)
+        assertEquals(cc.noharry.agent.a2a.server.A2aOutput.State.CANCELED,
+            (a2aExecutionOutput(DebugExecutionMessage.Stopped) as cc.noharry.agent.a2a.server.A2aOutput.Result).state)
     }
 
     @Test fun staleTransportCancellationCannotCancelReplacementInSharedService() = runBlocking {

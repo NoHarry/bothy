@@ -10,7 +10,7 @@ packaged direct adapter: input box, overlay, adb and ASR text go over HTTP/SSE t
 
 ## Reference integration runners
 
-These runners exercise the real `:bothy-a2a-client-direct` JVM test artifact
+These runners exercise the real `:agent-a2a-client-direct` JVM test artifact
 against independently running HTTP servers. They inject the integration test
 source with a Gradle init script, so no Android Gradle module is modified.
 
@@ -56,7 +56,7 @@ python workspace/apps/android/tools/a2a/phase0_audit.py
 ```
 
 The audit fails closed on missing Release/R8 artifacts, facade ABI leakage,
-`bothy-runtime` A2A coupling, missing official dependency/license evidence, or
+`agent-runtime` A2A coupling, missing official dependency/license evidence, or
 an APK compressed-size increase above the approved 1.5 MiB budget. The default
 direct-only baseline is the measured `6,280,671` byte Phase 0 APK; override it
 only when a new direct-only Release+R8 baseline has been recorded in trace.

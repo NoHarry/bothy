@@ -2,14 +2,14 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aArtifact
-import cc.noharry.bothy.a2a.A2aClientError
-import cc.noharry.bothy.a2a.A2aMessage
-import cc.noharry.bothy.a2a.A2aPart
-import cc.noharry.bothy.a2a.A2aResult
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.A2aValue
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aArtifact
+import cc.noharry.agent.a2a.A2aClientError
+import cc.noharry.agent.a2a.A2aMessage
+import cc.noharry.agent.a2a.A2aPart
+import cc.noharry.agent.a2a.A2aResult
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.A2aValue
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import java.net.URI
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

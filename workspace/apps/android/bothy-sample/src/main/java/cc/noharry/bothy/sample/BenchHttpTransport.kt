@@ -1,10 +1,10 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
+import cc.noharry.agent.transport.HttpTransport
 import java.io.IOException
 import java.io.InputStream
 import java.security.KeyStore
@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit
  * security config does not fully apply on such a ROM, OkHttp's default trust manager rejects the
  * TLS handshake. This transport builds an OkHttpClient whose TrustManager trusts both the system
  * roots and the [raw CA bundle][RAW_CA_RESOURCE], so the debug console can reach the live provider
- * on those benches without modifying the bothy-runtime transport. Chains are verified in full (PKIX).
+ * on those benches without modifying the agent-runtime transport. Chains are verified in full (PKIX).
  */
 internal class BenchHttpTransport(
     context: Context,

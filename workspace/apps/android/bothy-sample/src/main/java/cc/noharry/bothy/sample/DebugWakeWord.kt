@@ -6,11 +6,11 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import cc.noharry.bothy.voice.LeasedAudioSource
-import cc.noharry.bothy.voice.NearSpeechGate
-import cc.noharry.bothy.voice.VoiceAudioSource
-import cc.noharry.bothy.voice.WakeSensitivity
-import cc.noharry.bothy.voice.WakeWordListener
+import cc.noharry.agent.voice.LeasedAudioSource
+import cc.noharry.agent.voice.NearSpeechGate
+import cc.noharry.agent.voice.VoiceAudioSource
+import cc.noharry.agent.voice.WakeSensitivity
+import cc.noharry.agent.voice.WakeWordListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex

@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ToolDescriptor
-import cc.noharry.bothy.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 

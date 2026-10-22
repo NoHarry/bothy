@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.a2a.server.*
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.PostUserInputResult
+import cc.noharry.agent.a2a.server.*
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.PostUserInputResult
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

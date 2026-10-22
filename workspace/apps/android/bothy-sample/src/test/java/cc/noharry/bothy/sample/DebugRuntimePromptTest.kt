@@ -2,9 +2,9 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.core.MAX_HOST_SYSTEM_PROMPT_BYTES
-import cc.noharry.bothy.kernel.core.validateHostSystemPrompt
-import cc.noharry.bothy.vfs.VfsReadResult
+import cc.noharry.agent.kernel.core.MAX_HOST_SYSTEM_PROMPT_BYTES
+import cc.noharry.agent.kernel.core.validateHostSystemPrompt
+import cc.noharry.agent.vfs.VfsReadResult
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
@@ -140,10 +140,10 @@ class DebugRuntimePromptTest {
         val tools = loadDebugBasicTools(context)
         val skills = loadDebugRuntimeSkills(context).map { it.copy(enabled = true) }.filter { it.id != "mcp-task-orchestration" }
         val sent = debugRuntimePrompt("", tools, debugPreloadedSkillBodies(context, skills, TRIP_TEXT)).runContext
-        val carried = listOf(cc.noharry.bothy.kernel.api.model.ModelMessage(role = "user", content = sent))
+        val carried = listOf(cc.noharry.agent.kernel.api.model.ModelMessage(role = "user", content = sent))
         assertTrue(carried.carriesSkill("travel-planning"))
         assertFalse(carried.carriesSkill("android-use"))
-        val deferredOnly = listOf(cc.noharry.bothy.kernel.api.model.ModelMessage(role = "user", content = "Deferred runtime skill: android-use. Before using its workflow, read it."))
+        val deferredOnly = listOf(cc.noharry.agent.kernel.api.model.ModelMessage(role = "user", content = "Deferred runtime skill: android-use. Before using its workflow, read it."))
         assertFalse(deferredOnly.carriesSkill("android-use"))
     }
 

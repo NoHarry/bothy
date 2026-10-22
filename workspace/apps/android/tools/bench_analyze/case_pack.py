@@ -56,7 +56,7 @@ def default_allowed_roots(repo_root: Path | None = None) -> list[Path]:
         repo_root = here.parents[5] if len(here.parents) > 5 else here.parents[-1]
     candidates = [
         repo_root / "workspace" / "apps" / "android" / "tools" / "fixtures" / "bench-cases",
-        repo_root / "workspace" / "apps" / "android" / "bothy-runtime" / "src" / "test" / "resources" / "fixtures" / "bench-cases",
+        repo_root / "workspace" / "apps" / "android" / "agent-runtime" / "src" / "test" / "resources" / "fixtures" / "bench-cases",
         repo_root / "doc" / "features" / "runtime-probe-bench",
     ]
     for c in candidates:

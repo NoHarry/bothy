@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.vfs.VfsReadResult
+import cc.noharry.agent.vfs.VfsReadResult
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals

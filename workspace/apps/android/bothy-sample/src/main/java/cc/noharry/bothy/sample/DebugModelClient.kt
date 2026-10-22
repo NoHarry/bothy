@@ -1,13 +1,13 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.model.ModelClient
-import cc.noharry.bothy.kernel.api.model.ModelClientException
-import cc.noharry.bothy.kernel.api.model.ModelEvent
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.api.model.ModelRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeErrorCode
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.kernel.api.model.ModelClientException
+import cc.noharry.agent.kernel.api.model.ModelEvent
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeErrorCode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow

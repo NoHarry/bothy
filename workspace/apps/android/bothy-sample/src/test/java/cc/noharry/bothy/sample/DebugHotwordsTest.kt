@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.voice.DashScopeVocabularyClient
+import cc.noharry.agent.voice.DashScopeVocabularyClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After

@@ -16,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class DebugAndroidUseRepairTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private val ours = "${context.packageName}/cc.noharry.bothy.androiduse.AndroidUseAccessibilityService"
+    private val ours = "${context.packageName}/cc.noharry.agent.androiduse.AndroidUseAccessibilityService"
     private fun enabledList(): String? = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
 
     @Test

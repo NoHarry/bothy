@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRuntime
 import java.io.File
 
 /**

@@ -1,18 +1,18 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.ToolCallContext
-import cc.noharry.bothy.kernel.api.ToolCallResult
-import cc.noharry.bothy.kernel.api.ToolCallTrace
-import cc.noharry.bothy.kernel.api.ToolCatalogCacheIdentity
-import cc.noharry.bothy.kernel.api.ToolDescriptor
-import cc.noharry.bothy.kernel.api.ToolPrefetchProvider
-import cc.noharry.bothy.kernel.api.ToolPrefetchRequest
-import cc.noharry.bothy.kernel.api.ToolPrefetchTrace
-import cc.noharry.bothy.kernel.api.ToolProvider
-import cc.noharry.bothy.kernel.api.mcp.McpClientProvider
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolCallResult
+import cc.noharry.agent.kernel.api.ToolCallTrace
+import cc.noharry.agent.kernel.api.ToolCatalogCacheIdentity
+import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolPrefetchProvider
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.kernel.api.ToolPrefetchTrace
+import cc.noharry.agent.kernel.api.ToolProvider
+import cc.noharry.agent.kernel.api.mcp.McpClientProvider
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json

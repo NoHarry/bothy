@@ -1,13 +1,13 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionEvent
-import cc.noharry.bothy.kernel.api.SessionEventPayload
-import cc.noharry.bothy.kernel.api.model.ModelRef
-import cc.noharry.bothy.kernel.core.SESSION_MODEL_CALL_SOURCE_COMPACTION
-import cc.noharry.bothy.kernel.core.SESSION_MODEL_CALL_SOURCE_ROUND
-import cc.noharry.bothy.model.ModelVariantRegistry
+import cc.noharry.agent.kernel.api.SessionEvent
+import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.model.ModelRef
+import cc.noharry.agent.kernel.core.SESSION_MODEL_CALL_SOURCE_COMPACTION
+import cc.noharry.agent.kernel.core.SESSION_MODEL_CALL_SOURCE_ROUND
+import cc.noharry.agent.model.ModelVariantRegistry
 import java.text.NumberFormat
 import java.util.Locale
 

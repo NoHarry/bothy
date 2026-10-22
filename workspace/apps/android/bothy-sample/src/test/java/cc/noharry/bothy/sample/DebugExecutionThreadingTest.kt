@@ -1,9 +1,9 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentEvent
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -24,7 +24,7 @@ class DebugExecutionThreadingTest {
             val closeThread = AtomicReference<String>()
             val closes = AtomicInteger()
             val delegate = DebugRuntimeMultiSessionFixture("construction", "construction-run").runtime
-            val runtime = object : cc.noharry.bothy.kernel.api.AgentRuntime by delegate {
+            val runtime = object : cc.noharry.agent.kernel.api.AgentRuntime by delegate {
                 override fun run(request: AgentRequest): Flow<AgentEvent> = emptyFlow()
                 override fun close() { closeThread.set(Thread.currentThread().name); closes.incrementAndGet() }
             }

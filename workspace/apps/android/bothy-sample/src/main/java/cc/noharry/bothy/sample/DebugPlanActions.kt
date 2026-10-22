@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

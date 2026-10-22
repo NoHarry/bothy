@@ -3,7 +3,7 @@ package cc.noharry.bothy.sample
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.core.validateHostSystemPrompt
+import cc.noharry.agent.kernel.core.validateHostSystemPrompt
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

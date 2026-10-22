@@ -1,8 +1,8 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentEvent
 
 /**
  * What a run says aloud as it goes. A run the card's X closed while it worked says nothing more

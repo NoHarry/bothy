@@ -10,12 +10,12 @@ transitive dependencies and the versions your build actually packages.
 
 ## Committed third-party files
 
-### On-device speech (`bothy-voice`, `bothy-sample`)
+### On-device speech (`agent-voice`, `bothy-sample`)
 
-- **sherpa-onnx Kotlin API** (`bothy-voice/src/main/kotlin/com/k2fsa/sherpa/onnx/`) — Apache License 2.0, Copyright
+- **sherpa-onnx Kotlin API** (`agent-voice/src/main/kotlin/com/k2fsa/sherpa/onnx/`) — Apache License 2.0, Copyright
   Xiaomi Corporation and the sherpa-onnx authors. Copied from tag v1.13.8; see the `NOTICE` file in that directory.
   Upstream: <https://github.com/k2-fsa/sherpa-onnx>
-- **`libsherpa-onnx-jni.so`** (`bothy-voice/src/main/jniLibs/arm64-v8a/`) — Apache License 2.0, from the sherpa-onnx
+- **`libsherpa-onnx-jni.so`** (`agent-voice/src/main/jniLibs/arm64-v8a/`) — Apache License 2.0, from the sherpa-onnx
   v1.13.8 Android release.
 - **`libonnxruntime.so`** (same directory) — MIT License, Copyright Microsoft Corporation, as bundled in the sherpa-onnx
   v1.13.8 Android release. Upstream: <https://github.com/microsoft/onnxruntime>
@@ -36,14 +36,14 @@ Short spoken answers (「我在」「在呢」…) synthesized with Xiaomi MiMo 
 before redistributing them in your own product, or regenerate them with a TTS service and voice you are licensed to use.
 Without them the app synthesizes the answer on the device the first time it needs it.
 
-### A2A Java SDK sources (`bothy-a2a-client-official`)
+### A2A Java SDK sources (`agent-a2a-client-official`)
 
 Seven small classes from A2A Java SDK `1.1.0.Final` (Apache License 2.0) are included as source; see that module's
 `THIRD_PARTY_NOTICES.md`. Upstream: <https://github.com/a2aproject/a2a-java>
 
 ## Notable Gradle dependencies
 
-- **JavaScript execution** (`bothy-exec-js`): `app.cash.zipline:zipline` — Apache License 2.0
+- **JavaScript execution** (`agent-exec-js`): `app.cash.zipline:zipline` — Apache License 2.0
   (<https://github.com/cashapp/zipline>). The Zipline Android artifact includes native QuickJS libraries, distributed
   upstream under the MIT license (<https://bellard.org/quickjs/>).
 - **A2A**: A2A Java SDK client artifacts — Apache License 2.0 (<https://github.com/a2aproject/a2a-java>).

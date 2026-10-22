@@ -1,10 +1,10 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.RuntimeContextRequest
-import cc.noharry.bothy.kernel.api.RuntimeContextScalar
-import cc.noharry.bothy.kernel.api.ToolCallContext
-import cc.noharry.bothy.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.RuntimeContextRequest
+import cc.noharry.agent.kernel.api.RuntimeContextScalar
+import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
 import java.io.File
 import java.nio.file.Files
 import kotlinx.coroutines.runBlocking

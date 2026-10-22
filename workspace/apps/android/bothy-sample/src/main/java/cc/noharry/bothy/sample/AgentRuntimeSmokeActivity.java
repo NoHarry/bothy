@@ -4,12 +4,12 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 
-import cc.noharry.bothy.kernel.api.AgentRequest;
-import cc.noharry.bothy.kernel.api.AgentRuntime;
-import cc.noharry.bothy.runtime.AgentRuntimeBuilder;
+import cc.noharry.agent.kernel.api.AgentRequest;
+import cc.noharry.agent.kernel.api.AgentRuntime;
+import cc.noharry.agent.runtime.AgentRuntimeBuilder;
 
 public final class AgentRuntimeSmokeActivity extends Activity {
-    private static final String SMOKE_PREFIX = "bothy-runtime-smoke:";
+    private static final String SMOKE_PREFIX = "agent-runtime-smoke:";
     private static volatile String lastRuntimeSmoke;
 
     @Override

@@ -2,7 +2,7 @@
 name: web-verify
 description: 上网核实并补充服务给出的信息：地点的评分、人均、营业时间和口碑；航班和车次当天的时间、航站楼、登机口和晚点。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.0.0"
 ---
 

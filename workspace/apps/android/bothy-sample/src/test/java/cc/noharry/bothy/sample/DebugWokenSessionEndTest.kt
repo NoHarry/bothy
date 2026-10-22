@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.voice.VoiceEndReason
-import cc.noharry.bothy.voice.VoiceSegment
-import cc.noharry.bothy.voice.VoiceSegmentLabel
+import cc.noharry.agent.voice.VoiceEndReason
+import cc.noharry.agent.voice.VoiceSegment
+import cc.noharry.agent.voice.VoiceSegmentLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

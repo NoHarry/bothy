@@ -1,26 +1,26 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.AgentRuntime
-import cc.noharry.bothy.kernel.api.HookContext
-import cc.noharry.bothy.kernel.api.HookDecision
-import cc.noharry.bothy.kernel.api.RuntimeHook
-import cc.noharry.bothy.kernel.api.ToolUse
-import cc.noharry.bothy.kernel.api.model.ModelRef
-import cc.noharry.bothy.runtime.SubagentConfig
-import cc.noharry.bothy.runtime.SubagentLauncher
-import cc.noharry.bothy.runtime.SubagentReport
-import cc.noharry.bothy.runtime.SubagentSpec
-import cc.noharry.bothy.runtime.SubagentState
-import cc.noharry.bothy.runtime.SubagentType
-import cc.noharry.bothy.runtime.Subagents
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.AgentRuntime
+import cc.noharry.agent.kernel.api.HookContext
+import cc.noharry.agent.kernel.api.HookDecision
+import cc.noharry.agent.kernel.api.RuntimeHook
+import cc.noharry.agent.kernel.api.ToolUse
+import cc.noharry.agent.kernel.api.model.ModelRef
+import cc.noharry.agent.runtime.SubagentConfig
+import cc.noharry.agent.runtime.SubagentLauncher
+import cc.noharry.agent.runtime.SubagentReport
+import cc.noharry.agent.runtime.SubagentSpec
+import cc.noharry.agent.runtime.SubagentState
+import cc.noharry.agent.runtime.SubagentType
+import cc.noharry.agent.runtime.Subagents
 import java.util.concurrent.ConcurrentHashMap
 import android.util.Log
-import cc.noharry.bothy.runtime.SubagentStatus
+import cc.noharry.agent.runtime.SubagentStatus
 import java.io.File
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -212,17 +212,17 @@ listOf("Debug", "Release").forEach { variant ->
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-    implementation(project(":bothy-runtime"))
+    implementation(project(":agent-runtime"))
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
-        add(scope, project(":bothy-vfs-saf"))
-        add(scope, project(":bothy-exec-js"))
-        add(scope, project(":bothy-device-capabilities"))
-        add(scope, project(":bothy-android-use"))
-        add(scope, project(":bothy-voice"))
-        add(scope, project(":bothy-a2a-client"))
-        add(scope, project(":bothy-a2a-client-direct"))
-        add(scope, project(":bothy-a2a-client-official"))
-        add(scope, project(":bothy-a2a-server"))
+        add(scope, project(":agent-vfs-saf"))
+        add(scope, project(":agent-exec-js"))
+        add(scope, project(":agent-device-capabilities"))
+        add(scope, project(":agent-android-use"))
+        add(scope, project(":agent-voice"))
+        add(scope, project(":agent-a2a-client"))
+        add(scope, project(":agent-a2a-client-direct"))
+        add(scope, project(":agent-a2a-client-official"))
+        add(scope, project(":agent-a2a-server"))
     }
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.13.0")

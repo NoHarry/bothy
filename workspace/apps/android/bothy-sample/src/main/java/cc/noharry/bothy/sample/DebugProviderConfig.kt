@@ -1,13 +1,13 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.model.AnthropicModelClient
-import cc.noharry.bothy.kernel.api.model.ModelClient
-import cc.noharry.bothy.kernel.api.model.ModelRef
-import cc.noharry.bothy.model.ModelVariantRegistry
-import cc.noharry.bothy.model.OpenAiModelClient
-import cc.noharry.bothy.kernel.api.model.ServerSideSearchCapability
-import cc.noharry.bothy.transport.OkHttpHttpTransport
+import cc.noharry.agent.model.AnthropicModelClient
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.kernel.api.model.ModelRef
+import cc.noharry.agent.model.ModelVariantRegistry
+import cc.noharry.agent.model.OpenAiModelClient
+import cc.noharry.agent.kernel.api.model.ServerSideSearchCapability
+import cc.noharry.agent.transport.OkHttpHttpTransport
 
 internal data class DebugProviderConfig(
     val values: Map<String, String>,

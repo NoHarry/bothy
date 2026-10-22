@@ -35,7 +35,7 @@ def run_fault_smoke() -> dict[str, Any]:
             endpoint = wait_ready_file(ready)
             run_gradle_test(
                 endpoint,
-                "cc.noharry.bothy.a2a.integration.ReferenceIntegrationSmokeTest.deterministicCancelRaceRejectsLateBusinessResponse",
+                "cc.noharry.agent.a2a.integration.ReferenceIntegrationSmokeTest.deterministicCancelRaceRejectsLateBusinessResponse",
             )
             state = json.loads(evidence.read_text(encoding="utf-8"))
             expected = state.get("request_started") and state.get("response_attempted")
@@ -73,7 +73,7 @@ def run_helloworld_smoke() -> dict[str, Any]:
             endpoint = wait_ready_file(proxy_ready)
             run_gradle_test(
                 endpoint,
-                "cc.noharry.bothy.a2a.integration.ReferenceIntegrationSmokeTest.officialHelloWorldCardSyncAndStream",
+                "cc.noharry.agent.a2a.integration.ReferenceIntegrationSmokeTest.officialHelloWorldCardSyncAndStream",
             )
             return {
                 "status": "passed",
@@ -121,7 +121,7 @@ def run_gradle_test(base_url: str, test_name: str) -> None:
         str(wrapper),
         "-I",
         str(INIT_SCRIPT),
-        ":bothy-a2a-client-direct:testDebugUnitTest",
+        ":agent-a2a-client-direct:testDebugUnitTest",
         "--tests",
         test_name,
         f"-Da2a.reference.baseUrl={base_url}",

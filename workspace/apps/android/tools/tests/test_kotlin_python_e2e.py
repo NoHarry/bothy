@@ -3,7 +3,7 @@
 
 Golden files under tools/fixtures/kotlin-e2e are emitted by the actual Kotlin
 probe path (NativeToolLoop -> ProbeRunAttachment -> FileProbeEventSink /
-FileCompletenessStore / writeRunMetaJson) and byte-locked by the bothy-runtime
+FileCompletenessStore / writeRunMetaJson) and byte-locked by the agent-runtime
 unit test ProbeE2eGoldenTest. This file never hand-writes probe events: when
 the Kotlin emitter changes, the Kotlin golden test fails first, and the goldens
 are regenerated with PROBE_GOLDEN_UPDATE=1.

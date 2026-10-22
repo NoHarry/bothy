@@ -1,11 +1,11 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.voice.VoiceEndReason
-import cc.noharry.bothy.voice.VoiceHandOverMode
-import cc.noharry.bothy.voice.VoiceSegment
-import cc.noharry.bothy.voice.VoiceSegmentLabel
-import cc.noharry.bothy.voice.VoiceSessionState
-import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.agent.voice.VoiceEndReason
+import cc.noharry.agent.voice.VoiceHandOverMode
+import cc.noharry.agent.voice.VoiceSegment
+import cc.noharry.agent.voice.VoiceSegmentLabel
+import cc.noharry.agent.voice.VoiceSessionState
+import cc.noharry.agent.voice.VoiceSessionStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

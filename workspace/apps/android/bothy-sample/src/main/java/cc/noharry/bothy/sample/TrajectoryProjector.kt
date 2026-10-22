@@ -1,13 +1,13 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionEvent
-import cc.noharry.bothy.kernel.api.SessionEventLogHealth
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.bothy.kernel.api.SessionEventPayload
-import cc.noharry.bothy.kernel.api.SessionEventType
-import cc.noharry.bothy.kernel.api.SessionJson
+import cc.noharry.agent.kernel.api.SessionEvent
+import cc.noharry.agent.kernel.api.SessionEventLogHealth
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.SessionEventType
+import cc.noharry.agent.kernel.api.SessionJson
 
 /**
  * Pure projection from durable [SessionEvent] into UI records.

@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
@@ -19,7 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.SessionEventPayload
 
 /** Derived only from canonical interaction records, including after a cold history load. */
 internal data class DebugUserQuestion(

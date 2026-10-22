@@ -1,8 +1,8 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.*
+import cc.noharry.agent.kernel.api.*
 
 /** One producer hook feeds every subscriber, including nested tool progress. */
 internal class DebugExecutionToolHook : RuntimeHook {

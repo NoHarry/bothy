@@ -1,18 +1,18 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.ConfirmationDecision
-import cc.noharry.bothy.kernel.api.ConfirmationResumeResult
-import cc.noharry.bothy.kernel.api.PostUserInputRequest
-import cc.noharry.bothy.kernel.api.PostUserInputResult
-import cc.noharry.bothy.kernel.api.SessionEvent
-import cc.noharry.bothy.kernel.api.SessionEventLogDurability
-import cc.noharry.bothy.kernel.api.SessionEventLogHealth
-import cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.bothy.kernel.api.SessionEventQuery
-import cc.noharry.bothy.kernel.api.SessionEventType
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.ConfirmationDecision
+import cc.noharry.agent.kernel.api.ConfirmationResumeResult
+import cc.noharry.agent.kernel.api.PostUserInputRequest
+import cc.noharry.agent.kernel.api.PostUserInputResult
+import cc.noharry.agent.kernel.api.SessionEvent
+import cc.noharry.agent.kernel.api.SessionEventLogDurability
+import cc.noharry.agent.kernel.api.SessionEventLogHealth
+import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.kernel.api.SessionEventQuery
+import cc.noharry.agent.kernel.api.SessionEventType
 import java.io.File
 import java.nio.file.Files
 import java.util.Collections
@@ -546,7 +546,7 @@ class TrajectoryRepositoryTest {
             return AutoCloseable { listeners.remove(listener) }
         }
 
-        override fun run(request: AgentRequest): Flow<cc.noharry.bothy.kernel.api.AgentEvent> = emptyFlow()
+        override fun run(request: AgentRequest): Flow<cc.noharry.agent.kernel.api.AgentEvent> = emptyFlow()
 
         override suspend fun resumeConfirmation(decision: ConfirmationDecision): ConfirmationResumeResult =
             ConfirmationResumeResult.NotFound

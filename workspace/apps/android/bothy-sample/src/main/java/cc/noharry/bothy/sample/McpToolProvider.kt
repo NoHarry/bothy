@@ -1,14 +1,14 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.ToolCallContext
-import cc.noharry.bothy.kernel.api.ToolCallResult
-import cc.noharry.bothy.kernel.api.mcp.McpClientProvider
-import cc.noharry.bothy.kernel.api.ToolInitializeContext
-import cc.noharry.bothy.kernel.api.ToolInitializeResult
-import cc.noharry.bothy.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolCallResult
+import cc.noharry.agent.kernel.api.mcp.McpClientProvider
+import cc.noharry.agent.kernel.api.ToolInitializeContext
+import cc.noharry.agent.kernel.api.ToolInitializeResult
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

@@ -1,11 +1,11 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.bothy.kernel.api.reliability.RuntimeResult
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.kernel.api.reliability.RuntimeResult
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import java.nio.file.Files
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -551,11 +551,11 @@ class DebugRunEvidenceTest {
             status,
             response = response,
             errorCode = errorCode,
-            completion = cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionSummary(
+            completion = cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary(
                 outcome = if (status == RuntimeRunStatus.COMPLETED) {
-                    cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.SUCCEEDED
+                    cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.SUCCEEDED
                 } else {
-                    cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.FAILED
+                    cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.FAILED
                 },
             ),
         )

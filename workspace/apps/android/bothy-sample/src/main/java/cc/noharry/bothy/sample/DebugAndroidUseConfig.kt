@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import cc.noharry.bothy.androiduse.AndroidUseAccessibility
+import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

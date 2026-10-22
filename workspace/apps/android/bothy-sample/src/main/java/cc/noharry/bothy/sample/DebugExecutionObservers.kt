@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentEvent
 import kotlinx.coroutines.*
 
 /** Independent subscriber jobs survive producer cancellation long enough to drain required logs. */

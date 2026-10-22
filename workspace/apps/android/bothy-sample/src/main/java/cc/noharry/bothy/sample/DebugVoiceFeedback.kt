@@ -6,7 +6,7 @@ import android.media.AudioTrack
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import cc.noharry.bothy.voice.VoiceHandOverMode
+import cc.noharry.agent.voice.VoiceHandOverMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.PI

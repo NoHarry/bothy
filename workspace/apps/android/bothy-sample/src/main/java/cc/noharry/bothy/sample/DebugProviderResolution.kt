@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.model.ModelVariantRegistry
+import cc.noharry.agent.model.ModelVariantRegistry
 
 internal fun debugProviderProfiles(values: Map<String, String>): List<DebugProviderProfile> {
     val explicit = values[PROFILES_KEY].csvValues()

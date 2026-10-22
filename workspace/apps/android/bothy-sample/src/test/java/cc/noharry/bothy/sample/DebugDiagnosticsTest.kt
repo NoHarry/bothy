@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

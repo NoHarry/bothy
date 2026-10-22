@@ -5,7 +5,7 @@
       the DigiCert Global Root G2 / TrustAsia roots backing api.deepseek.com. To keep the debug
       console able to reach the live provider on those benches without modifying the runtime
       library transport, bundle the provider's root and intermediate CA here as a trust anchor.
-      This is a bothy-sample concern only; it does not change bothy-runtime.
+      This is a bothy-sample concern only; it does not change agent-runtime.
     -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>

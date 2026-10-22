@@ -1,15 +1,15 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.bothy.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.bothy.kernel.api.model.ModelClient
-import cc.noharry.bothy.kernel.api.model.ModelEvent
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.api.model.ModelRequest
-import cc.noharry.bothy.kernel.api.model.ModelTool
-import cc.noharry.bothy.kernel.api.model.ModelClientException
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.kernel.api.model.ModelEvent
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.kernel.api.model.ModelTool
+import cc.noharry.agent.kernel.api.model.ModelClientException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

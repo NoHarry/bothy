@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
@@ -9,8 +9,8 @@ internal data class DebugSessionSummary(
     val turnCount: Int,
     val compactedSummary: String,
     val lifecycleStatus: String = DEBUG_SESSION_LIFECYCLE_IDLE,
-    val completionOutcome: String = cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name,
-    val logHealth: String = cc.noharry.bothy.kernel.api.SessionEventLogHealthStatus.UNKNOWN.name,
+    val completionOutcome: String = cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name,
+    val logHealth: String = cc.noharry.agent.kernel.api.SessionEventLogHealthStatus.UNKNOWN.name,
 )
 
 internal data class DebugSessionTurn(
@@ -25,7 +25,7 @@ internal data class DebugSessionTurn(
     val finalStatus: String,
     val finalResponse: String,
     val tools: List<DebugSessionToolCall>,
-    val completionOutcome: String = cc.noharry.bothy.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name,
+    val completionOutcome: String = cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome.UNKNOWN.name,
     val replayStatus: String = DEBUG_REPLAY_STATUS_NOT_RUN,
     val replaySummary: String = "",
     /** The run's model usage, so the Board can show a whole session's, also after a restart. */

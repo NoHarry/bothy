@@ -1,13 +1,13 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.PendingConfirmation
-import cc.noharry.bothy.kernel.api.reliability.RuntimeBlocker
-import cc.noharry.bothy.kernel.api.reliability.RuntimeProtocolRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeProtocolRequestStatus
-import cc.noharry.bothy.kernel.api.reliability.RuntimeResult
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
-import cc.noharry.bothy.kernel.api.reliability.SuggestedNextAction
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.PendingConfirmation
+import cc.noharry.agent.kernel.api.reliability.RuntimeBlocker
+import cc.noharry.agent.kernel.api.reliability.RuntimeProtocolRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeProtocolRequestStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeResult
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.reliability.SuggestedNextAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -16,22 +16,22 @@ agent 循环跑在你的 App 进程里，带沙箱化的虚拟工作区、MCP �
 
 | 模块 | 作用 |
 |------|------|
-| `bothy-kernel-api` | 与 Android 无关的契约：模型、工具、插件、能力、工作区、完成判定、事件日志、生命周期 |
-| `bothy-kernel-core` | agent 循环本身：调度器、原生工具循环、profile 编译、`KernelRuntimeBuilder` |
-| `bothy-minimal` | 直接搭在 kernel 上的最小 agent，不含 Android 门面 |
-| `bothy-runtime` | Android 运行时和宿主门面：`AgentRuntimeBuilder`、模型客户端（OpenAI / Anthropic 兼容）、MCP、skill、子 agent、会话与记忆、联网搜索与读网页、hook 与策略 |
-| `bothy-vfs` | agent 沙箱工作区的虚拟文件系统；宿主可挂载目录、assets 或内存数据源 |
-| `bothy-vfs-saf` | 可选：挂载用户通过系统文件选择器授权的文件夹 |
-| `bothy-exec-js` | 可选：`exec_js`，沙箱里的 JavaScript（Zipline 上的 QuickJS），可以回调 agent 的工具 |
-| `bothy-device-capabilities` | 可选：日历和通知工具 |
-| `bothy-android-use` | 可选：agent 通过无障碍服务观察并操作屏幕 |
-| `bothy-voice` | 可选：语音会话，支持设备端 sherpa-onnx 识别和唤醒词，也可用云端识别 |
-| `bothy-a2a-client`、`-direct`、`-official` | 可选：把任务委托给远端 A2A agent（两种可互换的传输实现） |
-| `bothy-a2a-server` | 可选：把 agent 自己暴露成本地 A2A 端点 |
+| `agent-kernel-api` | 与 Android 无关的契约：模型、工具、插件、能力、工作区、完成判定、事件日志、生命周期 |
+| `agent-kernel-core` | agent 循环本身：调度器、原生工具循环、profile 编译、`KernelRuntimeBuilder` |
+| `agent-minimal` | 直接搭在 kernel 上的最小 agent，不含 Android 门面 |
+| `agent-runtime` | Android 运行时和宿主门面：`AgentRuntimeBuilder`、模型客户端（OpenAI / Anthropic 兼容）、MCP、skill、子 agent、会话与记忆、联网搜索与读网页、hook 与策略 |
+| `agent-vfs` | agent 沙箱工作区的虚拟文件系统；宿主可挂载目录、assets 或内存数据源 |
+| `agent-vfs-saf` | 可选：挂载用户通过系统文件选择器授权的文件夹 |
+| `agent-exec-js` | 可选：`exec_js`，沙箱里的 JavaScript（Zipline 上的 QuickJS），可以回调 agent 的工具 |
+| `agent-device-capabilities` | 可选：日历和通知工具 |
+| `agent-android-use` | 可选：agent 通过无障碍服务观察并操作屏幕 |
+| `agent-voice` | 可选：语音会话，支持设备端 sherpa-onnx 识别和唤醒词，也可用云端识别 |
+| `agent-a2a-client`、`-direct`、`-official` | 可选：把任务委托给远端 A2A agent（两种可互换的传输实现） |
+| `agent-a2a-server` | 可选：把 agent 自己暴露成本地 A2A 端点 |
 | `bothy-sample` | 演示 App（平板优先）：调试控制台、设置、计划、语音、悬浮助手卡片 |
 | `bothy-playground` | 第二个演示 App：用本机 MCP 服务提供一辆虚构的车和一个虚构的家，给 Bothy 操作（见[下文](#bothy-playground)） |
 
-runtime 依赖 kernel 和 `bothy-vfs`；可选模块最多依赖 `bothy-kernel-api`；没有任何模块依赖 sample；playground 不依赖这里的任何模块，Bothy 像连其他 MCP 服务一样连它。
+runtime 依赖 kernel 和 `agent-vfs`；可选模块最多依赖 `agent-kernel-api`；没有任何模块依赖 sample；playground 不依赖这里的任何模块，Bothy 像连其他 MCP 服务一样连它。
 
 ## 演示 App 能看到什么
 
@@ -90,14 +90,14 @@ git clone https://github.com/NoHarry/bothy.git
 ```kotlin
 // 你的 App 的 settings.gradle.kts：把 runtime 和它依赖的模块 include 进来
 val bothy = file("path/to/bothy/workspace/apps/android")
-listOf("bothy-kernel-api", "bothy-kernel-core", "bothy-vfs", "bothy-runtime").forEach { name ->
+listOf("agent-kernel-api", "agent-kernel-core", "agent-vfs", "agent-runtime").forEach { name ->
     include(":$name")
     project(":$name").projectDir = bothy.resolve(name)
 }
 
 // App 模块的 build.gradle.kts
 dependencies {
-    implementation(project(":bothy-runtime"))
+    implementation(project(":agent-runtime"))
 }
 ```
 

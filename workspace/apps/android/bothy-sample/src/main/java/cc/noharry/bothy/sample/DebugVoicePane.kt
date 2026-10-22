@@ -54,13 +54,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.voice.VoiceEndReason
-import cc.noharry.bothy.voice.VoiceHandOverMode
-import cc.noharry.bothy.voice.VoiceJudgment
-import cc.noharry.bothy.voice.VoiceSegment
-import cc.noharry.bothy.voice.VoiceSegmentLabel
-import cc.noharry.bothy.voice.VoiceSessionState
-import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.agent.voice.VoiceEndReason
+import cc.noharry.agent.voice.VoiceHandOverMode
+import cc.noharry.agent.voice.VoiceJudgment
+import cc.noharry.agent.voice.VoiceSegment
+import cc.noharry.agent.voice.VoiceSegmentLabel
+import cc.noharry.agent.voice.VoiceSessionState
+import cc.noharry.agent.voice.VoiceSessionStatus
 
 /**
  * The console's voice strip, shown while listening or with something to show: the status line, the words being

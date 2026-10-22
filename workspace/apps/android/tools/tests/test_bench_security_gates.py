@@ -11,7 +11,7 @@ from pathlib import Path
 TOOLS = Path(__file__).resolve().parents[1]
 ANDROID = TOOLS.parent
 REPO = ANDROID.parents[2] if len(ANDROID.parents) >= 3 else ANDROID
-RUNTIME_MAIN = ANDROID / "bothy-runtime" / "src" / "main" / "kotlin"
+RUNTIME_MAIN = ANDROID / "agent-runtime" / "src" / "main" / "kotlin"
 
 
 class VerticalHardcodeScan(unittest.TestCase):

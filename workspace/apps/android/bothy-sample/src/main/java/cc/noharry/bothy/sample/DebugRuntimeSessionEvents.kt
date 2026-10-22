@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.PendingConfirmation
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.PendingConfirmation
 
 /**
  * Maps a runtime [AgentEvent] into debug console transcript mutations.

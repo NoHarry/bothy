@@ -1,11 +1,11 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.AgentRequest
-import cc.noharry.bothy.kernel.api.reliability.RuntimeBlocker
-import cc.noharry.bothy.kernel.api.reliability.RuntimeErrorCode
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
-import cc.noharry.bothy.kernel.api.reliability.SuggestedNextAction
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.AgentRequest
+import cc.noharry.agent.kernel.api.reliability.RuntimeBlocker
+import cc.noharry.agent.kernel.api.reliability.RuntimeErrorCode
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.reliability.SuggestedNextAction
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test

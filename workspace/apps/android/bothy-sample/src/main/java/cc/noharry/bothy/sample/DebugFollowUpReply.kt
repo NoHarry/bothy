@@ -1,6 +1,6 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 
 /**
  * A short reply such as "要", "确认" or "3" means something only against the message it answers. That message is

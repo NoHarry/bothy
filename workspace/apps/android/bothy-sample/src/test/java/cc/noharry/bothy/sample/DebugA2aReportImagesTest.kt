@@ -4,8 +4,8 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
 import java.io.File
 import java.net.URI
 import kotlinx.coroutines.runBlocking

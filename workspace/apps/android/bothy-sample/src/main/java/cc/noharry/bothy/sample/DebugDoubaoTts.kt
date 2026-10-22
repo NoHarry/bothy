@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpTransport
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -278,7 +278,7 @@ internal const val DOUBAO_TTS_SPEECH_RATE = "DOUBAO_TTS_SPEECH_RATE"
 internal const val DEFAULT_DOUBAO_TTS_RESOURCE_ID = "seed-tts-2.0"
 internal const val DOUBAO_TTS_URL = "https://openspeech.bytedance.com/api/v3/tts/unidirectional"
 private const val DOUBAO_API_KEY_APP_KEY = "aGjiRDfUWi"
-private const val DOUBAO_USER = "bothy-runtime-sample"
+private const val DOUBAO_USER = "agent-runtime-sample"
 private const val DOUBAO_TTS_KEY_FILE = "doubao-tts-api-key"
 private const val DOUBAO_SAMPLE_RATE = 24_000
 private const val DOUBAO_FINISHED = 20_000_000

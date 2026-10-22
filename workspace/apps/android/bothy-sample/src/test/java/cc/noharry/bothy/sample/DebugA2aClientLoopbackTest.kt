@@ -2,16 +2,16 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aClientConfig
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.RemoteAgentRef
-import cc.noharry.bothy.a2a.server.A2aInputReceipt
-import cc.noharry.bothy.a2a.server.A2aOutput
-import cc.noharry.bothy.a2a.server.A2aRequest
-import cc.noharry.bothy.a2a.server.A2aRequestHandler
-import cc.noharry.bothy.a2a.server.A2aServer
-import cc.noharry.bothy.a2a.server.A2aServerConfig
+import cc.noharry.agent.a2a.A2aClientConfig
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.RemoteAgentRef
+import cc.noharry.agent.a2a.server.A2aInputReceipt
+import cc.noharry.agent.a2a.server.A2aOutput
+import cc.noharry.agent.a2a.server.A2aRequest
+import cc.noharry.agent.a2a.server.A2aRequestHandler
+import cc.noharry.agent.a2a.server.A2aServer
+import cc.noharry.agent.a2a.server.A2aServerConfig
 import java.net.URI
 import java.util.Collections
 import kotlin.time.Duration.Companion.minutes

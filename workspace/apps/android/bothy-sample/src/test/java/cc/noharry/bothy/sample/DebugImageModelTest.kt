@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Base64
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolCallContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch

@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpTransport
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import kotlinx.coroutines.withTimeoutOrNull

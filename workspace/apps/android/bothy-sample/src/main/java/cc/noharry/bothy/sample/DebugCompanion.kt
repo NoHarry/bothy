@@ -3,8 +3,8 @@ package cc.noharry.bothy.sample
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
-import cc.noharry.bothy.voice.VoiceHandOver
-import cc.noharry.bothy.voice.VoiceHandOverMode
+import cc.noharry.agent.voice.VoiceHandOver
+import cc.noharry.agent.voice.VoiceHandOverMode
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

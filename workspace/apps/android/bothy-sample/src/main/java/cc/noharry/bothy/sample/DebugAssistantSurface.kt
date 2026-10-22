@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
-import cc.noharry.bothy.voice.VoiceSessionState
+import cc.noharry.agent.voice.VoiceSessionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

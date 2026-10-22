@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.model.ModelVariantRegistry
+import cc.noharry.agent.model.ModelVariantRegistry
 
 internal fun saveSelectedDebugModel(
     context: Context,

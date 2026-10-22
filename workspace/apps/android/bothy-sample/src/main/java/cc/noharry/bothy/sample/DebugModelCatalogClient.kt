@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpTransport
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject

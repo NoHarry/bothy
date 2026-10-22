@@ -1,11 +1,11 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.os.SystemClock
 import android.net.Uri
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -549,7 +549,7 @@ internal object DebugRuntimeSession {
     }
 
     /** A subagent started, stalled, moved again or finished: a status line in its conversation, when on screen. */
-    fun noteSubagent(status: cc.noharry.bothy.runtime.SubagentStatus, change: DebugSubagentChange) {
+    fun noteSubagent(status: cc.noharry.agent.runtime.SubagentStatus, change: DebugSubagentChange) {
         scope.launch {
             if (status.parentSessionId != sessionCoordinator.activeSessionId) return@launch
             // A runtime row, not a status line: the console never shows ambient status.
@@ -564,7 +564,7 @@ internal object DebugRuntimeSession {
     }
 
     /** Results or stalls of one run's children that the run did not collect: one turn, delivered like a delegation report. */
-    fun deliverSubagentReport(context: Context, report: cc.noharry.bothy.runtime.SubagentReport) {
+    fun deliverSubagentReport(context: Context, report: cc.noharry.agent.runtime.SubagentReport) {
         val app = context.applicationContext
         scope.launch {
             val since = SystemClock.elapsedRealtime()

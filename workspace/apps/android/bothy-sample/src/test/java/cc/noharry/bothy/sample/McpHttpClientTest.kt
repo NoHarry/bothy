@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.transport.HttpEvent
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpEvent
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
+import cc.noharry.agent.transport.HttpTransport
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -81,7 +81,7 @@ class McpHttpClientTest {
         }
         val provider = McpToolProvider(client(server), serverId = "weather", displayName = "Weather")
 
-        val result = provider.callTool("get_weather", """{"city":"武汉"}""", cc.noharry.bothy.kernel.api.ToolCallContext("session", "run", "request"))
+        val result = provider.callTool("get_weather", """{"city":"武汉"}""", cc.noharry.agent.kernel.api.ToolCallContext("session", "run", "request"))
 
         assertTrue(result.success)
         assertTrue(result.resultJson.contains("晴"))

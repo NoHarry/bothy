@@ -1,10 +1,10 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionEvent
-import cc.noharry.bothy.kernel.api.SessionEventPayload
-import cc.noharry.bothy.kernel.api.SessionEventType
+import cc.noharry.agent.kernel.api.SessionEvent
+import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.SessionEventType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

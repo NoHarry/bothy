@@ -1,18 +1,18 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.voice.DASHSCOPE_DEFAULT_ENDPOINT
-import cc.noharry.bothy.voice.DashScopeVocabularyClient
-import cc.noharry.bothy.voice.echoCancellerAvailable
-import cc.noharry.bothy.voice.hotwordProblem
-import cc.noharry.bothy.voice.NearSpeechGate
-import cc.noharry.bothy.voice.MicrophoneAudioSource
-import cc.noharry.bothy.voice.VoiceAudioEffects
-import cc.noharry.bothy.voice.VoiceAudioSource
-import cc.noharry.bothy.voice.DASHSCOPE_DEFAULT_MODEL
-import cc.noharry.bothy.voice.DashScopeAsrModel
-import cc.noharry.bothy.voice.VoiceTurnThresholds
-import cc.noharry.bothy.voice.WakeSensitivity
+import cc.noharry.agent.voice.DASHSCOPE_DEFAULT_ENDPOINT
+import cc.noharry.agent.voice.DashScopeVocabularyClient
+import cc.noharry.agent.voice.echoCancellerAvailable
+import cc.noharry.agent.voice.hotwordProblem
+import cc.noharry.agent.voice.NearSpeechGate
+import cc.noharry.agent.voice.MicrophoneAudioSource
+import cc.noharry.agent.voice.VoiceAudioEffects
+import cc.noharry.agent.voice.VoiceAudioSource
+import cc.noharry.agent.voice.DASHSCOPE_DEFAULT_MODEL
+import cc.noharry.agent.voice.DashScopeAsrModel
+import cc.noharry.agent.voice.VoiceTurnThresholds
+import cc.noharry.agent.voice.WakeSensitivity
 import java.io.File
 import java.net.URI
 
@@ -53,7 +53,7 @@ internal data class DebugVoiceConfig(
     val handOverChime: Boolean = true,
     /**
      * Jev judges whether a turn is over and meant for 小博 (with a saved Jev key). Off, or without a key, every sentence
-     * the recognizer closes goes straight to the agent ([cc.noharry.bothy.voice.DirectTurnJudge]).
+     * the recognizer closes goes straight to the agent ([cc.noharry.agent.voice.DirectTurnJudge]).
      */
     val jevTurns: Boolean = true,
     /**

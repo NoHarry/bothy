@@ -2,8 +2,8 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import java.net.URI
 
 /** Overlay stage for client mode, built only from wire items of the current (or latest) task. */

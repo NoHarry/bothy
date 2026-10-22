@@ -2,7 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.a2a.server.A2aServer
+import cc.noharry.agent.a2a.server.A2aServer
 
 /** Process-lifetime loopback endpoint, separate from the ASR and outbound A2A client paths. */
 internal object DebugA2aServerManager {

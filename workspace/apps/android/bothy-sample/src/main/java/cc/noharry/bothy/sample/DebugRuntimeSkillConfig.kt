@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.vfs.VfsMemorySource
+import cc.noharry.agent.vfs.VfsMemorySource
 
 internal data class DebugRuntimeSkill(
     val id: String,

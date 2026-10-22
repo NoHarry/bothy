@@ -1,11 +1,11 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.SessionAttachmentRef
-import cc.noharry.bothy.kernel.api.SessionEvent
-import cc.noharry.bothy.kernel.api.SessionEventPayload
-import cc.noharry.bothy.kernel.api.SessionJson
+import cc.noharry.agent.kernel.api.SessionAttachmentRef
+import cc.noharry.agent.kernel.api.SessionEvent
+import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.kernel.api.SessionJson
 
 /**
  * Unbounded canonical Raw. Preview tabs may truncate; Raw must not. Pagination happens in

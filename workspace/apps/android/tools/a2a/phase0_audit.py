@@ -22,8 +22,8 @@ FORBIDDEN_FACADE_ABI = (
     b"jakarta/",
 )
 FORBIDDEN_RUNTIME_TEXT = (
-    "bothy-a2a-client",
-    "cc.noharry.bothy.a2a",
+    "agent-a2a-client",
+    "cc.noharry.agent.a2a",
     "org.a2aproject",
 )
 REQUIRED_OFFICIAL_DEPENDENCIES = (
@@ -73,7 +73,7 @@ def check_release_artifacts(
 
 
 def check_isolation(checks: dict[str, object], failures: list[str]) -> None:
-    runtime_hits = runtime_isolation_hits(ANDROID_ROOT / "bothy-runtime")
+    runtime_hits = runtime_isolation_hits(ANDROID_ROOT / "agent-runtime")
     record(checks, failures, "agent_runtime_isolation", not runtime_hits, {"matches": runtime_hits})
 
 
@@ -90,7 +90,7 @@ def check_official_metadata(checks: dict[str, object], failures: list[str]) -> N
         {"missing": dependency_missing, "excluded_duplicate_common_jar": "a2a-java-sdk-common:" not in dependency_text},
     )
 
-    notices = ANDROID_ROOT / "bothy-a2a-client-official/THIRD_PARTY_NOTICES.md"
+    notices = ANDROID_ROOT / "agent-a2a-client-official/THIRD_PARTY_NOTICES.md"
     notice_text = read_text(notices)
     license_ok = notices.is_file() and "1.1.0.Final" in notice_text and "Apache-2.0" in notice_text
     record(checks, failures, "official_license_notice", license_ok, {"path": str(notices.relative_to(ANDROID_ROOT))})
@@ -113,9 +113,9 @@ def emit_result(checks: dict[str, object], failures: list[str], result_file: Pat
 
 def release_artifacts() -> dict[str, Path]:
     return {
-        "facade_aar": ANDROID_ROOT / "bothy-a2a-client/build/outputs/aar/bothy-a2a-client-release.aar",
-        "direct_aar": ANDROID_ROOT / "bothy-a2a-client-direct/build/outputs/aar/bothy-a2a-client-direct-release.aar",
-        "official_aar": ANDROID_ROOT / "bothy-a2a-client-official/build/outputs/aar/bothy-a2a-client-official-release.aar",
+        "facade_aar": ANDROID_ROOT / "agent-a2a-client/build/outputs/aar/agent-a2a-client-release.aar",
+        "direct_aar": ANDROID_ROOT / "agent-a2a-client-direct/build/outputs/aar/agent-a2a-client-direct-release.aar",
+        "official_aar": ANDROID_ROOT / "agent-a2a-client-official/build/outputs/aar/agent-a2a-client-official-release.aar",
         "sample_apk": ANDROID_ROOT / "bothy-sample/build/outputs/apk/release/bothy-sample-release.apk",
     }
 

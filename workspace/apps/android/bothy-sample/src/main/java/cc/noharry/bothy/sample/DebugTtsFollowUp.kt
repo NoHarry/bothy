@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.reliability.RuntimeErrorCode
-import cc.noharry.bothy.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.reliability.RuntimeErrorCode
+import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 
 /** Only explicit user-input requests are questions; arbitrary failures/approvals are not. */
 internal fun AgentEvent.followUpQuestion(): Pair<String, String>? = when (this) {

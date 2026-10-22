@@ -1,8 +1,8 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.server.A2aOutput
-import cc.noharry.bothy.kernel.api.AgentEvent
-import cc.noharry.bothy.kernel.api.reliability.*
+import cc.noharry.agent.a2a.server.A2aOutput
+import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.kernel.api.reliability.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test

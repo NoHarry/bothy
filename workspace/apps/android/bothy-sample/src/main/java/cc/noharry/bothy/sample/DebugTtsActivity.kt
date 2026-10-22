@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
 import android.media.AudioTrack
-import cc.noharry.bothy.voice.MicActivity
+import cc.noharry.agent.voice.MicActivity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.IdentityHashMap

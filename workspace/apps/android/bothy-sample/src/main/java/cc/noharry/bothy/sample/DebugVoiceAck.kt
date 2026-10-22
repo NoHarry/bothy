@@ -2,10 +2,10 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.util.Log
-import cc.noharry.bothy.kernel.api.model.ModelEvent
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.api.model.ModelRequest
-import cc.noharry.bothy.model.ModelVariantRegistry
+import cc.noharry.agent.kernel.api.model.ModelEvent
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.model.ModelVariantRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull

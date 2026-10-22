@@ -1,11 +1,11 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.kernel.api.model.ModelClient
-import cc.noharry.bothy.kernel.api.model.ModelEvent
-import cc.noharry.bothy.kernel.api.model.ModelMessage
-import cc.noharry.bothy.kernel.api.model.ModelRequest
-import cc.noharry.bothy.kernel.api.model.ServerSideSearchCapability
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.kernel.api.model.ModelEvent
+import cc.noharry.agent.kernel.api.model.ModelMessage
+import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.kernel.api.model.ServerSideSearchCapability
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.flow.collect
@@ -148,5 +148,5 @@ private fun String.sha256Hex(): String =
 
 private const val HOSTED_SEARCH_EVIDENCE_DIR = "web-search-evidence"
 private const val HOSTED_SEARCH_REQUIRED_TOOL_CHOICE = "required"
-private const val HOSTED_SEARCH_PROMPT_CACHE_KEY_PREFIX = "bothy-runtime:web-search:"
+private const val HOSTED_SEARCH_PROMPT_CACHE_KEY_PREFIX = "agent-runtime:web-search:"
 private const val HOSTED_SEARCH_PROMPT_CACHE_HASH_CHARS = 32

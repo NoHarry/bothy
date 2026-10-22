@@ -44,7 +44,7 @@ internal data class DebugRuntimeMemoryEvidence(
 
 /**
  * Sample-side aggregation of runtime empty-completion probes.
- * Source of truth is [cc.noharry.bothy.kernel.api.AgentEvent.EmptyCompletionObserved] from the tool loop.
+ * Source of truth is [cc.noharry.agent.kernel.api.AgentEvent.EmptyCompletionObserved] from the tool loop.
  */
 internal data class DebugLoopProbeEvidence(
     val emptyCompletionObservedCount: Int = 0,

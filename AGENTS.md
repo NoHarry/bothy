@@ -4,8 +4,8 @@
 
 ## 仓库定位
 - 这是 **Bothy** —— 可嵌入的 Android 设备端 AI agent 运行时，公开开源仓库（MIT）。
-- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：kernel（`bothy-kernel-api`、`bothy-kernel-core`）、运行时 `bothy-runtime`、虚拟文件系统 `bothy-vfs`，可选模块（SAF、JS 执行、设备能力、Android Use、语音、A2A 客户端与服务端），以及演示 App `bothy-sample`。模块地图见 `workspace/apps/android/AGENTS.md`。
-- 依赖方向：`bothy-sample -> bothy-runtime -> bothy-kernel-core -> bothy-kernel-api`，`bothy-runtime -> bothy-vfs`；可选模块最多依赖 `bothy-kernel-api`；没有模块依赖 sample。`bothy-playground`（虚拟座舱和小家的本机 MCP 服务）不依赖 workspace 里的任何模块。
+- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：kernel（`agent-kernel-api`、`agent-kernel-core`）、运行时 `agent-runtime`、虚拟文件系统 `agent-vfs`，可选模块（SAF、JS 执行、设备能力、Android Use、语音、A2A 客户端与服务端），以及演示 App `bothy-sample`。模块地图见 `workspace/apps/android/AGENTS.md`。
+- 依赖方向：`bothy-sample -> agent-runtime -> agent-kernel-core -> agent-kernel-api`，`agent-runtime -> agent-vfs`；可选模块最多依赖 `agent-kernel-api`；没有模块依赖 sample。`bothy-playground`（虚拟座舱和小家的本机 MCP 服务）不依赖 workspace 里的任何模块。
 - 本仓是 harness 目标项目；`harness.yaml` 是真实配置资产，模板来源见 `harness_framework.source`。
 - **这是公开仓库**：所有提交必须通过 `scripts/lint_public_hygiene.py` 门禁（身份、密钥模式、本地词表）。
 
@@ -42,8 +42,8 @@
 - **公开仓卫生**：不得提交任何雇主/内部项目相关的名称、域名、代号、录制数据或凭据。机制：`scripts/lint_public_hygiene.py`（提交身份必须是 NoHarry noreply；通用密钥模式扫描；如存在 ignored 的 `harness/.local/denylist.txt` 则按词表扫描暂存 diff）。词表本身永不提交。
 - 提交身份必须是 `NoHarry <noharry@users.noreply.github.com>`；仓库级 git config 已固定，不得用其他身份提交。
 - 业务代码只进 `workspace/`；不要在仓库根新建业务 `src/`、`tests/`。
-- `bothy-runtime` 和 kernel 不得依赖 `bothy-sample` 或任何可选模块；sample 中的示例代码和演示用的 MCP 集成不得反向进入库模块。
-- 包名统一 `cc.noharry.bothy.*`；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
+- `agent-runtime` 和 kernel 不得依赖 `bothy-sample` 或任何可选模块；sample 中的示例代码和演示用的 MCP 集成不得反向进入库模块。
+- 包名：SDK 模块（`agent-*`）统一 `cc.noharry.agent.*`，SDK 里不出现 bothy；演示 App 用 `cc.noharry.bothy.sample` / `cc.noharry.bothy.playground`；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
 - 修改 skill 只能改 `.agent-harness/skills/src/` 和 registry，再运行 `python scripts/sync_skills.py --write`；投影目录不手工编辑。
 - `CLAUDE.md` 只能是导入 `AGENTS.md` 的薄 adapter。
 - durable memory 必须进入 `harness/memory/index.yaml`，含 Type、Scope、Status、Confidence、Evidence；trace/memory 内容一律使用中性表述，禁止内部上下文。
@@ -52,7 +52,7 @@
 
 ## 常用命令
 ```bash
-cd workspace/apps/android && ./gradlew testDebugUnitTest :bothy-kernel-api:test :bothy-kernel-core:test :bothy-minimal:test
+cd workspace/apps/android && ./gradlew testDebugUnitTest :agent-kernel-api:test :agent-kernel-core:test :agent-minimal:test
 cd workspace/apps/android && ./gradlew :bothy-sample:assembleDebug :bothy-sample:assembleRelease
 node --test workspace/apps/android/tools/agent-relay/relay.test.cjs
 python scripts/workspace_doctor.py --fix-safe --run-checks --write-trace

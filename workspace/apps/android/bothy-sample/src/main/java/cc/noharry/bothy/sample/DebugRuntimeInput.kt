@@ -1,7 +1,7 @@
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.PostUserInputRequest
-import cc.noharry.bothy.kernel.api.PostUserInputResult
+import cc.noharry.agent.kernel.api.PostUserInputRequest
+import cc.noharry.agent.kernel.api.PostUserInputResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

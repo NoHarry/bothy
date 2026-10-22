@@ -2,14 +2,14 @@
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.a2a.A2aArtifact
-import cc.noharry.bothy.a2a.A2aMessage
-import cc.noharry.bothy.a2a.A2aPart
-import cc.noharry.bothy.a2a.A2aStreamEvent
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.A2aValue
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.server.A2aOutput
+import cc.noharry.agent.a2a.A2aArtifact
+import cc.noharry.agent.a2a.A2aMessage
+import cc.noharry.agent.a2a.A2aPart
+import cc.noharry.agent.a2a.A2aStreamEvent
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.A2aValue
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.server.A2aOutput
 
 /** Message metadata a PC debug tool sets so client mode mirrors its request; external clients never set it. */
 internal const val DEBUG_A2A_MIRROR_METADATA = "debugMirror"

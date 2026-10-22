@@ -2,13 +2,13 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import android.content.SharedPreferences
-import cc.noharry.bothy.a2a.A2aAuthProvider
-import cc.noharry.bothy.a2a.A2aClient
-import cc.noharry.bothy.a2a.A2aClientConfig
-import cc.noharry.bothy.a2a.A2aClientModule
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
-import cc.noharry.bothy.a2a.direct.DirectA2aClientModule
-import cc.noharry.bothy.a2a.official.OfficialA2aClientModule
+import cc.noharry.agent.a2a.A2aAuthProvider
+import cc.noharry.agent.a2a.A2aClient
+import cc.noharry.agent.a2a.A2aClientConfig
+import cc.noharry.agent.a2a.A2aClientModule
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.direct.DirectA2aClientModule
+import cc.noharry.agent.a2a.official.OfficialA2aClientModule
 import java.net.URI
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

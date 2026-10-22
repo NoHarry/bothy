@@ -1,9 +1,9 @@
 package cc.noharry.bothy.sample
 
 import android.content.Context
-import cc.noharry.bothy.transport.HttpRequest
-import cc.noharry.bothy.transport.HttpResponse
-import cc.noharry.bothy.transport.HttpTransport
+import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.agent.transport.HttpResponse
+import cc.noharry.agent.transport.HttpTransport
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope

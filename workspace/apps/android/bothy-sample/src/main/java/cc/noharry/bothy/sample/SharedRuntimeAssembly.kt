@@ -1,10 +1,10 @@
-@file:OptIn(cc.noharry.bothy.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.sample
 
-import cc.noharry.bothy.kernel.api.model.ModelClient
-import cc.noharry.bothy.runtime.AgentRuntimeBuilder
-import cc.noharry.bothy.vfs.VfsFileSystem
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.runtime.AgentRuntimeBuilder
+import cc.noharry.agent.vfs.VfsFileSystem
 import java.io.File
 
 /** The runtime composition the sample builds every session on. */

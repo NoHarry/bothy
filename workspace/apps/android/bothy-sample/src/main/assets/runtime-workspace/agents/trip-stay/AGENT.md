@@ -2,7 +2,7 @@
 name: trip-stay
 description: 旅行住哪：按行程挑片区和酒店，带价位、交通和停车。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.0.0"
 ---
 

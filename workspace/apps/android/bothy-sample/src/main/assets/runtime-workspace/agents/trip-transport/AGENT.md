@@ -2,7 +2,7 @@
 name: trip-transport
 description: 旅行的去程和回程：航班、高铁车次或自驾路线，带时间和参考价。
 metadata:
-  author: bothy-runtime
+  author: agent-runtime
   version: "1.0.0"
 ---
 

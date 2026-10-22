@@ -33,8 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.a2a.A2aTask
-import cc.noharry.bothy.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.a2a.A2aTask
+import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 
 /** Client-mode actions; all of them go through [DebugA2aClientConsole], never the local runtime. */
 internal data class DebugA2aClientActions(
