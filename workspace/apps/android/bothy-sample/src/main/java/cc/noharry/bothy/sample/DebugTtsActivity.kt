@@ -23,12 +23,14 @@ internal object DebugTtsActivity {
     fun begin(holder: Any, stop: (() -> Unit)? = null) = synchronized(holders) {
         holders[holder] = stop
         mutableActive.value = true
+        DebugSpeechFocus.began(holder)
     }
 
     fun end(holder: Any) = synchronized(holders) {
         holders.remove(holder)
         mutableActive.value = holders.isNotEmpty()
         if (holders.isEmpty()) mutableSpeech.value = ""
+        DebugSpeechFocus.ended(holder, last = holders.isEmpty())
     }
 
     /** The text an announcer starts synthesizing; kept until all speech ends. */
