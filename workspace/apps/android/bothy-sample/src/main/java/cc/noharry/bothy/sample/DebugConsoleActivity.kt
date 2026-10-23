@@ -2,17 +2,22 @@ package cc.noharry.bothy.sample
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Window
+import android.view.WindowManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class DebugConsoleActivity : ComponentActivity() {
     private var uiState by mutableStateOf<DebugUiState?>(null)
@@ -40,6 +45,7 @@ class DebugConsoleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        if (DebugUiScale.phone(this)) sideways()
         DebugAsrTextServerManager.start(applicationContext)
         detachSession = DebugRuntimeSession.attach(this) { uiState = it }
         detachA2aClient = DebugA2aClientConsole.attach(this) { a2aClientState = it }
@@ -163,6 +169,23 @@ class DebugConsoleActivity : ComponentActivity() {
         if (intent == null) return
         val text = intent.getStringExtra(DEBUG_TEXT_EXTRA) ?: return
         if (!intent.getBooleanExtra(DEBUG_ALREADY_SUBMITTED_EXTRA, false)) pendingInput = text
+    }
+
+    /**
+     * A phone holds the console sideways, as the playground's head unit (owner 2026-10-23: 手机都固定横屏), without the
+     * system bars, which would take a fifth of its height; a swipe brings them back for a moment. The camera's side would
+     * stay a black band: the console draws under it and keeps its content clear ([DebugConsoleScreen]).
+     */
+    private fun sideways() {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES }
+        }
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
     private fun openOverlay() {

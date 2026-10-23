@@ -53,6 +53,12 @@ class TrajectoryAdaptiveLayoutTest {
     }
 
     @Test
+    fun aPhoneHeldSidewaysDropsTheTimelineToKeepTheLedgerUsable() {
+        assertFalse(trajectoryLayoutPolicy(debugConsoleLayoutPolicy(851f, 393f)).showTimeline)
+        assertTrue(trajectoryLayoutPolicy(debugConsoleLayoutPolicy(393f, 851f)).showTimeline)
+    }
+
+    @Test
     fun inspectorTabsAreDynamicByKindAndRawIsPaginatedCanonicalPayload() {
         val user = inspectorTabsFor(sessionEvent(type = cc.noharry.agent.kernel.api.SessionEventType.USER_MESSAGE).toTrajectoryRecord())
         val tool = inspectorTabsFor(

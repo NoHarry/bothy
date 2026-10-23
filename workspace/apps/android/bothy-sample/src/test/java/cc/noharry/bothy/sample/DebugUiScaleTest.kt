@@ -1,6 +1,8 @@
 package cc.noharry.bothy.sample
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DebugUiScaleTest {
@@ -27,10 +29,23 @@ class DebugUiScaleTest {
     }
 
     @Test
-    fun phonesStopAtTheFloor() {
-        val unit = DebugUiScale.designUnitPx(2400, 1080, nativeDensity = 2.75f)
+    fun phonesKeepThePlatformDp() {
+        // Pixel 5: 2340×1080 at 440 dpi, 393 dp on its short side.
+        assertEquals(2.75f, DebugUiScale.designUnitPx(2340, 1080, nativeDensity = 2.75f), DELTA)
+        assertEquals(PHONE_OVERLAY_ZOOM, DebugUiScale.overlayStageScale(2340, 1080, nativeDensity = 2.75f), DELTA)
+        assertTrue(DebugUiScale.phone(1080, 2.75f))
+    }
 
-        assertEquals(2.75f * MIN_NATIVE_SHARE, unit, DELTA)
+    @Test
+    fun theTabletIsNotAPhone() {
+        assertFalse(DebugUiScale.phone(1904, 2.75f))
+        assertEquals(1.35f, DebugUiScale.overlayStageScale(2560, 1440, nativeDensity = 1f), DELTA)
+    }
+
+    @Test
+    fun aSmallTabletStopsAtTheFloor() {
+        // 1920×1200 at 320 dpi: 600 dp on its short side, a tablet, at the floor.
+        assertEquals(2f * MIN_NATIVE_SHARE, DebugUiScale.designUnitPx(1920, 1200, nativeDensity = 2f), DELTA)
     }
 
     private companion object {

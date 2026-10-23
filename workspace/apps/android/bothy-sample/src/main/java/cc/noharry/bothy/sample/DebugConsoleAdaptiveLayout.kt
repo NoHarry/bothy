@@ -51,12 +51,14 @@ internal data class DebugConsoleLayoutPolicy(
     val showPersistentSessions: Boolean,
     val showPersistentBoard: Boolean,
     val useUltraCompactHeightChrome: Boolean,
+    /** No header: the view tabs sit over the pane and the destinations in a rail on the right. */
+    val useRailChrome: Boolean = useUltraCompactHeightChrome,
 ) {
     val showBottomNavigation: Boolean =
-        windowClass != DebugWindowClass.EXPANDED && !useUltraCompactHeightChrome
+        windowClass != DebugWindowClass.EXPANDED && !useRailChrome
 
     val showTrailingNavigationRail: Boolean =
-        windowClass == DebugWindowClass.COMPACT && useUltraCompactHeightChrome
+        windowClass == DebugWindowClass.COMPACT && useRailChrome
 }
 
 internal fun debugConsoleLayoutPolicy(widthDp: Float, heightDp: Float): DebugConsoleLayoutPolicy {
@@ -72,8 +74,16 @@ internal fun debugConsoleLayoutPolicy(widthDp: Float, heightDp: Float): DebugCon
         showPersistentSessions = windowClass != DebugWindowClass.COMPACT,
         showPersistentBoard = windowClass == DebugWindowClass.EXPANDED,
         useUltraCompactHeightChrome = heightDp < ULTRA_COMPACT_HEIGHT_UPPER_BOUND_DP,
+        useRailChrome = heightDp < ULTRA_COMPACT_HEIGHT_UPPER_BOUND_DP || shortLandscape(widthDp, heightDp),
     )
 }
+
+/**
+ * A phone held sideways (owner 2026-10-23: 手机都固定横屏) takes the rail too: under 480 dp the header and the bottom bar
+ * would leave the conversation a strip. It keeps the whole conversation, which only the bench's strip condenses.
+ */
+private fun shortLandscape(widthDp: Float, heightDp: Float): Boolean =
+    heightDp < COMPACT_HEIGHT_UPPER_BOUND_DP && widthDp > heightDp
 
 @Composable
 internal fun DebugDestinationBar(

@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -119,6 +122,7 @@ internal fun DebugConsoleScreen(
         Modifier
             .fillMaxSize()
             .background(colors.bg)
+            .windowInsetsPadding(WindowInsets.displayCutout)
             .imePadding()
             .padding(DebugDimens.spaceMd),
     ) {
@@ -133,7 +137,7 @@ internal fun DebugConsoleScreen(
             return@BoxWithConstraints
         }
         Column(Modifier.fillMaxSize()) {
-            if (!policy.useUltraCompactHeightChrome) {
+            if (!policy.useRailChrome) {
                 SampleHostChrome(
                     state = state,
                     view = view,
@@ -148,7 +152,7 @@ internal fun DebugConsoleScreen(
                 DebugConsoleView.A2A -> DebugA2aClientLayout(
                     state = a2aClient,
                     actions = requireNotNull(a2aActions),
-                    tabs = if (policy.useUltraCompactHeightChrome) {
+                    tabs = if (policy.useRailChrome) {
                         { DebugConsoleViewTabs(view, setView, showA2aTab = true) }
                     } else {
                         null
@@ -156,7 +160,7 @@ internal fun DebugConsoleScreen(
                     modifier = bodyModifier,
                 )
                 DebugConsoleView.PLANS -> DebugPlansLayout(
-                    tabs = if (policy.useUltraCompactHeightChrome) {
+                    tabs = if (policy.useRailChrome) {
                         { DebugConsoleViewTabs(view, setView, showA2aTab = a2aActions != null) }
                     } else {
                         null
@@ -181,7 +185,8 @@ internal fun DebugConsoleScreen(
                         actions = screenActions,
                         view = view,
                         onViewChange = setView,
-                        useUltraCompactHeightChrome = policy.useUltraCompactHeightChrome,
+                        useRailChrome = policy.useRailChrome,
+                        useCondensedConversationChrome = policy.useUltraCompactHeightChrome,
                         page = page,
                         destination = destination,
                         onDestinationSelected = selectDestination,
@@ -423,7 +428,7 @@ private fun DebugTrajectoryLayout(
     }
     if (policy.windowClass == DebugWindowClass.COMPACT) {
         Column(modifier.fillMaxSize()) {
-            if (policy.useUltraCompactHeightChrome) {
+            if (policy.useRailChrome) {
                 DebugConsoleViewTabs(view, onViewChange)
                 Spacer(Modifier.height(4.dp))
             }
@@ -456,7 +461,8 @@ private fun DebugCompactLayout(
     actions: DebugConsoleActions,
     view: DebugConsoleView,
     onViewChange: (DebugConsoleView) -> Unit,
-    useUltraCompactHeightChrome: Boolean,
+    useRailChrome: Boolean,
+    useCondensedConversationChrome: Boolean,
     page: DebugConsolePage,
     destination: DebugNavigationDestination,
     onDestinationSelected: (DebugNavigationDestination) -> Unit,
@@ -475,10 +481,10 @@ private fun DebugCompactLayout(
             state, pendingInput, onPendingInputConsumed, actions, page, destination,
             onShowConversation, onShowSettings, onShowMcpProvidersFromBoard,
             onShowMcpProvidersFromSettings, onLeaveMcpProviders, onShowA2aProfiles, onLeaveA2aProfiles,
-            useUltraCompactHeightChrome, paneModifier,
+            useCondensedConversationChrome, paneModifier,
         )
     }
-    if (useUltraCompactHeightChrome) {
+    if (useRailChrome) {
         Row(modifier.fillMaxSize()) {
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 DebugConsoleViewTabs(view, onViewChange)

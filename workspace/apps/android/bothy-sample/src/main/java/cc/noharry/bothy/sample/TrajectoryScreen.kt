@@ -61,8 +61,8 @@ internal fun trajectoryLayoutPolicy(policy: DebugConsoleLayoutPolicy): Trajector
     when (policy.windowClass) {
         DebugWindowClass.COMPACT -> TrajectoryLayoutPolicy(
             inspector = TrajectoryInspectorPresentation.FULL_SCREEN,
-            // Ultra-compact height keeps the ledger usable instead of stacking three panes.
-            showTimeline = !policy.useUltraCompactHeightChrome,
+            // A short screen (the bench's strip, a phone held sideways) keeps the ledger usable instead of stacking three panes.
+            showTimeline = !policy.useRailChrome,
             allowDragRange = false,
             inspectorWidth = 0.dp,
         )

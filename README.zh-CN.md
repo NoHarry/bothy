@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
-[![Platform](https://img.shields.io/badge/platform-Android%20tablet-3DDC84?logo=android&logoColor=white)](#环境要求)
+[![Platform](https://img.shields.io/badge/platform-Android%20tablet%20%26%20phone-3DDC84?logo=android&logoColor=white)](#环境要求)
 
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="小博在黄昏的山间小屋旁" width="880"></p>
 
@@ -143,6 +143,7 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 - 演示 App：`minSdk 24`、`compileSdk 37`（运行时用到 `java.nio.file`，所以用 `desugar_jdk_libs_nio` 做 core library desugaring）
 - JDK 17、Gradle 9.6、Android Gradle Plugin 9.4、Kotlin 2.4
+- 平板优先，手机横着也能用。在手机上（最短边小于 600 dp）两个 App 都固定横屏：Bothy 控制台用紧凑布局，页面切换放在右侧竖栏；车机界面整体缩到四分之三；小博的悬浮卡片能放进竖屏的其他 App 之上。手机模拟器（Apple 芯片上用 arm64 镜像）可以跑这两个 App，高德地图也能显示。
 
 ## 许可证
 

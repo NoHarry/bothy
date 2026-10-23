@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
-[![Platform](https://img.shields.io/badge/platform-Android%20tablet-3DDC84?logo=android&logoColor=white)](#requirements)
+[![Platform](https://img.shields.io/badge/platform-Android%20tablet%20%26%20phone-3DDC84?logo=android&logoColor=white)](#requirements)
 
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="Bothy's mascot 小博 (Xiao Bo) by a mountain bothy at dusk" width="880"></p>
 
@@ -189,6 +189,10 @@ voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py`
 - Demo app: `minSdk 24`, `compileSdk 37` (core library desugaring with `desugar_jdk_libs_nio`, since the runtime uses
   `java.nio.file`)
 - JDK 17, Gradle 9.6, Android Gradle Plugin 9.4, Kotlin 2.4
+- Tablets first; phones work held sideways. On a phone (smallest width under 600 dp) both apps turn landscape: Bothy's
+  console takes its compact layout with the destinations in a rail, the head unit draws at three quarters of its size,
+  and 小博's floating card fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs
+  both apps, AMap's map included.
 
 ## License
 

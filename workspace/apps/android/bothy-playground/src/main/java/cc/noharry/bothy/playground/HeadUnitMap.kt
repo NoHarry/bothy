@@ -80,9 +80,12 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier, o
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(number, color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold, lineHeight = 40.sp)
                     Text(unit, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 3.dp, bottom = 5.dp))
-                    Text(" 后进入", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
                 }
-                Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // 后进入 leads the road, as on AMap's stock panel: beside a long distance it wrapped.
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("后进入 ", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
+                    Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
         ExitLine(nav.guide)
@@ -130,10 +133,10 @@ private fun SpeedLine(nav: NavState) {
         Text("${nav.speedKmh}", color = if (nav.guide.over(nav.speedKmh)) LIMIT_RED else Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Text("km/h", color = UnitColors.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
         if (nav.lightsLeft > 0) {
-            // On the right, kept to one line beside the limit's sign.
+            // On the right, kept to one line beside the limit's sign: the light's icon says what the number counts.
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Filled.Traffic, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
-            Text("${nav.lightsLeft} 个红绿灯", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
+            Icon(Icons.Filled.Traffic, contentDescription = "红绿灯", tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
+            Text("${nav.lightsLeft} 个", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
     if (nav.guide.sectionLimitKmh > 0) {

@@ -53,7 +53,17 @@ class DebugConsoleAdaptiveLayoutTest {
         assertFalse(policy.showPersistentSessions)
         assertFalse(policy.showPersistentBoard)
         assertFalse(policy.useUltraCompactHeightChrome)
-        assertTrue(policy.showBottomNavigation)
+    }
+
+    @Test
+    fun aPhoneHeldSidewaysTakesTheRailAndKeepsTheConversation() {
+        // Pixel 5 sideways without its bars: 851×393 dp.
+        val policy = debugConsoleLayoutPolicy(851f, 393f)
+
+        assertTrue(policy.useRailChrome)
+        assertTrue(policy.showTrailingNavigationRail)
+        assertFalse(policy.showBottomNavigation)
+        assertFalse(policy.useUltraCompactHeightChrome)
     }
 
     @Test
@@ -70,6 +80,13 @@ class DebugConsoleAdaptiveLayoutTest {
     fun ultraCompactHeightBoundaryIsStable() {
         assertTrue(debugConsoleLayoutPolicy(800f, 239f).useUltraCompactHeightChrome)
         assertFalse(debugConsoleLayoutPolicy(800f, 240f).useUltraCompactHeightChrome)
+    }
+
+    @Test
+    fun railHeightBoundaryIsStable() {
+        assertTrue(debugConsoleLayoutPolicy(800f, 479f).useRailChrome)
+        assertFalse(debugConsoleLayoutPolicy(800f, 480f).useRailChrome)
+        assertFalse(debugConsoleLayoutPolicy(470f, 479f).useRailChrome)
     }
 
     @Test

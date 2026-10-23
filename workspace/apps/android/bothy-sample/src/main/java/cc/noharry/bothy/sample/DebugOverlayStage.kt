@@ -332,7 +332,8 @@ private fun Header(hud: DebugOverlayHud, ui: DebugOverlayUi, mood: Mood, actions
         if (ui.stopVisible) StopButton(actions.onStop)
         GlassIcon(Icons.Filled.Edit, "输入", tint = if (ui.pendingQuestion || ui.showInput) OverlayPalette.glow else OverlayPalette.secondary, onClick = actions.onToggleInput)
         GlassIcon(Icons.Filled.Info, "详情", tint = if (ui.showDetails) OverlayPalette.glow else OverlayPalette.secondary, onClick = actions.onToggleDetails)
-        GlassIcon(Icons.AutoMirrored.Filled.ExitToApp, "打开页面", onClick = actions.onPage)
+        // A portrait card has no room for five: 打开页面 waits until the run stops.
+        if (!ui.stopVisible || ui.cardWidth >= ALL_HEADER_ICONS_WIDTH) GlassIcon(Icons.AutoMirrored.Filled.ExitToApp, "打开页面", onClick = actions.onPage)
         GlassIcon(Icons.Filled.Close, "收起", onClick = actions.onClose)
     }
 }
@@ -915,6 +916,8 @@ private val PictureShape = RoundedCornerShape(22.dp)
 private val PICTURE_SIZE = 320.dp
 /** The card's own horizontal padding, as set on its content column. */
 private val CARD_PADDING_HORIZONTAL = 28.dp
+/** The narrowest card whose header holds every button at once, 停止 among them; the portrait card is 420. */
+private val ALL_HEADER_ICONS_WIDTH = 480.dp
 private val CARD_PADDING_VERTICAL = 24.dp
 /** How small the card is when folded into 小博, before it fades out entirely. */
 private const val FOLDED_SCALE = 0.2f

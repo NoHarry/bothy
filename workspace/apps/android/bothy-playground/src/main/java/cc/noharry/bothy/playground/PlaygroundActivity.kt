@@ -1,6 +1,7 @@
 package cc.noharry.bothy.playground
 
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -34,6 +35,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,8 +47,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -57,6 +61,9 @@ class PlaygroundActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // A phone is a small head unit, held sideways (owner 2026-10-23: 手机都固定横屏): the head unit is laid out wide.
+        val phone = resources.configuration.smallestScreenWidthDp < PHONE_SHORT_SIDE_DP
+        if (phone) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
         // preferred rate alone lost to the map surface's own vote: the display's 60 Hz mode is asked for outright.
         @Suppress("DEPRECATION") val screen = windowManager.defaultDisplay
@@ -76,7 +83,7 @@ class PlaygroundActivity : ComponentActivity() {
             ViewCompat.onApplyWindowInsets(view, insets)
         }
         PlaygroundService.start(this)
-        setContent { PlaygroundApp(Playground.store) }
+        setContent { PhoneScale(phone) { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
     }
 
@@ -102,8 +109,23 @@ class PlaygroundActivity : ComponentActivity() {
 
     private companion object {
         const val REHIDE_MS = 2_500L
+        /** Android's line between phones and tablets, in dp of the smallest width. */
+        const val PHONE_SHORT_SIDE_DP = 600
     }
 }
+
+/**
+ * A phone draws the head unit at [PHONE_SCALE]: sideways it is 851×393 dp, and the tablet's layout wants about 1105×692;
+ * scaled it is 1135×524, its type still readable.
+ */
+@Composable
+private fun PhoneScale(phone: Boolean, content: @Composable () -> Unit) {
+    if (!phone) return content()
+    val base = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(base.density * PHONE_SCALE, base.fontScale), content = content)
+}
+
+private const val PHONE_SCALE = 0.75f
 
 internal enum class PlaygroundScene(val label: String, val server: String) { CABIN("虚拟座舱", "cabin"), HOME("虚拟小家", "home") }
 

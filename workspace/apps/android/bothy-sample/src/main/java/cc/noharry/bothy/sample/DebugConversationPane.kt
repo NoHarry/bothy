@@ -78,12 +78,16 @@ internal fun DebugConversationPane(
             if (state.isRunning) actions.steer(text) else actions.submit(text)
         }
     }
-    Column(modifier) {
-        DebugQuestionCards(state, actions)
-        if (useCondensedChrome) {
-            DebugCondensedConversationPane(input, { input = it }, submit, state, actions, Modifier.weight(1f))
-        } else {
-            DebugRegularConversationPane(input, { input = it }, submit, state, actions, Modifier.weight(1f))
+    BoxWithConstraints(modifier) {
+        // A phone held sideways leaves the pane little height: the composer folds to two rows.
+        val short = maxHeight < SHORT_PANE_HEIGHT
+        Column(Modifier.fillMaxSize()) {
+            DebugQuestionCards(state, actions)
+            if (useCondensedChrome) {
+                DebugCondensedConversationPane(input, { input = it }, submit, state, actions, Modifier.weight(1f))
+            } else {
+                DebugRegularConversationPane(input, { input = it }, submit, state, actions, short, Modifier.weight(1f))
+            }
         }
     }
 }
@@ -95,6 +99,7 @@ private fun DebugRegularConversationPane(
     onSubmit: () -> Unit,
     state: DebugUiState,
     actions: DebugConsoleActions,
+    short: Boolean,
     modifier: Modifier,
 ) {
     DebugPanelBox("Conversation", modifier) {
@@ -172,6 +177,7 @@ private fun DebugRegularConversationPane(
             onSubmit = onSubmit,
             state = state,
             actions = actions,
+            short = short,
         )
     }
 }
@@ -342,6 +348,7 @@ private fun DebugInputBar(
     onSubmit: () -> Unit,
     state: DebugUiState,
     actions: DebugConsoleActions,
+    short: Boolean,
 ) {
     val colors = DebugColors
     // Claude-quiet composer dock: soft panel, weak border; activity only on Steer.
@@ -353,8 +360,13 @@ private fun DebugInputBar(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
-        Column(Modifier.padding(DebugDimens.spaceMd)) {
+        Column(Modifier.padding(if (short) DebugDimens.spaceSm else DebugDimens.spaceMd)) {
             DebugVoiceStrip()
+            if (short) {
+                DebugMessageField(text, onTextChange, true, Modifier.fillMaxWidth())
+                CondensedComposerActions(text, onSubmit, state, actions)
+                return@Column
+            }
             DebugMessageField(text, onTextChange, false, Modifier.fillMaxWidth())
             Spacer(Modifier.height(DebugDimens.spaceSm))
             ConfirmationModeSelector(state.confirmationMode, actions)
@@ -597,6 +609,8 @@ private val VARIANT_MENU_MAX_WIDTH = 180.dp
 private val APPROVAL_MENU_MIN_WIDTH = 260.dp
 private val APPROVAL_MENU_MAX_WIDTH = 340.dp
 private val COMPACT_COMPOSER_WIDTH = 560.dp
+/** Under this the conversation pane takes the two-row composer: a phone held sideways gives it about 330 dp. */
+private val SHORT_PANE_HEIGHT = 420.dp
 private val CONDENSED_INPUT_HEIGHT = 52.dp
 private val CONDENSED_ACTIONS_HEIGHT = 48.dp
 private val CONDENSED_STATUS_MIN_HEIGHT = 140.dp

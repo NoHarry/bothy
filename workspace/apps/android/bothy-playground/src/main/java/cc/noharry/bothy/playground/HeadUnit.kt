@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -45,6 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -227,7 +231,8 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
     val navigation = Playground.navigation
     val lanes by Guidance.lanes.collectAsState()
     val cross by Guidance.cross.collectAsState()
-    Column(Modifier.offset(slots.x, slots.top).width(slots.width), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    val room = slots.actionsBottom - slots.top - (if (nav.driving) ACTION_BAR_HEIGHT + 10.dp else 0.dp)
+    FittingColumn(10.dp, Modifier.offset(slots.x, slots.top).width(slots.width).heightIn(max = room)) {
         if (nav.previewing) {
             RoutePreviewCard(nav, { scope.launch(Dispatchers.IO) { navigation?.begin() } }, { scope.launch(Dispatchers.IO) { navigation?.stop() } })
             RouteDetails(nav, now)
@@ -254,6 +259,30 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
     }
     lanes?.takeIf { nav.driving }?.let { LanesOverMap(it, slots) }
     if (nav.driving) DrivingControls(nav, map, store, slots, onMore)
+}
+
+/**
+ * Its children top to bottom, [gap] apart, as many as fit its height: on a short screen (a phone, owner 2026-10-23) the
+ * cards under the turn give way rather than run under the actions. The first always shows, within the height.
+ */
+@Composable
+private fun FittingColumn(gap: Dp, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Layout(content, modifier) { children, constraints ->
+        val gapPx = gap.roundToPx()
+        val shown = mutableListOf<Placeable>()
+        var used = 0
+        for (child in children) {
+            val top = if (shown.isEmpty()) 0 else used + gapPx
+            val placeable = child.measure(constraints.copy(minWidth = 0, minHeight = 0, maxHeight = if (shown.isEmpty()) constraints.maxHeight else Constraints.Infinity))
+            if (shown.isNotEmpty() && top + placeable.height > constraints.maxHeight) break
+            shown += placeable
+            used = top + placeable.height
+        }
+        layout(constraints.maxWidth, used) {
+            var y = 0
+            shown.forEach { it.place(0, y); y += it.height + gapPx }
+        }
+    }
 }
 
 /**
