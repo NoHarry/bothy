@@ -1,7 +1,7 @@
 # Bothy
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
+[![Android Agent Runtime](https://img.shields.io/maven-central/v/cc.noharry/agent-runtime?label=runtime)](https://github.com/NoHarry/android-agent-runtime)
 [![Platform](https://img.shields.io/badge/platform-Android%20tablet%20%26%20phone-3DDC84?logo=android&logoColor=white)](#环境要求)
 
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="小博在黄昏的山间小屋旁" width="880"></p>
@@ -102,10 +102,9 @@ Bothy 本身的界面是一个类似 Codex 的开发者控制台。对话区列�
 
 ## 运行演示 App
 
-把运行时 clone 到本仓库旁边，Gradle 会从源码构建它，代替已发布的构件（见 `settings.gradle.kts`；加 `-PagentRuntimeDir=` 则用已发布的 `agentRuntimeVersion`）：
+两个 App 用的是发布在 Maven Central 上的运行时（版本见 `gradle.properties` 的 `agentRuntimeVersion`）。想基于运行时源码构建，就把它 clone 到本仓库旁边，Gradle 会从源码构建它，代替已发布的构件（见 `settings.gradle.kts`；加 `-PagentRuntimeDir=` 则回到已发布的版本）。
 
 ```bash
-git clone https://github.com/NoHarry/android-agent-runtime.git
 git clone https://github.com/NoHarry/bothy.git
 cd bothy/workspace/apps/android
 ./gradlew :bothy-sample:assembleDebug

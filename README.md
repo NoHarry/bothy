@@ -1,7 +1,7 @@
 # Bothy
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Android Agent Runtime](https://img.shields.io/badge/runtime-0.1.0--SNAPSHOT-blue)](https://github.com/NoHarry/android-agent-runtime)
+[![Android Agent Runtime](https://img.shields.io/maven-central/v/cc.noharry/agent-runtime?label=runtime)](https://github.com/NoHarry/android-agent-runtime)
 [![Platform](https://img.shields.io/badge/platform-Android%20tablet%20%26%20phone-3DDC84?logo=android&logoColor=white)](#requirements)
 
 <p align="center"><img src="docs/images/bothy-hero.jpg" alt="Bothy's mascot 小博 (Xiao Bo) by a mountain bothy at dusk" width="880"></p>
@@ -146,11 +146,11 @@ works only when both apps are signed with the same key (see [Running the demo](#
 
 ## Running the demo
 
-Clone the runtime beside this repository; Gradle then builds it from source in place of the published artifacts
-(`settings.gradle.kts`; `-PagentRuntimeDir=` uses the published `agentRuntimeVersion` instead):
+The apps use the runtime published on Maven Central (`agentRuntimeVersion` in `gradle.properties`). To build against
+its source instead, clone it beside this repository: Gradle then builds it in place of the published artifacts
+(`settings.gradle.kts`; `-PagentRuntimeDir=` goes back to the published version).
 
 ```bash
-git clone https://github.com/NoHarry/android-agent-runtime.git
 git clone https://github.com/NoHarry/bothy.git
 cd bothy/workspace/apps/android
 ./gradlew :bothy-sample:assembleDebug
