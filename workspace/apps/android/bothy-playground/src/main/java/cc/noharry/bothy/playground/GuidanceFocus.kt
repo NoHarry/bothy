@@ -45,17 +45,22 @@ internal class GuidanceFocus(context: Context, private val main: Handler) : TTSP
             .setOnAudioFocusChangeListener(listener, main)
             .build()
 
+    private val take = Runnable {
+        if (held) return@Runnable
+        held = true
+        retried = false
+        request()
+    }
+
     // After AMap's own request, which follows this callback by some 10 ms.
     override fun onPlayStart(text: String?) {
-        main.postDelayed({
-            if (held) return@postDelayed
-            held = true
-            retried = false
-            request()
-        }, AFTER_AMAP_MILLIS)
+        main.removeCallbacks(take)
+        main.postDelayed(take, AFTER_AMAP_MILLIS)
     }
 
     override fun onPlayEnd(text: String?) {
+        // A prompt over before its focus was taken: taken late, it would never be given back and would hold music down.
+        main.removeCallbacks(take)
         main.post {
             if (!held) return@post
             held = false
