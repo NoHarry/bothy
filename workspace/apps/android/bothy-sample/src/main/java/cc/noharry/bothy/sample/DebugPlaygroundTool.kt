@@ -105,6 +105,37 @@ private suspend fun waitForFront(context: Context, packages: Set<String>): Boole
     return false
 }
 
+/**
+ * Whether Bothy Playground drives in real navigation (owner 2026-10-25: 「真实模式，像空调那种东西为什么还会播报」): then
+ * there is no car to control, so the demo car tools (Tools JSON: the air conditioning and the like) stay off and the run
+ * is told so ([line]). The Playground says which as it takes the assistant over and when it switches; kept across starts.
+ */
+internal object DebugPlaygroundMode {
+    @Volatile var real: Boolean = false
+        private set
+
+    fun init(context: Context) {
+        real = prefs(context).getBoolean(KEY_REAL, false)
+    }
+
+    fun report(context: Context, real: Boolean) {
+        if (this.real == real) return
+        this.real = real
+        prefs(context).edit().putBoolean(KEY_REAL, real).apply()
+    }
+
+    /** For the run's context: what there is to do in real navigation, and what not to offer. */
+    fun line(): String = if (real) REAL_LINE else ""
+
+    private fun prefs(context: Context) = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private const val PREFS = "debug_playground"
+    private const val KEY_REAL = "real_nav"
+    private const val REAL_LINE = "车机在真实导航模式：车上没有能控制的空调、车窗、座椅、灯这些，也没有虚拟小家。用户要这些时，" +
+        "第一步就直接回复现在是真实导航模式、控制不了车，不要搜工具、翻文件或打开车机去找；也不要主动提议车控。" +
+        "能做的是真实导航、平板上的应用和音乐视频、联网查询、提醒。"
+}
+
 internal fun playgroundInstalled(context: Context): Boolean =
     context.packageManager.getLaunchIntentForPackage(PLAYGROUND_PACKAGE) != null
 

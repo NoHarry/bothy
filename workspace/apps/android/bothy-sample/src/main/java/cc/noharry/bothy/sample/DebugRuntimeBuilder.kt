@@ -105,7 +105,8 @@ internal fun buildDebugRuntime(
     // The earlier runs already hold the conversation and the skills they loaded; a new session (or one from before a
     // restart) still gets the recap and the previous exchange.
     // The time and the app in front, both per run (the run context, never the cached system prompt).
-    val clock = listOf(debugClockLine(System.currentTimeMillis()), debugForegroundLine(context)).filter(String::isNotBlank).joinToString("\n")
+    val clock = listOf(debugClockLine(System.currentTimeMillis()), debugForegroundLine(context), DebugPlaygroundMode.line())
+        .filter(String::isNotBlank).joinToString("\n")
     val verifyAgent = !subagentChild && DebugSubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
     val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
     val prompt = if (carried.isEmpty()) {
@@ -225,7 +226,8 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
         mounted += provider
         toolProvider(if (provider is ToolCatalogCacheIdentity) provider else DebugBoundCallHints(provider))
     }
-    if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_TOOLS_JSON)) {
+    // The demo car's tools; with the Playground in real navigation there is no car to control ([DebugPlaygroundMode]).
+    if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_TOOLS_JSON) && !DebugPlaygroundMode.real) {
         mount(configure(ToolsJsonMcpProvider.fromAssets(context)))
     }
     // The configured servers (设置 → 连接 → MCP), in their order; the workflow skills ride on the tools they bind.

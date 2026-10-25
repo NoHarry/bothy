@@ -1,6 +1,15 @@
 package cc.noharry.bothy.playground
 
 import android.os.Build
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.runtime.mutableIntStateOf
+import kotlinx.coroutines.delay
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -67,6 +76,37 @@ internal fun VoiceDock(view: AssistantView, wide: Dp, onClose: () -> Unit, modif
                 Text("说「你好小博」或点我", color = UnitColors.muted, fontSize = 11.sp, maxLines = 1)
             }
         }
+    }
+}
+
+/**
+ * 「试试说」 and one thing to say, rolling to the next every [ROLL_EVERY_MS] (in from below, as the card's tool line);
+ * tapped, it is said to 小博 ([onSay]).
+ */
+@Composable
+internal fun SuggestionTicker(lines: List<String>, onSay: (String) -> Unit) {
+    var index by remember { mutableIntStateOf(0) }
+    LaunchedEffect(lines) {
+        while (true) {
+            delay(ROLL_EVERY_MS)
+            index = (index + 1) % lines.size
+        }
+    }
+    val line = lines[index % lines.size]
+    Row(
+        Modifier.clip(RoundedCornerShape(50)).background(UnitColors.raised).clickable { onSay(line) }.padding(horizontal = 14.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("试试说", color = UnitColors.muted, fontSize = 12.sp)
+        AnimatedContent(
+            targetState = line,
+            transitionSpec = {
+                (fadeIn(tween(ROLL_MS)) + slideInVertically(tween(ROLL_MS)) { it }) togetherWith
+                    (fadeOut(tween(ROLL_MS)) + slideOutVertically(tween(ROLL_MS)) { -it })
+            },
+            label = "suggestion",
+        ) { Text("「$it」", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
     }
 }
 
@@ -148,3 +188,5 @@ private const val GLOW_BLUR_DP = 10
 private const val GLOW_IN_MS = 420
 private const val GLOW_OUT_MS = 700
 private const val DOCK_MS = 260
+private const val ROLL_EVERY_MS = 3_500L
+private const val ROLL_MS = 320

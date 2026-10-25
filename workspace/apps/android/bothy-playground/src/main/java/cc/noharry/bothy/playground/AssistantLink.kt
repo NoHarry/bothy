@@ -71,6 +71,7 @@ object Assistant {
         val intent = Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE)
             .putExtra("active", active)
             .putExtra("package", context.packageName)
+            .putExtra("realNav", HeadUnitModes.realNav)
         runCatching { context.sendBroadcast(intent, PERMISSION) }
     }
 
@@ -93,8 +94,10 @@ object Assistant {
      */
     fun modeChanged(context: Context) = command(context, "mode_changed")
 
+    /** Each command says the mode too: in real navigation Bothy offers no car control ([HeadUnitModes]). */
     private fun command(context: Context, name: String) {
-        runCatching { context.sendBroadcast(Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE).putExtra("command", name), PERMISSION) }
+        val intent = Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE).putExtra("command", name).putExtra("realNav", HeadUnitModes.realNav)
+        runCatching { context.sendBroadcast(intent, PERMISSION) }
     }
 
     /** A new report. */

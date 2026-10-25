@@ -193,7 +193,7 @@ private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: Media
         ) {
             VoiceDock(assistant, voiceWidth, onClose)
             // While 小博 listens its words need the room.
-            if (!assistant.listening) NEARBY_REAL.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
+            if (!assistant.listening) SuggestionTicker(REAL_SUGGESTIONS) { Assistant.say(context, it) }
             Spacer(Modifier.weight(1f))
             PlayStrip(playing, controls)
             PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
@@ -260,7 +260,14 @@ internal class MediaControls(val previous: () -> Unit, val playPause: () -> Unit
 private val DEVICE_MEDIA = MediaControls({ NowPlaying.previous() }, { NowPlaying.playPause() }, { NowPlaying.next() })
 
 /** What the bar offers to look for nearby, and what each says to 小博. */
-private val NEARBY_REAL = listOf("充电站" to "找一下附近的充电站", "停车场" to "找一下附近的停车场", "加油站" to "找一下附近的加油站")
+/**
+ * What the bar suggests saying, a line at a time (owner 2026-10-25: 「改成滚动的吧，多弄几个引导的场景，不光是导航的」):
+ * what real navigation can do with the device alone, the places nearby, the weather, music and video, reminders, apps.
+ */
+private val REAL_SUGGESTIONS = listOf(
+    "附近有充电站吗", "明天天气怎么样", "放点轻松的音乐", "找一下附近的停车场", "明早八点提醒我带伞", "现在放的是什么歌",
+    "这周末附近有什么活动", "找个加油站", "打开哔哩哔哩", "下一首", "附近有什么好吃的", "音量调小一点", "今天有什么新闻",
+)
 
 
 /** The bottom strip with the map first: darker than the cards over the map. */

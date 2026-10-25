@@ -29,6 +29,8 @@ internal object DebugAssistantSurface {
     const val EXTRA_PACKAGE = "package"
     const val EXTRA_TEXT = "text"
     const val EXTRA_COMMAND = "command"
+    /** The Playground drives in real navigation ([DebugPlaygroundMode]); sent as it takes over and with mode_changed. */
+    const val EXTRA_REAL_NAV = "realNav"
     const val COMMAND_WAKE = "wake"
     const val COMMAND_CLOSE = "close"
     /** Bothy Playground (re)started: its servers may offer other tools than when they were last listed. */
@@ -201,6 +203,9 @@ private const val MAX_THOUGHT = 360
 class DebugAssistantSurfaceReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != DebugAssistantSurface.ACTION_TAKE_OVER) return
+        if (intent.hasExtra(DebugAssistantSurface.EXTRA_REAL_NAV)) {
+            DebugPlaygroundMode.report(context, intent.getBooleanExtra(DebugAssistantSurface.EXTRA_REAL_NAV, false))
+        }
         when (intent.getStringExtra(DebugAssistantSurface.EXTRA_COMMAND)) {
             // As the wake word would: 小博 answers and listens (or listens anew).
             DebugAssistantSurface.COMMAND_WAKE -> {
