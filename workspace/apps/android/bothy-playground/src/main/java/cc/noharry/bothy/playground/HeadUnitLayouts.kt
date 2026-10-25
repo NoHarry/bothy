@@ -120,8 +120,9 @@ internal fun MapHeadUnit(
     val nav = world.cabin.nav
     TakeOverAssistant()
     FollowTheMedia()
-    // The panel only while there is something to show; listening is the bar's corner ([VoiceDock]).
-    val panel = assistant.open(now, dismissed)
+    // The panel only while there is something to show; listening is the bar's corner ([VoiceDock]). Touched, it stays.
+    var held by remember { mutableStateOf<String?>(null) }
+    val panel = assistant.open(now, dismissed, held)
     val close = { dismissed = assistant.request.ifBlank { null }; Assistant.close(context) }
     ScreenFill {
         BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -142,7 +143,10 @@ internal fun MapHeadUnit(
             // Search and what to look for nearby are on the bar: nothing over the map until there is a route.
             // The bar holds the settings: no 「更多」 on the route's actions.
             if (routeCards) MapOverlays(world, now, map, store, slots.route, onMore = null)
-            slots.assistant?.let { box -> AssistantChatPanel(assistant, null, close, Modifier.offset(box.x, box.y).size(box.width, box.height)) }
+            slots.assistant?.let { box ->
+                val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
+                AssistantChatPanel(assistant, null, close, placed, assistant.closesAt(held), voiceInBar = true) { held = assistant.request }
+            }
             RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
             RealBar(assistant, playing, DEVICE_MEDIA, slots.bar, maxWidth / 3, close) { onSheet(true) }
         }

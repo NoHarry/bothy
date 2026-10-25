@@ -23,6 +23,8 @@ internal object DebugAssistantSurface {
     const val PERMISSION = "cc.noharry.bothy.permission.ASSISTANT_SURFACE"
     const val ACTION_TAKE_OVER = "cc.noharry.bothy.sample.ASSISTANT_SURFACE"
     const val ACTION_EVENT = "cc.noharry.bothy.ASSISTANT_EVENT"
+    /** The loudness now, for the surface's voice light: `heard` (the user) and `spoken` (小博), each 0..1. */
+    const val ACTION_LEVEL = "cc.noharry.bothy.ASSISTANT_LEVEL"
     const val EXTRA_ACTIVE = "active"
     const val EXTRA_PACKAGE = "package"
     const val EXTRA_TEXT = "text"
@@ -44,6 +46,37 @@ internal object DebugAssistantSurface {
     private var voice = VoiceSessionState()
     private var sent: Map<String, Any>? = null
     private val lapse = Runnable { surface.value = null }
+    private var appContext: Context? = null
+    private val mic = MicLevelPlayhead()
+    private var levelsOn = false
+
+    /**
+     * The loudness, [LEVEL_MS] apart, while a surface has the assistant and someone speaks (owner 2026-10-25: 「底部光效要
+     * 跟随人说话或者tts播报上下跳动更明显」): the user's while voice listens, 小博's while it talks, as the card's own light
+     * follows them ([VoiceAura]). One last zero when both stop.
+     */
+    private val levels = object : Runnable {
+        override fun run() {
+            val context = appContext ?: return
+            val pkg = surface.value
+            val on = pkg != null && (DebugVoiceController.listening || DebugTtsActivity.active.value)
+            if (pkg != null && (on || levelsOn)) {
+                val heard = if (on) auraHeardLevel(mic, System.nanoTime()) else 0f
+                val spoken = if (on) auraSpokenLevel() else 0f
+                runCatching {
+                    context.sendBroadcast(Intent(ACTION_LEVEL).setPackage(pkg).putExtra("heard", heard).putExtra("spoken", spoken), PERMISSION)
+                }
+            }
+            levelsOn = on
+            if (on) main.postDelayed(this, LEVEL_MS)
+        }
+    }
+
+    private fun levelsChanged(context: Context) {
+        appContext = context.applicationContext
+        main.removeCallbacks(levels)
+        main.post(levels)
+    }
 
     /** The package now showing the assistant, or null while the floating card does. */
     val target: StateFlow<String?> = surface
@@ -52,8 +85,10 @@ internal object DebugAssistantSurface {
 
     /** While [scope] lives: [onTaken] hears whether a surface has the assistant, and the surface hears the voice session. */
     fun follow(context: Context, scope: CoroutineScope, onTaken: (Boolean) -> Unit) {
-        scope.launch { target.collect { onTaken(it != null) } }
+        scope.launch { target.collect { onTaken(it != null); levelsChanged(context) } }
         scope.launch { DebugVoiceController.state.collect { voiceChanged(context, it) } }
+        scope.launch { DebugVoiceController.active.collect { levelsChanged(context) } }
+        scope.launch { DebugTtsActivity.active.collect { levelsChanged(context) } }
     }
 
     /** [pkg] shows the assistant from now (renewing the lease), or nobody does when null; it gets the state at once. */
@@ -103,6 +138,7 @@ internal object DebugAssistantSurface {
     }
 
     private const val TAKEOVER_LEASE_MS = 25_000L
+    private const val LEVEL_MS = 66L
 }
 
 /**

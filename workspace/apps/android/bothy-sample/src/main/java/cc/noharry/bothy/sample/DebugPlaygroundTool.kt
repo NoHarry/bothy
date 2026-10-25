@@ -10,6 +10,9 @@ import cc.noharry.agent.kernel.api.ToolCallResult
 import cc.noharry.agent.kernel.api.ToolCallTrace
 import cc.noharry.agent.kernel.api.ToolCatalogCacheIdentity
 import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.kernel.api.ToolPrefetchProvider
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.kernel.api.ToolPrefetchTrace
 import cc.noharry.agent.kernel.api.mcp.McpClientProvider
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
@@ -23,13 +26,14 @@ import kotlinx.serialization.json.put
  * 别人回到playground这个界面」; the skill is `skills/playground`). Bothy starts it itself, which its overlay permission
  * allows from the background, so it needs no screen control. Mounted only while the Playground is installed.
  */
-internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> Boolean) : McpClientProvider, ToolCatalogCacheIdentity {
+@OptIn(ExperimentalAgentRuntimeApi::class)
+internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> Boolean) :
+    McpClientProvider, ToolCatalogCacheIdentity, ToolPrefetchProvider {
     constructor(context: Context) : this({ scene -> openPlayground(context.applicationContext, scene) })
 
     override val serverId: String = PLAYGROUND_TOOL_SERVER_ID
     override val displayName: String = "Bothy Playground"
     override val catalogCacheIdentity: String = "bothy-sample:$PLAYGROUND_TOOL_SERVER_ID:v1"
-    @OptIn(ExperimentalAgentRuntimeApi::class)
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
@@ -40,6 +44,16 @@ internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> 
             inputSchemaJson = PLAYGROUND_OPEN_SCHEMA,
         ),
     )
+
+    /**
+     * Loaded at the start of every run (owner 2026-10-25: 「回到车机这个工具一直加载吧」): 「回到车机」 is called at once
+     * instead of after a search_tools round (≈15 s on the tablet, with a look at the screen as well).
+     */
+    override fun localToolNames(request: ToolPrefetchRequest): List<String> = listOf(PLAYGROUND_OPEN_TOOL)
+
+    override val remotePrefetchEnabled: Boolean get() = false
+
+    override suspend fun prefetchTools(request: ToolPrefetchRequest, trace: ToolPrefetchTrace): List<String> = emptyList()
 
     override suspend fun callTool(toolName: String, argumentsJson: String, context: ToolCallContext): ToolCallResult {
         if (toolName != PLAYGROUND_OPEN_TOOL) return failure("UNKNOWN_TOOL", "Unknown playground tool: $toolName")

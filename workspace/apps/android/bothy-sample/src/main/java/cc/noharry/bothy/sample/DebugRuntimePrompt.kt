@@ -131,9 +131,13 @@ internal const val WEB_VERIFY_RULE =
  * same events one per step for 35 s and came back as a second answer; parallel calls of one response run together.
  * Sightseeing routes are here too, not a skill of their own (owner 2026-10-19: 不要一个功能一个 skill): on the bench
  * 「八景都玩一遍」 was filled from memory and routed all eight for one afternoon although two closed before arrival.
+ * Weather too (owner 2026-10-25: 「天气直接走deepseek的搜索就行了」): asked with the time, the agent looked for a tool and
+ * listed files twice before it searched.
  */
 internal const val WEB_SEARCH_RULE =
-    "Questions the web answers (events and shows, news, opening times, prices): search. When the results leave several " +
+    "Weather (now, today, tomorrow, the coming days; rain, temperature, wind) is a web search: search in the first step, " +
+        "not search_tools for a weather tool and not files, and answer with the place and the day. " +
+        "Questions the web answers (events and shows, news, opening times, prices): search. When the results leave several " +
         "items the user would pick from unsure (dates, venue or tickets only from a listing or an old page), search those " +
         "all in one step, several search calls in the same response rather than one per step, then answer once with what " +
         "you checked on the card (show_card). Do not answer before those checks, and do not spawn web-verify for them. " +

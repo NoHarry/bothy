@@ -1,5 +1,15 @@
 package cc.noharry.bothy.playground
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -9,7 +19,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,11 +66,26 @@ import androidx.compose.ui.unit.sp
  * its reply; the panel keeps the newest in view. 小博 tapped listens again; the X ends voice.
  */
 @Composable
-internal fun AssistantChatPanel(view: AssistantView, speaker: Seat?, onClose: () -> Unit, modifier: Modifier = Modifier) {
+internal fun AssistantChatPanel(
+    view: AssistantView,
+    speaker: Seat?,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    closesAt: Long = 0L,
+    /**
+     * 小博 and its voice are in the bottom bar ([VoiceDock]), not on the card (owner 2026-10-25: 「卡片上面不要再显示一个
+     * 头像和话筒吧，统一用底部的表示」): the header is what was asked and the X.
+     */
+    voiceInBar: Boolean = false,
+    onTouched: () -> Unit = {},
+) {
     val scroll = rememberScrollState()
     LaunchedEffect(view.request, view.reply, view.timeline.size, view.a2ui) { scroll.animateScrollTo(scroll.maxValue) }
-    Column(modifier.clip(RoundedCornerShape(22.dp)).background(UnitColors.panel).padding(16.dp)) {
-        AssistantHeader(view, view.heard.ifBlank { view.request.ifBlank { view.voiceText().ifBlank { "你好，我是小博" } } }, view.heard.isNotBlank(), onClose, 17.sp)
+    // Any touch, a scroll's or a tap's, holds the card open ([AssistantView.open]); seen before what it lands on.
+    val touched = Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial); onTouched() } }
+    Column(modifier.then(touched).clip(RoundedCornerShape(22.dp)).background(UnitColors.panel).padding(16.dp)) {
+        val line = if (voiceInBar) view.request.ifBlank { "你好，我是小博" } else view.heard.ifBlank { view.request.ifBlank { view.voiceText().ifBlank { "你好，我是小博" } } }
+        AssistantHeader(view, line, !voiceInBar && view.heard.isNotBlank(), onClose, 17.sp, closesAt = closesAt, voice = !voiceInBar)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (view.request.isNotBlank()) {
@@ -77,23 +101,33 @@ internal fun AssistantChatPanel(view: AssistantView, speaker: Seat?, onClose: ()
 
 /**
  * 小博 and one line of words (the newest end in view, as words being heard run on), the microphone, and, while it
- * listens or works, the X that ends voice. 小博 or the microphone tapped wakes it.
+ * listens or works, the X that ends voice. 小博 or the microphone tapped wakes it. Without [voice] (小博 is in the bar
+ * below) only the line and the X.
  */
 @Composable
-private fun AssistantHeader(view: AssistantView, line: String, live: Boolean, onClose: (() -> Unit)?, textSize: TextUnit, avatar: Dp = 46.dp) {
+private fun AssistantHeader(
+    view: AssistantView,
+    line: String,
+    live: Boolean,
+    onClose: (() -> Unit)?,
+    textSize: TextUnit,
+    avatar: Dp = 46.dp,
+    closesAt: Long = 0L,
+    voice: Boolean = true,
+) {
     val context = LocalContext.current
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Mascot(view, avatar, Modifier.clickable { Assistant.wake(context) })
+        if (voice) Mascot(view, avatar, Modifier.clickable { Assistant.wake(context) })
         TailText(line, if (live && view.voiceTone == "LIVE") Color.White else if (live) UnitColors.muted else Color.White, textSize, Modifier.weight(1f))
-        Icon(
-            Icons.Filled.Mic,
-            contentDescription = "唤醒小博",
-            tint = if (view.listening) UnitColors.teal else UnitColors.muted,
-            modifier = Modifier.size(22.dp).clickable { Assistant.wake(context) },
-        )
-        if (onClose != null) {
-            Icon(Icons.Filled.Close, contentDescription = "退出语音", tint = UnitColors.muted, modifier = Modifier.size(24.dp).clip(CircleShape).clickable(onClick = onClose).padding(2.dp))
+        if (voice) {
+            Icon(
+                Icons.Filled.Mic,
+                contentDescription = "唤醒小博",
+                tint = if (view.listening) UnitColors.teal else UnitColors.muted,
+                modifier = Modifier.size(22.dp).clickable { Assistant.wake(context) },
+            )
         }
+        if (onClose != null) CloseCountdown(closesAt, view.holdMs(), onClose)
     }
 }
 
@@ -171,20 +205,23 @@ private fun Process(view: AssistantView) {
     }
 }
 
-/** 「小博 调用」 and the tools after it, one line scrolled to the newest as more are called. */
+/**
+ * 「小博 调用」 and the tool it is on: one line, each new call rolling in from below over the one before (owner
+ * 2026-10-25: 「不是现在这种往后叠加的状态」); the same call finishing only ticks, it does not roll.
+ */
 @Composable
 private fun CalledLine(calls: List<TurnEntry.Called>) {
-    val scroll = rememberScrollState()
-    LaunchedEffect(calls.size, calls.last().state) { scroll.animateScrollTo(scroll.maxValue) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("小博 调用", color = UnitColors.muted, fontSize = 12.sp)
-        Row(
-            Modifier.horizontalScroll(scroll),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            calls.forEach { Called(it) }
-        }
+        AnimatedContent(
+            targetState = calls.size to calls.last(),
+            contentKey = { it.first },
+            transitionSpec = {
+                (fadeIn(tween(ROLL_MS)) + slideInVertically(tween(ROLL_MS)) { it }) togetherWith
+                    (fadeOut(tween(ROLL_MS)) + slideOutVertically(tween(ROLL_MS)) { -it })
+            },
+            label = "called",
+        ) { (_, call) -> Called(call) }
     }
 }
 
@@ -292,6 +329,7 @@ private const val PLAN_PREFIX = "计划 ·"
 private const val REPLY_START = 12
 private const val BREATH_MS = 900
 private const val DOTS_MS = 900
+private const val ROLL_MS = 260
 
 /** Idle, what to say to 小博: each line, tapped, is said to it. */
 @Composable

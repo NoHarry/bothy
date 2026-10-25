@@ -63,6 +63,7 @@
             android:permission="cc.noharry.bothy.permission.ASSISTANT_SURFACE">
             <intent-filter>
                 <action android:name="cc.noharry.bothy.ASSISTANT_EVENT" />
+                <action android:name="cc.noharry.bothy.ASSISTANT_LEVEL" />
             </intent-filter>
         </receiver>
         <service

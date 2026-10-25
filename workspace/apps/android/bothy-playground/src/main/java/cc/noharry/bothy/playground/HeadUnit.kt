@@ -106,7 +106,9 @@ private fun SimulatedHeadUnit(
     val assistant by Assistant.state.collectAsState()
     val nav = world.cabin.nav
     TakeOverAssistant()
-    val panel = assistant.open(now, dismissed)
+    // The request whose card was touched: it stays until closed, as Bothy's own card does.
+    var held by remember { mutableStateOf<String?>(null) }
+    val panel = assistant.open(now, dismissed, held)
     val showMap = mapMode || nav.active || now - cuedAt < CUED_MAP_MS
     val close = { dismissed = assistant.request.ifBlank { null }; Assistant.close(context) }
     ScreenFill {
@@ -132,12 +134,12 @@ private fun SimulatedHeadUnit(
             }
             MapLayer(mapBlocked(context), map, if (showMap) grid.bigMap(mapFrom) else grid.miniMap())
             if (!showMap) HomeCards(world, grid)
-            val hearing = assistant.hearing(now, dismissed)
+            val hearing = assistant.hearing(now, dismissed, held)
             if (routeCards) MapOverlays(world, now, map, store, grid.routeSlots(mapFrom, if (hearing) BAR_SPACE else 0.dp)) { onSheet(true) }
             if (showMap && hearing) AssistantBar(assistant, close, grid.barSlot(mapFrom))
             // The map's own bar stays at its top left, beside 小博's card too, as on the head unit.
             if (showMap && !hearing && !routeCards) MapToolbar(grid.barSlot(mapFrom))
-            if (panel) AssistantChatPanel(assistant, world.cabin.speaker, close, grid.column(2))
+            if (panel) AssistantChatPanel(assistant, world.cabin.speaker, close, grid.column(2), assistant.closesAt(held)) { held = assistant.request }
             StatusRow(world, server, now, grid, onHome) { onSheet(true) }
             ClimateBar(world.cabin, store, Modifier.offset(grid.col(2), grid.barTop).width(grid.col(4) - grid.col(2) - grid.gap).height(grid.barHeight))
         }

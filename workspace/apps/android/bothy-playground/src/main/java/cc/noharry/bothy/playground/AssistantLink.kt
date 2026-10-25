@@ -114,9 +114,39 @@ internal fun AssistantView.after(before: AssistantView): AssistantView {
     return copy(workedAt = if (worked) updatedAt else before.workedAt)
 }
 
+/**
+ * The loudness Bothy reports a few times a second while voice is on: the user's ([heard]) and 小博's ([spoken]), each
+ * 0..1, for the bar's light ([VoiceGlow]). Read every frame, so plain fields, not state.
+ */
+internal object VoiceLevels {
+    @Volatile var heard = 0f
+        private set
+    @Volatile var spoken = 0f
+        private set
+    @Volatile var at = 0L
+        private set
+
+    fun received(heard: Float, spoken: Float) {
+        this.heard = heard
+        this.spoken = spoken
+        at = android.os.SystemClock.elapsedRealtime()
+    }
+
+    /** The louder voice now; 0 once the reports stop (Bothy older than this, or voice over). */
+    fun now(): Float = if (android.os.SystemClock.elapsedRealtime() - at < STALE_MS) maxOf(heard, spoken) else 0f
+
+    private const val STALE_MS = 400L
+}
+
+private const val ACTION_LEVEL = "cc.noharry.bothy.ASSISTANT_LEVEL"
+
 /** Bothy's reports, sent only by an app holding [Assistant.PERMISSION]. */
 class AssistantEventReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_LEVEL) {
+            VoiceLevels.received(intent.getFloatExtra("heard", 0f), intent.getFloatExtra("spoken", 0f))
+            return
+        }
         Assistant.received(
             AssistantView(
                 listening = intent.getBooleanExtra("listening", false),
@@ -143,20 +173,24 @@ class AssistantEventReceiver : BroadcastReceiver() {
 /**
  * Whether the assistant's card is open, as on the head unit: not while 小博 only listens (the words show in a slim bar),
  * but once a request is taken, while 小博 works on it and for a while after it answered; a follow-up heard meanwhile shows
- * in its header. Closed with its X, it stays closed for that request ([dismissed]).
+ * in its header. Closed with its X, it stays closed for that request ([dismissed]); touched, it stays open until closed
+ * ([held], owner 2026-10-25, as Bothy's own card).
  */
-internal fun AssistantView.open(now: Long, dismissed: String?): Boolean =
-    request.isNotBlank() && request != dismissed && (running || (workedAt > 0 && now - workedAt < holdMs()))
+internal fun AssistantView.open(now: Long, dismissed: String?, held: String? = null): Boolean =
+    request.isNotBlank() && request != dismissed && (running || request == held || (workedAt > 0 && now - workedAt < holdMs()))
+
+/** When the open card folds by itself, for the countdown on its X ([CloseCountdown]); 0 while 小博 works or it is [held]. */
+internal fun AssistantView.closesAt(held: String?): Long = if (running || request == held || workedAt <= 0L) 0L else workedAt + holdMs()
 
 /** How long the card stays after 小博 answered: long enough to read a card, longer while a pick or panel waits. */
-private fun AssistantView.holdMs(): Long = when {
+internal fun AssistantView.holdMs(): Long = when {
     a2ui.asks -> PANEL_ASKS_HOLD_MS
     !a2ui.isEmpty -> PANEL_CARD_HOLD_MS
     else -> PANEL_HOLD_MS
 }
 
 /** Listening with the card closed: only the slim bar shows. */
-internal fun AssistantView.hearing(now: Long, dismissed: String?): Boolean = listening && !open(now, dismissed)
+internal fun AssistantView.hearing(now: Long, dismissed: String?, held: String? = null): Boolean = listening && !open(now, dismissed, held)
 
 internal const val PANEL_HOLD_MS = 20_000L
 private const val PANEL_CARD_HOLD_MS = 45_000L

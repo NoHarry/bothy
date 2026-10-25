@@ -32,4 +32,18 @@ class AssistantLinkTest {
         val heard = asked.copy(listening = true, heard = "再", updatedAt = 9_000L).after(asked)
         assertEquals(5_000L, heard.workedAt)
     }
+
+    @Test
+    fun theAnsweredCardCountsDownUnlessTouchedThenStaysUntilClosed() {
+        val before = lastTurn.after(AssistantView())
+        val answered = before.copy(request = "明天天气", reply = "多云", updatedAt = 5_000L).after(before)
+        val folds = answered.closesAt(held = null)
+        assertEquals(5_000L + answered.holdMs(), folds)
+        assertFalse(answered.open(now = folds, dismissed = null))
+
+        assertEquals("touched: no countdown", 0L, answered.closesAt(held = "明天天气"))
+        assertTrue(answered.open(now = folds + 60_000L, dismissed = null, held = "明天天气"))
+        assertFalse("closed with its X", answered.open(now = folds, dismissed = "明天天气", held = "明天天气"))
+        assertEquals("while 小博 works it does not count", 0L, answered.copy(running = true).closesAt(held = null))
+    }
 }
