@@ -2,6 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
+import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
@@ -64,6 +65,7 @@ private suspend fun catalogSource(context: Context, provider: DebugMcpProviderSt
         DEBUG_MCP_PROVIDER_TOOLS_JSON -> CatalogSource(ToolsJsonMcpProvider.fromAssets(context))
         DEBUG_MCP_PROVIDER_DEVICE_CALENDAR -> CatalogSource(DeviceCalendarMcpProvider(context))
         DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION -> CatalogSource(DeviceNotificationMcpProvider(context))
+        DEBUG_MCP_PROVIDER_DEVICE_MEDIA -> CatalogSource(DeviceMediaMcpProvider(context))
         else -> CatalogSource(note = "未知来源", failed = true)
     }
 }

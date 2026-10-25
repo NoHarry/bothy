@@ -6,6 +6,7 @@ import android.content.Context
 import cc.noharry.agent.androiduse.AndroidUseOptions
 import cc.noharry.agent.androiduse.AndroidUseToolProvider
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
+import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
 import cc.noharry.agent.kernel.api.model.ServerSideSearchCapability
 import cc.noharry.agent.kernel.api.AgentRuntime
@@ -235,6 +236,9 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
     }
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION)) {
         mount(configure(DeviceNotificationMcpProvider(context)))
+    }
+    if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_MEDIA)) {
+        mount(configure(DeviceMediaMcpProvider(context)))
     }
     if (mounted.isNotEmpty()) {
         toolProvider(

@@ -54,6 +54,7 @@ private data class DebugMcpProviderDefinition(
 internal const val DEBUG_MCP_PROVIDER_TOOLS_JSON = "tools_json"
 internal const val DEBUG_MCP_PROVIDER_DEVICE_CALENDAR = "device_calendar"
 internal const val DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION = "device_notification"
+internal const val DEBUG_MCP_PROVIDER_DEVICE_MEDIA = "device_media"
 
 /** Tools JSON first; the device providers follow the configured servers. */
 private val MCP_PROVIDER_DEFINITIONS = listOf(
@@ -65,6 +66,8 @@ private val MCP_PROVIDER_DEFINITIONS = listOf(
         "mcp_provider_device_notification",
         false,
     ),
+    // On from the start: media keys and the volume need no permission; notification access adds what plays and which app.
+    DebugMcpProviderDefinition(DEBUG_MCP_PROVIDER_DEVICE_MEDIA, "Device Media", "mcp_provider_device_media", true),
 )
 
 internal const val MCP_PREFS_NAME = "debug_mcp_provider_config"

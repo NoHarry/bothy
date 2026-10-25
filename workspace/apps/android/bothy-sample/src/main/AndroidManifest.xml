@@ -104,6 +104,16 @@
             android:name=".DebugVoiceForegroundService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+        <!-- Notification access for it lets 小博 see and control what other apps play (Device Media); it reads no notification. -->
+        <service
+            android:name="cc.noharry.agent.device.DeviceMediaListenerService"
+            android:exported="true"
+            android:label="Bothy 媒体控制"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
         <receiver
             android:name=".DebugBootReceiver"
             android:exported="true">

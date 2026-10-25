@@ -2,6 +2,7 @@ package cc.noharry.bothy.sample
 
 import android.content.Context
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
+import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.coroutines.withTimeoutOrNull
@@ -48,6 +49,8 @@ internal suspend fun loadMcpProviderTools(context: Context, provider: DebugMcpPr
             DeviceCalendarMcpProvider(context.applicationContext).listTools().toPreviewResult()
         DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION ->
             DeviceNotificationMcpProvider(context.applicationContext).listTools().toPreviewResult()
+        DEBUG_MCP_PROVIDER_DEVICE_MEDIA ->
+            DeviceMediaMcpProvider(context.applicationContext).listTools().toPreviewResult()
         else -> DebugMcpToolsResult.Unavailable("Unknown provider: ${provider.id}")
     }
 }

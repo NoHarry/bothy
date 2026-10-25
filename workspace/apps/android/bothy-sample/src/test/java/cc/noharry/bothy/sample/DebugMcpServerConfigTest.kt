@@ -19,12 +19,12 @@ class DebugMcpServerConfigTest {
     fun noServerComesConfiguredAndTheFixedProvidersSurroundTheConfiguredOnes() {
         assertTrue(loadDebugMcpServers(context).isEmpty())
         assertEquals(
-            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION),
+            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION, DEBUG_MCP_PROVIDER_DEVICE_MEDIA),
             loadDebugMcpProviders(context).map { it.id },
         )
         val id = (saveDebugMcpServer(context, DebugMcpServerDraft(null, "Weather", DebugMcpServerKind.HTTP, url = "https://weather.test/mcp")) as DebugMcpSaveResult.Saved).id
         assertEquals(
-            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, id, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION),
+            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, id, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION, DEBUG_MCP_PROVIDER_DEVICE_MEDIA),
             loadDebugMcpProviders(context).map { it.id },
         )
         assertTrue(loadDebugMcpProviders(context).single { it.id == id }.enabled)

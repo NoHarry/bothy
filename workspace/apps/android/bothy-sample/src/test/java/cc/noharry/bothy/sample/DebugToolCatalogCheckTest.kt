@@ -21,6 +21,8 @@ class DebugToolCatalogCheckTest {
     @Test
     fun eachSourceIsCountedAndGroupedTheWayThePromptListsIt() = runBlocking {
         saveDebugMcpProviderEnabled(context, DEBUG_MCP_PROVIDER_TOOLS_JSON, true)
+        // Device Media is on from the start; off here, the example tools are counted alone.
+        saveDebugMcpProviderEnabled(context, DEBUG_MCP_PROVIDER_DEVICE_MEDIA, false)
 
         val result = checkToolCatalog(context)
 

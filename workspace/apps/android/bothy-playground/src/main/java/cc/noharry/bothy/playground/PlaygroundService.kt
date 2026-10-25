@@ -39,7 +39,7 @@ class PlaygroundService : Service() {
         Playground.engine = engine
         Playground.navigation = navigation
         if (HeadUnitModes.realNav) navigation.setSimulated(false)
-        server = McpHttpServer(McpHttpServer.DEFAULT_PORT, playgroundEndpoints(store, navigation, media = mediaTools(this))).also { mcp ->
+        server = McpHttpServer(McpHttpServer.DEFAULT_PORT, playgroundEndpoints(store, navigation)).also { mcp ->
             try {
                 mcp.start()
                 store.setServer(ServerState(ServerStatus.RUNNING, "http://127.0.0.1:${mcp.boundPort}"))

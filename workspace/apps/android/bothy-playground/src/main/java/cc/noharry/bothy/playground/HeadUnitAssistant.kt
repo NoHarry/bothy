@@ -223,6 +223,8 @@ private val TOOL_TITLES: Map<String, String> by lazy {
             "android_use" to "操作屏幕", "finish" to "整理结果", "plan_manage" to "设提醒", "plan_list" to "看提醒",
             "user_memory" to "记住你的习惯", "offer_options" to "给你选", "offer_choice" to "给你选",
             "offer_slider" to "出调节条", "offer_switch" to "出开关",
+            // Bothy's own media tools (the runtime's device media provider): what plays on the tablet, wherever it is shown.
+            "media.status" to "看在放什么", "media.control" to "控制播放", "media.volume" to "调音量", "media.play_from_search" to "搜歌播放",
         )
 }
 

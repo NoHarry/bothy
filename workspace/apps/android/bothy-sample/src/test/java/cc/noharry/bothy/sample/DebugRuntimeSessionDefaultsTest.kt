@@ -28,5 +28,6 @@ class DebugRuntimeSessionDefaultsTest {
         assertFalse(providers.getValue(DEBUG_MCP_PROVIDER_TOOLS_JSON).enabled)
         assertFalse(providers.getValue(DEBUG_MCP_PROVIDER_DEVICE_CALENDAR).enabled)
         assertFalse(providers.getValue(DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION).enabled)
+        assertTrue(providers.getValue(DEBUG_MCP_PROVIDER_DEVICE_MEDIA).enabled)
     }
 }

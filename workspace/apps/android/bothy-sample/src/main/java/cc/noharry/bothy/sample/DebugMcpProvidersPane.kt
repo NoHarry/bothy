@@ -21,6 +21,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -33,6 +34,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import cc.noharry.agent.device.DeviceMediaMcpProvider
 
 /**
  * 设置 → 连接 → MCP: the providers with their switches and tool previews, and the configured standard MCP servers,
@@ -156,8 +161,41 @@ private fun ProviderToggleRow(
                 colors = debugSwitchColors(),
             )
         }
+        if (provider.id == DEBUG_MCP_PROVIDER_DEVICE_MEDIA) MediaAccessLine()
         if (expanded) {
             McpToolPreviewList(provider, refreshKey = provider.server)
+        }
+    }
+}
+
+/**
+ * Device Media's notification access, looked at again on return from the system page that grants it: with it 小博 sees
+ * what plays and in which app; without it only play, pause, skipping and the volume reach whatever plays.
+ */
+@Composable
+private fun MediaAccessLine() {
+    val context = LocalContext.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var granted by remember { mutableStateOf(DeviceMediaMcpProvider.notificationAccessGranted(context)) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) granted = DeviceMediaMcpProvider.notificationAccessGranted(context)
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    Row(
+        Modifier.fillMaxWidth().padding(start = DebugDimens.spaceLg * 2, end = DebugDimens.spaceLg, bottom = DebugDimens.spaceSm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (granted) "通知使用权已开：能看到在放什么、指定控制哪个 App" else "通知使用权未开：只能播放、暂停、切歌和调音量，看不到在放什么",
+            style = DebugType.meta,
+            color = if (granted) DebugColors.success else DebugColors.muted,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { runCatching { context.startActivity(DeviceMediaMcpProvider.notificationAccessIntent().addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }) {
+            Text(if (granted) "管理" else "去开启")
         }
     }
 }
