@@ -48,12 +48,21 @@ class AssistantLinkTest {
     }
 
     @Test
-    fun theCardGoesWhenVoiceEndsUnlessStillWorkingOrTouched() {
-        val answered = AssistantView(request = "明天天气", reply = "多云", listening = false)
+    fun theCardGoesWithADismissalButNotWithAnIdleEnd() {
+        val answered = AssistantView(request = "明天天气", reply = "多云")
 
-        assertTrue(answered.foldsWithVoice(before = true, held = null))
-        assertFalse("voice was not on", answered.foldsWithVoice(before = false, held = null))
-        assertFalse("小博 still works on it", answered.copy(running = true).foldsWithVoice(before = true, held = null))
-        assertFalse("touched", answered.foldsWithVoice(before = true, held = "明天天气"))
+        assertFalse("never dismissed", answered.dismissedSince(seen = 0L))
+        assertTrue(answered.copy(dismissedAt = 9_000L).dismissedSince(seen = 0L))
+        assertFalse("the same dismissal, seen", answered.copy(dismissedAt = 9_000L).dismissedSince(seen = 9_000L))
+    }
+
+    @Test
+    fun theCountdownWaitsUntil小博StopsTalking() {
+        val before = lastTurn.after(AssistantView())
+        val talking = before.copy(request = "明天天气", reply = "多云", speaking = true, updatedAt = 5_000L).after(before)
+        assertEquals(0L, talking.closesAt(held = null))
+        assertTrue("open however long it talks", talking.open(now = 500_000L, dismissed = null))
+        val done = talking.copy(speaking = false, updatedAt = 30_000L).after(talking)
+        assertEquals("the wait starts as it stops", 30_000L + done.holdMs(), done.closesAt(held = null))
     }
 }

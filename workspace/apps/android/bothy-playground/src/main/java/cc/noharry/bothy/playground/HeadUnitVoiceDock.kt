@@ -188,5 +188,5 @@ private const val GLOW_BLUR_DP = 10
 private const val GLOW_IN_MS = 420
 private const val GLOW_OUT_MS = 700
 private const val DOCK_MS = 260
-private const val ROLL_EVERY_MS = 3_500L
+private const val ROLL_EVERY_MS = 6_000L
 private const val ROLL_MS = 320

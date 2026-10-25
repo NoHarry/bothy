@@ -51,6 +51,8 @@ internal object DebugAssistantSurface {
     private var appContext: Context? = null
     private val mic = MicLevelPlayhead()
     private var levelsOn = false
+    /** When the speaker last dismissed voice (「退出」「退下吧」): the surface closes its card with it. */
+    private var dismissedAt = 0L
 
     /**
      * The loudness, [LEVEL_MS] apart, while a surface has the assistant and someone speaks (owner 2026-10-25: 「底部光效要
@@ -90,7 +92,9 @@ internal object DebugAssistantSurface {
         scope.launch { target.collect { onTaken(it != null); levelsChanged(context) } }
         scope.launch { DebugVoiceController.state.collect { voiceChanged(context, it) } }
         scope.launch { DebugVoiceController.active.collect { levelsChanged(context) } }
-        scope.launch { DebugTtsActivity.active.collect { levelsChanged(context) } }
+        // 小博 speaking, with or without a voice session: the surface holds its card's countdown until it is done.
+        scope.launch { DebugTtsActivity.active.collect { levelsChanged(context); send(context) } }
+        scope.launch { DebugVoiceController.dismissals.collect { dismissedAt = System.currentTimeMillis(); send(context) } }
     }
 
     /** [pkg] shows the assistant from now (renewing the lease), or nobody does when null; it gets the state at once. */
@@ -125,7 +129,8 @@ internal object DebugAssistantSurface {
 
     private fun send(context: Context) {
         val pkg = surface.value ?: return
-        val payload = assistantPayload(hud, voice, DebugVoiceController.listening, timeline, request)
+        val payload = assistantPayload(hud, voice, DebugVoiceController.listening, timeline, request) +
+            mapOf("speaking" to (voice.assistantSpeaking || DebugTtsActivity.active.value), "dismissedAt" to dismissedAt)
         if (payload == sent) return
         sent = payload
         val intent = Intent(ACTION_EVENT).setPackage(pkg)
@@ -133,6 +138,7 @@ internal object DebugAssistantSurface {
             when (value) {
                 is String -> intent.putExtra(key, value)
                 is Boolean -> intent.putExtra(key, value)
+                is Long -> intent.putExtra(key, value)
                 is List<*> -> intent.putStringArrayListExtra(key, ArrayList(value.map { it.toString() }))
             }
         }

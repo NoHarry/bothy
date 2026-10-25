@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -134,13 +135,13 @@ private fun AssistantHeader(
     }
 }
 
-/** As voice ends the card goes with it ([AssistantView.foldsWithVoice]): [onFold] gets the request to close. */
+/** The speaker dismissed voice ([AssistantView.dismissedSince]): [onFold] gets the request whose card closes with it. */
 @Composable
-internal fun FoldWithVoice(view: AssistantView, held: String?, onFold: (String) -> Unit) {
-    var before by remember { mutableStateOf(view.listening) }
-    LaunchedEffect(view.listening) {
-        if (view.foldsWithVoice(before, held)) onFold(view.request)
-        before = view.listening
+internal fun FoldOnDismiss(view: AssistantView, onFold: (String) -> Unit) {
+    var seen by remember { mutableLongStateOf(view.dismissedAt) }
+    LaunchedEffect(view.dismissedAt) {
+        if (view.dismissedSince(seen) && view.request.isNotBlank()) onFold(view.request)
+        seen = view.dismissedAt
     }
 }
 

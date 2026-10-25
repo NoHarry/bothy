@@ -108,7 +108,7 @@ private fun SimulatedHeadUnit(
     TakeOverAssistant()
     // The request whose card was touched: it stays until closed, as Bothy's own card does.
     var held by remember { mutableStateOf<String?>(null) }
-    FoldWithVoice(assistant, held) { dismissed = it }
+    FoldOnDismiss(assistant) { dismissed = it }
     val panel = assistant.open(now, dismissed, held)
     val showMap = mapMode || nav.active || now - cuedAt < CUED_MAP_MS
     val close = { dismissed = assistant.request.ifBlank { null }; Assistant.close(context) }

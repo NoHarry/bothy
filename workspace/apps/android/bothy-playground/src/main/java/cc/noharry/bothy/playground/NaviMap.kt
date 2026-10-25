@@ -54,7 +54,9 @@ internal class NaviMapHandle {
         set(value) {
             field = value
             applyLogoLift()
+            applyRenderMode()
         }
+    private var continuous = false
     private var logoLift = 0
 
     /** The map's bottom [pixels] lie under the head unit's bar: AMap's logo is raised above it, kept in view. */
@@ -120,7 +122,16 @@ internal class NaviMapHandle {
      * map at rest needs no more (left continuous, an arrived map kept a core busy).
      */
     fun moving(on: Boolean) {
-        runCatching { view?.map?.setRenderMode(if (on) RENDER_CONTINUOUSLY else RENDER_WHEN_DIRTY) }
+        continuous = on
+        applyRenderMode()
+    }
+
+    /**
+     * Also as the view comes: [moving] is first told before the map exists, and a map left drawing continuously at rest
+     * kept the head unit at 60–70 % of a core doing nothing (2026-10-25).
+     */
+    private fun applyRenderMode() {
+        runCatching { view?.map?.setRenderMode(if (continuous) RENDER_CONTINUOUSLY else RENDER_WHEN_DIRTY) }
     }
 
     /** The map changed width (the assistant's card opened or closed beside it): the car's place is a share of it. */

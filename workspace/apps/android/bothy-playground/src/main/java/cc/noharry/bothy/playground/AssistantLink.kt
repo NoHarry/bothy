@@ -39,6 +39,8 @@ data class AssistantView(
     val voiceTone: String = "",
     /** 小博 is talking. */
     val speaking: Boolean = false,
+    /** When the speaker last dismissed voice (「退出」「退下吧」), by Bothy's clock; the card closes with it. */
+    val dismissedAt: Long = 0L,
     val timeline: List<TurnEntry> = emptyList(),
     /** The finished reply's cards, picks and panel ([A2ui]). */
     val a2ui: A2ui = A2ui(),
@@ -113,7 +115,8 @@ object Assistant {
  */
 internal fun AssistantView.after(before: AssistantView): AssistantView {
     val changed = request != before.request || reply != before.reply || a2ui != before.a2ui
-    val worked = running || (before.updatedAt > 0L && changed)
+    // Talking is working on it, and the card's wait starts over as it stops (owner 2026-10-25: 「倒计时在tts播报完再出现」).
+    val worked = running || speaking || before.speaking || (before.updatedAt > 0L && changed)
     return copy(workedAt = if (worked) updatedAt else before.workedAt)
 }
 
@@ -157,6 +160,7 @@ class AssistantEventReceiver : BroadcastReceiver() {
                 voiceLine = intent.getStringExtra("voiceLine").orEmpty(),
                 voiceTone = intent.getStringExtra("voiceTone").orEmpty(),
                 speaking = intent.getBooleanExtra("speaking", false),
+                dismissedAt = intent.getLongExtra("dismissedAt", 0L),
                 timeline = intent.getStringArrayListExtra("timeline").orEmpty().mapNotNull(::turnEntry),
                 a2ui = a2uiFrom(intent.getStringExtra("a2ui")),
                 request = intent.getStringExtra("request").orEmpty(),
@@ -180,10 +184,10 @@ class AssistantEventReceiver : BroadcastReceiver() {
  * ([held], owner 2026-10-25, as Bothy's own card).
  */
 internal fun AssistantView.open(now: Long, dismissed: String?, held: String? = null): Boolean =
-    request.isNotBlank() && request != dismissed && (running || request == held || (workedAt > 0 && now - workedAt < holdMs()))
+    request.isNotBlank() && request != dismissed && (running || speaking || request == held || (workedAt > 0 && now - workedAt < holdMs()))
 
-/** When the open card folds by itself, for the countdown on its X ([CloseCountdown]); 0 while 小博 works or it is [held]. */
-internal fun AssistantView.closesAt(held: String?): Long = if (running || request == held || workedAt <= 0L) 0L else workedAt + holdMs()
+/** When the open card folds by itself, for the countdown on its X ([CloseCountdown]); 0 while 小博 works or talks, or it is [held]. */
+internal fun AssistantView.closesAt(held: String?): Long = if (running || speaking || request == held || workedAt <= 0L) 0L else workedAt + holdMs()
 
 /** How long the card stays after 小博 answered: long enough to read a card, longer while a pick or panel waits. */
 internal fun AssistantView.holdMs(): Long = when {
@@ -193,11 +197,10 @@ internal fun AssistantView.holdMs(): Long = when {
 }
 
 /**
- * Whether the card goes as voice ends ([before] listening, this not; owner 2026-10-25: 「退出的时候卡片也关闭」): 「退出」,
- * the X or 小博 tapped, or an idle end. Not while 小博 still works on the request, nor once the card was touched ([held]).
+ * Whether the speaker dismissed voice since [seen] (「退出」「退下吧」, owner 2026-10-25: 「退出的时候卡片也关闭」): the card goes
+ * with it. An idle end is not a dismissal: the card keeps its countdown.
  */
-internal fun AssistantView.foldsWithVoice(before: Boolean, held: String?): Boolean =
-    before && !listening && !running && request.isNotBlank() && request != held
+internal fun AssistantView.dismissedSince(seen: Long): Boolean = dismissedAt != 0L && dismissedAt != seen
 
 /** Listening with the card closed: only the slim bar shows. */
 internal fun AssistantView.hearing(now: Long, dismissed: String?, held: String? = null): Boolean = listening && !open(now, dismissed, held)
