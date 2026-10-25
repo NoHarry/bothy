@@ -50,6 +50,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -232,7 +233,7 @@ internal fun MapOverlays(world: World, now: Long, map: NaviMapHandle, store: Pla
     val lanes by Guidance.lanes.collectAsState()
     val cross by Guidance.cross.collectAsState()
     val room = slots.actionsBottom - slots.top - (if (nav.driving) ACTION_BAR_HEIGHT + 10.dp else 0.dp)
-    FittingColumn(10.dp, Modifier.offset(slots.x, slots.top).width(slots.width).heightIn(max = room)) {
+    FittingColumn(10.dp, Modifier.offset(slots.x, slots.top).width(slots.width).heightIn(max = room.coerceAtLeast(0.dp))) {
         if (nav.previewing) {
             RoutePreviewCard(nav, { scope.launch(Dispatchers.IO) { navigation?.begin() } }, { scope.launch(Dispatchers.IO) { navigation?.stop() } })
             RouteDetails(nav, now)

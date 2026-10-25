@@ -290,7 +290,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         }
 
         override fun showCross(cross: AMapNaviCross?) {
-            Guidance.cross.value = cross
+            Guidance.showCross(cross?.bitmap)
         }
 
         override fun hideCross() {

@@ -226,7 +226,9 @@ internal fun Media.played(action: String?, query: String?): Media = when (action
     "pause" -> copy(playing = false)
     "resume" -> if (title.isEmpty()) TRACKS.first().let { copy(playing = true, title = it.title, artist = it.artist) } else copy(playing = true)
     "next" -> TRACKS[(TRACKS.indexOfFirst { it.title == title } + 1) % TRACKS.size].let { copy(playing = true, title = it.title, artist = it.artist) }
-    "previous" -> TRACKS[(TRACKS.indexOfFirst { it.title == title } - 1 + TRACKS.size) % TRACKS.size].let { copy(playing = true, title = it.title, artist = it.artist) }
+    // Nothing on, previous starts from the end as next starts from the beginning.
+    "previous" -> TRACKS.indexOfFirst { it.title == title }.let { at -> if (at < 0) TRACKS.last() else TRACKS[(at - 1 + TRACKS.size) % TRACKS.size] }
+        .let { copy(playing = true, title = it.title, artist = it.artist) }
     "play" -> {
         val track = query?.let { q -> TRACKS.firstOrNull { t -> t.title.contains(q) || q.contains(t.title) || t.artist.equals(q, true) || t.tags.any { q.lowercase().contains(it) } } }
         when {

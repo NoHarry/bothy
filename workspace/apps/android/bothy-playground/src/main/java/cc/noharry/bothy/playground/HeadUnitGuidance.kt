@@ -1,5 +1,6 @@
 package cc.noharry.bothy.playground
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.amap.api.navi.model.AMapLaneInfo
-import com.amap.api.navi.model.AMapNaviCross
 import com.amap.api.navi.view.DriveWayView
 
 /** The lanes at the junction ahead, as AMap draws them in its stock screen, on a dark strip ([Guidance.lanes]). */
@@ -48,8 +48,7 @@ internal fun LaneBar(lanes: AMapLaneInfo, modifier: Modifier = Modifier) {
  * 参考下」): big, over the map's left part, the turn shrunk to a line on top; the route's cards give it their place.
  */
 @Composable
-internal fun JunctionCard(nav: NavState, cross: AMapNaviCross, modifier: Modifier = Modifier) {
-    val picture = cross.bitmap ?: return
+internal fun JunctionCard(nav: NavState, picture: Bitmap, modifier: Modifier = Modifier) {
     Column(modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.card)) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
