@@ -24,8 +24,9 @@ internal object DebugOverlayFocus {
 
 /**
  * The overlay steps aside for the full-screen console: while the console is in front the overlay is closed and an
- * A2A request to show it is held; once the console leaves, the overlay comes back if it was up, with its card open
- * if a request came meanwhile. Safe from any thread.
+ * A2A request to show it is held; once the console leaves, the overlay comes back if it was up, folded (owner
+ * 2026-10-25: 「从sample退出到桌面的时候不要弹出卡片」), or with its card open if a request came meanwhile. Safe from any
+ * thread.
  */
 internal object DebugConsoleVisibility {
     @Volatile var inFront: Boolean = false

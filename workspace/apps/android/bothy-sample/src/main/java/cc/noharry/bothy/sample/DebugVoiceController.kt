@@ -156,6 +156,13 @@ internal object DebugVoiceController {
     /** Whether the card's X closed voice at or after [since] (elapsed-realtime ms). */
     fun closedSince(since: Long): Boolean = closedAt >= since
 
+    /** Why listening cannot start, known before a wake is answered (the microphone, the settings); null when it may. */
+    fun cannotListen(context: Context): String? {
+        val appContext = context.applicationContext
+        if (appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "需要麦克风权限"
+        return if (loadDebugRealtimeConfig(appContext).enabled) null else loadDebugVoiceConfig(appContext).validationError()
+    }
+
     /** Null when listening started, else why it could not. */
     fun start(context: Context, origin: DebugVoiceOrigin = DebugVoiceOrigin.BUTTON): String? {
         if (listening) return null
@@ -210,7 +217,8 @@ internal object DebugVoiceController {
     /** Before the session seeds the previous exchange: a wake after a long quiet starts with a clean conversation. */
     private fun startFreshAfterQuiet(appContext: Context) {
         if (DebugRuntimeSession.freshSessionForWake(appContext)) {
-            DebugVoiceLog.i(TAG, "wake after ${DEBUG_WAKE_NEW_SESSION_IDLE_MILLIS / 60_000} min without a turn: new session")
+            val policy = DebugSessionSettings.policy.value
+            DebugVoiceLog.i(TAG, if (policy.everyWake) "wake: new session (every wake)" else "wake after ${policy.idleMinutes} min without a turn: new session")
         }
     }
 

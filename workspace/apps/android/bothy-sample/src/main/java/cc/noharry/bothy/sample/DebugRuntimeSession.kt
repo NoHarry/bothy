@@ -72,9 +72,10 @@ internal object DebugRuntimeSession {
         return { listeners -= listener }
     }
     /**
-     * A wake after [DEBUG_WAKE_NEW_SESSION_IDLE_MILLIS] without a turn starts a new conversation (owner 2026-10-17), so
-     * the model sees a clean context; a wake within it carries on, so 「再高一点」 still follows the last turn. A session
-     * with no turns yet, or a run still going, stays. True when a new session was started.
+     * A wake after [DebugSessionPolicy.idleMinutes] without a turn, or every wake when so set (设置 → 通用 → 会话), starts a
+     * new conversation (owner 2026-10-17, made settable 2026-10-25), so the model sees a clean context; a wake within it
+     * carries on, so 「再高一点」 still follows the last turn. A session with no turns yet, or a run still going, stays. True
+     * when a new session was started.
      */
     fun freshSessionForWake(context: Context, nowMillis: Long = System.currentTimeMillis()): Boolean {
         if (isRunning) return false
@@ -92,6 +93,22 @@ internal object DebugRuntimeSession {
         runner.resetForSession(context.applicationContext)
         refreshTrajectory(context)
         notifyChanged()
+        pruneSessions(context)
+    }
+
+    /** Deletes the sessions past [DebugSessionPolicy.maxSessions], touched longest ago first; see [debugSessionsOverLimit]. */
+    fun pruneSessions(context: Context) {
+        val appContext = context.applicationContext
+        sessionCoordinator.ensure(appContext)
+        val protected = runner.activeRunSnapshots().map { it.sessionId }.toSet() + sessionCoordinator.activeSessionId +
+            sessionCoordinator.sessions.map { it.sessionId }.filter(DebugSubagents.instance::hasUnfinished)
+        val over = debugSessionsOverLimit(sessionCoordinator.sessions, DebugSessionSettings.policy.value.maxSessions, protected)
+        if (over.isEmpty()) return
+        scope.launch {
+            over.forEach { id -> runCatching { deleteSessionData(appContext, id) }; forgetDebugSessionContinuity(id) }
+            DebugVoiceLog.i("DebugSessions", "deleted ${over.size} session(s) over the limit of ${DebugSessionSettings.policy.value.maxSessions}")
+            notifyChanged()
+        }
     }
     fun selectSession(context: Context, sessionId: String) {
         sessionCoordinator.selectSession(context.applicationContext, sessionId)
@@ -118,21 +135,8 @@ internal object DebugRuntimeSession {
     }
     fun deleteSession(context: Context, sessionId: String) {
         val appContext = context.applicationContext
-        val repository = trajectoryRepository(appContext)
         scope.launch {
-            val deletion = runCatching {
-                deleteDebugRuntimeSession(
-                    sessionId = sessionId,
-                    deleteActiveSession = runner::deleteActiveSession,
-                    dropTrajectory = { repository.dropSession(it); !debugSessionEventLogRoot(appContext, it).exists() },
-                    deletePersistedSession = { sessionCoordinator.deleteSession(appContext, it) },
-                    // Generated pictures are this session's artifacts too; `and` runs both deletions.
-                    deleteArtifacts = {
-                        DebugArtifactStore.deleteSessionArtifacts(debugWorkspaceRoot(appContext), it) and
-                            deleteSessionGeneratedImages(appContext, it)
-                    },
-                )
-            }
+            val deletion = runCatching { deleteSessionData(appContext, sessionId) }
             forgetDebugSessionContinuity(sessionId)
             val result = deletion.getOrNull()
             status = when {
@@ -152,6 +156,21 @@ internal object DebugRuntimeSession {
             runner.clearRequestAndRefresh(appContext)
             notifyChanged()
         }
+    }
+
+    private suspend fun deleteSessionData(appContext: Context, sessionId: String): DebugSessionDeletionResult {
+        val repository = trajectoryRepository(appContext)
+        return deleteDebugRuntimeSession(
+            sessionId = sessionId,
+            deleteActiveSession = runner::deleteActiveSession,
+            dropTrajectory = { repository.dropSession(it); !debugSessionEventLogRoot(appContext, it).exists() },
+            deletePersistedSession = { sessionCoordinator.deleteSession(appContext, it) },
+            // Generated pictures are this session's artifacts too; `and` runs both deletions.
+            deleteArtifacts = {
+                DebugArtifactStore.deleteSessionArtifacts(debugWorkspaceRoot(appContext), it) and
+                    deleteSessionGeneratedImages(appContext, it)
+            },
+        )
     }
 
     /**
@@ -956,12 +975,14 @@ private const val DEFAULT_HOSTED_SEARCH_VALIDATION_PROMPT =
     "Use hosted web search. Find the DeepSeek API Docs page about Claude Code integration. Return the page title and one cited URL."
 
 /** A conversation with subagents still working, or results not delivered yet, is kept so the results land in it. */
-internal fun debugWakeStartsNewSession(active: DebugSessionSummary?, nowMillis: Long, backgroundWork: Boolean = false): Boolean =
+internal fun debugWakeStartsNewSession(
+    active: DebugSessionSummary?,
+    nowMillis: Long,
+    backgroundWork: Boolean = false,
+    policy: DebugSessionPolicy = DebugSessionSettings.policy.value,
+): Boolean =
     active != null && active.turnCount > 0 && !backgroundWork &&
-        nowMillis - active.updatedAtEpochMillis >= DEBUG_WAKE_NEW_SESSION_IDLE_MILLIS
-
-/** How long without a turn before a wake starts a new conversation. */
-internal const val DEBUG_WAKE_NEW_SESSION_IDLE_MILLIS = 5 * 60_000L
+        (policy.everyWake || nowMillis - active.updatedAtEpochMillis >= policy.idleMillis)
 
 private const val SUBAGENT_REPORT_TITLE = "后台任务"
 private const val SUBAGENT_DETAIL_CHARS = 600

@@ -8,6 +8,7 @@ class DebugSampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         DebugDisplaySettings.init(this)
+        DebugSessionSettings.init(this)
         DebugSpeechFocus.attach(this)
         DebugSystemTts.attach(this)
         // The trust store (system roots plus the bundled ones older devices lack) is loaded once, here off the main

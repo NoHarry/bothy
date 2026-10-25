@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 
 /** What woke the overlay; [ADB] is the debug broadcast's `wake`. */
-internal enum class DebugWakeSource { WORD, LONG_PRESS, ADB, SURFACE }
+internal enum class DebugWakeSource { WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
 /** The wake word's state for Settings → 语音: whether it is listening, else why not. */
 internal data class DebugWakeStatus(val listening: Boolean = false, val message: String = "已关闭")

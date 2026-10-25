@@ -93,10 +93,11 @@ class DebugSubagentsTest {
     @Test
     fun aConversationWithBackgroundWorkIsKeptOnWake() {
         val idle = DebugSessionSummary("s", "t", updatedAtEpochMillis = 0L, turnCount = 3, compactedSummary = "")
-        val later = DEBUG_WAKE_NEW_SESSION_IDLE_MILLIS + 1
+        val policy = DebugSessionPolicy()
+        val later = policy.idleMillis + 1
 
-        assertTrue(debugWakeStartsNewSession(idle, later))
-        assertFalse(debugWakeStartsNewSession(idle, later, backgroundWork = true))
+        assertTrue(debugWakeStartsNewSession(idle, later, policy = policy))
+        assertFalse(debugWakeStartsNewSession(idle, later, backgroundWork = true, policy = policy))
     }
 
     @Test

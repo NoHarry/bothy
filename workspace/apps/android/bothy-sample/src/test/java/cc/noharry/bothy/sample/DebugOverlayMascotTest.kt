@@ -78,6 +78,8 @@ class DebugOverlayMascotTest {
         assertNull(hud(DebugOverlayPhase.DONE).quietCollapseMillis(ui.copy(showDetails = true)))
         assertNull(hud(DebugOverlayPhase.DONE).quietCollapseMillis(ui.copy(pictureExpanded = true)))
         assertNull(hud(DebugOverlayPhase.DONE).quietCollapseMillis(ui.copy(pendingQuestion = true)))
+        // Touched while it counted down: it stays until closed.
+        assertNull(hud(DebugOverlayPhase.DONE).quietCollapseMillis(ui.copy(held = true)))
     }
 
     private fun tool(name: String, running: Boolean) = DebugOverlayToolLine(

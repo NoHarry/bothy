@@ -9,6 +9,7 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -54,8 +55,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * The overlay's voice (owner 2026-10-11). With the switch on (Settings → 语音 → 语音唤醒, off by default), the
- * wake word 你好，小博 or a long press on 小博 starts a voice session, 小博 answers at once ([DebugWakeAck]) and
+ * The overlay's voice (owner 2026-10-11). A tap on 小博 ([tap]), or with the switch on (Settings → 语音 → 语音唤醒, off
+ * by default) the wake word 你好，小博 or a long press, starts a voice session, 小博 answers at once ([DebugWakeAck]) and
  * [onWoken] opens the card, whose request line then shows what is heard, while [VoiceAura] glows with the loudness. A
  * wake while 小博 works, speaks or hears a turn stops all that and listens anew. The session ends by itself when idle or
  * when the user closes the card; folding for Android Use does not end it. The microphone stays usable behind other
@@ -89,6 +90,20 @@ internal class DebugOverlayVoice(
     fun longPress(): Boolean {
         if (!DebugWakeWord.enabled.value) return false
         wake(DebugWakeSource.LONG_PRESS)
+        return true
+    }
+
+    /**
+     * A tap on 小博 while it is not listening wakes it, whether or not the wake word is on (owner 2026-10-25: 「没唤醒的时候
+     * 点击头像直接唤醒」). False when it listens already, or cannot listen (said in a toast): the tap opens the card to type.
+     */
+    fun tap(): Boolean {
+        if (DebugVoiceController.listening) return false
+        DebugVoiceController.cannotListen(service)?.let { why ->
+            Toast.makeText(service, "语音用不了：${why.trimEnd('。')}，先打字吧", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        wake(DebugWakeSource.TAP)
         return true
     }
 

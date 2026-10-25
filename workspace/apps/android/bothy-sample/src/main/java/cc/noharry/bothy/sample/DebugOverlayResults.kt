@@ -163,12 +163,13 @@ internal class OverlayWakeHold {
 
 /**
  * How long an open card waits before folding back into 小博, or null while it should stay: something is running,
- * or the user is asked, has picks to make, is typing, reading details, or looking at the picture large.
+ * or the user is asked, has picks to make, is typing, reading details, looking at the picture large, or touched the
+ * card while it counted down ([DebugOverlayUi.held]).
  */
 internal fun DebugOverlayHud.quietCollapseMillis(ui: DebugOverlayUi): Long? {
     val act = mascotAction(ui)
     val waiting = act == MascotAction.ASKING || act == MascotAction.PICKING || ui.pendingQuestion
-    val busy = ui.showInput || ui.showDetails || ui.pictureExpanded
+    val busy = ui.showInput || ui.showDetails || ui.pictureExpanded || ui.held
     return when {
         phase == DebugOverlayPhase.LIVE || waiting || busy -> null
         phase == DebugOverlayPhase.IDLE -> IDLE_COLLAPSE_MS

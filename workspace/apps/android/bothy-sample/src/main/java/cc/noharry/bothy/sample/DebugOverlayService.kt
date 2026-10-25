@@ -84,16 +84,15 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
     private var quickOpen = false
     private var sleeping = false
     private var previewAct: MascotAction? = null
-    private val endPreview = Runnable {
-        previewAct = null
-        scheduleRender(force = true)
-    }
+    private val endPreview = Runnable { previewAct = null; scheduleRender(force = true) }
     /** Where a closing card's 小博 lands, fixed when the closing starts. */
     private var landing: Pair<Int, Int> = 0 to 0
     private var startRequest: StartRequest? = null
     private var lastPhase: DebugOverlayPhase? = null
     /** When the open card last became quiet (nothing running, nothing waiting on the user); 0 while it is not. */
     private var quietSince = 0L
+    /** Touched while it counted down: stays open until closed or the next request ([DebugOverlayUi.held]). */
+    private var held = false
     /** Fresh cards for a wake or tap, the replaced result's chip, and reports held while a result is read. */
     private val results = OverlayResultMemory()
     /** Delegated tasks the device follows ([DebugA2aDelegations]), for the card's tray. */
@@ -126,7 +125,6 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
             closedRun = hud?.phase == DebugOverlayPhase.LIVE
             collapse()
         },
-        onPage = ::switchToPage,
         onStop = { if (clientView()) DebugA2aClientConsole.cancel(this) else DebugRuntimeSession.stopRun() },
         onToggleInput = {
             showInput = !showInput
@@ -154,6 +152,7 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
         onLastResult = { results.showLast(); showInput = false; syncCardFocus(); interacted() },
         onPreviousResult = { results.togglePrevious(); interacted() },
         onReleaseReport = { DebugOverlayControl.releaseReports(); interacted() },
+        onTouched = { if (quietSince != 0L && !held) { held = true; scheduleRender(force = true) } },
     )
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -206,14 +205,14 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
         root.post(tickRunnable)
     }
 
-    /** The console opens the card when there is something to show; an A2A caller's `show` always does. */
+    /** An A2A caller's `show` opens the card; any other start (leaving the console, a wake) brings 小博 back folded. */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Started from the background as a foreground service: it must promote itself within seconds.
         if (intent?.getBooleanExtra(EXTRA_FOREGROUND, false) == true) {
             if (::voice.isInitialized) voice.promoteForA2a() else startOverlayForeground()
         }
         if (::root.isInitialized) {
-            startRequest = if (intent?.action == ACTION_OPEN_OVERLAY_CARD) StartRequest.OPEN else StartRequest.OPEN_IF_CONTENT
+            startRequest = if (intent?.action == ACTION_OPEN_OVERLAY_CARD) StartRequest.OPEN else StartRequest.FOLDED
             scheduleRender(force = true)
         }
         return START_NOT_STICKY
@@ -248,8 +247,12 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
         super.onDestroy()
     }
 
-    /** Tapping 小博 with nothing new on the card means "let me ask": the input box opens, a read result waits behind 上次. */
+    /**
+     * Tapping 小博 wakes it ([DebugOverlayVoice.tap]). While a task runs, or where voice cannot listen, the card opens
+     * instead; with nothing new on it that means "let me ask": the input box opens, a read result waits behind 上次.
+     */
     override fun onBubbleTap() {
+        if (latestState?.isRunning != true && voice.tap()) return
         results.openToTalk(latestState?.overlayHud()?.phase)
         if (hud?.phase == null || hud?.phase == DebugOverlayPhase.IDLE || results.fresh) showInput = true
         expand()
@@ -384,6 +387,7 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
             landscape = landscape,
             showInput = showInput,
             showDetails = showDetails,
+            held = held,
             choicesAnswered = shown.hud.choices.isNotEmpty() && shown.hud.choices == submittedChoices,
             panelAnswered = shown.hud.controls.isNotEmpty() && shown.hud.controls == submittedControls,
             chosen = chosenChoice,
@@ -430,9 +434,10 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
     private fun followPhase(phase: DebugOverlayPhase) {
         val previous = lastPhase
         lastPhase = phase
+        if (phase == DebugOverlayPhase.LIVE) held = false
         when (startRequest.also { startRequest = null }) {
             StartRequest.OPEN -> expand()
-            StartRequest.OPEN_IF_CONTENT -> if (phase != DebugOverlayPhase.IDLE) expand() else mascot.react(MascotReaction.NOTICE)
+            StartRequest.FOLDED -> mascot.react(MascotReaction.NOTICE)
             null -> if (previous != null && overlayAnnounces(previous, phase)) {
                 val closedReply = closedRun && previous == DebugOverlayPhase.LIVE
                 closedRun = false
@@ -549,6 +554,7 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
     /** Folds the card into 小博, who then flies back to its spot. */
     private fun collapse() {
         wantCard = false
+        held = false
         if (presence != Presence.CARD) return
         results.folded(hud?.phase)
         DebugOverlayControl.readingUntil = 0L
@@ -591,18 +597,17 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
         }
     }
 
-    /** Starts or stops the quiet countdown; [delay] is null while the card should stay open. */
+    /** Starts or stops the quiet countdown, shown on the close button; [delay] is null while the card should stay open. */
     private fun noteQuiet(delay: Long?) {
         if (delay == null || presence != Presence.CARD) {
             quietSince = 0L
             root.removeCallbacks(autoCollapse)
-            return
-        }
-        if (quietSince == 0L) {
+        } else if (quietSince == 0L) {
             quietSince = System.currentTimeMillis()
             root.removeCallbacks(autoCollapse)
             root.postDelayed(autoCollapse, delay)
         }
+        ui = ui.copy(collapseAt = if (quietSince == 0L) 0L else quietSince + (delay ?: 0L), collapseMillis = delay ?: 0L)
     }
 
     private fun collapseIfQuiet() {
@@ -715,13 +720,6 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
     private fun hideSoftKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(root.windowToken, 0)
-    }
-
-    private fun switchToPage() {
-        val intent = Intent(this, DebugConsoleActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        startActivity(intent)
-        stopSelf()
     }
 
     /** The origin follows orientation only; a dragged card is not pulled back on the next update. */
@@ -962,7 +960,7 @@ class DebugOverlayService : Service(), DebugOverlayBubble.Listener {
     /** The bubble alone, opening into the card, the card, or folding back into the bubble. */
     private enum class Presence { BUBBLE, OPENING, CARD, CLOSING }
 
-    private enum class StartRequest { OPEN, OPEN_IF_CONTENT }
+    private enum class StartRequest { OPEN, FOLDED }
 }
 
 // Tuned for 2560×1440 @160dpi car HUI; the card leaves the map and the climate/dock bar visible.

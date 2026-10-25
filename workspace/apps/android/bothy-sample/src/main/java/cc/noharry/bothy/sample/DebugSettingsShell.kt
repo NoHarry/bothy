@@ -84,6 +84,7 @@ private fun SettingsSectionContent(
     when (section) {
         DebugSettingsSection.GENERAL -> SettingsScrollableContent {
             SettingsRuntimeGroup(state, actions)
+            SettingsSessionGroup()
         }
         DebugSettingsSection.DATA -> SettingsScrollableContent {
             SettingsWorkspaceGroup(state, actions)

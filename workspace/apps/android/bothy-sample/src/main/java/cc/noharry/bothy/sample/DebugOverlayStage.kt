@@ -25,6 +25,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,12 +49,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -85,11 +84,14 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -155,12 +157,20 @@ internal data class DebugOverlayUi(
     val delegations: List<DebugDelegationView> = emptyList(),
     /** When this state was made, for the tray's elapsed times. */
     val nowMillis: Long = 0L,
+    /** When the quiet card folds by itself (epoch ms), 0 while it stays open; the close button counts down to it. */
+    val collapseAt: Long = 0L,
+    /** That whole quiet wait, so the countdown's ring starts full. */
+    val collapseMillis: Long = 0L,
+    /**
+     * Touched or scrolled while it counted down: it stays open until closed (owner 2026-10-25: 「如果倒计时的时候别人滑动
+     * 或者点一下其中内容就打断倒计时，有些场景可能信息多，要多看下」); the next request counts down again.
+     */
+    val held: Boolean = false,
 )
 
 internal class DebugOverlayActions(
     val onDrag: (Float, Float) -> Unit,
     val onClose: () -> Unit,
-    val onPage: () -> Unit,
     val onStop: () -> Unit,
     val onToggleInput: () -> Unit,
     val onToggleDetails: () -> Unit,
@@ -184,6 +194,8 @@ internal class DebugOverlayActions(
     val onPreviousResult: () -> Unit = {},
     /** A tray line's 查看: speak the delegation report that waits for the user to finish reading. */
     val onReleaseReport: () -> Unit = {},
+    /** Any touch on the card, a scroll's or a tap's, seen before what it lands on handles it. */
+    val onTouched: () -> Unit = {},
 )
 
 /**
@@ -215,6 +227,7 @@ private fun GlassCard(hud: DebugOverlayHud, ui: DebugOverlayUi, actions: DebugOv
             .drawWithContent { if (ui.cardDrawn) drawContent() }
             .padding(STAGE_MARGIN)
             .reveal(ui.cardShown, actions.onRevealSettled)
+            .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial); actions.onTouched() } }
             .clip(CardShape)
             .background(OverlayPalette.glass)
             // A faint aura from 小博's corner tints the glass with the assistant's state.
@@ -314,7 +327,11 @@ private fun Header(hud: DebugOverlayHud, ui: DebugOverlayUi, mood: Mood, actions
         ) {
             if (ui.cardDrawn) Mascot(mascot, mood.action, driving = ui.mascotDriving)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        // The status line opens the plan and tool calls below (owner 2026-10-25: fewer header buttons, 详情 among them).
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.pointerInput(Unit) { detectTapGestures { actions.onToggleDetails() } }.semantics { contentDescription = "详情" },
+        ) {
             Text("小博", color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.sp)
             // State changes roll in from below rather than snapping.
             AnimatedContent(
@@ -331,10 +348,7 @@ private fun Header(hud: DebugOverlayHud, ui: DebugOverlayUi, mood: Mood, actions
         Spacer(Modifier.weight(1f))
         if (ui.stopVisible) StopButton(actions.onStop)
         GlassIcon(Icons.Filled.Edit, "输入", tint = if (ui.pendingQuestion || ui.showInput) OverlayPalette.glow else OverlayPalette.secondary, onClick = actions.onToggleInput)
-        GlassIcon(Icons.Filled.Info, "详情", tint = if (ui.showDetails) OverlayPalette.glow else OverlayPalette.secondary, onClick = actions.onToggleDetails)
-        // A portrait card has no room for five: 打开页面 waits until the run stops.
-        if (!ui.stopVisible || ui.cardWidth >= ALL_HEADER_ICONS_WIDTH) GlassIcon(Icons.AutoMirrored.Filled.ExitToApp, "打开页面", onClick = actions.onPage)
-        GlassIcon(Icons.Filled.Close, "收起", onClick = actions.onClose)
+        OverlayCloseButton(ui.collapseAt, ui.collapseMillis, actions.onClose)
     }
 }
 
@@ -916,8 +930,6 @@ private val PictureShape = RoundedCornerShape(22.dp)
 private val PICTURE_SIZE = 320.dp
 /** The card's own horizontal padding, as set on its content column. */
 private val CARD_PADDING_HORIZONTAL = 28.dp
-/** The narrowest card whose header holds every button at once, 停止 among them; the portrait card is 420. */
-private val ALL_HEADER_ICONS_WIDTH = 480.dp
 private val CARD_PADDING_VERTICAL = 24.dp
 /** How small the card is when folded into 小博, before it fades out entirely. */
 private const val FOLDED_SCALE = 0.2f
