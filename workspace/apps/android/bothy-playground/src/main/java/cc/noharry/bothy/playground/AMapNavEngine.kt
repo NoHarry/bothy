@@ -242,20 +242,33 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         last?.let { GeoPoint(it.latitude, it.longitude) } ?: deviceLocation
     }.getOrNull()
 
+    /**
+     * One request at a time: the weather looks again every [WEATHER_RETRY_MS] while there is no fix, and each look added a
+     * listener that kept the provider running. Before Android 11 the listener implements every method: the older ones
+     * are abstract there, and a lambda would throw as the provider is switched off.
+     */
     private fun askForFix(manager: LocationManager) {
+        if (askingForFix) return
         val provider = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER).firstOrNull { manager.isProviderEnabled(it) } ?: return
-        val keep = { found: android.location.Location? -> found?.let { deviceLocation = GeoPoint(it.latitude, it.longitude) }; Unit }
+        askingForFix = true
+        val keep = { found: android.location.Location? ->
+            found?.let { deviceLocation = GeoPoint(it.latitude, it.longitude) }
+            askingForFix = false
+        }
         main.post {
-            runCatching {
+            val asked = runCatching {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                     manager.getCurrentLocation(provider, null, app.mainExecutor) { keep(it) }
                 } else {
                     @Suppress("DEPRECATION")
-                    manager.requestSingleUpdate(provider, { keep(it) }, Looper.getMainLooper())
+                    manager.requestSingleUpdate(provider, OneFix(keep), Looper.getMainLooper())
                 }
             }
+            if (asked.isFailure) askingForFix = false
         }
     }
+
+    @Volatile private var askingForFix = false
 
     /** The city around the device, asked of AMap when the fix came without an address (a GPS or cached one does). */
     private fun cityFromLocation(): String {
@@ -570,4 +583,16 @@ internal class UnavailableNavEngine(private val why: String) : NavEngine {
     override fun plan(start: GeoPoint?, destination: Place, waypoints: List<Place>, preference: RoutePreference) = RouteResult(why)
     override fun startDriving(simulated: Boolean) = Unit
     override fun stop() = Unit
+}
+
+/** A single location update for Android 10 and older, where [android.location.LocationListener]'s other methods are abstract. */
+private class OneFix(private val keep: (android.location.Location?) -> Unit) : android.location.LocationListener {
+    override fun onLocationChanged(location: android.location.Location) = keep(location)
+
+    @Deprecated("Deprecated in Java")
+    override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) = Unit
+
+    override fun onProviderEnabled(provider: String) = Unit
+
+    override fun onProviderDisabled(provider: String) = keep(null)
 }

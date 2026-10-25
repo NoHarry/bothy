@@ -72,6 +72,8 @@ internal object DebugSystemTts : DebugTtsClient {
         var created: TextToSpeech? = null
         val status = suspendCancellableCoroutine { continuation ->
             created = TextToSpeech(context) { status -> if (continuation.isActive) continuation.resume(status) }
+            // Cancelled while the engine starts: nobody will keep it, so it goes.
+            continuation.invokeOnCancellation { created?.shutdown() }
         }
         val tts = created ?: return null
         if (status != TextToSpeech.SUCCESS) {

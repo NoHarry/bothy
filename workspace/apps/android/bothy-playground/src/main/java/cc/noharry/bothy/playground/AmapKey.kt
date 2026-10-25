@@ -25,9 +25,11 @@ internal object AmapKey {
 
     fun configured(context: Context): Boolean = saved(context).isNotEmpty() || BuildConfig.AMAP_CONFIGURED
 
-    /** Typed in here (else the build's own is used, from the manifest). */
-    fun saved(context: Context): String =
-        runCatching { File(context.noBackupFilesDir, KEY_FILE).readText(Charsets.UTF_8).trim() }.getOrDefault("")
+    /** Typed in here (else the build's own is used, from the manifest); read once, the screen asks every second. */
+    fun saved(context: Context): String = cached
+        ?: runCatching { File(context.noBackupFilesDir, KEY_FILE).readText(Charsets.UTF_8).trim() }.getOrDefault("").also { cached = it }
+
+    @Volatile private var cached: String? = null
 
     /** Null when saved, else why not. */
     fun save(context: Context, key: String): String? {
@@ -37,6 +39,7 @@ internal object AmapKey {
         return try {
             context.noBackupFilesDir.mkdirs()
             File(context.noBackupFilesDir, KEY_FILE).writeText(trimmed, Charsets.UTF_8)
+            cached = trimmed
             null
         } catch (_: IOException) {
             "保存失败"
@@ -45,6 +48,7 @@ internal object AmapKey {
 
     fun clear(context: Context) {
         File(context.noBackupFilesDir, KEY_FILE).delete()
+        cached = ""
     }
 
     /** Hands the typed key to the map, navigation, search and location parts; the build's own key needs nothing. */

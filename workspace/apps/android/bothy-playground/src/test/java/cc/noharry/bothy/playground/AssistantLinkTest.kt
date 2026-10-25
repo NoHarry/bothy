@@ -65,4 +65,16 @@ class AssistantLinkTest {
         val done = talking.copy(speaking = false, updatedAt = 30_000L).after(talking)
         assertEquals("the wait starts as it stops", 30_000L + done.holdMs(), done.closesAt(held = null))
     }
+
+    @Test
+    fun talkingAboutNothingNewDoesNotBringBackAFoldedCard() {
+        val before = lastTurn.after(AssistantView())
+        val answered = before.copy(request = "打开空调", reply = "开了", updatedAt = 5_000L).after(before)
+        val later = 5_000L + answered.holdMs() + 60_000L
+        // A minute after the card folded, the wake's 「我在」 carries the same, long-done request.
+        val woken = answered.copy(listening = true, speaking = true, updatedAt = later).after(answered)
+
+        assertFalse(woken.open(now = later, dismissed = null))
+        assertEquals(answered.workedAt, woken.workedAt)
+    }
 }

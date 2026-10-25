@@ -123,6 +123,7 @@ internal fun MapHeadUnit(
     // The panel only while there is something to show; listening is the bar's corner ([VoiceDock]). Touched, it stays.
     var held by remember { mutableStateOf<String?>(null) }
     FoldOnDismiss(assistant) { dismissed = it }
+    OnNewRun(assistant) { dismissed = null; held = null }
     val panel = assistant.open(now, dismissed, held)
     val close = { dismissed = assistant.request.ifBlank { null }; Assistant.close(context) }
     ScreenFill {

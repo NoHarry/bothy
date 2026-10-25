@@ -43,7 +43,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -135,13 +134,32 @@ private fun AssistantHeader(
     }
 }
 
-/** The speaker dismissed voice ([AssistantView.dismissedSince]): [onFold] gets the request whose card closes with it. */
+/**
+ * The speaker dismissed voice ([AssistantView.dismissedSince]): [onFold] gets the request whose card closes with it. The
+ * first of Bothy's reports only sets where that stands: a dismissal from before the head unit started is not one now.
+ */
 @Composable
 internal fun FoldOnDismiss(view: AssistantView, onFold: (String) -> Unit) {
-    var seen by remember { mutableLongStateOf(view.dismissedAt) }
-    LaunchedEffect(view.dismissedAt) {
-        if (view.dismissedSince(seen) && view.request.isNotBlank()) onFold(view.request)
+    var seen by remember { mutableStateOf<Long?>(null) }
+    val reported = view.updatedAt > 0L
+    LaunchedEffect(view.dismissedAt, reported) {
+        if (!reported) return@LaunchedEffect
+        val last = seen
+        if (last != null && view.dismissedSince(last) && view.request.isNotBlank()) onFold(view.request)
         seen = view.dismissedAt
+    }
+}
+
+/**
+ * A new run starts ([onNew]): a closed or held card is per run, not per wording, so the same words asked again (「下一首」)
+ * open their card again.
+ */
+@Composable
+internal fun OnNewRun(view: AssistantView, onNew: () -> Unit) {
+    var was by remember { mutableStateOf(view.running) }
+    LaunchedEffect(view.running) {
+        if (view.running && !was) onNew()
+        was = view.running
     }
 }
 

@@ -41,6 +41,8 @@ data class AssistantView(
     val speaking: Boolean = false,
     /** When the speaker last dismissed voice (「退出」「退下吧」), by Bothy's clock; the card closes with it. */
     val dismissedAt: Long = 0L,
+    /** 小博 reads out the card that is up, which stays until it is done ([after]); not reported, worked out here. */
+    val voiceHold: Boolean = false,
     val timeline: List<TurnEntry> = emptyList(),
     /** The finished reply's cards, picks and panel ([A2ui]). */
     val a2ui: A2ui = A2ui(),
@@ -115,9 +117,14 @@ object Assistant {
  */
 internal fun AssistantView.after(before: AssistantView): AssistantView {
     val changed = request != before.request || reply != before.reply || a2ui != before.a2ui
-    // Talking is working on it, and the card's wait starts over as it stops (owner 2026-10-25: 「倒计时在tts播报完再出现」).
-    val worked = running || speaking || before.speaking || (before.updatedAt > 0L && changed)
-    return copy(workedAt = if (worked) updatedAt else before.workedAt)
+    val fresh = running || (before.updatedAt > 0L && changed)
+    // Talking holds a card that is up, its reply being read out, and the card's wait starts over as it stops (owner
+    // 2026-10-25: 「倒计时在tts播报完再出现」). Talking alone (the wake's 「我在」, a reminder) does not bring back a card
+    // that folded: the request it carries is the last one, long done.
+    val up = fresh || before.voiceHold || (before.workedAt > 0L && updatedAt - before.workedAt < before.holdMs())
+    val voiceHold = speaking && up
+    val worked = fresh || voiceHold || (before.voiceHold && !speaking)
+    return copy(workedAt = if (worked) updatedAt else before.workedAt, voiceHold = voiceHold)
 }
 
 /**
@@ -184,10 +191,10 @@ class AssistantEventReceiver : BroadcastReceiver() {
  * ([held], owner 2026-10-25, as Bothy's own card).
  */
 internal fun AssistantView.open(now: Long, dismissed: String?, held: String? = null): Boolean =
-    request.isNotBlank() && request != dismissed && (running || speaking || request == held || (workedAt > 0 && now - workedAt < holdMs()))
+    request.isNotBlank() && request != dismissed && (running || voiceHold || request == held || (workedAt > 0 && now - workedAt < holdMs()))
 
 /** When the open card folds by itself, for the countdown on its X ([CloseCountdown]); 0 while 小博 works or talks, or it is [held]. */
-internal fun AssistantView.closesAt(held: String?): Long = if (running || speaking || request == held || workedAt <= 0L) 0L else workedAt + holdMs()
+internal fun AssistantView.closesAt(held: String?): Long = if (running || voiceHold || request == held || workedAt <= 0L) 0L else workedAt + holdMs()
 
 /** How long the card stays after 小博 answered: long enough to read a card, longer while a pick or panel waits. */
 internal fun AssistantView.holdMs(): Long = when {

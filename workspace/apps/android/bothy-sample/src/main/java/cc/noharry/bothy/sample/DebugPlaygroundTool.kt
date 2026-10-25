@@ -115,7 +115,8 @@ internal object DebugPlaygroundMode {
         private set
 
     fun init(context: Context) {
-        real = prefs(context).getBoolean(KEY_REAL, false)
+        // Saved by a Playground since uninstalled, it would keep every run off the car: it counts only while there is one.
+        real = prefs(context).getBoolean(KEY_REAL, false) && playgroundInstalled(context)
     }
 
     fun report(context: Context, real: Boolean) {
