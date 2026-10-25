@@ -192,8 +192,8 @@ private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: Media
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             VoiceDock(assistant, voiceWidth, onClose)
-            // While 小博 listens its words need the room.
-            if (!assistant.listening) SuggestionTicker(REAL_SUGGESTIONS) { Assistant.say(context, it) }
+            // While 小博 listens or talks the corner and its light need the room (owner: 「这个引导不要和光效叠一起」).
+            if (!assistant.listening && !assistant.speaking) SuggestionTicker(REAL_SUGGESTIONS) { Assistant.say(context, it) }
             Spacer(Modifier.weight(1f))
             PlayStrip(playing, controls)
             PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
