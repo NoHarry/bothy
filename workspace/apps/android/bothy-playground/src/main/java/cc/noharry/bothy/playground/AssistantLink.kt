@@ -84,8 +84,14 @@ object Assistant {
     /** As Bothy's card X: listening ends and 小博 stops talking; what it is doing carries on, silently. */
     fun close(context: Context) = command(context, "close")
 
-    /** The servers here offer other tools now ([HeadUnitModes]): Bothy lists them again. */
+    /** The servers here may offer other tools than when Bothy last listed them (this app started): it lists them again. */
     fun toolsChanged(context: Context) = command(context, "tools_changed")
+
+    /**
+     * Switched between the simulated car and real navigation ([HeadUnitModes]): Bothy lists the tools again and starts a new
+     * conversation (owner 2026-10-25: 「每次切完要换个新session,避免之前的记忆影响」).
+     */
+    fun modeChanged(context: Context) = command(context, "mode_changed")
 
     private fun command(context: Context, name: String) {
         runCatching { context.sendBroadcast(Intent(ACTION_TAKE_OVER).setPackage(BOTHY_PACKAGE).putExtra("command", name), PERMISSION) }

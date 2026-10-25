@@ -180,6 +180,10 @@ To demo it: install both apps, open Bothy Playground, then in Bothy open 连接�
 key). Keep the playground in front and talk to 小博 there. Desktop MCP clients can reach the same servers with
 `adb forward tcp:8790 tcp:8790`.
 
+The 模拟｜真实 switch at the top right of the head unit changes mode at any time: simulated is the made-up car and
+home above; real keeps only real navigation and 小博, on the device's own location, so a tablet in a car works. Each
+switch starts a new conversation, so nothing said in the other mode carries over.
+
 Navigation needs your own AMap Android key, typed into the Playground's settings → 高德 key (how to get one is
 [above](#amap-key-optional-for-the-map-and-navigation)). Without it the map's place shows the way to one, the navigation
 tools say what is missing, and everything else works. The head unit takes the assistant over through a signature permission, so it

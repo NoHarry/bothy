@@ -54,7 +54,7 @@ object HeadUnitModes {
     /**
      * Switches to [next]. Entering or leaving real navigation ends the route under way (a simulated drive does not go on
      * as a real one, nor the other way round), puts the car where the device is or back at the demo's place, and tells
-     * Bothy the servers' tools changed.
+     * Bothy, which lists the servers' tools again and starts a new conversation ([Assistant.modeChanged]).
      */
     fun set(context: Context, next: HeadUnitMode) {
         val before = state.value
@@ -67,7 +67,7 @@ object HeadUnitModes {
             navigation.stop()
             navigation.setSimulated(!next.realNav)
         }
-        Assistant.toolsChanged(context)
+        Assistant.modeChanged(context)
     }
 
     private const val PREFS = "head_unit"

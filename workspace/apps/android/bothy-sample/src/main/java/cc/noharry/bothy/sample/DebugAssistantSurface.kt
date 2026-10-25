@@ -29,8 +29,10 @@ internal object DebugAssistantSurface {
     const val EXTRA_COMMAND = "command"
     const val COMMAND_WAKE = "wake"
     const val COMMAND_CLOSE = "close"
-    /** Bothy Playground switched between its simulated car and real navigation: its servers offer other tools now. */
+    /** Bothy Playground (re)started: its servers may offer other tools than when they were last listed. */
     const val COMMAND_TOOLS_CHANGED = "tools_changed"
+    /** Bothy Playground switched between its simulated car and real navigation: other tools, and a new conversation. */
+    const val COMMAND_MODE_CHANGED = "mode_changed"
     /** The Playground's servers, as its connectors name them ([DebugMcpConnectors]). */
     val PLAYGROUND_SERVERS = listOf("cabin", "home")
 
@@ -179,6 +181,15 @@ class DebugAssistantSurfaceReceiver : BroadcastReceiver() {
                 DebugAssistantSurface.PLAYGROUND_SERVERS.forEach { McpToolCatalogs.onServerChanged(context.applicationContext, it) }
                 return
             }
+            // And in a new session: what was said about the simulated car does not follow into real driving, nor back.
+            DebugAssistantSurface.COMMAND_MODE_CHANGED -> {
+                DebugAssistantSurface.PLAYGROUND_SERVERS.forEach { McpToolCatalogs.onServerChanged(context.applicationContext, it) }
+                DebugRuntimeSession.newSession(context.applicationContext)
+                return
+            }
+            null -> Unit
+            // A command this version does not know is not a hand-over.
+            else -> return
         }
         intent.getStringExtra(DebugAssistantSurface.EXTRA_TEXT)?.trim()?.takeIf { it.isNotEmpty() }?.let {
             DebugRuntimeSession.submitText(context.applicationContext, it)

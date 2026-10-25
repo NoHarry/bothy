@@ -85,7 +85,7 @@ internal object DebugWakeAck {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build(),
                 )
                 .setTransferMode(AudioTrack.MODE_STATIC)
-                .setBufferSizeInBytes(clip.samples.size * 2)
+                .setBufferSizeInBytes((clip.sampleRate * CHIME_LEAD_MILLIS.toInt() / 1000 + clip.samples.size) * 2)
                 .build()
         } ?: return false
         var finished = false
@@ -98,12 +98,15 @@ internal object DebugWakeAck {
                 runCatching { track.release() }
             }
         }
-        if (runCatching { track.write(clip.samples, 0, clip.samples.size) }.getOrDefault(-1) < 0) return false.also { finish() }
+        // Silence first, so the line starts as the wake chime ([DebugVoiceFeedback.woke]) fades rather than over it.
+        val samples = ShortArray(clip.sampleRate * CHIME_LEAD_MILLIS.toInt() / 1000 + clip.samples.size)
+        clip.samples.copyInto(samples, samples.size - clip.samples.size)
+        if (runCatching { track.write(samples, 0, samples.size) }.getOrDefault(-1) < 0) return false.also { finish() }
         playing = track
         DebugTtsActivity.begin(track, finish)
         DebugTtsActivity.speaking(clip.line.text)
         if (runCatching { track.play() }.isFailure) return false.also { finish() }
-        main.postDelayed(finish, clip.millis + RELEASE_GRACE_MILLIS)
+        main.postDelayed(finish, CHIME_LEAD_MILLIS + clip.millis + RELEASE_GRACE_MILLIS)
         return true
     }
 
@@ -161,6 +164,8 @@ internal object DebugWakeAck {
     private const val TAG = "DebugVoice"
     private const val WAV = "wav"
     private const val RELEASE_GRACE_MILLIS = 150L
+    /** How long the wake chime sounds before the spoken answer comes in. */
+    private const val CHIME_LEAD_MILLIS = 320L
     private const val CACHE_NAME_CHARS = 16
 }
 

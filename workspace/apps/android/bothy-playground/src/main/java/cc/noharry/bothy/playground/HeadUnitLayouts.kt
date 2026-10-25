@@ -208,14 +208,14 @@ internal fun MapHeadUnit(
                 val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
                 if (shows == AssistantShows.PANEL) AssistantChatPanel(assistant, null, close, placed) else AssistantBar(assistant, close, placed)
             }
-            RealStatus(if (real) "真实导航" else "模拟 · 你在${world.userAt.label}", server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
+            RealStatus(if (real) "" else "你在${world.userAt.label}", server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
             RealBar(theme, assistant, playing, controls, slots.bar) { onSheet(true) }
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
 }
 
-/** Top right: the mode ([label]), the server, the weather where the car is and the time (the settings are on the bar). */
+/** Top right: the mode's switch, where the user is ([label], simulated only), the server, the weather and the time. */
 @Composable
 private fun RealStatus(label: String, server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
     Row(
@@ -223,8 +223,9 @@ private fun RealStatus(label: String, server: ServerState, weather: WeatherRepor
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        ModeSwitch()
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
-        StatusLabel(label)
+        if (label.isNotEmpty()) StatusLabel(label)
         weather?.let { StatusLabel("${it.weather} ${it.temperature}°") }
         StatusLabel(clockText(now, now))
     }

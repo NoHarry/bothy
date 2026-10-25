@@ -139,7 +139,9 @@ internal class DebugOverlayVoice(
  */
 internal fun startWokenVoice(context: Context, source: DebugWakeSource): String? {
     val interrupted = DebugVoiceController.interruptForWake(context)
-    // Answered before listening is set up, which takes a few hundred milliseconds; taken back if it cannot listen.
+    // Every wake chimes at once (owner 2026-10-25: 「唤醒和退出要一个提示音」); the spoken answer follows the chime, before
+    // listening is set up, which takes a few hundred milliseconds, and is taken back if it cannot listen.
+    DebugVoiceFeedback.woke()
     val answered = DebugWakeAck.play(context, interrupted)
     val settingUp = SystemClock.elapsedRealtime()
     val failure = if (DebugVoiceController.listening) {
@@ -148,7 +150,6 @@ internal fun startWokenVoice(context: Context, source: DebugWakeSource): String?
         DebugVoiceController.start(context, DebugVoiceOrigin.WAKE)
     }
     if (failure != null && answered) DebugTtsActivity.interrupt()
-    if (failure == null && !answered) DebugVoiceFeedback.woke()
     val took = SystemClock.elapsedRealtime() - settingUp
     DebugVoiceLog.i("DebugVoice", "overlay woken by $source${if (interrupted) " (interrupting)" else ""}, listening set up in $took ms${failure?.let { ": $it" }.orEmpty()}")
     return failure

@@ -147,7 +147,7 @@ internal object DebugVoiceController {
      */
     fun closedByHand() {
         closedAt = SystemClock.elapsedRealtime()
-        if (wakeSession) stop()
+        if (wakeSession) endWoken()
         DebugTtsActivity.interrupt()
         DebugRuntimeSession.silenceRunning()
         DebugVoiceLog.i(TAG, "voice closed by the card's X")
@@ -252,9 +252,10 @@ internal object DebugVoiceController {
             onEnd = { reason ->
                 if (realtime === created) {
                     DebugVoiceLog.i(TAG, "realtime conversation ended: $reason")
+                    val failed = created.state.value.status == VoiceSessionStatus.ERROR
                     // A refused key or a lost connection stays in view after the voice bar folds.
-                    if (created.state.value.status == VoiceSessionStatus.ERROR) mutableNotice.value = reason
-                    stop()
+                    if (failed) mutableNotice.value = reason
+                    if (failed) stop() else endWoken()
                 }
             },
             client = doubaoRealtimeClient(appContext),
@@ -454,7 +455,7 @@ internal object DebugVoiceController {
             if (working || state.liveText.isNotBlank() || state.micActive) lastBusy = now
             val reason = wokenSessionEnd(now - lastBusy, now - lastEngaged) ?: continue
             DebugVoiceLog.i(TAG, "woken session $reason: ended (gate ${state.nearGate?.let { "passed=${it.passedFrames} blocked=${it.blockedFrames}" } ?: "off"})")
-            stop()
+            endWoken()
         }
     }
 
@@ -541,9 +542,17 @@ internal object DebugVoiceController {
             runWorking -> DebugRuntimeSession.stopRun()
         }
         DebugTtsActivity.interrupt()
-        DebugVoiceFeedback.dismissed()
-        stop()
+        endWoken()
         mutableDismissals.tryEmit(Unit)
+    }
+
+    /**
+     * Ends the session with the parting chime when it was woken (owner 2026-10-25: 「唤醒和退出要一个提示音」): 「退下吧」,
+     * the card's X, an idle end, 端到端 ending. A wake while listening restarts without it, and the mic button is silent.
+     */
+    private fun endWoken() {
+        if (wakeSession) DebugVoiceFeedback.dismissed()
+        stop()
     }
 
     private fun pushBusy(active: VoiceSession) {

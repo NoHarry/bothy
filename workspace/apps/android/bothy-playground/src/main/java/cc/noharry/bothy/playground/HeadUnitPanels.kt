@@ -220,7 +220,7 @@ private fun BarToggle(label: String, on: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** The right end of the status bar, over the map: where the user is, the servers, the weather, the time, settings. */
+/** The right end of the status bar, over the map: the mode's switch, where the user is, the servers, the weather, the time, settings. */
 @Composable
 internal fun StatusCluster(world: World, server: ServerState, now: Long, onMore: () -> Unit, modifier: Modifier = Modifier) {
     Row(
@@ -228,6 +228,7 @@ internal fun StatusCluster(world: World, server: ServerState, now: Long, onMore:
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        ModeSwitch()
         StatusText("你在${world.userAt.label}")
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
         StatusText("MCP")
