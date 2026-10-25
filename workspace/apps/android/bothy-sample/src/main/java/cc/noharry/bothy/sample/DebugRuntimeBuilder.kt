@@ -5,6 +5,7 @@ package cc.noharry.bothy.sample
 import android.content.Context
 import cc.noharry.agent.androiduse.AndroidUseOptions
 import cc.noharry.agent.androiduse.AndroidUseToolProvider
+import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
@@ -103,7 +104,8 @@ internal fun buildDebugRuntime(
     val deepSeekNative = config.usesDeepSeekNativeUpdates(context, profile)
     // The earlier runs already hold the conversation and the skills they loaded; a new session (or one from before a
     // restart) still gets the recap and the previous exchange.
-    val clock = debugClockLine(System.currentTimeMillis())
+    // The time and the app in front, both per run (the run context, never the cached system prompt).
+    val clock = listOf(debugClockLine(System.currentTimeMillis()), debugForegroundLine(context)).filter(String::isNotBlank).joinToString("\n")
     val verifyAgent = !subagentChild && DebugSubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
     val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
     val prompt = if (carried.isEmpty()) {
@@ -238,7 +240,8 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
         mount(configure(DeviceNotificationMcpProvider(context)))
     }
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_MEDIA)) {
-        mount(configure(DeviceMediaMcpProvider(context)))
+        // The app in front, so 「暂停」 with nothing playing goes to what is on screen (a video app's session reads stopped).
+        mount(configure(DeviceMediaMcpProvider(context, foregroundPackage = { AndroidUseAccessibility.foregroundApp(context)?.packageName })))
     }
     if (mounted.isNotEmpty()) {
         toolProvider(

@@ -95,6 +95,18 @@ internal fun debugClockLine(now: Long, zone: java.time.ZoneId = DebugPlanRunner.
 }
 
 /**
+ * The app in front, as Android Use's service sees it (owner 2026-10-25: with 抖音 open, 小博 still offered to open it):
+ * named each run, so it is not opened again. Empty without the service, or with Bothy itself in front.
+ */
+internal fun debugForegroundLine(context: android.content.Context): String {
+    val app = cc.noharry.agent.androiduse.AndroidUseAccessibility.foregroundApp(context) ?: return ""
+    return if (app.packageName == context.packageName) "" else foregroundLine(app.label, app.packageName)
+}
+
+internal fun foregroundLine(label: String, packageName: String): String =
+    "屏幕前台：「$label」（$packageName），已经开着，操作它不用再打开；用户没说对象的「暂停」「继续」「下一个」「这个」，先想到它里面正在放、正在看的内容。"
+
+/**
  * When to send 网上核实 (owner 2026-10-19: 除了导航给出的数据，也派一个核实的 agent 去网页上搜一下，不一定在哪种场景下
  * 触发; 先答再补报; 不能拖慢正常导航，只在需要印证的查询里触发). A rule of the main agent's, not a skill matched by
  * words, so any scene can use it; on the bench the type's description alone left a nearby-food answer at the map's data,
