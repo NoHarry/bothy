@@ -366,7 +366,12 @@ internal fun MapLayer(blocked: String?, map: NaviMapHandle, box: MapBox, corner:
     val w by animateDpAsState(box.width, tween(MOVE_MS.toInt()), label = "mapW")
     val h by animateDpAsState(box.height, tween(MOVE_MS.toInt()), label = "mapH")
     val placed = Modifier.offset(x, y).size(w, h).clip(RoundedCornerShape(corner))
-    if (blocked == null) NaviMap(map, placed) else MapPlaceholder(blocked, placed)
+    when {
+        blocked == null -> NaviMap(map, placed)
+        // No key yet: the way to one, in the map's place.
+        !AmapKey.configured(LocalContext.current) -> AmapKeyPrompt(placed)
+        else -> MapPlaceholder(blocked, placed)
+    }
 }
 
 /** Grown or shrunk with nothing on it ([active] no route, nothing found lately), the map shows the car's district again. */
@@ -527,7 +532,7 @@ internal fun rememberWeather(): WeatherReport? {
 
 /** Why the map cannot show yet, or null when it can (key built in, terms agreed, the SDK started). */
 internal fun mapBlocked(context: android.content.Context): String? = when {
-    !BuildConfig.AMAP_CONFIGURED -> "没有高德 key：在 local.properties 写上 AMAP_ANDROID_KEY 后重新打包"
+    !AmapKey.configured(context) -> "没有高德 key：在设置里填写"
     !AMapPrivacy.agreed(context) -> "同意高德地图隐私政策后显示地图"
     Playground.engine?.ensureStarted() == null -> "高德导航启动中…"
     else -> null
@@ -549,6 +554,7 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
                 Text("设置与控制", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 PlainIcon(Icons.Filled.Close, onClick = onClose)
             }
+            AmapKeyRow()
             // Real navigation: the device's own position and real driving, the simulated car and home taken down.
             SheetSwitch("真实导航模式（用设备的真实定位，不模拟车和家）", mode.realNav) { on ->
                 scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = on)) }

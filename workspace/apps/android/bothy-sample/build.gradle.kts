@@ -121,7 +121,9 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = sampleVersionCode
-        versionName = "0.1.0-dev.$sampleVersionCode" + if (sampleCommit.isNotEmpty()) "+$sampleCommit" else ""
+        // A release takes its tag's version (-PbothyVersion=0.1.0); a development build says which commit it is.
+        versionName = providers.gradleProperty("bothyVersion").orNull?.takeIf { it.isNotBlank() }
+            ?: ("0.1.0-dev.$sampleVersionCode" + if (sampleCommit.isNotEmpty()) "+$sampleCommit" else "")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         val providerConfigSource = providerConfigSource(providerConfigText, providerLocalOverridesText)
@@ -167,11 +169,8 @@ android {
         release {
             // The dedicated key when local.properties names one, else the debug key so a release build still installs.
             signingConfig = signingConfigs.findByName("bothy") ?: signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            // An open-source demo: nothing to hide, and nothing for shrinking to break (owner 2026-10-25: 「不需要混淆」).
+            isMinifyEnabled = false
         }
     }
 

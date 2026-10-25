@@ -20,12 +20,12 @@ import androidx.core.content.ContextCompat
 
 /**
  * Before the car's navigation can start: the user agrees to AMap's privacy terms (the SDK may not run before that), then
- * grants location. Nothing is shown in a build without an AMap key.
+ * grants location. Nothing is shown before there is an AMap key ([AmapKey]).
  */
 @Composable
 internal fun AMapConsent() {
-    if (!BuildConfig.AMAP_CONFIGURED) return
     val context = LocalContext.current
+    if (!AmapKey.configured(context)) return KeylessLocation()
     var agreed by remember { mutableStateOf(AMapPrivacy.agreed(context)) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { Playground.engine?.ensureStarted() }
     LaunchedEffect(agreed) {
@@ -53,4 +53,15 @@ internal fun AMapConsent() {
             TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AMapPrivacy.POLICY_URL))) }) { Text("查看隐私政策") }
         },
     )
+}
+
+/** Without a key, AMap's terms do not apply: the rough location is asked for alone, for the weather ([KeylessWeather]). */
+@Composable
+private fun KeylessLocation() {
+    val context = LocalContext.current
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (!granted) ask.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+    }
 }

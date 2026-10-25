@@ -204,7 +204,8 @@ class DebugVoiceServicesTest {
 
     @Test
     fun ttsStatusSaysWhatIsMissing() {
-        val base = DebugTtsConfig.from(emptyMap())
+        // MiMo chosen by hand, before its key.
+        val base = DebugTtsConfig.from(mapOf(TTS_PROVIDER to "mimo"))
         assertTrue(ttsStatusLine(base).contains("密钥"))
         assertTrue(ttsStatusLine(base.copy(enabled = true, apiKey = "k")).startsWith("可用"))
         assertEquals("已关闭", ttsStatusLine(base.copy(enabled = false, apiKey = "k")))

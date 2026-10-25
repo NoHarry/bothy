@@ -17,6 +17,47 @@ agent does, it does through the runtime's public API; nothing here is a library.
 
 > **Status: 0.x, under active development.**
 
+## Try it in 5 minutes
+
+No development setup, one model key.
+
+1. **Install**: download the latest `bothy-*.apk` (小博) and `bothy-playground-*.apk` (the virtual head unit, optional)
+   from [Releases](https://github.com/NoHarry/bothy/releases) onto an Android tablet or phone (Android 7.0 or later, arm64).
+2. **Add a DeepSeek key**: open Bothy; its first screen walks you through setup. Create an API key on the
+   [DeepSeek platform](https://platform.deepseek.com/api_keys), paste it and tap 保存并检查 (save and check).
+3. **(Recommended) Add a 豆包 (Doubao) speech key**: in the [Volcano Engine Doubao speech console](https://console.volcengine.com/speech/new/setting/activate?projectName=default),
+   under 开通管理 enable 语音合成2.0 (speech synthesis 2.0) and 端到端实时语音 (end-to-end realtime speech), then create a
+   key under API Key in the left menu and paste it. 小博 then speaks in a natural
+   voice and can hold an end-to-end voice conversation. Without it, 小博 speaks with the device's own voice.
+4. **Grant permissions** from the same screen: microphone and overlay are needed; notification access (to control
+   music) and accessibility (to let 小博 operate other apps) are optional.
+5. **Say 「你好小博」** and try 「明天深圳天气怎么样」, 「明早八点提醒我带伞」, 「下一首」. With Bothy Playground in front,
+   ask it to turn on the air conditioning, open a window or plan a route in the virtual car.
+
+### Which key does what
+
+| Feature | Needs |
+|---------|-------|
+| Conversation and tasks, web search, reminders and plans, memory, operating other apps, media control, calendar, cards and panels | DeepSeek key |
+| Wake word, speech recognition | Nothing (on the device) |
+| 小博's voice | Nothing (the system voice); a Doubao speech key for a natural voice |
+| End-to-end voice conversation | Doubao speech key |
+| Playground's virtual car and home, the weather | Nothing (without an AMap key the weather comes from Open-Meteo) |
+| Playground's map, navigation and place search | Your own AMap key (below) |
+
+### AMap key (optional, for the map and navigation)
+
+The Playground's map and navigation run on AMap's SDK, with a free key of your own:
+
+1. Sign in to the [AMap console](https://console.amap.com/dev/key/app) (a personal developer account is enough), create
+   an app under 我的应用 and add a key for the **Android** platform.
+2. Enter the package `cc.noharry.bothy.playground` and, as both the release and the debug SHA1,
+   `02:09:D5:0D:3B:C7:52:02:A2:1A:2E:E7:EB:01:5B:21:0D:74:13:5B` (the signature of the APKs in Releases). A build of
+   your own is signed differently: the Playground's settings → 高德 key show its package and SHA1, ready to copy.
+3. Paste the key into the Playground's settings → 高德 key; it restarts and the map appears.
+
+A build of your own can also carry the key as `AMAP_ANDROID_KEY` in `local.properties` (see [Running the demo](#running-the-demo)).
+
 ## The apps
 
 | Module | What it does |
@@ -115,7 +156,7 @@ reaches a real car or a real device.
 
 - **Cabin**: climate, seat heating and ventilation, windows, doors and the trunk, door locks, screen brightness and
   volume, ambient light, music; who sits where and who is speaking, so 「我这边好热」 lands on the speaker's seat.
-- **Navigation**: real routing through AMap's navigation SDK when the app is built with an AMap key: places found by
+- **Navigation**: real routing through AMap's navigation SDK with your AMap key ([above](#amap-key-optional-for-the-map-and-navigation)): places found by
   name (a vague one such as 「科技园」 is looked for around the trip's other stops), routes through up to 16 stops,
   stops added, removed, replaced or reordered while driving, search along the route, and a simulated drive. Settings can
   park the car at 深圳市民中心 instead of the device's location, for a demo in the demo's city.
@@ -139,9 +180,9 @@ To demo it: install both apps, open Bothy Playground, then in Bothy open 连接�
 key). Keep the playground in front and talk to 小博 there. Desktop MCP clients can reach the same servers with
 `adb forward tcp:8790 tcp:8790`.
 
-Navigation needs your own AMap Android key, bound to the package `cc.noharry.bothy.playground` and the SHA1 of the key
-you sign with: put `AMAP_ANDROID_KEY=…` in `workspace/apps/android/local.properties` (never committed). Without it the
-navigation tools say what is missing. The head unit takes the assistant over through a signature permission, so it
+Navigation needs your own AMap Android key, typed into the Playground's settings → 高德 key (how to get one is
+[above](#amap-key-optional-for-the-map-and-navigation)). Without it the map's place shows the way to one, the navigation
+tools say what is missing, and everything else works. The head unit takes the assistant over through a signature permission, so it
 works only when both apps are signed with the same key (see [Running the demo](#running-the-demo) for signing).
 
 ## Running the demo
@@ -192,7 +233,8 @@ voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py`
 - Tablets first; phones work held sideways. On a phone (smallest width under 600 dp) both apps turn landscape: Bothy's
   console takes its compact layout with the destinations in a rail, the head unit draws at three quarters of its size,
   and 小博's floating card fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs
-  both apps, AMap's map included.
+  both apps; AMap's map needs software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when
+  the map opens.
 
 ## License
 

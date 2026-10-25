@@ -17,6 +17,15 @@ fun signingValue(name: String): String? = signingProperties.getProperty("BOTHY_S
 // AMap's Android key (bound to this package and the signing key's SHA1), from local.properties; without it navigation says so.
 val amapKey: String = signingProperties.getProperty("AMAP_ANDROID_KEY")?.trim().orEmpty()
 
+// The version as Bothy's: the commits counted, so a newer build installs over an older one; a release's name from its tag.
+val playgroundVersionCode: Int = providers.gradleProperty("sampleVersionCode").orNull?.toIntOrNull()
+    ?: runCatching {
+        providers.exec {
+            commandLine("git", "rev-list", "--count", "HEAD")
+            isIgnoreExitValue = true
+        }.standardOutput.asText.get().trim().toIntOrNull()
+    }.getOrNull() ?: 1
+
 android {
     namespace = "cc.noharry.bothy.playground"
     compileSdk {
@@ -34,8 +43,8 @@ android {
         applicationId = "cc.noharry.bothy.playground"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0-dev"
+        versionCode = playgroundVersionCode
+        versionName = providers.gradleProperty("bothyVersion").orNull?.takeIf { it.isNotBlank() } ?: "0.1.0-dev.$playgroundVersionCode"
         manifestPlaceholders["AMAP_KEY"] = amapKey
         buildConfigField("boolean", "AMAP_CONFIGURED", amapKey.isNotEmpty().toString())
         // AMap ships 32- and 64-bit ARM libraries (some 100 MB together); tablets and head units are arm64.

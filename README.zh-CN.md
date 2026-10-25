@@ -14,6 +14,39 @@ Bothy（苏格兰山间小屋）向所有路人开放。小博就住在里面：
 
 > **状态：0.x，持续开发中。**
 
+## 5 分钟上手
+
+不用装开发环境，只要一个模型 key。
+
+1. **下载安装**：到 [Releases](https://github.com/NoHarry/bothy/releases) 下载最新的 `bothy-*.apk`（小博）和 `bothy-playground-*.apk`（虚拟车机，可选），装到 Android 平板或手机上（Android 7.0 以上，arm64）。
+2. **填 DeepSeek key**：打开 Bothy，第一屏就是上手向导。到 [DeepSeek 开放平台](https://platform.deepseek.com/api_keys) 创建一个 API key，粘贴进去点「保存并检查」。
+3. **（推荐）填豆包语音 key**：在[火山引擎豆包语音控制台](https://console.volcengine.com/speech/new/setting/activate?projectName=default)的「开通管理」里开通「语音合成2.0」和「端到端实时语音」，再到左侧「API Key」创建一个 key 粘贴进去。小博的声音更自然，还能用「端到端」连续对话。不填也行：小博用系统自带的语音说话。
+4. **开权限**：向导里逐项点「去开启」。麦克风、悬浮窗必需；通知使用权（控制音乐）、无障碍（让小博操作别的 App）可选。
+5. **说「你好小博」**：试试「明天深圳天气怎么样」「明早八点提醒我带伞」「下一首」。打开 Bothy Playground 放在前台，就能在虚拟车机里让它开空调、开车窗、规划路线。
+
+### 哪个功能需要哪个 key
+
+| 功能 | 需要 |
+|------|------|
+| 对话、办事、联网搜索、提醒和计划、记忆、操作别的 App、媒体控制、日历、卡片和面板 | DeepSeek key |
+| 唤醒词、语音识别 | 不需要（在设备上运行） |
+| 小博说话 | 不需要（系统语音）；填了豆包语音 key 声音更自然 |
+| 端到端语音对话 | 豆包语音 key |
+| Playground 的虚拟车、虚拟家、天气 | 不需要（没有高德 key 时天气来自 Open-Meteo） |
+| Playground 的地图、导航、搜地点 | 你自己的高德 key（见下） |
+
+### 高德 key（可选，地图和导航用）
+
+Playground 的地图和导航用高德 SDK，要用你自己申请的免费 key：
+
+1. 打开[高德开放平台控制台](https://console.amap.com/dev/key/app)登录（个人开发者就行），「我的应用」→ 创建新应用 →「添加 Key」，服务平台选 **Android 平台**。
+2. PackageName 填 `cc.noharry.bothy.playground`；发布版和调试版安全码 SHA1 都填
+   `02:09:D5:0D:3B:C7:52:02:A2:1A:2E:E7:EB:01:5B:21:0D:74:13:5B`（Releases 里的 APK 用的签名）。
+   自己编译的包签名不同：在 Playground 设置 →「高德 key」里能看到并一键复制它自己的包名和 SHA1。
+3. 把生成的 key 粘贴到 Playground 设置 →「高德 key」，保存后车机自动重启，地图就出来了。
+
+自己编译时也可以把 key 写进 `local.properties` 的 `AMAP_ANDROID_KEY`（见[运行演示 App](#运行演示-app)）。
+
 ## 两个 App
 
 | 模块 | 做什么 |
@@ -81,7 +114,7 @@ Bothy 本身的界面是一个类似 Codex 的开发者控制台。对话区列�
 （`http://127.0.0.1:8790/cabin/mcp` 和 `/home/mcp`，Streamable HTTP，只监听本机回环地址）。它不连接任何真车或真实设备。
 
 - **座舱**：空调、座椅加热和通风、车窗、车门和后备箱、车门锁、中控屏亮度和音量、氛围灯、音乐；还有谁坐在哪、谁在说话，所以「我这边好热」会落到说话人的座位上。
-- **导航**：打包时配了高德 key，就用高德导航 SDK 真实算路：按名字找地点（「科技园」这种笼统的名字会在这趟行程其他地点附近找），
+- **导航**：填了高德 key（见[上文](#高德-key可选地图和导航用)），就用高德导航 SDK 真实算路：按名字找地点（「科技园」这种笼统的名字会在这趟行程其他地点附近找），
   最多 16 个途经点，开车途中加、删、换、调整途经点，沿途搜索，以及模拟行驶。设置里可以让车停在深圳市民中心，不用设备的真实位置，方便在演示城市里演示。
 - **车机界面**：座舱按车机屏幕布局（左边是车，右边三栏，下面是空调条）。它在前台时接管助手：Bothy 收起悬浮卡片，小博就在车机里。
   在这里唤醒（唤醒词，或者点小博）；听你说话时只显示一条小栏，滚动显示识别到的字；识别完开始干活时才弹出卡片，显示你的要求、
@@ -96,8 +129,8 @@ Bothy 本身的界面是一个类似 Codex 的开发者控制台。对话区列�
 演示方法：两个 App 都装上，先打开 Bothy Playground，再在 Bothy 的「连接应用」里连上「虚拟座舱」和「虚拟小家」（不需要 key）。
 让 Playground 留在前台，直接在车机里跟小博对话。电脑上的 MCP 客户端可以用 `adb forward tcp:8790 tcp:8790` 连同样的服务。
 
-导航需要你自己的高德 Android key，绑定包名 `cc.noharry.bothy.playground` 和你签名用的 SHA1：在
-`workspace/apps/android/local.properties` 里写 `AMAP_ANDROID_KEY=…`（这个文件不会提交）。没有 key 时导航工具会说明缺什么。
+导航要你自己的高德 Android key，在 Playground 设置 →「高德 key」里填（申请步骤见[上文](#高德-key可选地图和导航用)）；
+没有 key 时地图的位置会显示申请指引，导航工具也会说明缺什么，其余功能照常。
 车机接管助手靠签名级权限，所以两个 App 要用同一个签名（签名方法见[运行演示 App](#运行演示-app)）。
 
 ## 运行演示 App
@@ -142,7 +175,7 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 - 演示 App：`minSdk 24`、`compileSdk 37`（运行时用到 `java.nio.file`，所以用 `desugar_jdk_libs_nio` 做 core library desugaring）
 - JDK 17、Gradle 9.6、Android Gradle Plugin 9.4、Kotlin 2.4
-- 平板优先，手机横着也能用。在手机上（最短边小于 600 dp）两个 App 都固定横屏：Bothy 控制台用紧凑布局，页面切换放在右侧竖栏；车机界面整体缩到四分之三；小博的悬浮卡片能放进竖屏的其他 App 之上。手机模拟器（Apple 芯片上用 arm64 镜像）可以跑这两个 App，高德地图也能显示。
+- 平板优先，手机横着也能用。在手机上（最短边小于 600 dp）两个 App 都固定横屏：Bothy 控制台用紧凑布局，页面切换放在右侧竖栏；车机界面整体缩到四分之三；小博的悬浮卡片能放进竖屏的其他 App 之上。手机模拟器（Apple 芯片上用 arm64 镜像）可以跑这两个 App；高德地图在模拟器上要用软件渲染（启动时加 `-gpu swiftshader_indirect`），否则会在打开地图时崩溃。
 
 ## 许可证
 

@@ -23,6 +23,8 @@ class DebugConsoleActivity : ComponentActivity() {
     private var uiState by mutableStateOf<DebugUiState?>(null)
     private var a2aClientState by mutableStateOf(DebugA2aClientState())
     private var pendingInput by mutableStateOf("")
+    /** The first launch without a model key shows the setup ([DebugOnboarding]) instead of the console. */
+    private var onboarding by mutableStateOf(false)
     private var detachSession: (() -> Unit)? = null
     private var detachA2aClient: (() -> Unit)? = null
     private val safWorkspacePicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -49,9 +51,17 @@ class DebugConsoleActivity : ComponentActivity() {
         DebugAsrTextServerManager.start(applicationContext)
         detachSession = DebugRuntimeSession.attach(this) { uiState = it }
         detachA2aClient = DebugA2aClientConsole.attach(this) { a2aClientState = it }
+        onboarding = DebugOnboarding.needed(this)
         setContent {
             DebugDesignDensity {
                 DebugConsoleTheme {
+                    if (onboarding) {
+                        DebugOnboardingScreen {
+                            DebugOnboarding.finish(this)
+                            onboarding = false
+                        }
+                        return@DebugConsoleTheme
+                    }
                     uiState?.let { state ->
                         DebugConsoleScreen(
                             state = state,

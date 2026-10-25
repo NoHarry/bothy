@@ -22,14 +22,21 @@ import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 
-/** Who speaks the replies (owner 2026-10-13: 「TTS播报的部分也要能支持其他家」, then 「先加上豆包的tts支持」). */
+/**
+ * Who speaks the replies (owner 2026-10-13: 「TTS播报的部分也要能支持其他家」, then 「先加上豆包的tts支持」); [SYSTEM] is the
+ * device's own speech synthesis, which needs no key (owner 2026-10-25: a model key alone should be enough to try 小博).
+ */
 internal enum class DebugTtsProvider(val wireName: String, val label: String) {
     MIMO("mimo", "MiMo"),
     DOUBAO("doubao", "豆包"),
+    SYSTEM("system", "系统语音"),
     ;
 
     companion object {
-        fun from(value: String?): DebugTtsProvider = entries.firstOrNull { it.wireName == value?.trim()?.lowercase() } ?: MIMO
+        fun from(value: String?): DebugTtsProvider = parse(value) ?: MIMO
+
+        /** The provider [value] names, or null when it names none. */
+        fun parse(value: String?): DebugTtsProvider? = entries.firstOrNull { it.wireName == value?.trim()?.lowercase() }
     }
 }
 
@@ -101,10 +108,19 @@ internal fun clearDebugDoubaoTtsKey(context: Context): Boolean =
     File(context.noBackupFilesDir, DOUBAO_TTS_KEY_FILE).let { !it.exists() || it.delete() }
 
 /** The TTS client every speaking path uses: the configured provider's. */
-internal fun debugTtsClient(transport: HttpTransport): DebugTtsClient = DebugRoutingTtsClient(DebugMimoTtsClient(transport), DebugDoubaoTtsClient(transport))
+internal fun debugTtsClient(transport: HttpTransport): DebugTtsClient =
+    DebugRoutingTtsClient(DebugMimoTtsClient(transport), DebugDoubaoTtsClient(transport), DebugSystemTts)
 
-private class DebugRoutingTtsClient(private val mimo: DebugTtsClient, private val doubao: DebugTtsClient) : DebugTtsClient {
-    private fun clientFor(config: DebugTtsConfig) = if (config.provider == DebugTtsProvider.DOUBAO) doubao else mimo
+private class DebugRoutingTtsClient(
+    private val mimo: DebugTtsClient,
+    private val doubao: DebugTtsClient,
+    private val system: DebugTtsClient,
+) : DebugTtsClient {
+    private fun clientFor(config: DebugTtsConfig) = when (config.provider) {
+        DebugTtsProvider.DOUBAO -> doubao
+        DebugTtsProvider.SYSTEM -> system
+        DebugTtsProvider.MIMO -> mimo
+    }
 
     // Every spoken line passes here, so dates are read as dates whoever wrote them (reply, progress, report, reminder).
     override suspend fun synthesize(config: DebugTtsConfig, text: String): DebugTtsAudio = clientFor(config).synthesize(config, text.spokenDates())

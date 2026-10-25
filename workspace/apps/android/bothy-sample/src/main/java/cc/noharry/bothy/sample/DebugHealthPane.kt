@@ -203,7 +203,7 @@ private fun applyCheckFix(
 }
 
 /** A device may lack a settings screen; then the app's own details page, where its permissions are. */
-private fun openSystemScreen(context: Context, intent: Intent) {
+internal fun openSystemScreen(context: Context, intent: Intent) {
     val opened = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
     if (!opened) {
         runCatching {

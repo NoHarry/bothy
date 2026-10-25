@@ -2,19 +2,21 @@ package cc.noharry.bothy.sample
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The demo's own release and hygiene checks, which used to sit in the SDK's tests and read this module from there. */
 class SampleReleaseHardeningTest {
+    /** The release is not shrunk (owner 2026-10-25: 「不需要混淆」): an open-source demo, its APK as built. */
     @Test
-    fun releaseBuildEnablesR8OverTheAndroidRuntime() {
+    fun releaseBuildIsUnshrunkOverTheAndroidRuntime() {
         val buildFile = File("build.gradle.kts").readText()
 
         assertTrue(buildFile.contains("agent-runtime-android"))
         assertTrue(buildFile.contains("release"))
-        assertTrue(buildFile.contains("isMinifyEnabled = true"))
-        assertTrue(buildFile.contains("getDefaultProguardFile(\"proguard-android-optimize.txt\")"))
+        assertTrue(buildFile.contains("isMinifyEnabled = false"))
+        assertFalse(buildFile.contains("isMinifyEnabled = true"))
         assertTrue(buildFile.contains("sourceCompatibility = JavaVersion.VERSION_17"))
     }
 

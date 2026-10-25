@@ -32,7 +32,9 @@ class PlaygroundService : Service() {
         startInForeground()
         val store = Playground.store
         HeadUnitModes.load(this)
-        val engine = AMapNavEngine(this, store, BuildConfig.AMAP_CONFIGURED).apply { realNav = HeadUnitModes.realNav }
+        // The key typed in the head unit goes to the SDK before any part of it starts.
+        AmapKey.apply(this)
+        val engine = AMapNavEngine(this, store, AmapKey.configured(this)).apply { realNav = HeadUnitModes.realNav }
         val navigation = NavController(
             store, engine, focus = { Playground.mapCues.tryEmit(it) }, mapWatching = { Playground.mapShowing }, app = AmapApp(this),
         )

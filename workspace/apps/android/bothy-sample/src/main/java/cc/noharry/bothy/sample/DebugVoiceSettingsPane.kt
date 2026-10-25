@@ -416,6 +416,7 @@ private fun VoiceSpeechTab(tts: TtsForm?, onTts: (TtsForm) -> Unit, choose: (Str
     val context = LocalContext.current
     TtsProviderPicker(tts.effective.provider) { choose(TTS_PROVIDER, it.wireName) }
     if (tts.effective.provider == DebugTtsProvider.DOUBAO) return DoubaoSpeechCard(tts, onTts, choose, onMessage)
+    if (tts.effective.provider == DebugTtsProvider.SYSTEM) return SystemSpeechCard(tts, choose, onMessage)
     val status = ttsStatusLine(tts.effective) to (if (tts.effective.ready) DebugColors.success else DebugColors.danger)
     VoiceCard("语音播报（MiMo TTS）", status) {
         val draft = tts.draft
@@ -729,6 +730,24 @@ private fun TtsProviderPicker(selected: DebugTtsProvider, onSelect: (DebugTtsPro
     Text("播报服务", style = DebugType.label, color = DebugColors.muted)
     Row(horizontalArrangement = Arrangement.spacedBy(DebugDimens.spaceSm)) {
         DebugTtsProvider.entries.forEach { provider -> VoiceChip(provider.label, selected == provider) { onSelect(provider) } }
+    }
+}
+
+/** The device's own voice: nothing to set but whether replies are spoken, and Android's page for its engine. */
+@Composable
+private fun SystemSpeechCard(tts: TtsForm, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
+    val context = LocalContext.current
+    val status = ttsStatusLine(tts.effective) to (if (tts.effective.ready) DebugColors.success else DebugColors.danger)
+    VoiceCard("语音播报（系统语音）", status) {
+        VoiceSwitchRow("播报回复", tts.draft.enabled) { choose(MIMO_TTS_ENABLED, it.toString()) }
+        VoiceNote("用设备自带的「文字转语音」，不需要任何 key。想要更自然的声音，到「密钥」页填豆包语音 key（推荐），再在上面选「豆包」。")
+        Row(horizontalArrangement = Arrangement.spacedBy(DebugDimens.spaceSm)) {
+            TextButton(onClick = {
+                onMessage("正在试听系统语音…")
+                DebugRuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok -> onMessage(if (ok) "已开始播报" else "播报没有启动") }
+            }) { Text("试听") }
+            TextButton(onClick = { runCatching { context.startActivity(DebugSystemTts.settingsIntent()) } }) { Text("系统语音设置") }
+        }
     }
 }
 

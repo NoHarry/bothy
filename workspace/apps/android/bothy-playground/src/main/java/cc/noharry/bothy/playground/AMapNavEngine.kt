@@ -1,6 +1,7 @@
 package cc.noharry.bothy.playground
 
 import android.content.Context
+import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
 import com.amap.api.location.AMapLocationClient
@@ -60,7 +61,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
     private val searches = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, List<PoiItemV2>>>()
 
     override fun unavailable(): String? = when {
-        !hasKey -> "Playground 没有配置高德 key：在 local.properties 写上 AMAP_ANDROID_KEY 后重新打包"
+        !hasKey -> "Playground 还没有高德 key：在车机的设置里点「高德 key」填写（里面有申请步骤）"
         !AMapPrivacy.agreed(app) -> "Playground 里还没同意高德地图的隐私协议：在 Playground 里点「同意」后再试"
         ensureStarted() == null -> "高德导航没能启动，看 Playground 的日志"
         else -> null
@@ -208,6 +209,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
 
     /** The weather where the car is: now and the next days, from AMap; cached, null until the city is known. */
     fun weather(): WeatherReport? {
+        if (!hasKey) return keylessWeather()
         val place = currentCity().ifEmpty { cityFromLocation() }.ifEmpty { return null }
         cachedWeather?.takeIf { it.city == place && System.currentTimeMillis() - it.at < WEATHER_CACHE_MS }?.let { return it }
         val live = weatherSearch(place, WeatherSearchQuery.WEATHER_TYPE_LIVE)?.first?.liveResult ?: return null
@@ -220,6 +222,39 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
             wind = "${live.windDirection.orEmpty()}风 ${live.windPower.orEmpty()}级",
             days = days.map { DayWeather(it.week.orEmpty(), it.dayWeather.orEmpty(), it.dayTemp.orEmpty(), it.nightTemp.orEmpty()) },
         ).also { cachedWeather = it }
+    }
+
+    /** Without a key: Open-Meteo ([KeylessWeather]) at the demo's place, else where the device last was. */
+    private fun keylessWeather(): WeatherReport? {
+        val (at, place) = if (demoStart && !realNav) DEMO_START to DEMO_CITY else (androidLocation() ?: return null) to KEYLESS_PLACE
+        cachedWeather?.takeIf { it.city == place && System.currentTimeMillis() - it.at < WEATHER_CACHE_MS }?.let { return it }
+        return KeylessWeather.fetch(at, place)?.also { cachedWeather = it }
+    }
+
+    /**
+     * Android's latest fix, for the weather when AMap's location cannot run (no key). With none kept (no app asked for
+     * one since the device started), one is asked for and kept as the device's location for the next look.
+     */
+    private fun androidLocation(): GeoPoint? = runCatching {
+        val manager = app.getSystemService(LocationManager::class.java)
+        val last = manager.getProviders(true).mapNotNull { manager.getLastKnownLocation(it) }.maxByOrNull { it.time }
+        if (last == null) askForFix(manager)
+        last?.let { GeoPoint(it.latitude, it.longitude) } ?: deviceLocation
+    }.getOrNull()
+
+    private fun askForFix(manager: LocationManager) {
+        val provider = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER).firstOrNull { manager.isProviderEnabled(it) } ?: return
+        val keep = { found: android.location.Location? -> found?.let { deviceLocation = GeoPoint(it.latitude, it.longitude) }; Unit }
+        main.post {
+            runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    manager.getCurrentLocation(provider, null, app.mainExecutor) { keep(it) }
+                } else {
+                    @Suppress("DEPRECATION")
+                    manager.requestSingleUpdate(provider, { keep(it) }, Looper.getMainLooper())
+                }
+            }
+        }
     }
 
     /** The city around the device, asked of AMap when the fix came without an address (a GPS or cached one does). */
@@ -429,6 +464,8 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         /** After stopping a drive, before planning the next: the native navigator winds down on its own threads. */
         const val STOP_SETTLE_MS = 700L
         const val WEATHER_CACHE_MS = 20 * 60 * 1000L
+        /** The weather card's place without a key, which could name the city. */
+        const val KEYLESS_PLACE = "当前位置"
         const val WEATHER_WAIT_S = 10L
         const val REGEOCODE_RADIUS_M = 200f
         const val PREFS = "playground_nav"

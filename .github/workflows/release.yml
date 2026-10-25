@@ -1,0 +1,58 @@
+name: Release
+
+# Pushing a tag vX.Y.Z builds both apps (unshrunk) against the runtime published on Maven Central, signs them with the
+# Bothy key, and attaches them to the GitHub release for X.Y.Z. The APKs carry no API key: whoever installs them types
+# their own in (a model key, optionally a Doubao speech key and an AMap key).
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  apks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workspace/apps/android
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The version code counts the commits.
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.BOTHY_SIGNING_KEYSTORE }}
+          STORE_PASSWORD: ${{ secrets.BOTHY_SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.BOTHY_SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.BOTHY_SIGNING_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/bothy-release.jks"
+          {
+            echo "BOTHY_SIGNING_STORE_FILE=$RUNNER_TEMP/bothy-release.jks"
+            echo "BOTHY_SIGNING_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "BOTHY_SIGNING_KEY_ALIAS=$KEY_ALIAS"
+            echo "BOTHY_SIGNING_KEY_PASSWORD=$KEY_PASSWORD"
+          } > local.properties
+      - name: Build
+        run: >
+          ./gradlew :bothy-sample:assembleRelease :bothy-playground:assembleRelease --stacktrace
+          -PbothyVersion="${GITHUB_REF_NAME#v}" -PagentRuntimeDir= -PsampleEmbedLocalKeys=none
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p "$RUNNER_TEMP/out"
+          cp bothy-sample/build/outputs/apk/release/bothy-sample-release.apk "$RUNNER_TEMP/out/bothy-$version.apk"
+          cp bothy-playground/build/outputs/apk/release/bothy-playground-release.apk "$RUNNER_TEMP/out/bothy-playground-$version.apk"
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/out/*.apk --title "Bothy $version" --generate-notes
+      - name: Forget the signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/bothy-release.jks" local.properties

@@ -95,7 +95,7 @@ private fun ok(detail: String) = DebugCheckResult(DebugCheckState.OK, detail)
 private fun warn(detail: String, fix: DebugCheckFix? = null) = DebugCheckResult(DebugCheckState.WARN, detail, fix)
 private fun fail(detail: String, fix: DebugCheckFix? = null) = DebugCheckResult(DebugCheckState.FAIL, detail, fix)
 
-private suspend fun checkChatModel(context: Context): DebugCheckResult {
+internal suspend fun checkChatModel(context: Context): DebugCheckResult {
     val config = DebugProviderConfig.load(context)
     val profile = config.activeProfile
     val name = "${profile.displayLabel} · ${profile.model}"

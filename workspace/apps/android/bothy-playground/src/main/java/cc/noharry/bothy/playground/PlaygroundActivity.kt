@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 class PlaygroundActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         HeadUnitModes.load(this)
+        AmapKey.apply(this)
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

@@ -130,7 +130,8 @@ class DebugDoubaoTtsTest {
         assertTrue("on by default once its key is there", tts.enabled && tts.ready)
         assertEquals("豆包 · seed-tts-2.0 · 云舟 · 通用男声", tts.label)
         assertFalse(DebugTtsConfig.from(mapOf(TTS_PROVIDER to "doubao")).ready)
-        assertEquals(DebugTtsProvider.MIMO, DebugTtsConfig.from(emptyMap()).provider)
+        // Nothing chosen and no key: the device's own voice (owner 2026-10-25).
+        assertEquals(DebugTtsProvider.SYSTEM, DebugTtsConfig.from(emptyMap()).provider)
         assertEquals("语速要在 -50 到 100 之间。", DoubaoTtsSettings(speechRate = 200).validationError())
     }
 

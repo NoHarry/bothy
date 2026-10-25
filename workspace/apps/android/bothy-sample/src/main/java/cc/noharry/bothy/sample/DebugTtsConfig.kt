@@ -7,7 +7,7 @@ import java.net.URI
 
 internal data class DebugTtsConfig(
     val enabled: Boolean = false,
-    /** Who speaks the replies: MiMo (the default) or 豆包 ([doubao]). */
+    /** Who speaks the replies: MiMo, 豆包 ([doubao]) or the device's own voice; unless chosen, the first with a key. */
     val provider: DebugTtsProvider = DebugTtsProvider.MIMO,
     val doubao: DoubaoTtsSettings = DoubaoTtsSettings(),
     val apiKey: String = "",
@@ -22,6 +22,7 @@ internal data class DebugTtsConfig(
     val ready: Boolean = enabled && when (provider) {
         DebugTtsProvider.MIMO -> apiKey.isNotBlank() && baseUrl.isNotBlank() && model.isNotBlank()
         DebugTtsProvider.DOUBAO -> doubao.ready
+        DebugTtsProvider.SYSTEM -> true
     }
 
     /** The voice now speaking, as one line: provider, model and voice. */
@@ -29,6 +30,7 @@ internal data class DebugTtsConfig(
         get() = when (provider) {
             DebugTtsProvider.MIMO -> "$model · $voice"
             DebugTtsProvider.DOUBAO -> "豆包 · ${doubao.resourceId} · ${doubao.voiceLabel}"
+            DebugTtsProvider.SYSTEM -> "系统语音（设备自带）"
         }
 
     /** What a cached clip (the wake answer) was synthesized with; a change means synthesizing it again. */
@@ -36,15 +38,25 @@ internal data class DebugTtsConfig(
         get() = when (provider) {
             DebugTtsProvider.MIMO -> "${model.trim()}\n${voice.trim()}"
             DebugTtsProvider.DOUBAO -> "doubao\n${doubao.resourceId}\n${doubao.voice}\n${doubao.speechRate}"
+            DebugTtsProvider.SYSTEM -> "system"
         }
 
     companion object {
         fun from(values: Map<String, String>): DebugTtsConfig {
             val resolvedApiKey = values[MIMO_TTS_API_KEY]
                 .orDefault(values[MIMO_PROVIDER_PROFILE_API_KEY].orEmpty())
-            val provider = DebugTtsProvider.from(values[TTS_PROVIDER])
             val doubao = DoubaoTtsSettings.from(values)
-            val providerKey = if (provider == DebugTtsProvider.DOUBAO) doubao.key else resolvedApiKey
+            // Chosen by hand, it stays (its key may come next); else the first service with a key, else the device's voice.
+            val provider = DebugTtsProvider.parse(values[TTS_PROVIDER]) ?: when {
+                resolvedApiKey.isNotBlank() -> DebugTtsProvider.MIMO
+                doubao.key.isNotBlank() -> DebugTtsProvider.DOUBAO
+                else -> DebugTtsProvider.SYSTEM
+            }
+            val providerKey = when (provider) {
+                DebugTtsProvider.DOUBAO -> doubao.key
+                DebugTtsProvider.MIMO -> resolvedApiKey
+                DebugTtsProvider.SYSTEM -> SYSTEM_NEEDS_NO_KEY
+            }
             return DebugTtsConfig(
                 enabled = values[MIMO_TTS_ENABLED].toStreamOverride() ?: providerKey.isNotBlank(),
                 provider = provider,
@@ -57,7 +69,8 @@ internal data class DebugTtsConfig(
                 style = values[MIMO_TTS_STYLE].orDefault(DEFAULT_MIMO_TTS_STYLE),
                 optimizeTextPreview = values[MIMO_TTS_OPTIMIZE_TEXT_PREVIEW].toStreamOverride()
                     ?: DEFAULT_MIMO_TTS_OPTIMIZE_TEXT_PREVIEW,
-                stream = values[MIMO_TTS_STREAM].toStreamOverride() ?: DEFAULT_MIMO_TTS_STREAM,
+                // The device's voice comes as one WAV per line, never as a stream.
+                stream = provider != DebugTtsProvider.SYSTEM && (values[MIMO_TTS_STREAM].toStreamOverride() ?: DEFAULT_MIMO_TTS_STREAM),
             )
         }
     }
@@ -104,7 +117,11 @@ internal fun loadDebugTtsKey(context: Context): String =
  * "on when there is a key" until it is switched by hand.
  */
 internal fun saveDebugTtsSettings(context: Context, config: DebugTtsConfig): String? {
-    (if (config.provider == DebugTtsProvider.DOUBAO) config.doubao.validationError() else config.validationError())?.let { return it }
+    when (config.provider) {
+        DebugTtsProvider.DOUBAO -> config.doubao.validationError()
+        DebugTtsProvider.MIMO -> config.validationError()
+        DebugTtsProvider.SYSTEM -> null
+    }?.let { return it }
     val committed = context.getSharedPreferences(TTS_PREFS, Context.MODE_PRIVATE).edit()
         .putString(MIMO_TTS_BASE_URL, config.baseUrl.trim())
         .putString(MIMO_TTS_MODEL, config.model.trim())
@@ -191,3 +208,5 @@ private const val DEFAULT_MIMO_TTS_STYLE =
     "使用接近 Grok 语音模式的实时对话风格，但不要模仿任何特定真人声音。声音自然、聪明、轻松，有一点俏皮和调侃感；像反应很快的 AI 伙伴在近距离聊天。语速稍快但咬字清楚，语调有微笑感和轻微上扬，避免播音腔、客服腔、机械感和过度夸张。"
 private const val DEFAULT_MIMO_TTS_OPTIMIZE_TEXT_PREVIEW = false
 private const val DEFAULT_MIMO_TTS_STREAM = true
+/** Stands for the key the device's voice does not need, so 播报回复 is on by default with it as with a keyed service. */
+private const val SYSTEM_NEEDS_NO_KEY = "system"
