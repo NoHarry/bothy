@@ -101,6 +101,9 @@ internal object DebugAssistantSurface {
     fun takeOver(context: Context, pkg: String?) {
         main.removeCallbacks(lapse)
         if (pkg != null) main.postDelayed(lapse, TAKEOVER_LEASE_MS)
+        // The reports come from the overlay's view of the run ([runChanged]): a surface needs it running, though hidden;
+        // with 语音唤醒 off nothing else had started it, and the head unit showed no card.
+        if (pkg != null) DebugOverlayControl.ensureRunning(context)
         if (surface.value != pkg) sent = null
         surface.value = pkg
         send(context)

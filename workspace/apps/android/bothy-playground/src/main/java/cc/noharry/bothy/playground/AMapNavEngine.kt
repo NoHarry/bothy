@@ -261,7 +261,7 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
                     manager.getCurrentLocation(provider, null, app.mainExecutor) { keep(it) }
                 } else {
                     @Suppress("DEPRECATION")
-                    manager.requestSingleUpdate(provider, OneFix(keep), Looper.getMainLooper())
+                    manager.requestSingleUpdate(provider, OneFix(manager, keep), Looper.getMainLooper())
                 }
             }
             if (asked.isFailure) askingForFix = false
@@ -585,8 +585,15 @@ internal class UnavailableNavEngine(private val why: String) : NavEngine {
     override fun stop() = Unit
 }
 
-/** A single location update for Android 10 and older, where [android.location.LocationListener]'s other methods are abstract. */
-private class OneFix(private val keep: (android.location.Location?) -> Unit) : android.location.LocationListener {
+/**
+ * A single location update for Android 10 and older, where [android.location.LocationListener]'s other methods are
+ * abstract. The provider switched off, the request is withdrawn: it stays registered otherwise, and the next ask adds a
+ * second one beside it (seen on an API 29 emulator).
+ */
+private class OneFix(
+    private val manager: LocationManager,
+    private val keep: (android.location.Location?) -> Unit,
+) : android.location.LocationListener {
     override fun onLocationChanged(location: android.location.Location) = keep(location)
 
     @Deprecated("Deprecated in Java")
@@ -594,5 +601,8 @@ private class OneFix(private val keep: (android.location.Location?) -> Unit) : a
 
     override fun onProviderEnabled(provider: String) = Unit
 
-    override fun onProviderDisabled(provider: String) = keep(null)
+    override fun onProviderDisabled(provider: String) {
+        runCatching { manager.removeUpdates(this) }
+        keep(null)
+    }
 }

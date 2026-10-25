@@ -73,8 +73,14 @@ internal object DebugOnboarding {
         return true
     }
 
+    /**
+     * 开始使用: what the last step says works from here on does — 「你好小博」 is heard (语音唤醒 on, with the microphone
+     * granted) and 小博 floats over other apps. Off, a fresh install had neither, and the head unit no cards.
+     */
     fun finish(context: Context) {
         prefs(context).edit().putBoolean(DONE, true).apply()
+        val mic = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (mic) DebugWakeWord.setEnabled(context, true) else DebugOverlayControl.ensureRunning(context)
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
