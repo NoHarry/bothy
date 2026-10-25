@@ -53,17 +53,18 @@ class RealNavModeTest {
     fun withTheMapFirstThePanelCoversTheDriversThirdAndTheRouteGoesBesideIt() {
         val width = 1500.dp
         val height = 1000.dp
-        for (shows in AssistantShows.entries) {
-            val slots = realSlots(width, height, shows, routeCards = true)
+        for (panel in listOf(false, true)) {
+            val slots = realSlots(width, height, panel, routeCards = true)
             assertEquals("the map stays whole", width, slots.map.width)
             assertEquals(slots.map.height, slots.bar.y)
         }
-        val panel = realSlots(width, height, AssistantShows.PANEL, routeCards = true)
-        val box = panel.assistant!!
+        val up = realSlots(width, height, panel = true, routeCards = true)
+        val box = up.assistant!!
         assertTrue("${box.width}", box.width > width * 0.3f && box.width < width * 0.34f)
-        assertTrue(panel.route.x >= box.x + box.width && panel.coverLeft >= panel.route.x + panel.route.width)
-        val listening = realSlots(width, height, AssistantShows.BAR, routeCards = false)
-        assertTrue("bottom left", listening.assistant!!.y > height / 2 && listening.assistant!!.x < width / 4)
-        assertEquals(0.dp, listening.coverLeft)
+        assertTrue(up.route.x >= box.x + box.width && up.coverLeft >= up.route.x + up.route.width)
+        // Listening has no box over the map: it is the bar's corner.
+        val down = realSlots(width, height, panel = false, routeCards = false)
+        assertNull(down.assistant)
+        assertEquals(0.dp, down.coverLeft)
     }
 }

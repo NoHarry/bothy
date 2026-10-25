@@ -103,6 +103,9 @@ object Playground {
 
     /** The head unit is up and plays [mapCues]; the navigation then plans only once it has shown the places. */
     @Volatile var mapShowing = false
+
+    /** The scene Bothy asked to show (its 「回到车机」, `playground_open`), taken by the screen once shown. */
+    internal val sceneAsked = kotlinx.coroutines.flow.MutableStateFlow<PlaygroundScene?>(null)
 }
 
 private const val MAP_CUES_KEPT = 64

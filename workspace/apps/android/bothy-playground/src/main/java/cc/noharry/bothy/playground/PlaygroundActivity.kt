@@ -86,11 +86,30 @@ class PlaygroundActivity : ComponentActivity() {
         PlaygroundService.start(this)
         setContent { PhoneScale(phone) { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
+        // Once: a rotation recreates the activity with the same intent.
+        if (savedInstanceState == null) askedScene(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.getBooleanExtra(StockNavi.EXTRA, false)) StockNavi.open(this)
+        askedScene(intent)
+    }
+
+    /**
+     * Bothy's 「回到车机」 names the scene: `cabin` or `home` ([PlaygroundScene.server]), or `nav` for 「回到导航」, which goes
+     * where the user chose to drive (owner 2026-10-25: 「根据用户选择的公版地图还是内置地图来分别跳转」): the 高德地图 App when
+     * routes are handed to it ([HeadUnitMode.handsToApp]), else the head unit's own map.
+     */
+    private fun askedScene(intent: Intent?) {
+        val asked = intent?.getStringExtra(EXTRA_SCENE) ?: return
+        if (asked == "nav") {
+            val amap = packageManager.getLaunchIntentForPackage(AmapApp.PACKAGE)?.takeIf { HeadUnitModes.mode.value.handsToApp }
+            if (amap != null && runCatching { startActivity(amap) }.isSuccess) return
+            Playground.sceneAsked.value = PlaygroundScene.CABIN
+            return
+        }
+        PlaygroundScene.entries.firstOrNull { it.server == asked }?.let { Playground.sceneAsked.value = it }
     }
 
     private val rehide = Runnable { hideSystemBars() }
@@ -127,6 +146,8 @@ private fun PhoneScale(phone: Boolean, content: @Composable () -> Unit) {
 }
 
 private const val PHONE_SCALE = 0.75f
+/** Bothy's 「回到车机」: the scene to show, `cabin`, `home` or `nav` (DebugPlaygroundToolProvider). */
+private const val EXTRA_SCENE = "scene"
 
 internal enum class PlaygroundScene(val label: String, val server: String) { CABIN("虚拟座舱", "cabin"), HOME("虚拟小家", "home") }
 
@@ -137,6 +158,7 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
     val server by store.server.collectAsState()
     val mode by HeadUnitModes.mode.collectAsState()
     var scene by rememberSaveable { mutableStateOf(PlaygroundScene.CABIN) }
+    TakeAskedScene { scene = it }
     val latest = calls.firstOrNull()
     val level = remember { Animatable(0f) }
     LaunchedEffect(latest?.id) {
@@ -148,13 +170,12 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
     }
     val flash = Flash(latest?.highlights.orEmpty(), level.asState())
     MaterialTheme(colorScheme = darkColorScheme(primary = PlaygroundColors.sage, background = PlaygroundColors.bg, surface = PlaygroundColors.panel)) {
+        AMapConsent()
         // Real navigation has no home to show: the head unit only.
         if (scene == PlaygroundScene.CABIN || mode.realNav) {
             HeadUnit(world, calls, server, flash, level.value, store) { scene = PlaygroundScene.HOME }
-            AMapConsent()
             return@MaterialTheme
         }
-        AMapConsent()
         Column(Modifier.fillMaxSize().background(PlaygroundColors.bg).padding(horizontal = 20.dp, vertical = 14.dp)) {
             TopBar(scene, { scene = it }, server, world.cabin.drive.moving, store)
             Spacer(Modifier.height(12.dp))
@@ -179,6 +200,14 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
                 }
             }
         }
+    }
+}
+
+/** The scene Bothy's 「回到车机」 asked for ([Playground.sceneAsked]) goes to [onScene], once. */
+@Composable
+private fun TakeAskedScene(onScene: (PlaygroundScene) -> Unit) {
+    LaunchedEffect(Unit) {
+        Playground.sceneAsked.collect { asked -> if (asked != null) onScene(asked).also { Playground.sceneAsked.value = null } }
     }
 }
 

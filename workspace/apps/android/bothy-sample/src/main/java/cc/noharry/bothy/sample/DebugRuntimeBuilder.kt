@@ -256,6 +256,8 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
     if (loadDebugImageModelConfig(context).ready) {
         toolProvider(DebugImageToolProvider(context))
     }
+    // 「回到车机」: there is a head unit to go back to.
+    if (playgroundInstalled(context)) toolProvider(DebugPlaygroundToolProvider(context))
 }
 
 /**

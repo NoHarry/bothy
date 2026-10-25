@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -117,7 +118,7 @@ internal fun Mascot(view: AssistantView, size: Dp, modifier: Modifier = Modifier
  * as the head unit shows words being heard.
  */
 @Composable
-private fun TailText(text: String, color: Color, size: TextUnit, modifier: Modifier = Modifier) {
+internal fun TailText(text: String, color: Color, size: TextUnit, modifier: Modifier = Modifier) {
     Layout(
         content = { Text(text, color = color, fontSize = size, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false) },
         modifier = modifier.clipToBounds(),
@@ -149,21 +150,41 @@ private fun UserBubble(text: String) {
 }
 
 /**
- * How 小博 went about it, in order: each tool it called (「小博 调用 …」, ticked off as it finishes), what it thought on
- * the way (small and grey), what it said while working; 「正在思考」 until the first of them.
+ * How 小博 went about it: the tools it called on one line that scrolls to the newest (owner 2026-10-25: 「卡片不需要每个
+ * 工具调用都去用一行，弄成滚动的一行就行了」), each ticked off as it finishes; then, in order, what it thought on the way
+ * (small and grey) and what it said while working; 「正在思考」 until the first of them.
  */
 @Composable
 private fun Process(view: AssistantView) {
     if (!view.running && view.timeline.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        view.timeline.filterNot { view.repeatsReply(it) }.forEach { entry ->
+        val calls = view.timeline.filterIsInstance<TurnEntry.Called>()
+        if (calls.isNotEmpty()) CalledLine(calls)
+        view.timeline.filterNot { it is TurnEntry.Called || view.repeatsReply(it) }.forEach { entry ->
             when (entry) {
-                is TurnEntry.Called -> Called(entry)
                 is TurnEntry.Thought -> Text(entry.text, color = UnitColors.muted, fontSize = 12.sp, lineHeight = 18.sp)
                 is TurnEntry.Said -> Text(entry.text, color = Color.White.copy(alpha = 0.86f), fontSize = 13.sp, lineHeight = 20.sp)
+                is TurnEntry.Called -> Unit
             }
         }
         if (view.running && view.timeline.lastOrNull() !is TurnEntry.Called) Thinking()
+    }
+}
+
+/** 「小博 调用」 and the tools after it, one line scrolled to the newest as more are called. */
+@Composable
+private fun CalledLine(calls: List<TurnEntry.Called>) {
+    val scroll = rememberScrollState()
+    LaunchedEffect(calls.size, calls.last().state) { scroll.animateScrollTo(scroll.maxValue) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("小博 调用", color = UnitColors.muted, fontSize = 12.sp)
+        Row(
+            Modifier.horizontalScroll(scroll),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            calls.forEach { Called(it) }
+        }
     }
 }
 
@@ -176,14 +197,13 @@ private fun AssistantView.repeatsReply(entry: TurnEntry): Boolean {
 
 @Composable
 private fun Called(entry: TurnEntry.Called) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         when (entry.state) {
             "running" -> Dots()
             "error" -> Icon(Icons.Filled.Error, contentDescription = null, tint = PlaygroundColors.ember, modifier = Modifier.size(13.dp))
             else -> Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = UnitColors.teal, modifier = Modifier.size(13.dp))
         }
-        Text("小博 调用", color = UnitColors.muted, fontSize = 12.sp)
-        Text(stepTitle(entry.tool), color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(stepTitle(entry.tool), color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
@@ -218,7 +238,7 @@ private val TOOL_TITLES: Map<String, String> by lazy {
     (CABIN_TOOLS + HOME_TOOLS + navTools(nav) + appNavigationTool(nav)).associate { it.name to it.title } +
         mapOf(
             "web_search" to "联网搜索", "web_fetch" to "打开网页", "spawn_agent" to "派子任务", "wait_agent" to "等子任务",
-            "search_tools" to "找工具", "show_card" to "出卡片", "ask_user" to "问你", "read_file" to "读资料", "write_file" to "记下来",
+            "search_tools" to "找工具", "show_card" to "出卡片", "ask_user" to "问你", "read_file" to "读资料", "list_dir" to "翻资料", "write_file" to "记下来",
             "todo_write" to "列待办", "update_todo" to "更新待办", "create_plan" to "设提醒", "update_plan" to "改提醒",
             "android_use" to "操作屏幕", "finish" to "整理结果", "plan_manage" to "设提醒", "plan_list" to "看提醒",
             "user_memory" to "记住你的习惯", "offer_options" to "给你选", "offer_choice" to "给你选",

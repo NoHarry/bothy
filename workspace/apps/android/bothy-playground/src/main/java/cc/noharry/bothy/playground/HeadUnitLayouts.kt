@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -47,10 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** What 小博 shows on the real-navigation head unit: nothing (it retreated), the listening bar, or its panel. */
-internal enum class AssistantShows { NOTHING, BAR, PANEL }
-
-/** Where things go on the real-navigation head unit ([realSlots]). [assistant] is null while 小博 shows nothing. */
+/** Where things go on the real-navigation head unit ([realSlots]). [assistant] is null while 小博's panel is down. */
 internal class RealSlots(
     val map: MapBox,
     val assistant: MapBox?,
@@ -61,29 +59,22 @@ internal class RealSlots(
     val bar: MapBox,
     /** How far from the map's left edge the cards over it reach: the map keeps the car and the route clear of them. */
     val coverLeft: Dp,
-    /** How much of the map's bottom lies under the bar or 小博's listening bar: AMap's logo goes above it. */
-    val logoLift: Dp,
 )
 
 /**
- * The real-navigation head unit's places on a [width] × [height] screen, with 小博 showing [shows] and the route's cards up
- * or not ([routeCards]): the map under everything, a bar along the bottom edge; 小博's panel covers the driver's third of
- * the map and its listening bar sits over the bottom left; the route's cards go top left, beside the panel when it is up.
+ * The real-navigation head unit's places on a [width] × [height] screen, with 小博's [panel] up or not and the route's
+ * cards up or not ([routeCards]): the map under everything, a bar along the bottom edge; 小博's panel covers the driver's
+ * third of the map (its voice is in the bar's corner, [VoiceDock]); the route's cards go top left, beside the panel.
  */
-internal fun realSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots {
+internal fun realSlots(width: Dp, height: Dp, panel: Boolean, routeCards: Boolean): RealSlots {
     val barHeight = 64.dp
     val mapHeight = height - barHeight
     val third = width / 3 - PAD
     val routeWidth = width * 0.24f
-    val panel = shows == AssistantShows.PANEL
     val routeX = if (panel) PAD + third + GAP else PAD
     return RealSlots(
         map = MapBox(0.dp, 0.dp, width, mapHeight),
-        assistant = when (shows) {
-            AssistantShows.PANEL -> MapBox(PAD, PAD, third, mapHeight - PAD * 2)
-            AssistantShows.BAR -> MapBox(PAD, mapHeight - PAD - BAR_HEIGHT, third, BAR_HEIGHT)
-            AssistantShows.NOTHING -> null
-        },
+        assistant = if (panel) MapBox(PAD, PAD, third, mapHeight - PAD * 2) else null,
         route = RouteSlots(
             x = routeX, top = PAD + STATUS_HEIGHT, width = routeWidth, actionsBottom = mapHeight - PAD,
             progressX = width - PROGRESS_INSET, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = mapHeight * 0.8f,
@@ -93,7 +84,6 @@ internal fun realSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards:
         statusEnd = PAD,
         bar = MapBox(0.dp, mapHeight, width, barHeight),
         coverLeft = (if (panel) PAD + third + GAP else 0.dp) + if (routeCards) routeWidth + GAP + (if (panel) 0.dp else PAD) else 0.dp,
-        logoLift = if (shows == AssistantShows.BAR) PAD + BAR_HEIGHT + GAP else 0.dp,
     )
 }
 
@@ -130,22 +120,18 @@ internal fun MapHeadUnit(
     val nav = world.cabin.nav
     TakeOverAssistant()
     FollowTheMedia()
-    val shows = when {
-        assistant.open(now, dismissed) -> AssistantShows.PANEL
-        assistant.hearing(now, dismissed) -> AssistantShows.BAR
-        else -> AssistantShows.NOTHING
-    }
+    // The panel only while there is something to show; listening is the bar's corner ([VoiceDock]).
+    val panel = assistant.open(now, dismissed)
     val close = { dismissed = assistant.request.ifBlank { null }; Assistant.close(context) }
     ScreenFill {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val routeCards = nav.driving || (nav.previewing && revealed)
-            val slots = realSlots(maxWidth, maxHeight, shows, routeCards)
+            val slots = realSlots(maxWidth, maxHeight, panel, routeCards)
             val density = LocalDensity.current
             // The junction's picture spans the next column too: the car moves over, as on AMap's stock screen.
             val crossing = Guidance.cross.collectAsState().value != null && nav.driving && routeCards
             val covered = slots.coverLeft + if (crossing) junctionExtra(slots.route.width, JUNCTION_GAP) else 0.dp
             map.cover(with(density) { covered.roundToPx() }, progressSpace(nav.driving))
-            map.liftLogo(with(density) { slots.logoLift.roundToPx() })
             RestTheMap(map, true, nav.active, cuedAt, slots.map)
             PlayMapCues(map, true) { cue ->
                 cuedAt = System.currentTimeMillis()
@@ -156,12 +142,9 @@ internal fun MapHeadUnit(
             // Search and what to look for nearby are on the bar: nothing over the map until there is a route.
             // The bar holds the settings: no 「更多」 on the route's actions.
             if (routeCards) MapOverlays(world, now, map, store, slots.route, onMore = null)
-            slots.assistant?.let { box ->
-                val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
-                if (shows == AssistantShows.PANEL) AssistantChatPanel(assistant, null, close, placed) else AssistantBar(assistant, close, placed)
-            }
+            slots.assistant?.let { box -> AssistantChatPanel(assistant, null, close, Modifier.offset(box.x, box.y).size(box.width, box.height)) }
             RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
-            RealBar(assistant, playing, DEVICE_MEDIA, slots.bar) { onSheet(true) }
+            RealBar(assistant, playing, DEVICE_MEDIA, slots.bar, maxWidth / 3, close) { onSheet(true) }
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
@@ -193,30 +176,28 @@ private fun StatusLabel(text: String) {
  * the edge.
  */
 @Composable
-private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: MediaControls, box: MapBox, onSettings: () -> Unit) {
+private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: MediaControls, box: MapBox, voiceWidth: Dp, onClose: () -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
-    Row(
-        Modifier.offset(box.x, box.y).size(box.width, box.height).background(STRIP).padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    Box(Modifier.offset(box.x, box.y).size(box.width, box.height).background(STRIP)) {
+        // In the bar itself, not a box of its own: it rises from the bar's bottom edge under 小博's corner and fades out.
+        VoiceGlow(assistant.listening, assistant.speaking, Modifier.fillMaxHeight().width(voiceWidth + GLOW_FADE))
         Row(
-            Modifier.clip(RoundedCornerShape(50)).clickable { Assistant.wake(context) }.padding(end = 10.dp),
+            Modifier.fillMaxSize().padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Mascot(assistant, 40.dp)
-            Column {
-                Text("小博", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text("说「你好小博」或点我", color = UnitColors.muted, fontSize = 11.sp, maxLines = 1)
-            }
+            VoiceDock(assistant, voiceWidth, onClose)
+            // While 小博 listens its words need the room.
+            if (!assistant.listening) NEARBY_REAL.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
+            Spacer(Modifier.weight(1f))
+            PlayStrip(playing, controls)
+            PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
         }
-        NEARBY_REAL.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
-        Spacer(Modifier.weight(1f))
-        PlayStrip(playing, controls)
-        PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
     }
 }
+
+/** How far past 小博's corner the voice light reaches as it fades. */
+private val GLOW_FADE = 120.dp
 
 /** While the head unit is in front it follows the device's media sessions ([NowPlaying]), again after the settings. */
 @Composable
@@ -276,8 +257,6 @@ private val DEVICE_MEDIA = MediaControls({ NowPlaying.previous() }, { NowPlaying
 /** What the bar offers to look for nearby, and what each says to 小博. */
 private val NEARBY_REAL = listOf("充电站" to "找一下附近的充电站", "停车场" to "找一下附近的停车场", "加油站" to "找一下附近的加油站")
 
-/** 小博's listening bar's height. */
-private val BAR_HEIGHT = 56.dp
 
 /** The bottom strip with the map first: darker than the cards over the map. */
 private val STRIP = Color(0xFF0B0E12)

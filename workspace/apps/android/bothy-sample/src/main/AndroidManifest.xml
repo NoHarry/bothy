@@ -31,6 +31,10 @@
         android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE"
         android:protectionLevel="signature" />
     <uses-permission android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE" />
+    <!-- 「回到车机」 opens Bothy Playground (DebugPlaygroundToolProvider), seen only when named here. -->
+    <queries>
+        <package android:name="cc.noharry.bothy.playground" />
+    </queries>
 
     <application
         android:allowBackup="false"

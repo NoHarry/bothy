@@ -264,7 +264,6 @@ private fun ignoresBatteryLimits(context: Context): Boolean =
 private val ONBOARDING_WIDTH = 640.dp
 private const val DEEPSEEK_KEYS_URL = "https://platform.deepseek.com/api_keys"
 private const val DOUBAO_CONSOLE_URL = "https://console.volcengine.com/speech/new/setting/activate?projectName=default"
-private const val PLAYGROUND_PACKAGE = "cc.noharry.bothy.playground"
 private val FIRST_WORDS = listOf(
     "明天深圳天气怎么样",
     "明早八点提醒我带伞",
