@@ -66,53 +66,11 @@ internal class RealSlots(
 )
 
 /**
- * The real-navigation head unit's places for [theme] on a [width] × [height] screen, with 小博 showing [shows] and the
- * route's cards up or not ([routeCards]).
- *
- * In columns (the simulated head unit's grid, the car's column given to 小博), 小博's panel takes the first two columns
- * and the map the rest; listening, its bar sits over the map's top left, the route's cards below it; with nothing to
- * show it retreats and the map runs edge to edge, under the bar along the bottom.
- *
- * With the map first (the map under everything, a bar along the bottom edge), 小博's panel covers the driver's third of
+ * The real-navigation head unit's places on a [width] × [height] screen, with 小博 showing [shows] and the route's cards up
+ * or not ([routeCards]): the map under everything, a bar along the bottom edge; 小博's panel covers the driver's third of
  * the map and its listening bar sits over the bottom left; the route's cards go top left, beside the panel when it is up.
  */
-internal fun realSlots(theme: HeadUnitTheme, width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots = when (theme) {
-    HeadUnitTheme.FULL_MAP -> fullMapSlots(width, height, shows, routeCards)
-    HeadUnitTheme.COLUMNS, HeadUnitTheme.CLASSIC -> columnSlots(width, height, shows, routeCards)
-}
-
-private fun columnSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots {
-    val leftWidth = width * 0.25f
-    val firstColumn = PAD + leftWidth + GAP
-    val column = (width - firstColumn - PAD - GAP * 2) / 3
-    fun col(n: Int) = firstColumn + (column + GAP) * (n - 2)
-    val barHeight = 58.dp
-    val barTop = height - PAD - barHeight
-    val contentHeight = barTop - GAP - STATUS_HEIGHT
-    val panel = shows == AssistantShows.PANEL
-    val mapX = if (panel) col(3) - GAP / 2 else 0.dp
-    val routeX = if (panel) col(3) else PAD
-    return RealSlots(
-        map = MapBox(mapX, 0.dp, width - mapX, height),
-        assistant = when (shows) {
-            AssistantShows.PANEL -> MapBox(PAD, STATUS_HEIGHT, col(2) + column - PAD, contentHeight)
-            AssistantShows.BAR -> MapBox(PAD, STATUS_HEIGHT, leftWidth, BAR_HEIGHT)
-            AssistantShows.NOTHING -> null
-        },
-        route = RouteSlots(
-            x = routeX, top = STATUS_HEIGHT + if (shows == AssistantShows.BAR) BAR_SPACE else 0.dp, width = column, actionsBottom = barTop - GAP,
-            progressX = width - PROGRESS_INSET, progressTop = STATUS_HEIGHT + 30.dp, progressHeight = contentHeight * 0.85f,
-            roadX = col(4), roadY = barTop - GAP - 36.dp,
-        ),
-        statusTop = 0.dp,
-        statusEnd = PAD,
-        bar = MapBox(PAD, barTop, width - PAD * 2, barHeight),
-        coverLeft = (routeX - mapX + column + GAP).takeIf { routeCards } ?: 0.dp,
-        logoLift = height - barTop + GAP,
-    )
-}
-
-private fun fullMapSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots {
+internal fun realSlots(width: Dp, height: Dp, shows: AssistantShows, routeCards: Boolean): RealSlots {
     val barHeight = 64.dp
     val mapHeight = height - barHeight
     val third = width / 3 - PAD
@@ -144,10 +102,9 @@ private val GAP = 10.dp
 private val STATUS_HEIGHT = 44.dp
 
 /**
- * The head unit around the map (owner 2026-10-22): the map, the route's cards, 小博 and a bar along the bottom, with
- * real navigation ([real]: the device's own media on the play bar) or the simulated car (its music). 小博 shows its bar
- * while it listens and its panel while it works and a while after it answered ([AssistantView.open]), then retreats,
- * and the map has almost the whole screen. [theme] places them ([realSlots]).
+ * The real-navigation head unit (owner 2026-10-22): the map, the route's cards, 小博 and a bar along the bottom with the
+ * device's own media. 小博 shows its bar while it listens and its panel while it works and a while after it answered
+ * ([AssistantView.open]), then retreats, and the map has almost the whole screen ([realSlots]).
  */
 @Composable
 internal fun MapHeadUnit(
@@ -156,8 +113,6 @@ internal fun MapHeadUnit(
     server: ServerState,
     flashLevel: Float,
     store: PlaygroundStore,
-    theme: HeadUnitTheme,
-    real: Boolean,
     sheet: Boolean,
     onSheet: (Boolean) -> Unit,
 ) {
@@ -171,13 +126,10 @@ internal fun MapHeadUnit(
     val now = rememberClock()
     val assistant by Assistant.state.collectAsState()
     val weather = rememberWeather()
-    val device by NowPlaying.state.collectAsState()
+    val playing by NowPlaying.state.collectAsState()
     val nav = world.cabin.nav
     TakeOverAssistant()
-    if (real) FollowTheMedia()
-    // The simulated car's music: named only when something was put on, else 「没有在放」.
-    val playing = if (real) device else world.cabin.media.let { MediaNow(true, it.title, it.artist, if (it.title.isEmpty()) "" else "车载音乐", it.playing) }
-    val controls = if (real) DEVICE_MEDIA else simulatedMedia(store)
+    FollowTheMedia()
     val shows = when {
         assistant.open(now, dismissed) -> AssistantShows.PANEL
         assistant.hearing(now, dismissed) -> AssistantShows.BAR
@@ -187,7 +139,7 @@ internal fun MapHeadUnit(
     ScreenFill {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val routeCards = nav.driving || (nav.previewing && revealed)
-            val slots = realSlots(theme, maxWidth, maxHeight, shows, routeCards)
+            val slots = realSlots(maxWidth, maxHeight, shows, routeCards)
             val density = LocalDensity.current
             // The junction's picture spans the next column too: the car moves over, as on AMap's stock screen.
             val crossing = Guidance.cross.collectAsState().value != null && nav.driving && routeCards
@@ -200,7 +152,7 @@ internal fun MapHeadUnit(
                 revealed = cue == MapCue.Route
             }
             FollowTheCar(map, nav, cuedAt)
-            MapLayer(mapBlocked(context), map, slots.map, corner = if (theme == HeadUnitTheme.COLUMNS) 18.dp else 0.dp)
+            MapLayer(mapBlocked(context), map, slots.map, corner = 0.dp)
             // Search and what to look for nearby are on the bar: nothing over the map until there is a route.
             // The bar holds the settings: no 「更多」 on the route's actions.
             if (routeCards) MapOverlays(world, now, map, store, slots.route, onMore = null)
@@ -208,16 +160,16 @@ internal fun MapHeadUnit(
                 val placed = Modifier.offset(box.x, box.y).size(box.width, box.height)
                 if (shows == AssistantShows.PANEL) AssistantChatPanel(assistant, null, close, placed) else AssistantBar(assistant, close, placed)
             }
-            RealStatus(if (real) "" else "你在${world.userAt.label}", server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
-            RealBar(theme, assistant, playing, controls, slots.bar) { onSheet(true) }
+            RealStatus(server, weather, now, Modifier.offset(y = slots.statusTop).padding(end = slots.statusEnd).align(Alignment.TopEnd))
+            RealBar(assistant, playing, DEVICE_MEDIA, slots.bar) { onSheet(true) }
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
     }
 }
 
-/** Top right: the mode's switch, where the user is ([label], simulated only), the server, the weather and the time. */
+/** Top right: the mode's switch, the server, the weather and the time (the settings are on the bar). */
 @Composable
-private fun RealStatus(label: String, server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
+private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, modifier: Modifier) {
     Row(
         modifier.clip(RoundedCornerShape(14.dp)).background(UnitColors.card).padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -225,7 +177,6 @@ private fun RealStatus(label: String, server: ServerState, weather: WeatherRepor
     ) {
         ModeSwitch()
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
-        if (label.isNotEmpty()) StatusLabel(label)
         weather?.let { StatusLabel("${it.weather} ${it.temperature}°") }
         StatusLabel(clockText(now, now))
     }
@@ -238,16 +189,14 @@ private fun StatusLabel(text: String) {
 
 /**
  * Along the bottom, each control once (owner 2026-10-22: 「很多重复控件」): 小博 (tapped, it listens: search is said to it;
- * its face is where it went when it retreated), what to look for nearby, the play bar, the settings. In columns a card
- * like the simulated dock; with the map first, a flat strip along the edge.
+ * its face is where it went when it retreated), what to look for nearby, the play bar, the settings: a flat strip along
+ * the edge.
  */
 @Composable
-private fun RealBar(theme: HeadUnitTheme, assistant: AssistantView, playing: MediaNow, controls: MediaControls, box: MapBox, onSettings: () -> Unit) {
+private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: MediaControls, box: MapBox, onSettings: () -> Unit) {
     val context = LocalContext.current
-    val shape = if (theme == HeadUnitTheme.COLUMNS) RoundedCornerShape(18.dp) else RoundedCornerShape(0.dp)
     Row(
-        Modifier.offset(box.x, box.y).size(box.width, box.height).clip(shape)
-            .background(if (theme == HeadUnitTheme.COLUMNS) UnitColors.panel else STRIP).padding(horizontal = 14.dp),
+        Modifier.offset(box.x, box.y).size(box.width, box.height).background(STRIP).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -318,17 +267,11 @@ private fun PlayStrip(now: MediaNow, controls: MediaControls) {
 
 private val PLAY_TEXT_WIDTH = 240.dp
 
-/** What the play bar's buttons do: the device's media session, or the simulated car's music. */
+/** What the play bar's buttons do. */
 internal class MediaControls(val previous: () -> Unit, val playPause: () -> Unit, val next: () -> Unit)
 
 // Lambdas, not references: NowPlaying is made on first use, never when this file loads (it needs the main looper).
 private val DEVICE_MEDIA = MediaControls({ NowPlaying.previous() }, { NowPlaying.playPause() }, { NowPlaying.next() })
-
-private fun simulatedMedia(store: PlaygroundStore) = MediaControls(
-    previous = { store.playMedia("previous") },
-    playPause = { store.playMedia(if (store.read().cabin.media.playing) "pause" else "resume") },
-    next = { store.playMedia("next") },
-)
 
 /** What the bar offers to look for nearby, and what each says to 小博. */
 private val NEARBY_REAL = listOf("充电站" to "找一下附近的充电站", "停车场" to "找一下附近的停车场", "加油站" to "找一下附近的加油站")

@@ -69,13 +69,9 @@ internal object DebugVoiceFeedback {
                 .setBufferSizeInBytes(samples.size * 2)
                 .build()
         }
-        // System sounds, not speech.
-        val track = runCatching {
-            create(
-                AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(),
-            )
-        }.getOrNull() ?: return
+        // On 小博's own stream, so a chime is heard whenever 小博 is: the system sounds' stream is muted on a device in
+        // silent mode (owner 2026-10-25: 「提示音听不见」, a tablet with its ringer off).
+        val track = DebugSpeechAudio.open(AudioAttributes.CONTENT_TYPE_SONIFICATION, create) ?: return
         runCatching {
             track.write(samples, 0, samples.size)
             track.play()

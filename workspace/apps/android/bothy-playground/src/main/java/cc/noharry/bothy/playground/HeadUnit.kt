@@ -77,7 +77,7 @@ internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState
     if (mode.layout == HeadUnitTheme.CLASSIC) {
         SimulatedHeadUnit(world, calls, server, flash, flashLevel, store, onHome, sheet) { sheet = it }
     } else {
-        MapHeadUnit(world, calls, server, flashLevel, store, mode.layout, mode.realNav, sheet) { sheet = it }
+        MapHeadUnit(world, calls, server, flashLevel, store, sheet) { sheet = it }
     }
 }
 
@@ -138,7 +138,7 @@ private fun SimulatedHeadUnit(
             // The map's own bar stays at its top left, beside 小博's card too, as on the head unit.
             if (showMap && !hearing && !routeCards) MapToolbar(grid.barSlot(mapFrom))
             if (panel) AssistantChatPanel(assistant, world.cabin.speaker, close, grid.column(2))
-            StatusRow(world, server, now, grid) { onSheet(true) }
+            StatusRow(world, server, now, grid, onHome) { onSheet(true) }
             ClimateBar(world.cabin, store, Modifier.offset(grid.col(2), grid.barTop).width(grid.col(4) - grid.col(2) - grid.gap).height(grid.barHeight))
         }
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { onSheet(false) }
@@ -352,9 +352,9 @@ internal fun MapToolbar(modifier: Modifier) {
 
 /** The top row: gear and range over the car, where the user is, the servers, the weather and the time on the right. */
 @Composable
-private fun StatusRow(world: World, server: ServerState, now: Long, grid: Grid, onSettings: () -> Unit) {
+private fun StatusRow(world: World, server: ServerState, now: Long, grid: Grid, onHome: () -> Unit, onSettings: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(grid.statusHeight)) {
-        StatusCluster(world, server, now, onSettings, Modifier.align(Alignment.CenterEnd).padding(end = grid.pad))
+        StatusCluster(world, server, now, onSettings, onHome, Modifier.align(Alignment.CenterEnd).padding(end = grid.pad))
     }
 }
 
@@ -558,13 +558,6 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
             // Real navigation: the device's own position and real driving, the simulated car and home taken down.
             SheetSwitch("真实导航模式（用设备的真实定位，不模拟车和家）", mode.realNav) { on ->
                 scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = on)) }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("主题", color = PlaygroundColors.text, fontSize = 14.sp)
-                // The car's layout only with the simulated car.
-                HeadUnitTheme.entries.filter { !mode.realNav || it != HeadUnitTheme.CLASSIC }.forEach { theme ->
-                    Pill(theme.label, selected = mode.layout == theme) { HeadUnitModes.set(context, mode.copy(theme = theme)) }
-                }
             }
             if (mode.realNav) {
                 // Routes driven in the 高德地图 App instead, its stock screen with all it shows (owner 2026-10-22: 方案二).

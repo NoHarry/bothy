@@ -190,6 +190,7 @@ private fun TopBar(scene: PlaygroundScene, onScene: (PlaygroundScene) -> Unit, s
             Text("Bothy Playground", color = PlaygroundColors.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Text(server.headline(), color = if (server.status == ServerStatus.FAILED) PlaygroundColors.ember else PlaygroundColors.muted, fontSize = 12.sp, maxLines = 1)
         }
+        ModeSwitch()
         PlaceSwitch(store)
         SceneTabs(scene, onScene)
         if (scene == PlaygroundScene.CABIN) {

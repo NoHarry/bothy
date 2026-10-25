@@ -5,18 +5,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * How the head unit looks (owner 2026-10-22), in either mode: the two map layouts with the simulated car too (「这两套布局在
- * 模拟模式也加上」), the car's own only with it. Neutral names: the layouts are borrowed, no maker's name or mark is.
+ * How the head unit looks, set by the mode (owner 2026-10-25: 「主题不用弄2个了，真实模式就用全屏地图，模拟就用分栏」). Neutral
+ * names: the layouts are borrowed, no maker's name or mark is.
  */
-enum class HeadUnitTheme(val id: String, val label: String) {
-    /** The simulated car's head unit: the car in the left column, cards beside it. Simulated mode only. */
-    CLASSIC("classic", "车模型"),
+enum class HeadUnitTheme {
+    /** The simulated car's head unit: the car in the left column, cards beside it. */
+    CLASSIC,
 
-    /** The columns of the simulated head unit, 小博 in the car's column and, with something to show, the next one too. */
-    COLUMNS("columns", "分栏卡片"),
-
-    /** The map under everything and a bar along the bottom; 小博 in a panel over the driver's third of the map. */
-    FULL_MAP("full_map", "全屏地图"),
+    /** Real navigation: the map under everything and a bar along the bottom; 小博 in a panel over the driver's third. */
+    FULL_MAP,
 }
 
 /**
@@ -25,12 +22,11 @@ enum class HeadUnitTheme(val id: String, val label: String) {
  */
 data class HeadUnitMode(
     val realNav: Boolean = false,
-    val theme: HeadUnitTheme = HeadUnitTheme.CLASSIC,
     /** Routes driven in the 高德地图 App instead ([AmapApp], owner 2026-10-22: 「增加一个开关可以切方案二」); real navigation only. */
     val amapApp: Boolean = false,
 ) {
-    /** The layout shown: with real navigation there is no car to show, so the car's layout gives way to the columns. */
-    val layout: HeadUnitTheme get() = if (realNav && theme == HeadUnitTheme.CLASSIC) HeadUnitTheme.COLUMNS else theme
+    /** The layout shown: the car's own with the simulated car, the whole map with real navigation. */
+    val layout: HeadUnitTheme get() = if (realNav) HeadUnitTheme.FULL_MAP else HeadUnitTheme.CLASSIC
 
     /** Whether a route is handed to the 高德地图 App to drive: it drives where the device is, so never a simulated one. */
     val handsToApp: Boolean get() = realNav && amapApp
@@ -46,8 +42,7 @@ object HeadUnitModes {
     fun load(context: Context) {
         if (loaded) return
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val theme = HeadUnitTheme.entries.firstOrNull { it.id == prefs.getString(THEME, null) } ?: HeadUnitTheme.CLASSIC
-        state.value = HeadUnitMode(prefs.getBoolean(REAL_NAV, false), theme, prefs.getBoolean(AMAP_APP, false))
+        state.value = HeadUnitMode(prefs.getBoolean(REAL_NAV, false), prefs.getBoolean(AMAP_APP, false))
         loaded = true
     }
 
@@ -59,7 +54,7 @@ object HeadUnitModes {
     fun set(context: Context, next: HeadUnitMode) {
         val before = state.value
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(REAL_NAV, next.realNav).putString(THEME, next.theme.id).putBoolean(AMAP_APP, next.amapApp).apply()
+            .putBoolean(REAL_NAV, next.realNav).putBoolean(AMAP_APP, next.amapApp).apply()
         state.value = next
         if (before.realNav == next.realNav) return
         Playground.engine?.realNav = next.realNav
@@ -72,6 +67,5 @@ object HeadUnitModes {
 
     private const val PREFS = "head_unit"
     private const val REAL_NAV = "real_nav"
-    private const val THEME = "theme"
     private const val AMAP_APP = "amap_app"
 }

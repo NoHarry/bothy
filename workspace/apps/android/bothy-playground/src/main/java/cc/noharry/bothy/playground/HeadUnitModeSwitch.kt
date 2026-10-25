@@ -43,11 +43,25 @@ internal fun ModeSwitch() {
             scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = real)) }
         }
     }
-    Row(Modifier.clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = 0.08f)).padding(2.dp)) {
+    Row(SWITCH_GROUP) {
         ModeOption("模拟", "模拟模式：模拟的车和家", selected = !mode.realNav) { choose(false) }
         ModeOption("真实", "真实模式：用设备定位导航", selected = mode.realNav) { choose(true) }
     }
 }
+
+/**
+ * 车机｜小家 beside it on the simulated head unit (owner 2026-10-25: 「家这个模式也要在模拟那个模式能方便让用户知道」): the
+ * head unit is the car's, [onHome] brings up the home, whose top bar has the way back.
+ */
+@Composable
+internal fun SceneSwitch(onHome: () -> Unit) {
+    Row(SWITCH_GROUP) {
+        ModeOption("车机", "车机：虚拟座舱", selected = true) {}
+        ModeOption("小家", "小家：虚拟的家", selected = false, onClick = onHome)
+    }
+}
+
+private val SWITCH_GROUP = Modifier.clip(RoundedCornerShape(10.dp)).background(Color.White.copy(alpha = 0.08f)).padding(2.dp)
 
 @Composable
 private fun ModeOption(label: String, description: String, selected: Boolean, onClick: () -> Unit) {

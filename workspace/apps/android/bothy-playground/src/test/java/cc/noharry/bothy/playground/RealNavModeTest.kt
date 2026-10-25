@@ -50,37 +50,19 @@ class RealNavModeTest {
     }
 
     @Test
-    fun inColumns小博TakesTheFirstTwoColumnsOrRetreatsAndTheMapRunsEdgeToEdge() {
-        val width = 1600.dp
-        val height = 1000.dp
-        val idle = realSlots(HeadUnitTheme.COLUMNS, width, height, AssistantShows.NOTHING, routeCards = false)
-        assertNull(idle.assistant)
-        assertEquals(0.dp, idle.map.x)
-        assertEquals(width, idle.map.width)
-        val panel = realSlots(HeadUnitTheme.COLUMNS, width, height, AssistantShows.PANEL, routeCards = true)
-        val box = panel.assistant!!
-        // The car's column (a quarter) and the next one: about half the screen.
-        assertTrue("${box.width}", box.width > width * 0.45f && box.width < width * 0.55f)
-        assertTrue(panel.map.x >= box.x + box.width && panel.route.x >= box.x + box.width)
-        val listening = realSlots(HeadUnitTheme.COLUMNS, width, height, AssistantShows.BAR, routeCards = true)
-        assertEquals(0.dp, listening.map.x)
-        assertTrue("the route's cards below the bar", listening.route.top >= listening.assistant!!.y + listening.assistant!!.height)
-    }
-
-    @Test
     fun withTheMapFirstThePanelCoversTheDriversThirdAndTheRouteGoesBesideIt() {
         val width = 1500.dp
         val height = 1000.dp
         for (shows in AssistantShows.entries) {
-            val slots = realSlots(HeadUnitTheme.FULL_MAP, width, height, shows, routeCards = true)
+            val slots = realSlots(width, height, shows, routeCards = true)
             assertEquals("the map stays whole", width, slots.map.width)
             assertEquals(slots.map.height, slots.bar.y)
         }
-        val panel = realSlots(HeadUnitTheme.FULL_MAP, width, height, AssistantShows.PANEL, routeCards = true)
+        val panel = realSlots(width, height, AssistantShows.PANEL, routeCards = true)
         val box = panel.assistant!!
         assertTrue("${box.width}", box.width > width * 0.3f && box.width < width * 0.34f)
         assertTrue(panel.route.x >= box.x + box.width && panel.coverLeft >= panel.route.x + panel.route.width)
-        val listening = realSlots(HeadUnitTheme.FULL_MAP, width, height, AssistantShows.BAR, routeCards = false)
+        val listening = realSlots(width, height, AssistantShows.BAR, routeCards = false)
         assertTrue("bottom left", listening.assistant!!.y > height / 2 && listening.assistant!!.x < width / 4)
         assertEquals(0.dp, listening.coverLeft)
     }
