@@ -189,6 +189,13 @@ internal fun AssistantView.holdMs(): Long = when {
     else -> PANEL_HOLD_MS
 }
 
+/**
+ * Whether the card goes as voice ends ([before] listening, this not; owner 2026-10-25: 「退出的时候卡片也关闭」): 「退出」,
+ * the X or 小博 tapped, or an idle end. Not while 小博 still works on the request, nor once the card was touched ([held]).
+ */
+internal fun AssistantView.foldsWithVoice(before: Boolean, held: String?): Boolean =
+    before && !listening && !running && request.isNotBlank() && request != held
+
 /** Listening with the card closed: only the slim bar shows. */
 internal fun AssistantView.hearing(now: Long, dismissed: String?, held: String? = null): Boolean = listening && !open(now, dismissed, held)
 

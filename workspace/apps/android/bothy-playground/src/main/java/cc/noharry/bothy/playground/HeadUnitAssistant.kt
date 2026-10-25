@@ -43,6 +43,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -128,6 +131,16 @@ private fun AssistantHeader(
             )
         }
         if (onClose != null) CloseCountdown(closesAt, view.holdMs(), onClose)
+    }
+}
+
+/** As voice ends the card goes with it ([AssistantView.foldsWithVoice]): [onFold] gets the request to close. */
+@Composable
+internal fun FoldWithVoice(view: AssistantView, held: String?, onFold: (String) -> Unit) {
+    var before by remember { mutableStateOf(view.listening) }
+    LaunchedEffect(view.listening) {
+        if (view.foldsWithVoice(before, held)) onFold(view.request)
+        before = view.listening
     }
 }
 

@@ -13,7 +13,9 @@ import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.kernel.api.ToolPrefetchProvider
 import cc.noharry.agent.kernel.api.ToolPrefetchRequest
 import cc.noharry.agent.kernel.api.ToolPrefetchTrace
+import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.kernel.api.mcp.McpClientProvider
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -27,9 +29,15 @@ import kotlinx.serialization.json.put
  * allows from the background, so it needs no screen control. Mounted only while the Playground is installed.
  */
 @OptIn(ExperimentalAgentRuntimeApi::class)
-internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> Boolean) :
-    McpClientProvider, ToolCatalogCacheIdentity, ToolPrefetchProvider {
-    constructor(context: Context) : this({ scene -> openPlayground(context.applicationContext, scene) })
+internal class DebugPlaygroundToolProvider(
+    private val open: (scene: String) -> Boolean,
+    /** Whether one of these packages came to the front after [open]; null where it cannot be seen (screen control off). */
+    private val cameToFront: suspend (packages: Set<String>) -> Boolean? = { null },
+) : McpClientProvider, ToolCatalogCacheIdentity, ToolPrefetchProvider {
+    constructor(context: Context) : this(
+        open = { scene -> openPlayground(context.applicationContext, scene) },
+        cameToFront = { packages -> waitForFront(context.applicationContext, packages) },
+    )
 
     override val serverId: String = PLAYGROUND_TOOL_SERVER_ID
     override val displayName: String = "Bothy Playground"
@@ -60,12 +68,17 @@ internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> 
         val scene = runCatching { Json.parseToJsonElement(argumentsJson).jsonObject["scene"]?.jsonPrimitive?.contentOrNull }
             .getOrNull()?.takeIf { it in PLAYGROUND_SCENES } ?: "cabin"
         if (!open(scene)) return failure("PLAYGROUND_NOT_INSTALLED", "这台设备没装 Bothy Playground，告诉用户装上它才能回到车机。")
+        // Opened through the interface; only if something else is in front then (owner 2026-10-25: a system dialog
+        // asking whether to allow the launch, 「接口开可能会遇到弹窗，这时候才走android use」) does the screen come in.
+        val expected = if (scene == "nav") setOf(PLAYGROUND_PACKAGE, AMAP_PACKAGE) else setOf(PLAYGROUND_PACKAGE)
+        val inFront = cameToFront(expected)
         return ToolCallResult(
             success = true,
             resultJson = buildJsonObject {
                 put("ok", true)
                 put("scene", scene)
-                put("message", PLAYGROUND_OPENED.getValue(scene))
+                if (inFront != null) put("inFront", inFront)
+                put("message", if (inFront == false) NOT_IN_FRONT else PLAYGROUND_OPENED.getValue(scene))
             }.toString(),
             trace = ToolCallTrace(validationOk = true, validationCode = "OK"),
         )
@@ -80,6 +93,16 @@ internal class DebugPlaygroundToolProvider(private val open: (scene: String) -> 
         }.toString(),
         trace = ToolCallTrace(validationOk = true, validationCode = code),
     )
+}
+
+/** Waits up to [FRONT_WAIT_MS] for one of [packages] to be the app in front; null without screen control to see it. */
+private suspend fun waitForFront(context: Context, packages: Set<String>): Boolean? {
+    if (!AndroidUseAccessibility.isConnected()) return null
+    repeat((FRONT_WAIT_MS / FRONT_CHECK_MS).toInt()) {
+        if (AndroidUseAccessibility.foregroundApp(context)?.packageName in packages) return true
+        delay(FRONT_CHECK_MS)
+    }
+    return false
 }
 
 internal fun playgroundInstalled(context: Context): Boolean =
@@ -99,6 +122,11 @@ private fun openPlayground(context: Context, scene: String): Boolean = try {
 }
 
 internal const val PLAYGROUND_PACKAGE = "cc.noharry.bothy.playground"
+private const val AMAP_PACKAGE = "com.autonavi.minimap"
+private const val FRONT_WAIT_MS = 2_500L
+private const val FRONT_CHECK_MS = 250L
+private const val NOT_IN_FRONT = "已经发出打开请求，但它没有到前台，多半是系统弹了确认框（是否允许打开）挡住了。现在用 android_observe " +
+    "看屏幕：是打开 Bothy Playground（或高德地图）的确认，就点「允许」或「打开」，确认它到了前台再 finish；是别的就如实告诉用户。"
 internal const val PLAYGROUND_OPEN_TOOL = "playground_open"
 /** The Playground reads it as the scene to show: `cabin` (the head unit), `home`, or `nav` (where the user drives). */
 private const val PLAYGROUND_EXTRA_SCENE = "scene"

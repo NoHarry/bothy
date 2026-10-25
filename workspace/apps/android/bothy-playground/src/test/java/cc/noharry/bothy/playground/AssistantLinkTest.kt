@@ -46,4 +46,14 @@ class AssistantLinkTest {
         assertFalse("closed with its X", answered.open(now = folds, dismissed = "明天天气", held = "明天天气"))
         assertEquals("while 小博 works it does not count", 0L, answered.copy(running = true).closesAt(held = null))
     }
+
+    @Test
+    fun theCardGoesWhenVoiceEndsUnlessStillWorkingOrTouched() {
+        val answered = AssistantView(request = "明天天气", reply = "多云", listening = false)
+
+        assertTrue(answered.foldsWithVoice(before = true, held = null))
+        assertFalse("voice was not on", answered.foldsWithVoice(before = false, held = null))
+        assertFalse("小博 still works on it", answered.copy(running = true).foldsWithVoice(before = true, held = null))
+        assertFalse("touched", answered.foldsWithVoice(before = true, held = "明天天气"))
+    }
 }
