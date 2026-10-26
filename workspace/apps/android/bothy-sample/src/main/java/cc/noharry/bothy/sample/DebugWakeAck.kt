@@ -22,13 +22,17 @@ import kotlin.random.Random
 
 /**
  * The lines 小博 answers a wake with. [file] names the clip under assets/voice-acks/<voice>/, which
- * tools/voice/make_wake_acks.py makes from the same list; [afterInterrupt] answers a wake that stopped what 小博 was doing.
+ * tools/voice/make_wake_acks.py makes from the same list; [afterInterrupt] answers a wake that stopped what 小博 was doing,
+ * and the [english] ones answer OK Bothy.
  */
-internal enum class DebugWakeAckLine(val file: String, val text: String, val afterInterrupt: Boolean = false) {
+internal enum class DebugWakeAckLine(val file: String, val text: String, val afterInterrupt: Boolean = false, val english: Boolean = false) {
     HERE("here", "我在"),
     YES("yes", "在呢"),
     MM("mm", "嗯，我在"),
     GO_ON("go-on", "好，你说", afterInterrupt = true),
+    HERE_EN("here-en", "I'm here", english = true),
+    YES_EN("yes-en", "Yes?", english = true),
+    GO_ON_EN("go-on-en", "Go ahead", afterInterrupt = true, english = true),
 }
 
 /** One line decoded: 16-bit mono samples at [sampleRate]. */
@@ -66,9 +70,12 @@ internal object DebugWakeAck {
         }
     }
 
-    /** Answers a wake ([interrupted]: it stopped what 小博 was doing); false when no line could play, for the chime. */
-    fun play(context: Context, interrupted: Boolean): Boolean {
-        val clip = ready?.let { pickWakeAck(it.clips, interrupted, last) }
+    /**
+     * Answers a wake ([interrupted]: it stopped what 小博 was doing), in English to OK Bothy ([english]); false when no
+     * line could play, the chime alone answering.
+     */
+    fun play(context: Context, interrupted: Boolean, english: Boolean = false): Boolean {
+        val clip = ready?.let { pickWakeAck(it.clips, interrupted, last, english) }
         val played = clip != null && start(clip)
         if (played) last = clip?.line
         Log.i(TAG, "wake answered ${if (played) "with 「${clip?.line?.text}」 (${ready?.key})" else "with the chime"}")
@@ -169,10 +176,20 @@ internal object DebugWakeAck {
     private const val CACHE_NAME_CHARS = 16
 }
 
-/** Which line answers this wake: after an interrupt 「好，你说」, else another than the one played last. */
-internal fun pickWakeAck(clips: List<DebugWakeClip>, interrupted: Boolean, last: DebugWakeAckLine?, random: Random = Random): DebugWakeClip? {
-    if (interrupted) clips.firstOrNull { it.line.afterInterrupt }?.let { return it }
-    val answers = clips.filterNot { it.line.afterInterrupt }.ifEmpty { clips }
+/**
+ * Which line answers this wake, in its language ([english]): after an interrupt 「好，你说」, else another than the one
+ * played last. None in that language, none plays: a Chinese 「我在」 would answer OK Bothy in the wrong language.
+ */
+internal fun pickWakeAck(
+    clips: List<DebugWakeClip>,
+    interrupted: Boolean,
+    last: DebugWakeAckLine?,
+    english: Boolean = false,
+    random: Random = Random,
+): DebugWakeClip? {
+    val spoken = clips.filter { it.line.english == english }
+    if (interrupted) spoken.firstOrNull { it.line.afterInterrupt }?.let { return it }
+    val answers = spoken.filterNot { it.line.afterInterrupt }.ifEmpty { spoken }
     return answers.filter { it.line != last }.ifEmpty { answers }.randomOrNull(random)
 }
 

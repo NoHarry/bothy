@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 
 /** What woke the overlay; [ADB] is the debug broadcast's `wake`. */
-internal enum class DebugWakeSource { WORD, LONG_PRESS, TAP, ADB, SURFACE }
+/** What woke 小博; [ENGLISH_WORD] is OK Bothy, answered in English. */
+internal enum class DebugWakeSource { WORD, ENGLISH_WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
 /** The wake word's state for Settings → 语音: whether it is listening, else why not. */
 internal data class DebugWakeStatus(val listening: Boolean = false, val message: String = "已关闭")
@@ -165,7 +166,7 @@ internal object DebugWakeWord {
             listener = created
             listenerWithin = within
         }
-        mutableStatus.value = DebugWakeStatus(true, if (within != null) "对话中也在听「你好，小博」，再叫一次就打断重听" else "正在听「你好，小博」")
+        mutableStatus.value = DebugWakeStatus(true, if (within != null) "对话中也在听「你好，小博」，再叫一次就打断重听" else "正在听「你好，小博」和「OK Bothy」")
     }
 
     private fun blocker(context: Context): String? = when {
@@ -199,7 +200,8 @@ internal object DebugWakeWord {
         DebugVoiceLog.i(TAG, "wake word heard: $phrase level=${levelDb?.let { "%.1f dBFS".format(it) } ?: "-"}")
         // Lets go of the microphone; the voice session takes it as soon as the recording is closed.
         stopListener()
-        onWake?.invoke(DebugWakeSource.WORD) ?: wakeWithoutOverlay(context, DebugWakeSource.WORD)
+        val source = if (phrase == BOTHY_WAKE_PHRASE) DebugWakeSource.ENGLISH_WORD else DebugWakeSource.WORD
+        onWake?.invoke(source) ?: wakeWithoutOverlay(context, source)
         // Listening resumes at once when the wake did not start a session.
         refresh()
     }

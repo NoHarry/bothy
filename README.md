@@ -34,9 +34,9 @@ they appear, with a translation.
    Without it, Xiao Bo speaks with the device's own voice.
 4. **Grant permissions** from the same screen: microphone and overlay are needed; notification access (to control
    music) and accessibility (to let Xiao Bo operate other apps) are optional.
-5. **Say 「你好小博」** (*nǐ hǎo xiǎo bó*, "hello, Xiao Bo") and try 「明天深圳天气怎么样」 (tomorrow's weather in Shenzhen), 「明早八点提醒我带伞」
-   (remind me at eight tomorrow to take an umbrella) or 「下一首」 (next song). With Bothy Playground in front, ask it to
-   turn on the air conditioning, open a window or plan a route in the virtual car.
+5. **Say 「你好小博」** (*nǐ hǎo xiǎo bó*, "hello, Xiao Bo") **or "OK Bothy"** and try 「明天深圳天气怎么样」 (tomorrow's weather in
+   Shenzhen), 「明早八点提醒我带伞」 (remind me at eight tomorrow to take an umbrella) or 「下一首」 (next song). With Bothy Playground
+   in front, ask it to turn on the air conditioning, open a window or plan a route in the virtual car.
 
 ### Which key does what
 
@@ -146,7 +146,7 @@ hidden.)*
 - **Plans**: reminders and timed tasks, and watches on a server's state, either an MCP resource or a read-only tool
   polled on a schedule, e.g. "remind me when the cheapest Shenzhen–Chengdu flight on 7 Nov drops below 800 yuan" runs on
   Kiwi.com's open search.
-- **Voice**: on-device wake word (「你好小博」, "hello, Xiao Bo") and recognition, turn taking (an optional judge decides when
+- **Voice**: on-device wake word (「你好小博」, "hello, Xiao Bo", or "OK Bothy") and recognition, turn taking (an optional judge decides when
   you have finished and whether you are talking to Xiao Bo), barge-in, TTS; optionally an end-to-end speech model.
 - **Your own cloud agent**: pair a personal agent (such as Grok Bot) through the self-hosted relay in
   `workspace/apps/android/tools/agent-relay`, then hand it tasks that need your accounts.

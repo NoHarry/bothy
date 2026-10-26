@@ -3,6 +3,7 @@ package cc.noharry.bothy.sample
 import cc.noharry.agent.voice.DECOY_MARK
 import cc.noharry.agent.voice.VoiceJudgeRequest
 import cc.noharry.agent.voice.VoiceTurnSnapshot
+import cc.noharry.agent.voice.WAKE_MODEL_ASSET_DIR
 import cc.noharry.agent.voice.WakeSensitivity
 import cc.noharry.agent.voice.jevTurnBody
 import cc.noharry.agent.voice.wakeKeyword
@@ -10,19 +11,20 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** 小博's wake phrases and how the turn judge is told about it, as the voice tests checked before they moved here. */
 class XiaoboWakeProfileTest {
     @Test
     fun theWakePhraseIsItsPinyinTokensThenThePhrase() {
-        assertEquals("n ǐ h ǎo x iǎo b ó @你好小博", wakeKeyword(XIAOBO_WAKE_TOKENS, XIAOBO_WAKE_PHRASE))
+        assertEquals("n ǐ h ǎo x iǎo b ó :2.0 @你好小博", wakeKeyword(XIAOBO_WAKE_TOKENS, XIAOBO_WAKE_PHRASE, boost = 2f))
     }
 
     @Test
     fun everyLevelHearsHiXiaoBoAndItsDecoysAndOnlyTheLowOneTakesBo() {
         val standard = WakeSensitivity.STANDARD.keywords(XIAOBO_WAKE_PROFILE).split("/")
-        assertEquals("n ǐ h ǎo x iǎo b ó @你好小博", standard.first())
-        assertTrue("h āi x iǎo b ó @嗨小博" in standard && "h ēi x iǎo b ó @嘿小博" in standard)
+        assertEquals("n ǐ h ǎo x iǎo b ó :2.0 @你好小博", standard.first())
+        assertTrue("h āi x iǎo b ó :2.0 @嗨小博" in standard && "h ēi x iǎo b ó :2.0 @嘿小博" in standard)
         assertTrue("n ǐ h ǎo x iǎo w áng @${DECOY_MARK}你好小王" in standard)
         assertEquals(standard, WakeSensitivity.HIGH.keywords(XIAOBO_WAKE_PROFILE).split("/"))
         val low = WakeSensitivity.LOW.keywords(XIAOBO_WAKE_PROFILE).split("/")
@@ -32,10 +34,28 @@ class XiaoboWakeProfileTest {
     }
 
     @Test
+    fun okBothyWakesAtEveryLevelEachWayItIsSaidAtItsOwnThreshold() {
+        WakeSensitivity.entries.forEach { level ->
+            val lines = level.keywords(XIAOBO_WAKE_PROFILE).split("/")
+            assertTrue(level.name, "OW1 K EY1 B AA1 TH IY0 #0.2 @$BOTHY_WAKE_PHRASE" in lines)
+            assertEquals(level.name, 6, lines.count { it.endsWith(" #0.2 @$BOTHY_WAKE_PHRASE") })
+        }
+    }
+
+    @Test
+    fun everyTokenIsOneTheWakeModelKnows() {
+        val known = File("src/main/assets/$WAKE_MODEL_ASSET_DIR/tokens.txt").readLines().map { it.substringBefore(' ') }.toSet()
+        val profile = XIAOBO_WAKE_PROFILE
+        val used = (profile.phrases + profile.lenientPhrases + profile.decoys).flatMap { it.tokens.split(' ') }.toSet()
+        assertEquals(emptySet<String>(), used - known)
+    }
+
+    @Test
     fun aWakePhraseInsideATurnIsHeardInEachForm() {
         val heard = XIAOBO_WAKE_PROFILE.heardInTranscript!!
-        listOf("你好小博", "你好，小伯", "嗨小博", "Hi，小伯", "hey 小泊", "嘿，小博").forEach { assertTrue(it, heard.containsMatchIn(it)) }
-        listOf("你好小宝", "黑小妞", "海小镇", "小博").forEach { assertFalse(it, heard.containsMatchIn(it)) }
+        listOf("你好小博", "你好，小伯", "嗨小博", "Hi，小伯", "hey 小泊", "嘿，小博", "OK BOTHY", "okay, Bothy", "O.K. bothy")
+            .forEach { assertTrue(it, heard.containsMatchIn(it)) }
+        listOf("你好小宝", "黑小妞", "海小镇", "小博", "a bothy on the hill", "okay body", "ok Bothyland").forEach { assertFalse(it, heard.containsMatchIn(it)) }
     }
 
     @Test

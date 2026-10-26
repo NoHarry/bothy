@@ -24,8 +24,10 @@ class DebugWakeAckTest {
                     DebugWakeClip(line, samples, rate)
                 }
             }
-            assertTrue("${voice.id} answers a wake two ways at least", clips.count { !it.line.afterInterrupt } >= 2)
-            assertTrue("${voice.id} has 「好，你说」 for an interrupting wake", clips.any { it.line.afterInterrupt })
+            assertTrue("${voice.id} answers a wake two ways at least", clips.count { !it.line.afterInterrupt && !it.line.english } >= 2)
+            assertTrue("${voice.id} has 「好，你说」 for an interrupting wake", clips.any { it.line.afterInterrupt && !it.line.english })
+            assertTrue("${voice.id} answers OK Bothy two ways", clips.count { !it.line.afterInterrupt && it.line.english } >= 2)
+            assertTrue("${voice.id} has Go ahead for an interrupting OK Bothy", clips.any { it.line.afterInterrupt && it.line.english })
             clips.forEach { clip ->
                 assertEquals(24_000, clip.sampleRate)
                 assertTrue("${voice.id} ${clip.line.text} lasts ${clip.millis} ms", clip.millis in 300L..2_000L)
@@ -50,6 +52,18 @@ class DebugWakeAckTest {
         val onlyOne = clips.filter { it.line == DebugWakeAckLine.YES }
         assertEquals("a voice missing a line still answers", DebugWakeAckLine.YES, pickWakeAck(onlyOne, interrupted = true, last = DebugWakeAckLine.YES)?.line)
         assertNull(pickWakeAck(emptyList(), interrupted = false, last = null))
+    }
+
+    @Test
+    fun okBothyIsAnsweredInEnglishAndNeverInChinese() {
+        val clips = DebugWakeAckLine.entries.map { DebugWakeClip(it, ShortArray(10), 24_000) }
+        assertEquals(DebugWakeAckLine.GO_ON_EN, pickWakeAck(clips, interrupted = true, last = null, english = true)?.line)
+        repeat(10) { seed ->
+            assertTrue(pickWakeAck(clips, interrupted = false, last = null, english = true, random = Random(seed))!!.line.english)
+            assertFalse(pickWakeAck(clips, interrupted = false, last = null, random = Random(seed))!!.line.english)
+        }
+        val chineseOnly = clips.filterNot { it.line.english }
+        assertNull("without English lines the chime alone answers OK Bothy", pickWakeAck(chineseOnly, interrupted = false, last = null, english = true))
     }
 
     @Test

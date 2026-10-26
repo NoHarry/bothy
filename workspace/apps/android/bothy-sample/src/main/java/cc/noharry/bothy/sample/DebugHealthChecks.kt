@@ -215,7 +215,7 @@ private suspend fun checkWake(context: Context): DebugCheckResult {
         DebugWakeWord.load(context)
         DebugWakeWord.status.value
     }
-    return if (status.listening) ok("正在听「你好，小博」") else warn("已打开，但没在听：${status.message}")
+    return if (status.listening) ok("正在听「你好，小博」和「OK Bothy」") else warn("已打开，但没在听：${status.message}")
 }
 
 /** Half a second through the configured capture: silence everywhere means the source is held or muted elsewhere. */

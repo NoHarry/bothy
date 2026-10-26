@@ -15,11 +15,10 @@ transitive dependencies and the versions your build actually packages.
 ### On-device speech models (`bothy-sample`)
 
 - **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
-  model** `sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01` (`bothy-sample/src/main/assets/voice-models/`) —
-  published by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). The
-  keyword-spotting model was trained on the WenetSpeech corpus, which OpenSLR lists under CC BY 4.0
-  (<https://www.openslr.org/121>) and whose official download requires accepting the WenetSpeech access agreement.
-  Check the upstream model pages and the dataset terms before using these models in a commercial product.
+  model** `sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20` (`bothy-sample/src/main/assets/voice-models/`) — published
+  by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). Upstream does not
+  say what the Chinese–English keyword-spotting model was trained on. Check the upstream model pages and the dataset
+  terms before using these models in a commercial product.
 
 `workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the models (and, into a runtime checkout beside
 this repository, the native libraries) from the pinned upstream archives and checks their SHA-256, so the committed

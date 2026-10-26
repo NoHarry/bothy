@@ -198,7 +198,7 @@ private fun FirstWordsStep(onDone: () -> Unit) {
     val context = LocalContext.current
     val playground = remember { context.packageManager.getLaunchIntentForPackage(PLAYGROUND_PACKAGE) }
     OnboardingStep("4 · 试试这样说", done = false) {
-        Text("说「你好小博」，或点悬浮的小博，然后：", style = DebugType.bodySmall, color = DebugColors.muted)
+        Text("说「你好小博」或「OK Bothy」，也可以点悬浮的小博，然后：", style = DebugType.bodySmall, color = DebugColors.muted)
         FIRST_WORDS.forEach { Text("· $it", style = DebugType.body, color = DebugColors.text) }
         if (playground != null) {
             Text("装了 Bothy Playground：打开它放在前台，小博就在虚拟车机里，可以开空调、开车窗、导航。", style = DebugType.bodySmall, color = DebugColors.muted)

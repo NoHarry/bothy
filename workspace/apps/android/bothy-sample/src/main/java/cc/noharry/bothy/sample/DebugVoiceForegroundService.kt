@@ -35,7 +35,7 @@ class DebugVoiceForegroundService : Service() {
             val notification = Notification.Builder(this, WAKE_CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
                 .setContentTitle("小博语音唤醒")
-                .setContentText("说「你好，小博」唤醒；在 设置 → 语音 关闭")
+                .setContentText("说「你好，小博」或「OK Bothy」唤醒；在 设置 → 语音 关闭")
                 .build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 startForeground(WAKE_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)

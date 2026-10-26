@@ -8,9 +8,9 @@ what the app needs, into the directories the app builds from:
       libsherpa-onnx-jni.so, libonnxruntime.so (arm64-v8a by default; most tablets and phones are arm64)
   Zipformer Small zh-en streaming model → bothy-sample/src/main/assets/voice-models/<model>/
       encoder/joiner INT8, decoder FP32, tokens.txt (about 57 MiB of a 458 MB archive)
-  KWS Zipformer WenetSpeech 3.3M (mobile) → bothy-sample/src/main/assets/voice-models/<kws model>/
-      the overlay's wake word 你好小博: encoder/joiner INT8, decoder, tokens.txt (about 4.6 MiB), plus a
-      keywords.txt written here with the wake phrase (the archive's own lists other phrases)
+  KWS Zipformer zh-en 3M (2025-12-20)    → bothy-sample/src/main/assets/voice-models/<kws model>/
+      the wake words 你好小博 and OK Bothy: encoder/joiner INT8, decoder, tokens.txt for 320 ms chunks (about
+      5.3 MiB of 38), plus a keywords.txt written here with the wake phrase (the archive's own lists other phrases)
 
 These files are committed (owner 2026-10-12), so a clone builds a working local recognizer and wake word as it
 is; run this to change a version or ABI, or to check the committed files against the pinned archives, then
@@ -51,17 +51,17 @@ MODEL_FILES = (
 )
 MODEL_DEST = ANDROID_ROOT / "bothy-sample" / "src" / "main" / "assets" / "voice-models" / MODEL_NAME
 
-KWS_NAME = "sherpa-onnx-kws-zipformer-wenetspeech-3.3M-2024-01-01-mobile"
+KWS_NAME = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"
 KWS_URL = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/{KWS_NAME}.tar.bz2"
-KWS_SHA256 = "b812a043aef628a6915f89cb9a94e55f8e87e89ff904b516f822d7e0a3e6de2b"
+KWS_SHA256 = "68447f4fbc67e70eee3a93961f36e81e98f47aef73ce7e7ca00885c6cd3616a6"
 KWS_FILES = (
-    "encoder-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
-    "decoder-epoch-12-avg-2-chunk-16-left-64.onnx",
-    "joiner-epoch-12-avg-2-chunk-16-left-64.int8.onnx",
+    "encoder-epoch-13-avg-2-chunk-16-left-64.int8.onnx",
+    "decoder-epoch-13-avg-2-chunk-16-left-64.onnx",
+    "joiner-epoch-13-avg-2-chunk-16-left-64.int8.onnx",
     "tokens.txt",
 )
 KWS_DEST = MODEL_DEST.parent / KWS_NAME
-# Same phrase as agent-voice's DEFAULT_WAKE_TOKENS / DEFAULT_WAKE_PHRASE (pinyin tokens, then the phrase).
+# The spotter is given the app's own phrases (DebugWakeProfile); the file has to be there, and names the main one.
 KWS_KEYWORDS = "n ǐ h ǎo x iǎo b ó @你好小博\n"
 
 

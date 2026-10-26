@@ -134,15 +134,16 @@ internal class DebugOverlayVoice(
 }
 
 /**
- * A wake (你好，小博, a long press, adb): stops what 小博 is doing, answers, and starts (or restarts) a woken session.
- * The overlay shows it on its card; without the overlay the console's voice strip does. Why it could not listen, or null.
+ * A wake (你好，小博 or OK Bothy, a long press, adb): stops what 小博 is doing, answers (in English to OK Bothy), and
+ * starts (or restarts) a woken session. The overlay shows it on its card; without the overlay the console's voice strip
+ * does. Why it could not listen, or null.
  */
 internal fun startWokenVoice(context: Context, source: DebugWakeSource): String? {
     val interrupted = DebugVoiceController.interruptForWake(context)
     // Every wake chimes at once (owner 2026-10-25: 「唤醒和退出要一个提示音」); the spoken answer follows the chime, before
     // listening is set up, which takes a few hundred milliseconds, and is taken back if it cannot listen.
     DebugVoiceFeedback.woke()
-    val answered = DebugWakeAck.play(context, interrupted)
+    val answered = DebugWakeAck.play(context, interrupted, english = source == DebugWakeSource.ENGLISH_WORD)
     val settingUp = SystemClock.elapsedRealtime()
     val failure = if (DebugVoiceController.listening) {
         DebugVoiceController.restart(context)

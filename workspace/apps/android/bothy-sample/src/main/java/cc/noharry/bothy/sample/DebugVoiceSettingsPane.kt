@@ -518,7 +518,7 @@ private fun VoiceWakeSection() {
     var message by remember { mutableStateOf("") }
     // The switch as saved, even before the overlay has started.
     LaunchedEffect(Unit) { DebugWakeWord.load(context) }
-    VoiceSwitchRow("说「你好，小博」「hi，小博」或长按小博唤醒（关闭时长按小博是让它休息）", enabled) { on ->
+    VoiceSwitchRow("说「你好，小博」「hi，小博」「OK Bothy」或长按小博唤醒（关闭时长按小博是让它休息）", enabled) { on ->
         message = if (DebugWakeWord.setEnabled(context, on)) "" else "无法保存开关。"
     }
     Text(

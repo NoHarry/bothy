@@ -49,17 +49,23 @@ VOICES = (
     ("milo", "Milo"),
     ("dean", "Dean"),
 )
-# (file, text): three ways to answer a wake, and one for a wake that stopped what 小博 was doing.
+# (file, text, language): ways to answer a wake, and one for a wake that stopped what 小博 was doing; the English
+# ones answer OK Bothy.
 LINES = (
-    ("here", "我在"),
-    ("yes", "在呢"),
-    ("mm", "嗯，我在"),
-    ("go-on", "好，你说"),
+    ("here", "我在", "zh"),
+    ("yes", "在呢", "zh"),
+    ("mm", "嗯，我在", "zh"),
+    ("go-on", "好，你说", "zh"),
+    ("here-en", "I'm here", "en"),
+    ("yes-en", "Yes?", "en"),
+    ("go-on-en", "Go ahead", "en"),
 )
-STYLE = (
-    "被叫到名字时随口答应一声：自然、轻快、亲切，短促干脆，不拖音，不要播音腔或客服腔，"
-    "像反应很快的 AI 伙伴在近距离聊天。不要模仿任何特定真人声音。"
-)
+STYLE = {
+    "zh": "被叫到名字时随口答应一声：自然、轻快、亲切，短促干脆，不拖音，不要播音腔或客服腔，"
+    "像反应很快的 AI 伙伴在近距离聊天。不要模仿任何特定真人声音。",
+    "en": "Answer casually when called by name: natural, light and friendly, short and crisp, no drawl, no announcer "
+    "or call-centre voice, like a quick AI companion chatting close by. Do not imitate any real person's voice.",
+}
 DEFAULT_BASE_URL = "https://api.xiaomimimo.com/v1"
 DEFAULT_MODEL = "mimo-v2.5-tts"
 SILENCE_DBFS = -45.0
@@ -85,13 +91,13 @@ def local_properties() -> dict[str, str]:
     return values
 
 
-def synthesize(base_url: str, model: str, key: str, voice: str, text: str) -> bytes:
+def synthesize(base_url: str, model: str, key: str, voice: str, text: str, language: str) -> bytes:
     url = base_url.rstrip("/")
     if not url.endswith("/chat/completions"):
         url += "/chat/completions"
     body = {
         "model": model,
-        "messages": [{"role": "user", "content": STYLE}, {"role": "assistant", "content": text}],
+        "messages": [{"role": "user", "content": STYLE[language]}, {"role": "assistant", "content": text}],
         "audio": {"format": "wav", "voice": voice},
     }
     request = urllib.request.Request(
@@ -109,12 +115,12 @@ def synthesize(base_url: str, model: str, key: str, voice: str, text: str) -> by
     return base64.b64decode(data)
 
 
-def transcript(key: str, wav_bytes: bytes) -> str:
+def transcript(key: str, wav_bytes: bytes, language: str) -> str:
     audio = "data:audio/wav;base64," + base64.b64encode(wav_bytes).decode("ascii")
     body = {
         "model": ASR_MODEL,
         "messages": [{"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": audio}}]}],
-        "asr_options": {"language": "zh"},
+        "asr_options": {"language": language},
     }
     request = urllib.request.Request(
         ASR_URL,
@@ -130,9 +136,9 @@ def transcript(key: str, wav_bytes: bytes) -> str:
 
 
 def says(heard: str, text: str) -> bool:
-    """Whether [heard] is [text], punctuation and spacing aside."""
+    """Whether [heard] is [text], punctuation, spacing and case aside."""
     def plain(value: str) -> str:
-        return re.sub(r"[\s\W_]+", "", value)
+        return re.sub(r"[\s\W_]+", "", value).lower()
     return plain(heard) == plain(text)
 
 
@@ -183,15 +189,15 @@ def trimmed(wav_bytes: bytes) -> tuple[array.array, int]:
     return clip, rate
 
 
-def make_clip(tts: tuple[str, str, str], asr_key: str | None, voice: str, text: str) -> tuple[bytes, int, str]:
+def make_clip(tts: tuple[str, str, str], asr_key: str | None, voice: str, text: str, language: str) -> tuple[bytes, int, str]:
     """The clip as WAV bytes, its length in ms, and what the recognizer heard ("-" unchecked)."""
     heard = "-"
     for _ in range(ATTEMPTS if asr_key else 1):
-        samples, rate = trimmed(synthesize(*tts, voice, text))
+        samples, rate = trimmed(synthesize(*tts, voice, text, language))
         clip = wav_bytes(samples, rate)
         if not asr_key:
             break
-        heard = transcript(asr_key, clip)
+        heard = transcript(asr_key, clip, language)
         if says(heard, text):
             break
     else:
@@ -220,7 +226,7 @@ def main() -> int:
     for directory, voice in VOICES:
         if args.voice and voice not in args.voice:
             continue
-        for name, text in LINES:
+        for name, text, language in LINES:
             if args.line and name not in args.line:
                 continue
             path = DEST / directory / f"{name}.wav"
@@ -228,7 +234,7 @@ def main() -> int:
                 print(f"{voice} {text}: kept {path.relative_to(ANDROID_ROOT)}")
                 continue
             try:
-                clip, millis, heard = make_clip(tts, asr_key, voice, text)
+                clip, millis, heard = make_clip(tts, asr_key, voice, text, language)
             except (RuntimeError, KeyError, IndexError, ValueError, OSError, wave.Error) as error:
                 failures += 1
                 # A clip that failed its check is not kept: the app then picks among the voice's other lines.
