@@ -42,19 +42,25 @@ object NowPlaying {
     private val main = Handler(Looper.getMainLooper())
     private var manager: MediaSessionManager? = null
     private var controller: MediaController? = null
+    private var watched: List<MediaController> = emptyList()
     private var appContext: Context? = null
 
     private val sessions = MediaSessionManager.OnActiveSessionsChangedListener { controllers -> follow(controllers.orEmpty()) }
 
+    /**
+     * On every session, not only the one shown: one starting to play takes the bar (2026-10-26: 网易云 played on while
+     * the bar still showed B站's paused video).
+     */
     private val callback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) = publish()
         override fun onPlaybackStateChanged(state: PlaybackState?) {
-            // Another session may have started playing meanwhile: the bar follows the one that plays.
-            manager?.let { m -> component()?.let { follow(runCatching { m.getActiveSessions(it) }.getOrDefault(emptyList())) } } ?: publish()
+            if (!refollow()) publish()
         }
         override fun onSessionDestroyed() {
-            controller = null
-            publish()
+            if (!refollow()) {
+                controller = null
+                publish()
+            }
         }
     }
 
@@ -78,7 +84,8 @@ object NowPlaying {
     fun stop() {
         manager?.let { runCatching { it.removeOnActiveSessionsChangedListener(sessions) } }
         manager = null
-        controller?.unregisterCallback(callback)
+        watched.forEach { it.unregisterCallback(callback) }
+        watched = emptyList()
         controller = null
     }
 
@@ -109,14 +116,22 @@ object NowPlaying {
 
     private fun component(): ComponentName? = appContext?.let { ComponentName(it, MediaListener::class.java) }
 
-    /** The session playing, else the first (the most recently active). */
+    /** Follows the sessions again; false before [start] has access to them. */
+    private fun refollow(): Boolean {
+        val sessionManager = manager ?: return false
+        val component = component() ?: return false
+        follow(runCatching { sessionManager.getActiveSessions(component) }.getOrDefault(emptyList()))
+        return true
+    }
+
+    /** The session playing, else the first (the most recently active); all of them watched. */
     private fun follow(controllers: List<MediaController>) {
-        val next = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: controllers.firstOrNull()
-        if (next?.sessionToken != controller?.sessionToken) {
-            controller?.unregisterCallback(callback)
-            controller = next
-            next?.registerCallback(callback, main)
+        if (controllers.map { it.sessionToken } != watched.map { it.sessionToken }) {
+            watched.forEach { it.unregisterCallback(callback) }
+            watched = controllers
+            controllers.forEach { it.registerCallback(callback, main) }
         }
+        controller = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: controllers.firstOrNull()
         publish()
     }
 
