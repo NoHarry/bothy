@@ -12,6 +12,8 @@
 unit.** It is the demo of [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), an embeddable agent
 runtime for Android: everything Xiao Bo (小博), the assistant, does goes through the runtime's public API.
 
+▶ **[Watch the 12-minute demo on Bilibili](https://www.bilibili.com/video/BV1g1nf6uEE8)** (in Chinese, with chapters)
+
 | Install | The tablet becomes |
 |---------|--------------------|
 | **Bothy** | A personal assistant. Say 「你好小博」 or "OK Bothy" over any app: it looks things up on the web, plans and reminds, plays and pauses music and video, works other apps for you (Android Use) and passes any request you like to your own cloud agent, such as Grok Bot. |
@@ -100,7 +102,10 @@ it like any other MCP server.
 
 ## What the demo shows
 
-Every clip is the demo on a tablet, asked out loud; some are sped up, as each caption says.
+<p align="center"><a href="https://www.bilibili.com/video/BV1g1nf6uEE8"><img src="docs/images/demo-video-cover.jpg" alt="The full demo on Bilibili: Bothy's head unit on a tablet in a car at night, a route planned on screen" width="880"></a></p>
+
+The whole demo, 12 minutes with sound and chapters, is [on Bilibili](https://www.bilibili.com/video/BV1g1nf6uEE8). Every clip below is the demo on a tablet,
+asked out loud; some are sped up, as each caption says.
 
 ### Talk to Xiao Bo in the car
 

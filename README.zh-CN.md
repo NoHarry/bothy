@@ -10,6 +10,8 @@
 
 **Bothy 把一台 Android 平板变成能对话的个人助手；装上 Bothy Playground，它就是一台车机。** 它是 [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime)（可嵌入的 Android agent 运行时）的演示，助手小博做的每件事都走运行时的公开 API。
 
+▶ **[在 B 站看 12 分钟完整演示](https://www.bilibili.com/video/BV1g1nf6uEE8)**（带章节）
+
 | 安装 | 平板变成 |
 |------|----------|
 | **Bothy** | 个人助手。在任何 App 上说「你好小博」或「OK Bothy」：联网查资料、做计划和提醒、播放暂停音乐和视频、替你操作别的 App（Android Use），还能把你的任何要求转交给你自己的云端 agent，比如 Grok Bot。 |
@@ -76,7 +78,9 @@ sample 依赖运行时的构件（`cc.noharry:agent-*`）；playground 不依赖
 
 ## 演示 App 能看到什么
 
-下面每段动图都是演示 App 在平板上实际运行、对着它说话录下来的；部分片段加了速，说明里都标了。
+<p align="center"><a href="https://www.bilibili.com/video/BV1g1nf6uEE8"><img src="docs/images/demo-video-cover.jpg" alt="B 站完整演示：夜里车上的平板运行着 Bothy 的车机，屏幕上是规划好的路线" width="880"></a></p>
+
+完整演示（12 分钟，有声音、带章节）在 [B 站](https://www.bilibili.com/video/BV1g1nf6uEE8)。下面每段动图都是演示 App 在平板上实际运行、对着它说话录下来的；部分片段加了速，说明里都标了。
 
 ### 在车里和小博说话
 
