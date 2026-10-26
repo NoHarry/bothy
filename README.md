@@ -14,7 +14,7 @@ runtime for Android: everything Xiao Bo (小博), the assistant, does goes throu
 
 | Install | The tablet becomes |
 |---------|--------------------|
-| **Bothy** | A personal assistant. Say 「你好小博」 or "OK Bothy" over any app: it looks things up on the web, plans and reminds, plays and pauses music and video, works other apps for you (Android Use) and hands errands that need your accounts to your own cloud agent, such as Grok Bot. |
+| **Bothy** | A personal assistant. Say 「你好小博」 or "OK Bothy" over any app: it looks things up on the web, plans and reminds, plays and pauses music and video, works other apps for you (Android Use) and passes any request you like to your own cloud agent, such as Grok Bot. |
 | **+ Bothy Playground** | A head unit that cannot control a car: a car's screen with AMap navigation on the device's own location (real mode), or a simulated car and home to control (simulated mode). In a car mount it plans the pickup, the stops and the reminder on arrival. |
 | **+ your car's controls as MCP** | A real head unit. Playground's virtual car is just an MCP server (`set_climate`, `set_seat`, `set_window`, `set_trunk`, …); serve your car's own control interface the same way, add it in 连接应用 (Connect apps) by address, and Xiao Bo controls the real car as it controls the virtual one. |
 
@@ -31,8 +31,8 @@ build the features you want on the same runtime.
   reading crosses a line.
 - **It uses your apps.** Android Use reads the screen and taps, swipes and types in any app; music and video obey through
   their media sessions.
-- **It brings your own agent.** Name Grok Bot (or say 云端助手, cloud assistant) and the errand goes to your agent over A2A;
-  the report comes back by voice.
+- **It brings your own agent.** Name Grok Bot (or say 云端助手, cloud assistant) and Xiao Bo passes your request, whatever it
+  is, to your own agent over A2A; the result comes back by voice.
 - **It draws when words are not enough**: cards, choices and control panels on screen (A2UI).
 - **It listens properly.** On-device wake word in Chinese or English, it knows which seat is speaking, you can talk over
   it, and an end-to-end speech model is one switch away.
@@ -133,13 +133,14 @@ offering ones open until 2; 「接到她先去福田香格里拉酒店放行李�
 the way and takes the late diner. 「用高德导航去…」 (navigate with AMap to…) hands a route to the 高德地图 App instead. For
 the recording the tablet's location was set to Shenzhen Civic Center. *(2× speed, cut; web search on.)*
 
-### Hand errands to your own agent
+### Pass anything to your own agent
 
 <p align="center"><img src="docs/images/demo-grok-bot.gif" alt="「让 Grok Bot 帮我查一下最近 AI 圈有什么新闻」 (have Grok Bot look up the latest AI news): Xiao Bo hands it to the paired Grok Bot, then reads the report out when it comes back and lists the five items on a card" width="880"></p>
 
 Pair your own cloud agent, such as Grok Bot, in 连接应用 (Connect apps) through the self-hosted relay in
-`workspace/apps/android/tools/agent-relay`. Name it (or say 云端助手, your cloud assistant) and Xiao Bo hands it errands
-that need your own accounts: mail, research, reminders, shopping. The task goes over A2A, the conversation carries on,
+`workspace/apps/android/tools/agent-relay`. Name it (「让 Grok Bot…」, or 云端助手 for your cloud assistant) and Xiao Bo passes
+the request to it, whatever you ask: research, mail, reminders, shopping, anything your agent can do with your
+accounts. The task goes over A2A, the conversation carries on,
 and when the agent reports back Xiao Bo reads it out; 「Grok 那边怎么样了」 (how is Grok doing) asks for progress. Unpaired,
 Xiao Bo can still open the agent's own app on the screen and ask it there. *(1.5× speed; the wait for the report cut.)*
 
