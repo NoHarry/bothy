@@ -243,7 +243,8 @@ private fun AgentRuntimeBuilder.applyDebugMcpProviders(
     }
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_MEDIA)) {
         // The app in front, so 「暂停」 with nothing playing goes to what is on screen (a video app's session reads stopped).
-        mount(configure(DeviceMediaMcpProvider(context, foregroundPackage = { AndroidUseAccessibility.foregroundApp(context)?.packageName })))
+        val media = DeviceMediaMcpProvider(context, foregroundPackage = { AndroidUseAccessibility.foregroundApp(context)?.packageName })
+        mount(DebugMediaToolHints(configure(media)))
     }
     if (mounted.isNotEmpty()) {
         toolProvider(
