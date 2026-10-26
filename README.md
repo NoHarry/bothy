@@ -8,12 +8,37 @@
 
 **English** | [中文](README.zh-CN.md)
 
-**Bothy is a tablet-first demo of [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), an
-embeddable agent runtime for Android.**
+**Bothy turns an Android tablet into a personal assistant you talk to, and, with Bothy Playground, into a car's head
+unit.** It is the demo of [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), an embeddable agent
+runtime for Android: everything Xiao Bo (小博), the assistant, does goes through the runtime's public API.
 
-A bothy is a small mountain shelter, open to any traveller. Xiao Bo (小博) lives in one: a floating assistant you talk
-to, that drives other apps, public MCP servers, plans that watch the world, and a simulated car and flat. Everything the
-agent does, it does through the runtime's public API; nothing here is a library.
+| Install | The tablet becomes |
+|---------|--------------------|
+| **Bothy** | A personal assistant. Say 「你好小博」 or "OK Bothy" over any app: it looks things up on the web, plans and reminds, plays and pauses music and video, works other apps for you (Android Use) and hands errands that need your accounts to your own cloud agent, such as Grok Bot. |
+| **+ Bothy Playground** | A head unit that cannot control a car: a car's screen with AMap navigation on the device's own location (real mode), or a simulated car and home to control (simulated mode). In a car mount it plans the pickup, the stops and the reminder on arrival. |
+| **+ your car's controls as MCP** | A real head unit. Playground's virtual car is just an MCP server (`set_climate`, `set_seat`, `set_window`, `set_trunk`, …); serve your car's own control interface the same way, add it in 连接应用 (Connect apps) by address, and Xiao Bo controls the real car as it controls the virtual one. |
+
+**Head unit not smart enough?** Mount a tablet with Bothy (and Playground in real mode) and the cabin gets an assistant
+that plans the trip, reminds you on arrival, plays your music and runs your errands, whatever the car came with.
+**Want more?** Bothy is MIT-licensed and made to be extended: connect any MCP server, add your own skills, or fork it and
+build the features you want on the same runtime.
+
+**Why it is worth a look**
+
+- **It plans like a person.** "A friend flies in on CZ3956, pick her up, then a late-night diner": it looks the flight up,
+  finds a place still open when she lands, routes up to 16 stops and reworks them as plans change.
+- **It acts on its own.** Plans watch the car, the home or any server, and speak up on arrival, at a time, or when a
+  reading crosses a line.
+- **It uses your apps.** Android Use reads the screen and taps, swipes and types in any app; music and video obey through
+  their media sessions.
+- **It brings your own agent.** Name Grok Bot (or say 云端助手, cloud assistant) and the errand goes to your agent over A2A;
+  the report comes back by voice.
+- **It draws when words are not enough**: cards, choices and control panels on screen (A2UI).
+- **It listens properly.** On-device wake word in Chinese or English, it knows which seat is speaking, you can talk over
+  it, and an end-to-end speech model is one switch away.
+- **Every step is on the record.** A Codex-style console replays each run, tool call by tool call.
+
+A bothy is a small mountain shelter, open to any traveller; Xiao Bo lives in one.
 
 > **Status: 0.x, under active development.**
 
