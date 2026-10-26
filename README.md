@@ -130,8 +130,7 @@ duration and what it said along the way; the board tracks the run, token usage a
 servers, memory and skills. The Trajectory tab replays a run from its durable event log: a timeline of model and tool
 spans, then every event in order, from the request through each model call and token count to every tool call as the
 model asks for it, the backend runs it and it completes, with calls that ran side by side. Here Xiao Bo finds the
-passenger seat heating already off, sets the ambient light warm and checks the doors and the trunk. *(1.15× speed; past
-sessions hidden.)*
+passenger seat heating already off, sets the ambient light warm and checks the doors and the trunk. *(1.15× speed.)*
 
 ### And more
 
