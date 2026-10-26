@@ -96,6 +96,28 @@ turn-by-turn guidance. Stops can be added, removed, replaced or reordered while 
 such as 「科技园」 (the science park) is looked for around the trip's other stops. In the demo the car starts at Shenzhen
 Civic Center, not where the device is. *(2× speed.)*
 
+### Real navigation, where the device is
+
+<p align="center"><img src="docs/images/demo-real-navigation.gif" alt="On the real head unit, 「我有个朋友坐南方航空 CZ3956 来深圳…」 (a friend flies in on China Southern CZ3956): Xiao Bo looks the flight up, plans the airport and a late-night diner, then adds the hotel on the way" width="880"></p>
+
+The 模拟｜真实 (simulated | real) switch turns the head unit into a real one: AMap's navigation screen on the device's
+location, with only real navigation and Xiao Bo. 「我有个朋友坐南方航空 CZ3956 来深圳，你先去机场接她，然后带她去市区找个深夜食堂吃点东西」
+(a friend flies in on China Southern CZ3956; pick her up, then find a late-night diner in town): Xiao Bo looks the flight
+up on the web (it lands at 01:10), plans the airport and a diner, and points out that the first one closes at 23:30,
+offering ones open until 2; 「接到她先去福田香格里拉酒店放行李，再去吃宵夜」 (drop her bags at the hotel first) adds the hotel on
+the way and takes the late diner. 「用高德导航去…」 (navigate with AMap to…) hands a route to the 高德地图 App instead. For
+the recording the tablet's location was set to Shenzhen Civic Center. *(2× speed, cut; web search on.)*
+
+### Hand errands to your own agent
+
+<p align="center"><img src="docs/images/demo-grok-bot.gif" alt="「让 Grok Bot 帮我查一下最近 AI 圈有什么新闻」 (have Grok Bot look up the latest AI news): Xiao Bo hands it to the paired Grok Bot, then reads the report out when it comes back and lists the five items on a card" width="880"></p>
+
+Pair your own cloud agent, such as Grok Bot, in 连接应用 (Connect apps) through the self-hosted relay in
+`workspace/apps/android/tools/agent-relay`. Name it (or say 云端助手, your cloud assistant) and Xiao Bo hands it errands
+that need your own accounts: mail, research, reminders, shopping. The task goes over A2A, the conversation carries on,
+and when the agent reports back Xiao Bo reads it out; 「Grok 那边怎么样了」 (how is Grok doing) asks for progress. Unpaired,
+Xiao Bo can still open the agent's own app on the screen and ask it there. *(1.5× speed; the wait for the report cut.)*
+
 ### Cards and panels it draws
 
 <p align="center"><img src="docs/images/demo-a2ui-panel.gif" alt="「空调给我个面板，我自己调」 (give me a climate panel, I'll set it myself): a climate panel appears in Xiao Bo's card; dragging to 22 °C and confirming sets the car to cooling at 22 °C" width="880"></p>
