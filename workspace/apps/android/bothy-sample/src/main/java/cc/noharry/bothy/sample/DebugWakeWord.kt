@@ -15,15 +15,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 
-/** What woke the overlay; [ADB] is the debug broadcast's `wake`. */
-/** What woke 小博; [ENGLISH_WORD] is OK Bothy, answered in English. */
+/** What woke 小博: [ENGLISH_WORD] is OK Bothy, answered in English; [ADB] is the debug broadcast's `wake`. */
 internal enum class DebugWakeSource { WORD, ENGLISH_WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
 /** The wake word's state for Settings → 语音: whether it is listening, else why not. */
 internal data class DebugWakeStatus(val listening: Boolean = false, val message: String = "已关闭")
 
 /**
- * The wake word 你好，小博 (Settings → 语音 → 语音唤醒, off by default). While the switch is on the on-device keyword
+ * The wake words 你好，小博 and OK Bothy (Settings → 语音 → 语音唤醒, off by default). While the switch is on the on-device keyword
  * spotter listens, whether or not the overlay runs (owner 2026-10-14: 「悬浮窗唤醒这个限制关了吧，那个唤醒开关改成是否能
  * 语音唤醒」; one device's overlay had closed with the console, so nothing listened). A hit wakes the overlay; without one it
  * wakes in the console when that is in front, else brings 小博 up and hands it the wake. Without a voice session it records
@@ -166,7 +165,7 @@ internal object DebugWakeWord {
             listener = created
             listenerWithin = within
         }
-        mutableStatus.value = DebugWakeStatus(true, if (within != null) "对话中也在听「你好，小博」，再叫一次就打断重听" else "正在听「你好，小博」和「OK Bothy」")
+        mutableStatus.value = DebugWakeStatus(true, if (within != null) "对话中也在听「你好，小博」和「OK Bothy」，再叫一次就打断重听" else "正在听「你好，小博」和「OK Bothy」")
     }
 
     private fun blocker(context: Context): String? = when {

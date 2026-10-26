@@ -151,7 +151,8 @@ internal object DebugWakeAck {
         val file = File(app.noBackupFilesDir, "$WAKE_ACK_ASSETS/${cacheName(config)}/${line.file}.wav")
         if (!file.isFile && config.ready) {
             val audio = runCatching {
-                debugTtsClient(transport(app)).synthesize(config.copy(format = WAV, style = WAKE_ACK_STYLE), line.text)
+                val style = if (line.english) WAKE_ACK_STYLE_EN else WAKE_ACK_STYLE
+                debugTtsClient(transport(app)).synthesize(config.copy(format = WAV, style = style), line.text)
             }.getOrNull()
             val (samples, rate) = audio?.bytes?.let(::parseWav) ?: return null
             file.parentFile?.mkdirs()
@@ -250,9 +251,12 @@ internal fun trimSilence(samples: ShortArray, rate: Int): ShortArray {
 
 /** Under assets/ in the APK, and under no_backup for synthesized voices. */
 internal const val WAKE_ACK_ASSETS = "voice-acks"
-/** How the lines are read; tools/voice/make_wake_acks.py uses the same. */
+/** How the lines are read, the English ones in English; tools/voice/make_wake_acks.py uses the same. */
 private const val WAKE_ACK_STYLE =
     "被叫到名字时随口答应一声：自然、轻快、亲切，短促干脆，不拖音，不要播音腔或客服腔，像反应很快的 AI 伙伴在近距离聊天。不要模仿任何特定真人声音。"
+private const val WAKE_ACK_STYLE_EN =
+    "Answer casually when called by name: natural, light and friendly, short and crisp, no drawl, no announcer " +
+        "or call-centre voice, like a quick AI companion chatting close by. Do not imitate any real person's voice."
 private const val WAV_HEADER_BYTES = 44
 private const val TRIM_WINDOW_MS = 10
 private const val TRIM_PAD_MS = 40

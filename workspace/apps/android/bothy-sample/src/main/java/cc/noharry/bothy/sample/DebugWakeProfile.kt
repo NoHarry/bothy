@@ -37,7 +37,8 @@ private const val BOTHY_WAKE_THRESHOLD = 0.2f
  * 小博's wake phrases: 你好小博 and 「hi 小博」 (嗨 in either tone, or 嘿) at every level, and OK Bothy for English; 博 heard
  * as 波 at the low one, and near misses that win on their own words so they never wake. Inside a turn the recognizer may
  * split the phrase with punctuation ("你好，小博", "Hi，小伯", "OK, Bothy") and write 博 as any homophone; 宝 is left
- * out, as "你好小宝" greets a person.
+ * out, as "你好小宝" greets a person. OK Bothy is told from other words by letters alone: a recognizer writes Chinese
+ * straight after it ("OK BOTHY帮我导航"), which \b would count as part of the word.
  */
 internal val XIAOBO_WAKE_PROFILE = WakeWordProfile(
     phrases = listOf(
@@ -58,10 +59,10 @@ internal val XIAOBO_WAKE_PROFILE = WakeWordProfile(
         WakePhrase("n ǐ h ǎo x iǎo q ū", "${DECOY_MARK}你好小区"),
     ),
     heardInTranscript = Regex(
-        "(?:你好|[嗨嘿]|hi|hey)[，,、。.！!？?\\s]*[小晓][博伯泊勃铂]|\\bo\\.?k(?:ay)?[，,、。.！!？?\\s]*bothy\\b",
+        "(?:你好|[嗨嘿]|hi|hey)[，,、。.！!？?\\s]*[小晓][博伯泊勃铂]|(?<![a-z])o\\.?k(?:ay)?[，,、。.！!？?\\s]*bothy(?![a-z])",
         RegexOption.IGNORE_CASE,
     ),
 )
 
 /** Who the turn judge is told the user talks to. */
-internal val XIAOBO_VOICE_IDENTITY = VoiceAssistantIdentity(name = "小博", spokenAs = "Xiaobo", wakePhrase = XIAOBO_WAKE_PHRASE)
+internal val XIAOBO_VOICE_IDENTITY = VoiceAssistantIdentity(name = "小博", spokenAs = "Xiaobo, or Bothy in English", wakePhrase = XIAOBO_WAKE_PHRASE)

@@ -30,7 +30,8 @@ class XiaoboWakeProfileTest {
         val low = WakeSensitivity.LOW.keywords(XIAOBO_WAKE_PROFILE).split("/")
         assertTrue(low.containsAll(standard) && "n ǐ h ǎo x iǎo b ō @你好小波" in low)
         // Fewer syllables would wake on 「你好你好」 or on every 「你好小王」「你好小哥」.
-        assertFalse(low.any { it.startsWith("h ǎo x iǎo b ó @") || it.startsWith("n ǐ h ǎo x iǎo @") })
+        val tokens = low.map { line -> line.substringBefore(" @").split(' ').filterNot { it.startsWith(":") || it.startsWith("#") }.joinToString(" ") }
+        assertFalse(tokens.any { it == "h ǎo x iǎo b ó" || it == "n ǐ h ǎo x iǎo" })
     }
 
     @Test
@@ -53,16 +54,16 @@ class XiaoboWakeProfileTest {
     @Test
     fun aWakePhraseInsideATurnIsHeardInEachForm() {
         val heard = XIAOBO_WAKE_PROFILE.heardInTranscript!!
-        listOf("你好小博", "你好，小伯", "嗨小博", "Hi，小伯", "hey 小泊", "嘿，小博", "OK BOTHY", "okay, Bothy", "O.K. bothy")
+        listOf("你好小博", "你好，小伯", "嗨小博", "Hi，小伯", "hey 小泊", "嘿，小博", "OK BOTHY", "okay, Bothy", "O.K. bothy", "OK BOTHY帮我导航", "嗯OK Bothy")
             .forEach { assertTrue(it, heard.containsMatchIn(it)) }
-        listOf("你好小宝", "黑小妞", "海小镇", "小博", "a bothy on the hill", "okay body", "ok Bothyland").forEach { assertFalse(it, heard.containsMatchIn(it)) }
+        listOf("你好小宝", "黑小妞", "海小镇", "小博", "a bothy on the hill", "okay body", "ok Bothyland", "book bothy").forEach { assertFalse(it, heard.containsMatchIn(it)) }
     }
 
     @Test
     fun theTurnJudgeIsToldItsNameAndWakePhrase() {
         val body = jevTurnBody("m", VoiceJudgeRequest(VoiceTurnSnapshot(1, "打开空调", emptyList(), 800, 400, asrFinal = true, called = true), emptyList()), identity = XIAOBO_VOICE_IDENTITY)
 
-        assertTrue(body.contains("an AI assistant called 小博 (Xiaobo) on a tablet"))
+        assertTrue(body.contains("an AI assistant called 小博 (Xiaobo, or Bothy in English) on a tablet"))
         assertTrue(body.contains("said its wake word 「你好小博」 or pressed its mic"))
         assertTrue(body.contains("directed at the assistant 小博, as opposed"))
         assertTrue(body.contains("anything naming 小博 are addressed to it"))
