@@ -79,11 +79,11 @@ Every clip is the demo on a tablet, asked out loud; some are sped up, as each ca
 
 ### Talk to Xiao Bo in the car
 
-<p align="center"><img src="docs/images/demo-car-voice.gif" alt="Saying 「你好小博，我有点冷」 (hello Xiao Bo, I'm a bit cold) in the head unit: Xiao Bo's card lists the tools it calls and the air conditioning goes from 24 to 26 °C" width="880"></p>
+<p align="center"><img src="docs/images/demo-car-voice.gif" alt="Saying 「你好小博，我有点冷」 (hello Xiao Bo, I'm a bit cold) in the head unit: Xiao Bo's card shows the tools it calls and the air conditioning goes from 24 to 28 °C" width="880"></p>
 
 Say 「你好小博」 and ask. While it listens, a slim bar shows the words it hears; once it takes the request, its card shows
 what you asked, each tool it calls and the answer. It knows who is speaking: the seat marked 说话中 (speaking) is yours, so
-「我这边好热」 (it's hot on my side) lands on it. Here 「我有点冷」 (I'm a bit cold) turns the air conditioning up from 24 to 26 °C.
+「我这边好热」 (it's hot on my side) lands on it. Here 「我有点冷」 (I'm a bit cold) turns the air conditioning up from 24 to 28 °C.
 *(Real time.)*
 
 ### Plan a trip and drive it
@@ -123,15 +123,15 @@ out 23 × 47 on the calculator. *(1.3× speed.)*
 
 ### Every step on the record
 
-<p align="center"><img src="docs/images/demo-console.gif" alt="Bothy's console: a request runs, its five tool calls unfold with their durations, then the Trajectory tab replays the run event by event" width="880"></p>
+<p align="center"><img src="docs/images/demo-console.gif" alt="Bothy's console: a request runs, its tool calls unfold with their durations, then the Trajectory tab replays the run event by event" width="880"></p>
 
 Bothy's own screen is a developer console in the spirit of Codex. The conversation shows each tool call with its
 duration and what it said along the way; the board tracks the run, token usage and cache hits, the workspace, the MCP
 servers, memory and skills. The Trajectory tab replays a run from its durable event log: a timeline of model and tool
 spans, then every event in order, from the request through each model call and token count to every tool call as the
-model asks for it, the backend runs it and it completes, with calls that ran side by side. Here Xiao Bo turns the
-passenger seat heating off, sets the ambient light warm and checks the doors and the trunk. *(1.15× speed; past sessions
-hidden.)*
+model asks for it, the backend runs it and it completes, with calls that ran side by side. Here Xiao Bo finds the
+passenger seat heating already off, sets the ambient light warm and checks the doors and the trunk. *(1.15× speed; past
+sessions hidden.)*
 
 ### And more
 
