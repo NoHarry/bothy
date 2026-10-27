@@ -94,7 +94,7 @@ A build of your own can also carry the key as `AMAP_ANDROID_KEY` in `local.prope
 
 | Module | What it does |
 |--------|--------------|
-| `bothy-sample` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
+| `bothy-app` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 
 The sample depends on the runtime's artifacts (`cc.noharry:agent-*`); the playground depends on nothing: Bothy reaches
@@ -203,7 +203,7 @@ passenger seat heating already off, sets the ambient light warm and checks the d
 - **Your own cloud agent**: pair a personal agent (such as Grok Bot) through the self-hosted relay in
   `workspace/apps/android/tools/agent-relay`, then hand it tasks that need your accounts.
 - **Offline**: the demo also runs with a simulated model and the example tools in
-  `bothy-sample/src/main/assets/mcp/tools.json`.
+  `bothy-app/src/main/assets/mcp/tools.json`.
 
 ## Bothy Playground
 
@@ -259,11 +259,11 @@ its source instead, clone it beside this repository: Gradle then builds it in pl
 ```bash
 git clone https://github.com/NoHarry/bothy.git
 cd bothy/workspace/apps/android
-./gradlew :bothy-sample:assembleDebug
+./gradlew :bothy-app:assembleDebug
 ./gradlew :bothy-playground:assembleDebug   # optional: the car and home to drive
 ```
 
-Model provider presets come from `bothy-sample/src/main/assets/model-provider-profiles.json`, which is packaged into
+Model provider presets come from `bothy-app/src/main/assets/model-provider-profiles.json`, which is packaged into
 the APK and therefore holds **no API keys**. Put keys in the Git-ignored `workspace/apps/android/local.properties`:
 
 ```properties
@@ -273,7 +273,7 @@ AGENT_RUNTIME_PROVIDER_PROFILE_DEEPSEEK_API_API_KEY=your-key
 
 The key name is `AGENT_RUNTIME_PROVIDER_PROFILE_{PROFILE_ID}_API_KEY`, the profile id upper-cased with `-` as `_`. Keys
 from `local.properties` are compiled into the debug build for convenience; build an APK you hand to someone else with
-`-PsampleEmbedLocalKeys=none` (or `tts`), or enter keys in the app instead.
+`-PbothyEmbedLocalKeys=none` (or `tts`), or enter keys in the app instead.
 
 Both apps are signed with the machine's own debug key unless `local.properties` names a signing key of your own, which
 then signs debug and release builds alike, so a build from any machine installs over the last one:
@@ -287,7 +287,7 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 
 Keep the key file and its passwords backed up: without them a new build no longer installs over the old one.
 
-The on-device voice models are committed (the sherpa-onnx native libraries come with the runtime's `agent-voice`), so
+The on-device voice models are committed (with the sherpa-onnx native libraries in `bothy-voice`), so
 voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py` re-downloads and verifies them.
 
 ## Requirements

@@ -4,7 +4,7 @@
 Synthesizes a few short lines once for every MiMo preset voice (mimo-v2.5-tts: 冰糖 茉莉 苏打 白桦 Mia Chloe Milo
 Dean), trims the silence around each and writes them as 16-bit mono WAV into the APK's assets:
 
-  bothy-sample/src/main/assets/voice-acks/<voice>/<line>.wav
+  bothy-app/src/main/assets/voice-acks/<voice>/<line>.wav
 
 The app plays the chosen voice's clip from memory on a wake (DebugWakeAck), with no network round trip; a voice
 without packaged clips is synthesized on its first wake and cached on the device. Keep LINES in step with
@@ -36,7 +36,7 @@ import wave
 from pathlib import Path
 
 ANDROID_ROOT = Path(__file__).resolve().parents[2]
-DEST = ANDROID_ROOT / "bothy-sample" / "src" / "main" / "assets" / "voice-acks"
+DEST = ANDROID_ROOT / "bothy-app" / "src" / "main" / "assets" / "voice-acks"
 
 # (asset directory, MiMo voice id); the directory is MimoTtsVoice's name in lower case.
 VOICES = (

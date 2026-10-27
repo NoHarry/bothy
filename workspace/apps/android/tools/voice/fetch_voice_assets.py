@@ -4,11 +4,11 @@
 Downloads three pinned GitHub release archives of k2-fsa/sherpa-onnx, checks their SHA-256 and extracts only
 what the app needs, into the directories the app builds from:
 
-  sherpa-onnx v1.13.8 Android natives  → ../android-agent-runtime/agent-voice/src/main/jniLibs/<abi>/ (the runtime repo)
+  sherpa-onnx v1.13.8 Android natives  → bothy-voice/src/main/jniLibs/<abi>/
       libsherpa-onnx-jni.so, libonnxruntime.so (arm64-v8a by default; most tablets and phones are arm64)
-  Zipformer Small zh-en streaming model → bothy-sample/src/main/assets/voice-models/<model>/
+  Zipformer Small zh-en streaming model → bothy-app/src/main/assets/voice-models/<model>/
       encoder/joiner INT8, decoder FP32, tokens.txt (about 57 MiB of a 458 MB archive)
-  KWS Zipformer zh-en 3M (2025-12-20)    → bothy-sample/src/main/assets/voice-models/<kws model>/
+  KWS Zipformer zh-en 3M (2025-12-20)    → bothy-app/src/main/assets/voice-models/<kws model>/
       the wake words 你好小博 and OK Bothy: encoder/joiner INT8, decoder, tokens.txt for 320 ms chunks (about
       5.3 MiB of 38), plus a keywords.txt written here with the wake phrase (the archive's own lists other phrases)
 
@@ -37,8 +37,8 @@ CACHE = Path(__file__).resolve().parent / ".cache"
 NATIVE_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-android.tar.bz2"
 NATIVE_SHA256 = "2ff63469a71cb6009aa2e3ed5f4a670f8abdcbe4bb9ffd23776afc792a6b4f44"
 NATIVE_LIBS = ("libsherpa-onnx-jni.so", "libonnxruntime.so")
-# The natives ship with the runtime's agent-voice, in its repository checked out beside this one.
-NATIVE_DEST = ANDROID_ROOT.parents[2].parent / "android-agent-runtime" / "agent-voice" / "src" / "main" / "jniLibs"
+# The natives ship with bothy-voice.
+NATIVE_DEST = ANDROID_ROOT / "bothy-voice" / "src" / "main" / "jniLibs"
 
 MODEL_NAME = "sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16"
 MODEL_URL = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/{MODEL_NAME}.tar.bz2"
@@ -49,7 +49,7 @@ MODEL_FILES = (
     "joiner-epoch-99-avg-1.int8.onnx",
     "tokens.txt",
 )
-MODEL_DEST = ANDROID_ROOT / "bothy-sample" / "src" / "main" / "assets" / "voice-models" / MODEL_NAME
+MODEL_DEST = ANDROID_ROOT / "bothy-app" / "src" / "main" / "assets" / "voice-models" / MODEL_NAME
 
 KWS_NAME = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"
 KWS_URL = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/{KWS_NAME}.tar.bz2"

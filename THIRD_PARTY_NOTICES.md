@@ -2,7 +2,7 @@
 
 Bothy's own source code is licensed under the repository [MIT license](LICENSE). The agent runtime it builds on,
 [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime), lists its own third-party files and
-dependencies (sherpa-onnx native libraries, A2A Java SDK sources, Zipline and others) in its `THIRD_PARTY_NOTICES.md`. Dependencies resolved by Gradle, and
+dependencies (A2A Java SDK sources, Zipline and others) in its `THIRD_PARTY_NOTICES.md`. Dependencies resolved by Gradle, and
 the third-party files committed in this repository, remain under their respective upstream licenses and terms; Bothy's
 MIT license does not replace them.
 
@@ -12,19 +12,31 @@ transitive dependencies and the versions your build actually packages.
 
 ## Committed third-party files
 
-### On-device speech models (`bothy-sample`)
+### sherpa-onnx (`bothy-voice`)
+
+- **sherpa-onnx Kotlin API** (`bothy-voice/src/main/kotlin/com/k2fsa/sherpa/onnx/`) — Apache License 2.0, Copyright
+  Xiaomi Corporation and the sherpa-onnx authors. Copied from tag v1.13.8; see the `NOTICE` file in that directory.
+  Upstream: <https://github.com/k2-fsa/sherpa-onnx>
+- **`libsherpa-onnx-jni.so`** (`bothy-voice/src/main/jniLibs/arm64-v8a/`) — Apache License 2.0, from the sherpa-onnx
+  v1.13.8 Android release (`sherpa-onnx-v1.13.8-android.tar.bz2`, SHA-256
+  `2ff63469a71cb6009aa2e3ed5f4a670f8abdcbe4bb9ffd23776afc792a6b4f44`).
+- **`libonnxruntime.so`** (same directory) — MIT License, Copyright Microsoft Corporation, as bundled in the sherpa-onnx
+  v1.13.8 Android release. Upstream: <https://github.com/microsoft/onnxruntime>
+
+sherpa-onnx publishes no Android artifact on Maven Central, so these files are committed.
+
+### On-device speech models (`bothy-app`)
 
 - **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
-  model** `sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20` (`bothy-sample/src/main/assets/voice-models/`) — published
+  model** `sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20` (`bothy-app/src/main/assets/voice-models/`) — published
   by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). Upstream does not
   say what the Chinese–English keyword-spotting model was trained on. Check the upstream model pages and the dataset
   terms before using these models in a commercial product.
 
-`workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the models (and, into a runtime checkout beside
-this repository, the native libraries) from the pinned upstream archives and checks their SHA-256, so the committed
+`workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the models and the native libraries from the pinned upstream archives and checks their SHA-256, so the committed
 files can be verified or replaced.
 
-### Wake-answer clips (`bothy-sample/src/main/assets/voice-acks/`)
+### Wake-answer clips (`bothy-app/src/main/assets/voice-acks/`)
 
 Short spoken answers (「我在」「在呢」…) synthesized with Xiaomi MiMo TTS preset voices by
 `workspace/apps/android/tools/voice/make_wake_acks.py`. They are provided for the demo; review the MiMo service terms

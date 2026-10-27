@@ -4,7 +4,7 @@
 
 ## 仓库定位
 - 这是 **Bothy** —— [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime)（独立的 SDK 仓 `android-agent-runtime`）的平板优先演示 App，公开开源仓库（MIT）。
-- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：演示 App `bothy-sample`、第二个演示 App `bothy-playground`（虚拟座舱和小家的本机 MCP 服务），以及 `tools/agent-relay`、`tools/voice`。模块地图见 `workspace/apps/android/AGENTS.md`。
+- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：演示 App `bothy-app`、第二个演示 App `bothy-playground`（虚拟座舱和小家的本机 MCP 服务），以及 `tools/agent-relay`、`tools/voice`。模块地图见 `workspace/apps/android/AGENTS.md`。
 - 运行时不在本仓：sample 通过 Maven 坐标 `cc.noharry:agent-*`（版本见 `gradle.properties` 的 `agentRuntimeVersion`）依赖它；SDK 仓 clone 在本仓旁边时，`settings.gradle.kts` 用 `includeBuild` 从源码构建。改运行时的代码去 SDK 仓改、在那里提交，本仓只放 App。`bothy-playground` 不依赖任何模块。
 - 本仓是 harness 目标项目；`harness.yaml` 是真实配置资产，模板来源见 `harness_framework.source`。
 - **这是公开仓库**：所有提交必须通过 `scripts/lint_public_hygiene.py` 门禁（身份、密钥模式、本地词表）。
@@ -43,7 +43,7 @@
 - 提交身份必须是 `NoHarry <noharry@users.noreply.github.com>`；仓库级 git config 已固定，不得用其他身份提交。
 - 业务代码只进 `workspace/`；不要在仓库根新建业务 `src/`、`tests/`。
 - 运行时的通用能力（MCP 客户端、工具、会话等）属于 SDK 仓；sample 里的示例代码、具体 MCP 服务、连接池、密钥、小博人设和中文文案留在本仓，不进 SDK。
-- 包名：演示 App 用 `cc.noharry.bothy.sample` / `cc.noharry.bothy.playground`；SDK 的包是 `cc.noharry.agent.*`，SDK 里不出现 bothy；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
+- 包名：演示 App 的代码在 `cc.noharry.bothy.app`（applicationId `cc.noharry.bothy`） / `cc.noharry.bothy.playground`；SDK 的包是 `cc.noharry.agent.*`，SDK 里不出现 bothy；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
 - 修改 skill 只能改 `.agent-harness/skills/src/` 和 registry，再运行 `python scripts/sync_skills.py --write`；投影目录不手工编辑。
 - `CLAUDE.md` 只能是导入 `AGENTS.md` 的薄 adapter。
 - durable memory 必须进入 `harness/memory/index.yaml`，含 Type、Scope、Status、Confidence、Evidence；trace/memory 内容一律使用中性表述，禁止内部上下文。
@@ -52,8 +52,8 @@
 
 ## 常用命令
 ```bash
-cd workspace/apps/android && ./gradlew :bothy-sample:testDebugUnitTest :bothy-playground:testDebugUnitTest
-cd workspace/apps/android && ./gradlew :bothy-sample:assembleDebug :bothy-sample:assembleRelease
+cd workspace/apps/android && ./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-playground:testDebugUnitTest
+cd workspace/apps/android && ./gradlew :bothy-app:assembleDebug :bothy-app:assembleRelease
 node --test workspace/apps/android/tools/agent-relay/relay.test.cjs
 python scripts/workspace_doctor.py --fix-safe --run-checks --write-trace
 python scripts/agent_runtime.py next --json
@@ -71,5 +71,5 @@ python scripts/validate.py
 ## 坑点
 - sample 的 minSdk 是 24，低于 API 26：运行时的工作区和事件日志用 `java.nio.file`，所以 sample 必须用 `desugar_jdk_libs_nio` 做 core library desugaring，不能换回普通的 `desugar_jdk_libs`。
 - 不要把 build 产物、`local.properties` 或 `harness/.local/` 提交进仓库。
-- `bothy-sample` 的 provider 配置 asset 打进 APK，不得含真实 key；真实 key 走 ignored 的 `workspace/apps/android/local.properties`。
+- `bothy-app` 的 provider 配置 asset 打进 APK，不得含真实 key；真实 key 走 ignored 的 `workspace/apps/android/local.properties`。
 - `SampleReleaseHardeningTest` 按模块内相对路径读取 sample 的构建文件和 Manifest；移动或改名时同步更新。

@@ -19,7 +19,7 @@
         android:protectionLevel="signature" />
     <uses-permission android:name="cc.noharry.bothy.permission.ASSISTANT_SURFACE" />
     <queries>
-        <package android:name="cc.noharry.bothy.sample" />
+        <package android:name="cc.noharry.bothy" />
         <!-- The 高德地图 App, to hand routes to (AmapApp). -->
         <package android:name="com.autonavi.minimap" />
     </queries>
@@ -58,7 +58,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize|navigation"
             android:theme="@android:style/Theme.NoTitleBar" />
         <receiver
-            android:name=".AssistantEventReceiver"
+            android:name=".link.AssistantEventReceiver"
             android:exported="true"
             android:permission="cc.noharry.bothy.permission.ASSISTANT_SURFACE">
             <intent-filter>
@@ -76,7 +76,7 @@
         </service>
         <!-- Notification access lets the head unit see and control what other apps play (NowPlaying); it reads no notification. -->
         <service
-            android:name=".MediaListener"
+            android:name=".link.MediaListener"
             android:exported="true"
             android:label="Bothy Playground 播放控制"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">

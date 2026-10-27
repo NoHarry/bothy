@@ -24,5 +24,6 @@ if (agentRuntimeDir.isNotEmpty() && file(agentRuntimeDir).resolve("settings.grad
     includeBuild(agentRuntimeDir)
 }
 
-include(":bothy-sample")
+include(":bothy-app")
+include(":bothy-voice")
 include(":bothy-playground")

@@ -7,7 +7,8 @@ This directory contains the Bothy Gradle workspace: two demo apps built on
 
 | Module | Purpose |
 |---|---|
-| `bothy-sample` | Demo host app and debug console (tablet first): model providers, MCP servers and 连接应用, skills, subagents, plans, voice (小博's wake profile and identity live here), A2A and the floating assistant card. |
+| `bothy-app` | Demo host app and debug console (tablet first): model providers, MCP servers and 连接应用, skills, subagents, plans, voice (小博's wake profile and identity live here), A2A and the floating assistant card. |
+| `bothy-voice` | Voice sessions: on-device wake word and recognition (sherpa-onnx, natives committed), DashScope cloud recognition, turn taking (Jev), echo and near-speech gates. Moved from the runtime (its `agent-voice` up to 0.3.0); uses none of the runtime. |
 | `bothy-playground` | Second demo app: a fictional car cabin and flat served as two loopback MCP servers (`127.0.0.1:8790/cabin/mcp`, `/home/mcp`) with live state, manual controls and resources for plans. Depends on no module here. |
 
 `tools/` holds host-side helpers: `agent-relay` (the Node relay that pairs the demo with a user's own cloud agent) and
@@ -33,7 +34,7 @@ interop runners) live in the runtime's repository.
   measured and cut again.
 - A release (R8) build of the sample must keep passing; the runtime ships its keep rules with its artifacts.
 - Provider assets packaged into the sample APK never contain real API keys. Real keys live in the ignored
-  `local.properties` of this Gradle root; `-PsampleEmbedLocalKeys=none` builds an APK without any of them.
+  `local.properties` of this Gradle root; `-PbothyEmbedLocalKeys=none` builds an APK without any of them.
 - Demo MCP servers are public services (连接应用): open ones need no key, keyed ones take the user's own key, stored in
   no-backup storage and never in the server address.
 - The sample's plan watches read MCP resources, or call a server's read-only tool (MCP `readOnlyHint`) no more often
@@ -42,7 +43,7 @@ interop runners) live in the runtime's repository.
 ## Verify
 
 ```bash
-./gradlew :bothy-sample:testDebugUnitTest :bothy-playground:testDebugUnitTest
-./gradlew :bothy-sample:assembleDebug :bothy-sample:assembleRelease :bothy-playground:assembleDebug
+./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-playground:testDebugUnitTest
+./gradlew :bothy-app:assembleDebug :bothy-app:assembleRelease :bothy-playground:assembleDebug
 node --test tools/agent-relay/relay.test.cjs
 ```

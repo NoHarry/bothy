@@ -1,0 +1,20 @@
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+
+package cc.noharry.bothy.app.runtime
+import cc.noharry.agent.kernel.api.model.ModelClient
+import cc.noharry.agent.runtime.AgentRuntimeBuilder
+import cc.noharry.agent.vfs.VfsFileSystem
+import java.io.File
+
+/** The runtime composition the sample builds every session on. */
+internal fun runtimeAssembly(
+    model: ModelClient,
+    prompt: String,
+    workspace: VfsFileSystem,
+    eventLogRoot: File,
+): AgentRuntimeBuilder = AgentRuntimeBuilder.create()
+    .modelClient(model)
+    .systemPrompt(prompt)
+    .virtualWorkspace(workspace)
+    .sessionEventLogRoot(eventLogRoot)
+    .sessionActivationInheritance()

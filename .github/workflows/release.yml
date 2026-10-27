@@ -42,15 +42,15 @@ jobs:
           } > local.properties
       - name: Build
         run: >
-          ./gradlew :bothy-sample:assembleRelease :bothy-playground:assembleRelease --stacktrace
-          -PbothyVersion="${GITHUB_REF_NAME#v}" -PagentRuntimeDir= -PsampleEmbedLocalKeys=none
+          ./gradlew :bothy-app:assembleRelease :bothy-playground:assembleRelease --stacktrace
+          -PbothyVersion="${GITHUB_REF_NAME#v}" -PagentRuntimeDir= -PbothyEmbedLocalKeys=none
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="${GITHUB_REF_NAME#v}"
           mkdir -p "$RUNNER_TEMP/out"
-          cp bothy-sample/build/outputs/apk/release/bothy-sample-release.apk "$RUNNER_TEMP/out/bothy-$version.apk"
+          cp bothy-app/build/outputs/apk/release/bothy-app-release.apk "$RUNNER_TEMP/out/bothy-$version.apk"
           cp bothy-playground/build/outputs/apk/release/bothy-playground-release.apk "$RUNNER_TEMP/out/bothy-playground-$version.apk"
           gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP"/out/*.apk --title "Bothy $version" --generate-notes
       - name: Forget the signing key

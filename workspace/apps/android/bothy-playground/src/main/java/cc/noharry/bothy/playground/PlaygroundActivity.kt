@@ -1,14 +1,9 @@
 package cc.noharry.bothy.playground
-
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -53,6 +48,33 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import cc.noharry.bothy.playground.cabin.CabinScene
+import cc.noharry.bothy.playground.headunit.Flash
+import cc.noharry.bothy.playground.headunit.HeadUnit
+import cc.noharry.bothy.playground.headunit.HeadUnitModes
+import cc.noharry.bothy.playground.headunit.ModeSwitch
+import cc.noharry.bothy.playground.headunit.PlaygroundColors
+import cc.noharry.bothy.playground.headunit.SidePanel
+import cc.noharry.bothy.playground.headunit.cabin
+import cc.noharry.bothy.playground.headunit.holdCabin
+import cc.noharry.bothy.playground.headunit.holdHome
+import cc.noharry.bothy.playground.headunit.home
+import cc.noharry.bothy.playground.headunit.manual
+import cc.noharry.bothy.playground.headunit.setDriving
+import cc.noharry.bothy.playground.headunit.tapCabin
+import cc.noharry.bothy.playground.headunit.tapHome
+import cc.noharry.bothy.playground.home.HomeScene
+import cc.noharry.bothy.playground.home.UserPlace
+import cc.noharry.bothy.playground.link.open
+import cc.noharry.bothy.playground.nav.AMapConsent
+import cc.noharry.bothy.playground.nav.AmapApp
+import cc.noharry.bothy.playground.nav.AmapKey
+import cc.noharry.bothy.playground.nav.StockNavi
+import cc.noharry.bothy.playground.nav.place
 
 /** The playground's one screen; it also starts [PlaygroundService], which serves the world to Bothy. */
 class PlaygroundActivity : ComponentActivity() {

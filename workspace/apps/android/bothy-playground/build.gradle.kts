@@ -18,7 +18,7 @@ fun signingValue(name: String): String? = signingProperties.getProperty("BOTHY_S
 val amapKey: String = signingProperties.getProperty("AMAP_ANDROID_KEY")?.trim().orEmpty()
 
 // The version as Bothy's: the commits counted, so a newer build installs over an older one; a release's name from its tag.
-val playgroundVersionCode: Int = providers.gradleProperty("sampleVersionCode").orNull?.toIntOrNull()
+val playgroundVersionCode: Int = providers.gradleProperty("bothyVersionCode").orNull?.toIntOrNull()
     ?: runCatching {
         providers.exec {
             commandLine("git", "rev-list", "--count", "HEAD")
