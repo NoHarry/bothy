@@ -214,6 +214,10 @@ BOTHY_SIGNING_KEY_PASSWORD=…
 - JDK 17、Gradle 9.6、Android Gradle Plugin 9.4、Kotlin 2.4
 - 平板优先，手机横着也能用。在手机上（最短边小于 600 dp）两个 App 都固定横屏：Bothy 控制台用紧凑布局，页面切换放在右侧竖栏；车机界面整体缩到四分之三；小博的悬浮卡片能放进竖屏的其他 App 之上。手机模拟器（Apple 芯片上用 arm64 镜像）可以跑这两个 App；高德地图在模拟器上要用软件渲染（启动时加 `-gpu swiftshader_indirect`），否则会在打开地图时崩溃。
 
+## 友情链接
+
+- [LINUX DO](https://linux.do)：新的理想型社区
+
 ## 许可证
 
 [MIT](LICENSE)。第三方组件和提交的模型文件保留各自的许可，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

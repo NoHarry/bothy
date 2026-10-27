@@ -301,6 +301,10 @@ voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py`
   both apps; AMap's map needs software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when
   the map opens.
 
+## Friends
+
+- [LINUX DO](https://linux.do): a Chinese tech community
+
 ## License
 
 [MIT](LICENSE). Third-party components and committed model files keep their own licenses; see
