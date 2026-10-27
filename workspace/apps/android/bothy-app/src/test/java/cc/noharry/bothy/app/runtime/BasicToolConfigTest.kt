@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.runtime
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.kernel.core.NATIVE_TOOLS
+import cc.noharry.agent.kernel.core.tools.NATIVE_TOOLS
 import cc.noharry.bothy.app.skills.saveRuntimeSkill
 import org.junit.Assert.*
 import org.junit.Before

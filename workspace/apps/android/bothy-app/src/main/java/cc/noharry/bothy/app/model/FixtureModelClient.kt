@@ -5,8 +5,8 @@ import cc.noharry.agent.kernel.api.model.ModelClient
 import cc.noharry.agent.kernel.api.model.ModelEvent
 import cc.noharry.agent.kernel.api.model.ModelMessage
 import cc.noharry.agent.kernel.api.model.ModelRequest
-import cc.noharry.agent.kernel.core.DEFERRED_TOOLS_HEADER
-import cc.noharry.agent.kernel.core.RUN_CONTEXT_HEADER
+import cc.noharry.agent.kernel.core.context.RUN_CONTEXT_HEADER
+import cc.noharry.agent.kernel.core.tools.DEFERRED_TOOLS_HEADER
 import cc.noharry.bothy.app.session.SESSION_QUERY_INDEX_PATH
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

@@ -216,14 +216,11 @@ dependencies {
     implementation("cc.noharry:agent-runtime-android")
     implementation(project(":bothy-voice"))
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
-        add(scope, "cc.noharry:agent-vfs-saf")
         add(scope, "cc.noharry:agent-exec-js")
         add(scope, "cc.noharry:agent-device-capabilities")
         add(scope, "cc.noharry:agent-android-use")
-        add(scope, "cc.noharry:agent-a2a-client")
-        add(scope, "cc.noharry:agent-a2a-client-direct")
+        add(scope, "cc.noharry:agent-a2a")
         add(scope, "cc.noharry:agent-a2a-client-official")
-        add(scope, "cc.noharry:agent-a2a-server")
     }
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.activity:activity-compose:1.13.0")

@@ -4,8 +4,8 @@ package cc.noharry.bothy.app.usage
 import cc.noharry.agent.kernel.api.SessionEvent
 import cc.noharry.agent.kernel.api.SessionEventPayload
 import cc.noharry.agent.kernel.api.model.ModelRef
-import cc.noharry.agent.kernel.core.SESSION_MODEL_CALL_SOURCE_COMPACTION
-import cc.noharry.agent.kernel.core.SESSION_MODEL_CALL_SOURCE_ROUND
+import cc.noharry.agent.kernel.core.state.SESSION_MODEL_CALL_SOURCE_COMPACTION
+import cc.noharry.agent.kernel.core.state.SESSION_MODEL_CALL_SOURCE_ROUND
 import cc.noharry.agent.model.ModelVariantRegistry
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.trajectory.TrajectorySnapshot

@@ -2,7 +2,7 @@ package cc.noharry.bothy.app.runtime
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.kernel.core.validateHostSystemPrompt
+import cc.noharry.agent.kernel.core.context.validateHostSystemPrompt
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.session.SessionStore
 import cc.noharry.bothy.app.session.SessionTurn

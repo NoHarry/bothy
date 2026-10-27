@@ -1,5 +1,5 @@
 package cc.noharry.bothy.app.runtime
-import cc.noharry.agent.kernel.core.DefaultTraceRedactor
+import cc.noharry.agent.kernel.core.trace.DefaultTraceRedactor
 import cc.noharry.bothy.app.evidence.redacted
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

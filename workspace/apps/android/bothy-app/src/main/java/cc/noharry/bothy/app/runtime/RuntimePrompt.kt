@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.runtime
 import cc.noharry.agent.kernel.api.model.ModelMessage
-import cc.noharry.agent.kernel.core.MAX_HOST_SYSTEM_PROMPT_BYTES
-import cc.noharry.agent.kernel.core.validateHostSystemPrompt
+import cc.noharry.agent.kernel.core.context.MAX_HOST_SYSTEM_PROMPT_BYTES
+import cc.noharry.agent.kernel.core.context.validateHostSystemPrompt
 import cc.noharry.bothy.app.model.appSystemPrompt
 import cc.noharry.bothy.app.plans.PLAN_WEEKDAYS
 import cc.noharry.bothy.app.plans.PlanRunner

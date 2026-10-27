@@ -10,11 +10,11 @@ import cc.noharry.agent.kernel.api.ToolCallResult
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.kernel.api.ToolProvider
 import cc.noharry.agent.kernel.api.mcp.McpClientProvider
-import cc.noharry.agent.kernel.core.MaterializerContext
-import cc.noharry.agent.kernel.core.McpToolRef
-import cc.noharry.agent.kernel.core.STATIC_PROMPT_SOFT_BUDGET_BYTES
-import cc.noharry.agent.kernel.core.ToolDomainIndexer
-import cc.noharry.agent.kernel.core.ToolProviderRegistry
+import cc.noharry.agent.kernel.core.context.STATIC_PROMPT_SOFT_BUDGET_BYTES
+import cc.noharry.agent.kernel.core.tools.MaterializerContext
+import cc.noharry.agent.kernel.core.tools.McpToolRef
+import cc.noharry.agent.kernel.core.tools.ToolDomainIndexer
+import cc.noharry.agent.kernel.core.tools.ToolProviderRegistry
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.evidence.CheckResult
 import cc.noharry.bothy.app.evidence.CheckState
