@@ -113,7 +113,15 @@ internal class A2aBridgeProvider(
             "Pass $ARG_CONTEXT_ID or $ARG_TASK_ID from an earlier result to continue that conversation or task. " +
             "The device's local time and time zone are attached automatically. A task still working is followed in the " +
             "background and its result, question or failure comes back later as a 【委托回报】/【委托追问】/【委托失败】 " +
-            "message: tell the user it was handed over and finish; never wait or poll." + inFlightNote() + pendingQuestionsNote()
+            "message: tell the user it was handed over and finish; never wait or poll."
+
+    /**
+     * Where this agent's tasks stand, for the run's context: tasks still being handled and questions the user has not
+     * answered. Not in the tool's description: a session announces a deferred tool's definition once, when it is first
+     * activated, so a later note never reached the model, which answered 「Grok 那边怎么样了」 from the first run's.
+     */
+    fun runNote(): String =
+        (inFlightNote() + pendingQuestionsNote()).trim().takeIf(String::isNotEmpty)?.let { "$agentLabel (a2a_message_send): $it" }.orEmpty()
 
     /**
      * Tasks this agent is still on, with where they stand, so "Grok 那边怎么样了" is answered from the device's own view

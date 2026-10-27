@@ -175,10 +175,12 @@ class A2aBridgeProviderTest {
         val other = A2aPendingQuestion("Someone Else", "task-8", "别的问题", askedAtEpochMillis = 1L)
         val provider = A2aBridgeProvider(profile("direct-local"), delegations = RecordingDelegations(listOf(question, other))) { null }
 
-        val description = provider.listTools().single().description
+        val note = provider.runNote()
 
-        assertTrue(description, description.contains("Waiting for the user's answer: taskId=task-7 asked 「发到哪个邮箱？」."))
-        assertFalse(description.contains("task-8"))
+        assertTrue(note, note.contains("Waiting for the user's answer: taskId=task-7 asked 「发到哪个邮箱？」."))
+        assertFalse(note.contains("task-8"))
+        // The run's context carries it; the description stays the same, so the cached system prompt does too.
+        assertFalse(provider.listTools().single().description.contains("task-7"))
     }
 
     @OptIn(ExperimentalAgentRuntimeApi::class)
@@ -352,7 +354,7 @@ class A2aBridgeProviderTest {
         )
 
     @Test
-    fun theToolDescriptionSaysWhichTasksAreStillBeingHandledAndWhereTheyStand() = runBlocking {
+    fun theRunNoteSaysWhichTasksAreStillBeingHandledAndWhereTheyStand() = runBlocking {
         val open = DelegationView(
             profileId = "official-local", agentLabel = "Direct Agent", taskId = "task-7", request = "订明天的车位",
             startedAtEpochMillis = 0L, stage = DelegationStage.WORKING, statusText = "在比价",
@@ -362,10 +364,11 @@ class A2aBridgeProviderTest {
             profile("official-local"), delegations = RecordingDelegations(open = listOf(open)), clock = { 180_000L },
         ) { null }
 
-        val description = provider.listTools().single().description
+        val note = provider.runNote()
 
-        assertTrue(description, description.contains("Still being handled"))
-        assertTrue(description, description.contains("taskId=task-7 「订明天的车位」 处理中 for 3 min, steps 1/2 done, latest 「在比价」."))
+        assertTrue(note, note.startsWith("Direct Agent (a2a_message_send): Still being handled"))
+        assertTrue(note, note.contains("taskId=task-7 「订明天的车位」 处理中 for 3 min, steps 1/2 done, latest 「在比价」."))
+        assertFalse(provider.listTools().single().description.contains("task-7"))
     }
 
     private fun callContext(): ToolCallContext = ToolCallContext("session", "run", "request")

@@ -164,8 +164,9 @@ internal fun buildRuntime(
     val deepSeekNative = config.usesDeepSeekNativeUpdates(context, profile)
     // The earlier runs already hold the conversation and the skills they loaded; a new session (or one from before a
     // restart) still gets the recap and the previous exchange.
-    // The time and the app in front, both per run (the run context, never the cached system prompt).
-    val clock = listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context), PlaygroundMode.line())
+    // The time, the app in front and where delegations stand, all per run (the run context, never the cached system prompt).
+    val clock = (listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context), PlaygroundMode.line()) +
+        a2aBridgeProviders.map(A2aBridgeProvider::runNote))
         .filter(String::isNotBlank).joinToString("\n")
     val verifyAgent = !subagentChild && BothySubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
     val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
