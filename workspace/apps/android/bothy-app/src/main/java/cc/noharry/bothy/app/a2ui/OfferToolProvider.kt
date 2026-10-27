@@ -12,6 +12,7 @@ import cc.noharry.agent.kernel.api.ToolPrefetchRequest
 import cc.noharry.agent.kernel.api.ToolPrefetchTrace
 import cc.noharry.agent.kernel.api.ToolProvider
 import cc.noharry.agent.kernel.api.mcp.McpClientProvider
+import cc.noharry.agent.kernel.core.tools.mcpQualifiedName
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.plans.number
 import cc.noharry.bothy.app.tools.SchemaValidation
@@ -219,12 +220,8 @@ internal class BindableTools(private val providers: List<ToolProvider>) {
     }
 }
 
-/** The Kernel's model-visible name for an MCP tool (`normalizeMcpComponent` in the registry). */
-internal fun qualifiedToolName(providerId: String, toolName: String): String =
-    "mcp__${normalizeComponent(providerId)}__${normalizeComponent(toolName)}"
-
-private fun normalizeComponent(value: String): String =
-    value.map { if (it.isLetterOrDigit() || it == '_' || it == '-') it else '_' }.joinToString("").ifBlank { "unnamed" }
+/** The Kernel's model-visible name for an MCP tool. */
+internal fun qualifiedToolName(providerId: String, toolName: String): String = mcpQualifiedName(providerId, toolName)
 
 private fun JsonObject.text(key: String): String = this[key]?.jsonPrimitive?.contentOrNull.orEmpty()
 
