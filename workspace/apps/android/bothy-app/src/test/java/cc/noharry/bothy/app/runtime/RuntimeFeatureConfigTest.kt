@@ -160,4 +160,6 @@ private val DEFAULT_ENABLED_SKILLS = listOf(
     "personal-agent-delegation",
     // On by default but preloaded only while the 操作屏幕 tools are mounted (see androidUseSkillWaitsForTheTools).
     "android-use",
+    // In the catalog only; read when 「回到车机」 needs more than playground_open's description.
+    "playground",
 )

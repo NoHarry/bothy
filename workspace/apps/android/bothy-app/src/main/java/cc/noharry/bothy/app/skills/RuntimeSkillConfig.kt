@@ -133,4 +133,10 @@ private val RUNTIME_SKILLS = listOf(
         "android-use", "Android Use", "操作屏幕已连接时随请求加载：领域工具优先、一步一个动作、核对结果、不可撤销操作先确认。",
         "runtime-workspace/skills/android-use/SKILL.md", enabled = true, preload = true, requiresAndroidUse = true,
     ),
+    // In the catalog, read when the model needs it: playground_open's own description covers the common asks; the
+    // skill adds what to do when a system dialog keeps it from the front or the Playground is not installed.
+    RuntimeSkill(
+        "playground", "Playground", "回到车机、虚拟小家或导航界面：playground_open 怎么用，弹框挡住或没装 Playground 时怎么办。",
+        "runtime-workspace/skills/playground/SKILL.md", enabled = true,
+    ),
 )
