@@ -39,7 +39,7 @@
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
-        android:label="Bothy Sample"
+        android:label="Bothy"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:name="cc.noharry.bothy.app.BothyApplication"
         android:networkSecurityConfig="@xml/network_security_config"

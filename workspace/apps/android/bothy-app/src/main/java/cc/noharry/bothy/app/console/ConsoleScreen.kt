@@ -277,7 +277,7 @@ internal fun HostChrome(
             Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(BRAND_MARK_SIZE))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = "Bothy Sample",
+                    text = "Bothy",
                     style = ConsoleType.panelTitle,
                     color = colors.text,
                     maxLines = 1,
