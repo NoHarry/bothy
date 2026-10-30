@@ -428,6 +428,7 @@ internal object RuntimeSession {
         val activeConfig = config ?: return
         val profile = activeConfig.activeProfile
         config = saveSelectedModel(context.applicationContext, profile, activeConfig, model) ?: return
+        config?.activeProfile?.let(OnDeviceModel::onProfileSelected)
         provider = config?.activeProfile?.provider ?: profile.provider
         status = "Model: ${model.trim()}"
         transcript.appendStatus("Model selected: ${model.trim()}")

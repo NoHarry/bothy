@@ -58,8 +58,8 @@ class LlamaServer(
 ) {
     sealed interface State {
         data object Stopped : State
-        data class Starting(val device: LlamaDevice) : State
-        data class Ready(val baseUrl: String, val apiKey: String, val device: LlamaDevice) : State
+        data class Starting(val device: LlamaDevice, val modelId: String = "") : State
+        data class Ready(val baseUrl: String, val apiKey: String, val device: LlamaDevice, val modelId: String = "") : State
         data class Failed(val reason: String) : State
     }
 
@@ -80,7 +80,7 @@ class LlamaServer(
         check(executable.isFile) { "本机模型只支持 arm64 设备（没有找到 $EXECUTABLE）" }
         var reason = ""
         for (device in LlamaDevice.entries) {
-            mutableState.value = State.Starting(device)
+            mutableState.value = State.Starting(device, spec.id)
             val ready = withContext(Dispatchers.IO) { startOn(executable, model, spec, device) }
             if (ready != null) {
                 servedModel = model
@@ -116,7 +116,7 @@ class LlamaServer(
             if (!started.alive()) return null
             if (healthy(port)) {
                 watchExit(started)
-                return State.Ready("http://127.0.0.1:$port/v1", apiKey, device)
+                return State.Ready("http://127.0.0.1:$port/v1", apiKey, device, spec.id)
             }
             delay(HEALTH_POLL_MS)
         }

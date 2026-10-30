@@ -2,6 +2,7 @@ package cc.noharry.bothy.app.model
 import android.content.Context
 import cc.noharry.bothy.app.plans.number
 import cc.noharry.bothy.app.usage.tokens
+import cc.noharry.bothy.llm.localModel
 import java.security.MessageDigest
 
 /** Shared model capacity for usage display and next-run automatic compaction at80percent. */
@@ -20,14 +21,11 @@ internal fun saveContextWindow(context: Context, profile: ProviderEditState, tok
 }
 
 internal fun defaultContextWindow(model: String): Long =
-    // These are the current deployment aliases whose 1M window the owner confirmed.
-    // Do not infer the same capacity for older DeepSeek models or other providers.
-    when {
-        model.substringAfterLast('/').lowercase() in OWNER_CONFIRMED_DEEPSEEK_MODELS -> DEEPSEEK_CONTEXT_TOKENS
-        // The on-device server is started with this window (llama-server -c).
-        model == OnDeviceModel.spec.id -> OnDeviceModel.spec.contextTokens.toLong()
-        else -> DEFAULT_CONTEXT_TOKENS
-    }
+    // An on-device model's server is started with its window (llama-server -c).
+    localModel(model)?.contextTokens?.toLong()
+        // These are the current deployment aliases whose 1M window the owner confirmed.
+        // Do not infer the same capacity for older DeepSeek models or other providers.
+        ?: if (model.substringAfterLast('/').lowercase() in OWNER_CONFIRMED_DEEPSEEK_MODELS) DEEPSEEK_CONTEXT_TOKENS else DEFAULT_CONTEXT_TOKENS
 
 /** One saved model: profile, provider, endpoint, base URL and model ID. Keys every per-model setting. */
 internal fun modelIdentityKey(profile: ProviderEditState): String {

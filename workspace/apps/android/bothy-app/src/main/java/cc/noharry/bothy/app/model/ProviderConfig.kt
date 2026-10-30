@@ -62,7 +62,11 @@ internal data class ProviderConfig(
     ): ModelClient = client(profileForProvider(provider), stream, diagnostics)
 
     fun isReady(profile: ProviderProfile): Boolean =
-        if (profile.isOnDevice()) OnDeviceModel.isDownloaded() else profile.model.isNotBlank() && effectiveApiKey(profile).isNotBlank()
+        if (profile.isOnDevice()) {
+            OnDeviceModel.isDownloaded(OnDeviceModel.spec(profile.model))
+        } else {
+            profile.model.isNotBlank() && effectiveApiKey(profile).isNotBlank()
+        }
 
     fun isReady(provider: ModelProvider): Boolean =
         isReady(profileForProvider(provider))
@@ -115,7 +119,7 @@ internal data class ProviderConfig(
         modelRef(profileForProvider(provider))
 
     fun missingMessage(profile: ProviderProfile): String {
-        if (profile.isOnDevice()) return OnDeviceModel.MISSING_MESSAGE
+        if (profile.isOnDevice()) return OnDeviceModel.missingMessage(OnDeviceModel.spec(profile.model))
         if (profile.model.isBlank()) return "请在输入框旁选择模型；可先在设置中拉取或添加模型。"
         val paths = expectedPaths.joinToString(separator = "\n")
         return "Missing API key for ${profile.displayLabel}. Set it in Config or provide one of:\n$paths"
@@ -133,7 +137,7 @@ internal data class ProviderConfig(
 
     /** OpenAI chat to the on-device server, at the address and key of whichever start of it is running. */
     private fun onDeviceClient(profile: ProviderProfile, stream: Boolean, diagnostics: AppDiagnostics?): ModelClient =
-        OnDeviceModelClient(ready = { OnDeviceModel.ensureRunning() }) { server ->
+        OnDeviceModelClient(ready = { OnDeviceModel.ensureRunning(OnDeviceModel.spec(profile.model)) }) { server ->
             OpenAiModelClient(
                 apiKeyProvider = { server.apiKey },
                 model = profile.model,

@@ -10,6 +10,8 @@ import cc.noharry.agent.kernel.api.model.ModelRequest
 import cc.noharry.bothy.app.session.ModelProvider
 import cc.noharry.bothy.llm.LlamaDevice
 import cc.noharry.bothy.llm.LlamaServer
+import cc.noharry.bothy.llm.MINICPM5_2B
+import cc.noharry.bothy.llm.QWEN3_4B_2507
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -28,23 +30,52 @@ class OnDeviceModelTest {
 
         assertEquals(listOf("deepseek-api", ON_DEVICE_PROFILE_ID), profiles.map { it.id })
         val onDevice = profiles.last()
-        assertEquals(OnDeviceModel.spec.id, onDevice.model)
+        assertEquals(OnDeviceModel.models.first().id, onDevice.model)
         assertEquals(true, onDevice.streamEnabled)
         assertFalse(onDevice.serverSideSearch)
     }
 
     @Test
+    fun aSavedOverrideOfTheOnDeviceProfileKeepsOnlyItsModel() {
+        // Choosing a model saves a whole override under `profile.on_device.*`, which comes back as a profile `on_device`.
+        val overrides = mapOf(
+            ON_DEVICE_PROFILE_ID.preferenceKey() to ProviderProfileOverride(
+                label = "old label", provider = ModelProvider.OPENAI, endpoint = "chat_completions", apiKey = "k",
+                model = QWEN3_4B_2507.id, baseUrl = "http://127.0.0.1/v1", serverSideSearch = "true",
+            ),
+        )
+
+        val onDevice = emptyList<ProviderProfile>().withSavedProfiles(overrides).withOnDeviceProfile().single()
+
+        assertEquals(ON_DEVICE_PROFILE_ID, onDevice.id)
+        assertEquals(QWEN3_4B_2507.id, onDevice.model)
+        assertEquals("本机模型", onDevice.label)
+        assertFalse(onDevice.serverSideSearch)
+        assertEquals(true, onDevice.streamEnabled)
+        assertEquals("none", onDevice.searchCapability)
+    }
+
+    @Test
+    fun anUnknownOnDeviceModelFallsBackToTheDefault() {
+        assertEquals(OnDeviceModel.models.first(), OnDeviceModel.spec("no-such-model"))
+        assertEquals(MINICPM5_2B, OnDeviceModel.spec(MINICPM5_2B.id))
+    }
+
+    @Test
     fun anOnDeviceProfileWithoutItsModelIsNotReadyAndSaysHowToGetIt() {
-        val config = config(onDeviceProfile())
+        val config = config(onDeviceProfile(QWEN3_4B_2507.id))
 
         assertFalse(config.isReady(config.activeProfile))
-        assertTrue(config.missingMessage(config.activeProfile).contains("下载"))
+        val message = config.missingMessage(config.activeProfile)
+        assertTrue(message.contains(QWEN3_4B_2507.label) && message.contains("下载"))
         assertTrue(config.client(config.activeProfile, stream = true) is OnDeviceModelClient)
     }
 
     @Test
-    fun theOnDeviceWindowIsTheServersWindow() {
-        assertEquals(OnDeviceModel.spec.contextTokens.toLong(), defaultContextWindow(OnDeviceModel.spec.id))
+    fun eachOnDeviceWindowIsItsServersWindow() {
+        OnDeviceModel.models.forEach { spec ->
+            assertEquals(spec.contextTokens.toLong(), defaultContextWindow(spec.id))
+        }
     }
 
     @Test

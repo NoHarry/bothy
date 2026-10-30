@@ -189,10 +189,11 @@ passenger seat heating already off, sets the ambient light warm and checks the d
 
 - **Bring your own model**: any OpenAI- or Anthropic-compatible endpoint, configured in the app; streaming, thinking,
   server-side web search and prompt caching where the provider offers them.
-- **A model on the device**: the built-in 本机 Gemma 4 E4B service runs Google's Gemma 4 E4B (QAT Q4_0, about 5.2 GB,
-  downloaded in Settings) with llama.cpp on the Snapdragon NPU, falling back to the CPU, so nothing leaves the device.
-  On an 8 Elite Gen 5 tablet a turn takes a few seconds once the model is loaded; it asks more often than a cloud model
-  and does less.
+- **A model on the device**: the built-in 本机模型 service runs a small model with llama.cpp on the Snapdragon NPU,
+  falling back to the CPU, so nothing leaves the device. None ships with the app; Settings downloads the ones you pick:
+  Google's Gemma 4 E4B (QAT Q4_0, 5.2 GB), Alibaba's Qwen3 4B Instruct 2507 (Q4_0, 2.4 GB) or ModelBest's MiniCPM5 2B
+  (Q8_0, 2.7 GB, thinking on), all Apache-2.0. On an 8 Elite Gen 5 tablet a turn takes a few seconds once the model is
+  loaded; they ask more often than a cloud model and do less.
 - **MCP from the public internet**: 连接应用 (Connect apps) lists ready-made remote MCP servers. Open ones connect with one
   tap and no key: Kiwi.com flight search, DeepWiki (questions about GitHub repositories), Hugging Face Hub, Context7
   (library docs). Keyed ones take your own key: AMap, DiDi, McDonald's China, Luckin Coffee, Tencent Docs. Any other

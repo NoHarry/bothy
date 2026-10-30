@@ -9,6 +9,7 @@ import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.model.DeepSeekProbes
 import cc.noharry.bothy.app.model.FetchFallback
 import cc.noharry.bothy.app.model.OnDeviceModel
+import cc.noharry.bothy.app.model.isOnDevice
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.SearchBackend
 import cc.noharry.bothy.app.model.describe
@@ -157,20 +158,26 @@ class TextBroadcastReceiver : BroadcastReceiver() {
         }
         intent.getStringExtra(DEBUG_SUBAGENT_TYPES_EXTRA)?.let { setSubagentTypes(context, it) }
         intent.getStringExtra(DEBUG_DEEPSEEK_PROBE_EXTRA)?.let { checkDeepSeek(context, it) }
-        intent.getStringExtra(DEBUG_ON_DEVICE_EXTRA)?.let(::onDevice)
+        intent.getStringExtra(DEBUG_ON_DEVICE_EXTRA)?.let { onDevice(context, it) }
     }
 
-    /** The on-device model as its Settings page drives it: `--es on_device download|cancel|delete|start|stop`. */
-    private fun onDevice(command: String) {
-        when (command.trim().lowercase()) {
-            "download" -> OnDeviceModel.startDownload()
-            "cancel" -> OnDeviceModel.cancelDownload()
-            "delete" -> OnDeviceModel.deleteModel()
-            "start" -> OnDeviceModel.warmUp()
+    /**
+     * The on-device models as their Settings page drives them: `--es on_device download|cancel|delete|start|stop`, with
+     * `:<model id>` for another model than the on-device profile's (e.g. `download:qwen3-4b-instruct-2507`).
+     */
+    private fun onDevice(context: Context, value: String) {
+        val command = value.substringBefore(':').trim().lowercase()
+        val id = value.substringAfter(':', "").ifBlank { null } ?: ProviderConfig.load(context).profiles.first { it.isOnDevice() }.model
+        val spec = OnDeviceModel.spec(id)
+        when (command) {
+            "download" -> OnDeviceModel.startDownload(spec)
+            "cancel" -> OnDeviceModel.cancelDownload(spec)
+            "delete" -> OnDeviceModel.deleteModel(spec)
+            "start" -> OnDeviceModel.warmUp(spec)
             "stop" -> OnDeviceModel.stop()
-            else -> Log.w(TAG, "Ignored $DEBUG_ON_DEVICE_EXTRA=$command; use download, cancel, delete, start or stop")
+            else -> Log.w(TAG, "Ignored $DEBUG_ON_DEVICE_EXTRA=$value; use download, cancel, delete, start or stop")
         }
-        Log.i(TAG, "On-device model: $command (downloaded=${OnDeviceModel.isDownloaded()})")
+        Log.i(TAG, "On-device model ${spec.id}: $command (downloaded=${OnDeviceModel.isDownloaded(spec)})")
     }
 
     /** `active` or a profile id: checks it for DeepSeek behind it as Settings → 检测 does, saves and logs the result. */

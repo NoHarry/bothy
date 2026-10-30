@@ -34,9 +34,13 @@ sherpa-onnx publishes no Android artifact on Maven Central, so these files are c
   `3e04487c32ee7f4eb2fbe6a0bd8359624904117addff431192a49c79a5cd0cb8`); the host-side libraries were stripped of
   debug symbols, the NPU-side ones are unchanged. Upstream: <https://github.com/ggml-org/llama.cpp>
 
-llama.cpp publishes no Android artifact on Maven Central, so these files are committed. The model the on-device service
-runs, Google's Gemma 4 E4B (`google/gemma-4-E4B-it-qat-q4_0-gguf`, Apache License 2.0), is not in the repository: the app
-downloads it on request from ModelScope or Hugging Face and checks its published SHA-256.
+llama.cpp publishes no Android artifact on Maven Central, so these files are committed. The models the on-device service
+runs are not in the repository: the app downloads the ones the user picks from ModelScope or Hugging Face and checks each
+file's published SHA-256. All three are under the Apache License 2.0:
+
+- Google's Gemma 4 E4B, `gemma-4-E4B_q4_0-it.gguf` from `google/gemma-4-E4B-it-qat-q4_0-gguf`.
+- Alibaba's Qwen3 4B Instruct 2507, `Qwen3-4B-Instruct-2507-Q4_0.gguf` from `unsloth/Qwen3-4B-Instruct-2507-GGUF`.
+- ModelBest's MiniCPM5 2B, `MiniCPM5-2B-Q8_0.gguf` from `openbmb/MiniCPM5-2B-GGUF` (`OpenBMB/MiniCPM5-2B-GGUF` on ModelScope).
 
 ### On-device speech models (`bothy-app`)
 

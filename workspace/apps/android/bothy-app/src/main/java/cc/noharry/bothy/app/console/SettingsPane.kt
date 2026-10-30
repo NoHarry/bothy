@@ -398,7 +398,12 @@ private fun ProviderDetailPane(
                 navigation.requestedProfileId != null && navigation.requestedProfileId != editor.profileId -> {
                     Text("Loading provider…", style = ConsoleType.meta, color = colors.muted)
                 }
-                editor.profileId == ON_DEVICE_PROFILE_ID -> OnDeviceModelDetail(Modifier.weight(1f))
+                editor.profileId == ON_DEVICE_PROFILE_ID -> OnDeviceModelDetail(
+                    chosenModel = editor.model,
+                    profileActive = editor.profileOptions.any { it.id == ON_DEVICE_PROFILE_ID && it.selected },
+                    actions = actions,
+                    modifier = Modifier.weight(1f),
+                )
                 else -> ProviderDetail(
                     ProviderDraft.from(editor), actions, isNew = false, onDone = onDone, modifier = Modifier.weight(1f),
                 )

@@ -5,6 +5,8 @@ import org.json.JSONArray
 
 /** Saved model candidates; selecting the active model remains a separate composer action. */
 internal fun loadProviderModels(context: Context, profile: ProviderEditState): List<String> {
+    // The on-device profile offers the models the app can download, each picked like any other model.
+    if (profile.profileId == ON_DEVICE_PROFILE_ID) return OnDeviceModel.models.map { it.id }
     val raw = context.getSharedPreferences(PROVIDER_MODELS_PREFS, Context.MODE_PRIVATE)
         .getString(providerModelsKey(profile), null) ?: return emptyList()
     return runCatching {
