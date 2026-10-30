@@ -53,6 +53,8 @@ import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.a2a.endpointLabel
 import cc.noharry.bothy.app.console.ui.SectionLabel
 import cc.noharry.bothy.app.model.FetchFallback
+import cc.noharry.bothy.app.model.ON_DEVICE_PROFILE_ID
+import cc.noharry.bothy.app.model.OnDeviceModelDetail
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.ProviderDetail
 import cc.noharry.bothy.app.model.ProviderDraft
@@ -396,6 +398,7 @@ private fun ProviderDetailPane(
                 navigation.requestedProfileId != null && navigation.requestedProfileId != editor.profileId -> {
                     Text("Loading provider…", style = ConsoleType.meta, color = colors.muted)
                 }
+                editor.profileId == ON_DEVICE_PROFILE_ID -> OnDeviceModelDetail(Modifier.weight(1f))
                 else -> ProviderDetail(
                     ProviderDraft.from(editor), actions, isNew = false, onDone = onDone, modifier = Modifier.weight(1f),
                 )
@@ -623,8 +626,13 @@ private fun SearchBackendRow() {
         Column(Modifier.weight(1f)) {
             Text("联网搜索用 DeepSeek Search 接口", style = ConsoleType.body, color = ConsoleColors.text)
             Text(
-                if (api) "开：搜索词和结果都看得到，按次计费（5 元/千次），需要一个 DeepSeek 的 key"
-                else "关：用「${profile.displayLabel}」自带的服务端搜索，看不到搜了什么",
+                when {
+                    api -> "开：搜索词和结果都看得到，按次计费（5 元/千次），需要一个 DeepSeek 的 key"
+                    // The on-device model and the No web_search profile have no search of their own.
+                    !profile.serverSideSearch || profile.searchCapability == "none" ->
+                        "关：「${profile.displayLabel}」没有服务端搜索，这时不能联网搜索"
+                    else -> "关：用「${profile.displayLabel}」自带的服务端搜索，看不到搜了什么"
+                },
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )

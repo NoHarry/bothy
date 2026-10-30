@@ -192,6 +192,10 @@ android {
     }
 
     packaging {
+        // bothy-llm runs llama-server as a process from nativeLibraryDir, so the libraries are extracted on install.
+        // The NPU-side kernels are Hexagon code: the NDK's strip does not know them.
+        jniLibs.useLegacyPackaging = true
+        jniLibs.keepDebugSymbols += "**/libggml-htp-*.so"
         resources.excludes += "org/a2aproject/sdk/util/package-info.class"
         resources.pickFirsts += setOf(
             "META-INF/LICENSE.md",
@@ -215,6 +219,7 @@ dependencies {
     implementation(platform("cc.noharry:agent-bom:${providers.gradleProperty("agentRuntimeVersion").get()}"))
     implementation("cc.noharry:agent-runtime-android")
     implementation(project(":bothy-voice"))
+    implementation(project(":bothy-llm"))
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
         add(scope, "cc.noharry:agent-exec-js")
         add(scope, "cc.noharry:agent-device-capabilities")

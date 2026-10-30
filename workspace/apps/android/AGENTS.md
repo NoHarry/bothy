@@ -9,6 +9,7 @@ This directory contains the Bothy Gradle workspace: two demo apps built on
 |---|---|
 | `bothy-app` | Demo host app and debug console (tablet first): model providers, MCP servers and 连接应用, skills, subagents, plans, voice (小博's wake profile and identity live here), A2A and the floating assistant card. |
 | `bothy-voice` | Voice sessions: on-device wake word and recognition (sherpa-onnx, natives committed), DashScope cloud recognition, turn taking (Jev), echo and near-speech gates. Moved from the runtime (its `agent-voice` up to 0.3.0); uses none of the runtime. |
+| `bothy-llm` | The on-device chat model: llama.cpp's llama-server (Snapdragon build, natives committed) run as a child process on 127.0.0.1 behind a per-start key, NPU first then CPU, and the GGUF it serves (Gemma 4 E4B) downloaded on request with resume and SHA-256 check. Uses none of the runtime; `bothy-app` wires it in as the built-in 本机 profile. |
 | `bothy-playground` | Second demo app: a fictional car cabin and flat served as two loopback MCP servers (`127.0.0.1:8790/cabin/mcp`, `/home/mcp`) with live state, manual controls and resources for plans. Depends on no module here. |
 
 `tools/` holds host-side helpers: `agent-relay` (the Node relay that pairs the demo with a user's own cloud agent) and
@@ -43,7 +44,7 @@ interop runners) live in the runtime's repository.
 ## Verify
 
 ```bash
-./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-playground:testDebugUnitTest
+./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-llm:testDebugUnitTest :bothy-playground:testDebugUnitTest
 ./gradlew :bothy-app:assembleDebug :bothy-app:assembleRelease :bothy-playground:assembleDebug
 node --test tools/agent-relay/relay.test.cjs
 ```

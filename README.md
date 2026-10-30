@@ -189,6 +189,10 @@ passenger seat heating already off, sets the ambient light warm and checks the d
 
 - **Bring your own model**: any OpenAI- or Anthropic-compatible endpoint, configured in the app; streaming, thinking,
   server-side web search and prompt caching where the provider offers them.
+- **A model on the device**: the built-in 本机 Gemma 4 E4B service runs Google's Gemma 4 E4B (QAT Q4_0, about 5.2 GB,
+  downloaded in Settings) with llama.cpp on the Snapdragon NPU, falling back to the CPU, so nothing leaves the device.
+  On an 8 Elite Gen 5 tablet a turn takes a few seconds once the model is loaded; it asks more often than a cloud model
+  and does less.
 - **MCP from the public internet**: 连接应用 (Connect apps) lists ready-made remote MCP servers. Open ones connect with one
   tap and no key: Kiwi.com flight search, DeepWiki (questions about GitHub repositories), Hugging Face Hub, Context7
   (library docs). Keyed ones take your own key: AMap, DiDi, McDonald's China, Luckin Coffee, Tencent Docs. Any other
@@ -289,6 +293,7 @@ Keep the key file and its passwords backed up: without them a new build no longe
 
 The on-device voice models are committed (with the sherpa-onnx native libraries in `bothy-voice`), so
 voice works out of the box on arm64 devices; `tools/voice/fetch_voice_assets.py` re-downloads and verifies them.
+The on-device chat model's llama.cpp libraries are committed in `bothy-llm`; the model itself is downloaded on request.
 
 ## Requirements
 

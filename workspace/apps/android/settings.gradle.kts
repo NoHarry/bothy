@@ -26,4 +26,5 @@ if (agentRuntimeDir.isNotEmpty() && file(agentRuntimeDir).resolve("settings.grad
 
 include(":bothy-app")
 include(":bothy-voice")
+include(":bothy-llm")
 include(":bothy-playground")

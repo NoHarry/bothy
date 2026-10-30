@@ -262,3 +262,6 @@ internal fun Flow<ModelEvent>.withFirstEventTimeout(millis: Long): Flow<ModelEve
 }
 
 internal const val FIRST_EVENT_TIMEOUT_MS = 20_000L
+
+/** Loading the on-device model (and falling back from the NPU to the CPU) can take minutes on a cold start. */
+internal const val ON_DEVICE_FIRST_EVENT_TIMEOUT_MS = 240_000L

@@ -318,6 +318,7 @@ internal object RuntimeSession {
 
     fun selectProfile(context: Context, profileId: String) {
         val loaded = ProviderConfig.saveSelectedProfile(context.applicationContext, profileId)
+        OnDeviceModel.onProfileSelected(loaded.activeProfile)
         forceLiveBackend()
         applyLoadedConfig(loaded)
         status = "Profile: ${loaded.activeProfile.displayLabel}"

@@ -8,6 +8,7 @@ import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.model.DeepSeekProbes
 import cc.noharry.bothy.app.model.FetchFallback
+import cc.noharry.bothy.app.model.OnDeviceModel
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.SearchBackend
 import cc.noharry.bothy.app.model.describe
@@ -156,6 +157,20 @@ class TextBroadcastReceiver : BroadcastReceiver() {
         }
         intent.getStringExtra(DEBUG_SUBAGENT_TYPES_EXTRA)?.let { setSubagentTypes(context, it) }
         intent.getStringExtra(DEBUG_DEEPSEEK_PROBE_EXTRA)?.let { checkDeepSeek(context, it) }
+        intent.getStringExtra(DEBUG_ON_DEVICE_EXTRA)?.let(::onDevice)
+    }
+
+    /** The on-device model as its Settings page drives it: `--es on_device download|cancel|delete|start|stop`. */
+    private fun onDevice(command: String) {
+        when (command.trim().lowercase()) {
+            "download" -> OnDeviceModel.startDownload()
+            "cancel" -> OnDeviceModel.cancelDownload()
+            "delete" -> OnDeviceModel.deleteModel()
+            "start" -> OnDeviceModel.warmUp()
+            "stop" -> OnDeviceModel.stop()
+            else -> Log.w(TAG, "Ignored $DEBUG_ON_DEVICE_EXTRA=$command; use download, cancel, delete, start or stop")
+        }
+        Log.i(TAG, "On-device model: $command (downloaded=${OnDeviceModel.isDownloaded()})")
     }
 
     /** `active` or a profile id: checks it for DeepSeek behind it as Settings → 检测 does, saves and logs the result. */
@@ -258,6 +273,7 @@ internal const val DEBUG_WAKE_EXTRA = "wake"
 
 /** `--es profile <id>`: selects that model profile, as Settings does; logs the profile that is active after. */
 internal const val DEBUG_PROFILE_EXTRA = "profile"
+internal const val DEBUG_ON_DEVICE_EXTRA = "on_device"
 
 /** `--ez clear_runtime_data true`: the console's Clear runtime data (memories kept); logs 「Runtime data cleared」 when done. */
 internal const val DEBUG_CLEAR_RUNTIME_DATA_EXTRA = "clear_runtime_data"

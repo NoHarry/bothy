@@ -10,6 +10,7 @@ import cc.noharry.bothy.app.console.DisplaySettings
 import cc.noharry.bothy.app.evidence.benchTrustedClient
 import cc.noharry.bothy.app.mcp.McpToolCatalogs
 import cc.noharry.bothy.app.memory.UserMemoryStore
+import cc.noharry.bothy.app.model.OnDeviceModel
 import cc.noharry.bothy.app.plans.PlanRunner
 import cc.noharry.bothy.app.runtime.RuntimeSession
 import cc.noharry.bothy.app.session.SessionSettings
@@ -32,6 +33,7 @@ class BothyApplication : Application() {
         // thread, before the first wake or request needs it.
         Thread({ runCatching { benchTrustedClient(this) } }, "bench-trust").start()
         UsageStore.init(this)
+        OnDeviceModel.init(this)
         UserMemoryStore.init(this)
         PlanRunner.init(this)
         AsrTextServerManager.start(this)

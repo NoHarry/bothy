@@ -29,10 +29,11 @@ platforms:
   android:
     path: "workspace/apps/android"
     build: "./gradlew assembleDebug"
-    test: "./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-playground:testDebugUnitTest"
+    test: "./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-llm:testDebugUnitTest :bothy-playground:testDebugUnitTest"
     gradle_modules:
       - ":bothy-app"
       - ":bothy-voice"
+      - ":bothy-llm"
       - ":bothy-playground"
 
 doc:

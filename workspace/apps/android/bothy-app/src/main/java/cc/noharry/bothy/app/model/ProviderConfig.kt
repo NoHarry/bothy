@@ -33,7 +33,7 @@ internal data class ProviderConfig(
         stream: Boolean,
         diagnostics: AppDiagnostics? = null,
     ): ModelClient =
-        when (profile.provider) {
+        if (profile.isOnDevice()) onDeviceClient(profile, stream, diagnostics) else when (profile.provider) {
             ModelProvider.ANTHROPIC -> AnthropicModelClient(
                 apiKeyProvider = { effectiveApiKey(profile) },
                 model = profile.model,
@@ -62,7 +62,7 @@ internal data class ProviderConfig(
     ): ModelClient = client(profileForProvider(provider), stream, diagnostics)
 
     fun isReady(profile: ProviderProfile): Boolean =
-        profile.model.isNotBlank() && effectiveApiKey(profile).isNotBlank()
+        if (profile.isOnDevice()) OnDeviceModel.isDownloaded() else profile.model.isNotBlank() && effectiveApiKey(profile).isNotBlank()
 
     fun isReady(provider: ModelProvider): Boolean =
         isReady(profileForProvider(provider))
@@ -115,6 +115,7 @@ internal data class ProviderConfig(
         modelRef(profileForProvider(provider))
 
     fun missingMessage(profile: ProviderProfile): String {
+        if (profile.isOnDevice()) return OnDeviceModel.MISSING_MESSAGE
         if (profile.model.isBlank()) return "请在输入框旁选择模型；可先在设置中拉取或添加模型。"
         val paths = expectedPaths.joinToString(separator = "\n")
         return "Missing API key for ${profile.displayLabel}. Set it in Config or provide one of:\n$paths"
@@ -128,6 +129,21 @@ internal data class ProviderConfig(
             activeProfile
         } else {
             profiles.firstOrNull { it.provider == provider } ?: legacyProfile(values, provider)
+        }
+
+    /** OpenAI chat to the on-device server, at the address and key of whichever start of it is running. */
+    private fun onDeviceClient(profile: ProviderProfile, stream: Boolean, diagnostics: AppDiagnostics?): ModelClient =
+        OnDeviceModelClient(ready = { OnDeviceModel.ensureRunning() }) { server ->
+            OpenAiModelClient(
+                apiKeyProvider = { server.apiKey },
+                model = profile.model,
+                baseUrl = server.baseUrl,
+                stream = stream,
+                endpoint = ProviderEndpoint.CHAT_COMPLETIONS.wireName,
+                serverSideSearch = false,
+                searchCapability = ServerSideSearchCapability.NONE,
+                transport = diagnostics?.transport(profile.provider) ?: OkHttpHttpTransport(),
+            )
         }
 
     private fun resolvedApiKey(profile: ProviderProfile): String =
@@ -148,6 +164,7 @@ internal data class ProviderConfig(
             val profiles = providerProfiles(baseValues)
                 .withSavedProfiles(savedProfileState.overrides)
                 .withSharedDeepSeekApiKeys()
+                .withOnDeviceProfile()
             val selection = resolveProviderSelection(
                 values = baseValues,
                 profiles = profiles,

@@ -46,6 +46,8 @@ import cc.noharry.bothy.app.memory.userMemoryEnabled
 import cc.noharry.bothy.app.model.BothyModelClient
 import cc.noharry.bothy.app.model.DeepSeekProbes
 import cc.noharry.bothy.app.model.FIRST_EVENT_TIMEOUT_MS
+import cc.noharry.bothy.app.model.ON_DEVICE_FIRST_EVENT_TIMEOUT_MS
+import cc.noharry.bothy.app.model.isOnDevice
 import cc.noharry.bothy.app.model.FixtureModelClient
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.ProviderEndpoint
@@ -187,7 +189,9 @@ internal fun buildRuntime(
                 config.client(profile, streamEnabled, diagnostics)
             },
             // Only a stream sends its first event early; a whole reply can take longer than the watchdog.
-            firstEventMillis = FIRST_EVENT_TIMEOUT_MS.takeIf { streamEnabled && !useSimulatedModel },
+            // The on-device server may still be loading the model when the first call goes out.
+            firstEventMillis = (if (profile.isOnDevice()) ON_DEVICE_FIRST_EVENT_TIMEOUT_MS else FIRST_EVENT_TIMEOUT_MS)
+                .takeIf { streamEnabled && !useSimulatedModel },
             onModelRequestTools = evidenceRecorder?.let { recorder ->
                 { names -> recorder.recordFirstRoundTools(names) }
             },

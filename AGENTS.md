@@ -52,7 +52,7 @@
 
 ## 常用命令
 ```bash
-cd workspace/apps/android && ./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-playground:testDebugUnitTest
+cd workspace/apps/android && ./gradlew :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-llm:testDebugUnitTest :bothy-playground:testDebugUnitTest
 cd workspace/apps/android && ./gradlew :bothy-app:assembleDebug :bothy-app:assembleRelease
 node --test workspace/apps/android/tools/agent-relay/relay.test.cjs
 python scripts/workspace_doctor.py --fix-safe --run-checks --write-trace

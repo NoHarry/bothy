@@ -25,6 +25,19 @@ transitive dependencies and the versions your build actually packages.
 
 sherpa-onnx publishes no Android artifact on Maven Central, so these files are committed.
 
+### llama.cpp (`bothy-llm`)
+
+- **llama-server and its libraries** (`bothy-llm/src/main/jniLibs/arm64-v8a/`: `libllama_server.so` is the
+  `llama-server` executable, plus `libllama-server-impl.so`, `libllama-common.so`, `libllama.so`, `libmtmd.so` and the
+  `libggml*.so` backends, CPU, OpenCL and Hexagon, with the NPU-side `libggml-htp-v*.so`) — MIT License, Copyright the
+  ggml authors. From the llama.cpp b12004 release (`llama-b12004-bin-android-arm64-snapdragon.tar.gz`, SHA-256
+  `3e04487c32ee7f4eb2fbe6a0bd8359624904117addff431192a49c79a5cd0cb8`); the host-side libraries were stripped of
+  debug symbols, the NPU-side ones are unchanged. Upstream: <https://github.com/ggml-org/llama.cpp>
+
+llama.cpp publishes no Android artifact on Maven Central, so these files are committed. The model the on-device service
+runs, Google's Gemma 4 E4B (`google/gemma-4-E4B-it-qat-q4_0-gguf`, Apache License 2.0), is not in the repository: the app
+downloads it on request from ModelScope or Hugging Face and checks its published SHA-256.
+
 ### On-device speech models (`bothy-app`)
 
 - **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
