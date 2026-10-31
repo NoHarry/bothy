@@ -7,6 +7,7 @@ import cc.noharry.agent.kernel.api.model.ModelClient
 import cc.noharry.agent.kernel.api.model.ModelClientException
 import cc.noharry.agent.kernel.api.model.ModelEvent
 import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.kernel.api.model.ModelTool
 import cc.noharry.bothy.app.session.ModelProvider
 import cc.noharry.bothy.llm.LlamaDevice
 import cc.noharry.bothy.llm.LlamaServer
@@ -92,6 +93,18 @@ class OnDeviceModelTest {
         assertEquals(ready, calledWith)
         assertEquals(listOf(ModelEvent.TextDelta("好的"), ModelEvent.Completed), events)
         assertEquals(ProviderConcurrencyDeclaration.serialized(), client.providerConcurrency)
+    }
+
+    @Test
+    fun aFinishTheModelWroteAsTextReachesTheRuntimeAsTheCall() = runBlocking {
+        val ready = LlamaServer.State.Ready("http://127.0.0.1:4321/v1", "key", LlamaDevice.NPU)
+        val client = OnDeviceModelClient(ready = { ready }) { fixed(ModelEvent.TextDelta("finish(response=\"调好了。\")"), ModelEvent.Completed) }
+
+        val events = client.complete(ModelRequest(messages = emptyList(), tools = listOf(ModelTool("finish", "{}")))).toList()
+
+        val call = events.first() as ModelEvent.ToolCall
+        assertEquals("finish" to """{"response":"调好了。"}""", call.name to call.argumentsJson)
+        assertEquals(ModelEvent.Completed, events.last())
     }
 
     @Test
