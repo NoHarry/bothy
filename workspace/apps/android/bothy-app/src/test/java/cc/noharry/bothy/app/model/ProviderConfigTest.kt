@@ -7,7 +7,7 @@ import cc.noharry.bothy.app.runtime.usesVisibleWebSearchTool
 import cc.noharry.bothy.app.session.ModelProvider
 import cc.noharry.bothy.app.voice.JEV_EMBEDDED_KEYS
 import cc.noharry.bothy.app.voice.VOICE_EMBEDDED_KEYS
-import cc.noharry.bothy.app.voice.tts.MIMO_TTS_CONFIG_KEYS
+import cc.noharry.bothy.app.voice.tts.TTS_CONFIG_KEYS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -43,7 +43,7 @@ class ProviderConfigTest {
 
         assertTrue(values.keys.all { key ->
             key in allowedLegacyKeys ||
-                key in MIMO_TTS_CONFIG_KEYS ||
+                key in TTS_CONFIG_KEYS ||
                 key in IMAGE_MODEL_EMBEDDED_KEYS ||
                 key in VOICE_EMBEDDED_KEYS ||
                 key in JEV_EMBEDDED_KEYS ||
