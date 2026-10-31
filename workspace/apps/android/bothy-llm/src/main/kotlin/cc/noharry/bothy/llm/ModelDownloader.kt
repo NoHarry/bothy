@@ -48,13 +48,17 @@ class ModelDownloader(
         // A file put there by hand (adb, or a copy) of the right size only needs checking.
         if (!(file(spec).length() == spec.sizeBytes || fetch(spec))) return@flow
         emit(Progress.Verifying)
-        val whole = if (file(spec).isFile) file(spec) else partial(spec)
+        // An older file of another size under the same name is not what was just fetched.
+        val whole = if (file(spec).length() == spec.sizeBytes) file(spec) else partial(spec)
         if (sha256(whole) != spec.sha256) {
             delete(spec)
             emit(Progress.Failed("校验失败：文件内容和发布的 SHA-256 不一致，已删除，请重新下载"))
             return@flow
         }
-        if (whole != file(spec)) whole.renameTo(file(spec))
+        if (whole != file(spec) && !whole.renameTo(file(spec))) {
+            emit(Progress.Failed("保存失败：没能把下载好的文件改名为 ${spec.fileName}，请重试"))
+            return@flow
+        }
         marker(spec).writeText(spec.sha256)
         emit(Progress.Done(file(spec)))
     }.flowOn(Dispatchers.IO)
@@ -89,8 +93,14 @@ class ModelDownloader(
         try {
             val code = connection.responseCode
             if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) throw IOException("HTTP $code")
-            // A server that ignores the Range starts from the beginning again.
+            // A server that ignores the Range sends the whole file again. A 200 of another size (an error or sign-in
+            // page) is not the file and must not replace what is there; nor may a 206 of another range be appended.
             val append = code == HttpURLConnection.HTTP_PARTIAL
+            val length = connection.getHeaderField("Content-Length")?.toLongOrNull()
+            if (!append && length != null && length != spec.sizeBytes) throw IOException("HTTP $code of $length bytes, not the model")
+            if (append && connection.getHeaderField("Content-Range")?.startsWith("bytes $offset-") == false) {
+                throw IOException("HTTP $code from another offset than $offset")
+            }
             var bytes = if (append) offset else 0L
             var lastEmit = 0L
             connection.inputStream.use { input ->

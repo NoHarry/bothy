@@ -67,8 +67,9 @@ private fun selectOnDeviceModel(actions: ConsoleActions, spec: LocalModelSpec, p
 
 @Composable
 private fun OnDeviceModelRow(spec: LocalModelSpec, download: ModelDownloader.Progress?, inUse: Boolean, onUse: () -> Unit) {
-    val downloaded = remember(download) { OnDeviceModel.isDownloaded(spec) }
-    val onDisk = remember(download) { OnDeviceModel.downloadedBytes(spec) }
+    val files by OnDeviceModel.fileChanges.collectAsState()
+    val downloaded = remember(download, files) { OnDeviceModel.isDownloaded(spec) }
+    val onDisk = remember(download, files) { OnDeviceModel.downloadedBytes(spec) }
     val running = download is ModelDownloader.Progress.Downloading || download is ModelDownloader.Progress.Verifying
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Column(Modifier.weight(1f)) {
@@ -122,7 +123,8 @@ private fun OnDeviceModelServer(server: LlamaServer.State, chosen: LocalModelSpe
         is LlamaServer.State.Failed -> "启动失败：${server.reason}"
     }
     val active = server is LlamaServer.State.Starting || server is LlamaServer.State.Ready
-    val downloaded = remember(server) { OnDeviceModel.isDownloaded(chosen) }
+    val files by OnDeviceModel.fileChanges.collectAsState()
+    val downloaded = remember(server, chosen, files) { OnDeviceModel.isDownloaded(chosen) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Column(Modifier.weight(1f)) {
             Text("推理服务", style = ConsoleType.body, color = ConsoleColors.text)

@@ -9,6 +9,7 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.URL
 import java.security.SecureRandom
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +68,9 @@ class LlamaServer(
     val state: StateFlow<State> = mutableState.asStateFlow()
 
     private val mutex = Mutex()
+
+    // The exit watcher clears the process from its own thread; the lock keeps it from clearing a newer start's.
+    private val processLock = Any()
     private var process: Process? = null
     private var servedModel: File? = null
     private val recentLines = ArrayDeque<String>()
@@ -79,16 +83,23 @@ class LlamaServer(
         val executable = File(nativeLibraryDir, EXECUTABLE)
         check(executable.isFile) { "本机模型只支持 arm64 设备（没有找到 $EXECUTABLE）" }
         var reason = ""
-        for (device in LlamaDevice.entries) {
-            mutableState.value = State.Starting(device, spec.id)
-            val ready = withContext(Dispatchers.IO) { startOn(executable, model, spec, device) }
-            if (ready != null) {
-                servedModel = model
-                mutableState.value = ready
-                return ready
+        try {
+            for (device in LlamaDevice.entries) {
+                mutableState.value = State.Starting(device, spec.id)
+                val ready = withContext(Dispatchers.IO) { startOn(executable, model, spec, device) }
+                if (ready != null) {
+                    servedModel = model
+                    mutableState.value = ready
+                    return ready
+                }
+                reason = failureReason()
+                log("llama-server on ${device.label} failed: $reason")
             }
-            reason = failureReason()
-            log("llama-server on ${device.label} failed: $reason")
+        } catch (e: CancellationException) {
+            // A start given up halfway leaves no loading process behind and no "starting" that never ends.
+            takeProcess()?.kill()
+            mutableState.value = State.Stopped
+            throw e
         }
         mutableState.value = State.Failed(reason)
         throw IllegalStateException("本机模型启动失败：$reason")
@@ -109,7 +120,7 @@ class LlamaServer(
             environment()["ADSP_LIBRARY_PATH"] = nativeLibraryDir.absolutePath
         }.start()
         synchronized(recentLines) { recentLines.clear() }
-        process = started
+        synchronized(processLock) { process = started }
         readOutput(started)
         val deadline = System.currentTimeMillis() + readyTimeoutMillis
         while (System.currentTimeMillis() < deadline) {
@@ -141,19 +152,24 @@ class LlamaServer(
     private fun watchExit(started: Process) {
         Thread({
             val code = runCatching { started.waitFor() }.getOrNull()
-            if (process === started) {
-                process = null
-                mutableState.value = State.Failed("llama-server exited ($code): ${failureReason()}")
+            synchronized(processLock) {
+                if (process === started) {
+                    process = null
+                    mutableState.value = State.Failed("llama-server exited ($code): ${failureReason()}")
+                }
             }
         }, "llama-server-exit").apply { isDaemon = true }.start()
     }
 
     private fun stopLocked() {
-        val running = process ?: return
-        process = null
-        servedModel = null
+        val running = takeProcess() ?: return
         running.destroy()
         if (!running.waitForExit(STOP_GRACE_MS)) running.kill()
+    }
+
+    private fun takeProcess(): Process? = synchronized(processLock) {
+        servedModel = null
+        process.also { process = null }
     }
 
     /** The server's last error-looking output line, or its last line. */

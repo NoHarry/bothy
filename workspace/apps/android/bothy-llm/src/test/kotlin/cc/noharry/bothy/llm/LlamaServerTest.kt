@@ -4,7 +4,12 @@ import java.io.File
 import java.io.InputStream
 import java.io.InterruptedIOException
 import java.nio.file.Files
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -14,7 +19,8 @@ import org.junit.Test
 
 /**
  * The server's lifecycle against a stand-in `libllama_server.so`: a shell script that serves `/health` with Python's
- * http.server on the port it is given, and exits at once when asked for the NPU if `npu-fails` is beside it.
+ * http.server on the port it is given, and exits at once when asked for the NPU if `npu-fails` is beside it. With
+ * `never-ready` beside it, it writes its pid to `pid` and never answers, like a model still loading.
  */
 class LlamaServerTest {
     private lateinit var dir: File
@@ -36,6 +42,7 @@ class LlamaServerTest {
                 |  [ "${'$'}a" = "HTP0" ] && [ -f "${'$'}here/npu-fails" ] && { echo "ggml-hex: failed to open session"; exit 1; }
                 |  prev="${'$'}a"
                 |done
+                |[ -f "${'$'}here/never-ready" ] && { echo ${'$'}${'$'} > "${'$'}here/pid"; exec sleep 60; }
                 |echo "fake llama-server on ${'$'}port"
                 |cd "${'$'}here/www" && exec python3 -m http.server "${'$'}port" --bind 127.0.0.1
                 """.trimMargin(),
@@ -95,6 +102,20 @@ class LlamaServerTest {
     }
 
     @Test
+    fun aStartGivenUpWhileTheModelLoadsLeavesNoProcessAndNoStart() = runBlocking {
+        File(dir, "never-ready").writeText("")
+        val server = LlamaServer(dir, readyTimeoutMillis = 20_000)
+        val start = launch(Dispatchers.Default) { server.ensureRunning(File(dir, "m.gguf").apply { writeText("x") }, GEMMA_4_E4B) }
+        val pid = File(dir, "pid")
+        withTimeout(10_000) { while (pid.readTextOrBlank().isBlank()) delay(50) }
+
+        start.cancelAndJoin()
+
+        assertEquals(LlamaServer.State.Stopped, server.state.value)
+        withTimeout(5_000) { while (alive(pid.readText().trim())) delay(50) }
+    }
+
+    @Test
     fun fallsBackToTheCpuWhenTheNpuCannotStart() = runBlocking {
         File(dir, "npu-fails").writeText("")
         val lines = mutableListOf<String>()
@@ -106,4 +127,8 @@ class LlamaServerTest {
         assertTrue(synchronized(lines) { lines.any { "failed to open session" in it } })
         server.stop()
     }
+
+    private fun File.readTextOrBlank(): String = if (isFile) readText() else ""
+
+    private fun alive(pid: String): Boolean = ProcessBuilder("kill", "-0", pid).start().waitFor() == 0
 }

@@ -9,10 +9,15 @@ import cc.noharry.bothy.llm.LocalModelSpec
 import cc.noharry.bothy.llm.ModelDownloader
 import cc.noharry.bothy.llm.localModel
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,11 +70,16 @@ internal object OnDeviceModel {
 
     private lateinit var appContext: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val starts = SupervisorJob()
     private val downloadJobs = mutableMapOf<String, Job>()
     private val mutableDownloads = MutableStateFlow<Map<String, ModelDownloader.Progress>>(emptyMap())
+    private val mutableFileChanges = MutableStateFlow(0)
 
     /** Each model's latest download step while one runs or after it ended, by model id. */
     val downloads: StateFlow<Map<String, ModelDownloader.Progress>> = mutableDownloads.asStateFlow()
+
+    /** Counts model files completed or deleted, so a view of what is on disk reads it again. */
+    val fileChanges: StateFlow<Int> = mutableFileChanges.asStateFlow()
 
     val server: LlamaServer by lazy {
         LlamaServer(File(appContext.applicationInfo.nativeLibraryDir), log = { line -> Log.i(TAG, line) })
@@ -88,24 +98,33 @@ internal object OnDeviceModel {
 
     fun startDownload(spec: LocalModelSpec) {
         synchronized(downloadJobs) {
-            if (downloadJobs[spec.id]?.isActive == true) return
+            val previous = downloadJobs[spec.id]
+            if (previous?.isActive == true) return
+            // A cancelled download can still be writing its last read; it ends before this one appends to the file.
             downloadJobs[spec.id] = scope.launch {
-                downloader.download(spec).collect { step -> mutableDownloads.update { it + (spec.id to step) } }
+                previous?.join()
+                downloader.download(spec).collect { step ->
+                    mutableDownloads.update { it + (spec.id to step) }
+                    if (step is ModelDownloader.Progress.Done || step is ModelDownloader.Progress.Failed) fileChanged()
+                }
             }
         }
     }
 
     fun cancelDownload(spec: LocalModelSpec) {
-        synchronized(downloadJobs) { downloadJobs.remove(spec.id) }?.cancel()
+        synchronized(downloadJobs) { downloadJobs[spec.id] }?.cancel()
         mutableDownloads.update { it - spec.id }
     }
 
     fun deleteModel(spec: LocalModelSpec) {
         cancelDownload(spec)
+        val download = synchronized(downloadJobs) { downloadJobs[spec.id] }
         scope.launch {
-            if (servedModel() == spec.id) server.stop()
+            download?.join()
+            if (servedModel() == spec.id) stopServer()
             downloader.delete(spec)
             mutableDownloads.update { it - spec.id }
+            fileChanged()
         }
     }
 
@@ -115,13 +134,23 @@ internal object OnDeviceModel {
     }
 
     fun stop() {
-        scope.launch { server.stop() }
+        scope.launch { stopServer() }
     }
 
-    /** The server running [spec], started (or switched to it) first; throws with what to do when the file is missing. */
+    /**
+     * The server running [spec], started (or switched to it) first; throws with what to do when the file is missing.
+     * The start runs in this object's scope, so a request given up while the model loads (a barge-in, a first-event
+     * timeout) leaves the load to finish for the next one; only [stop] ends it.
+     */
     suspend fun ensureRunning(spec: LocalModelSpec): LlamaServer.State.Ready {
         check(isDownloaded(spec)) { missingMessage(spec) }
-        return server.ensureRunning(downloader.file(spec), spec)
+        val start = scope.async(starts) { server.ensureRunning(downloader.file(spec), spec) }
+        return try {
+            start.await()
+        } catch (e: CancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw IllegalStateException("本机模型已停止", e)
+        }
     }
 
     /** The active profile changed, or its model did. */
@@ -131,6 +160,13 @@ internal object OnDeviceModel {
 
     fun missingMessage(spec: LocalModelSpec): String =
         "本机模型 ${spec.label} 还没下载：设置 → 模型与服务 → 本机模型 → ${spec.label} → 下载（约 ${"%.1f".format(spec.sizeBytes / 1e9)} GB）。"
+
+    private suspend fun stopServer() {
+        starts.cancelChildren()
+        server.stop()
+    }
+
+    private fun fileChanged() = mutableFileChanges.update { it + 1 }
 
     private fun servedModel(): String? = when (val state = server.state.value) {
         is LlamaServer.State.Ready -> state.modelId

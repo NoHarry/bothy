@@ -6,6 +6,7 @@ import cc.noharry.agent.kernel.api.model.ModelMessage
 import cc.noharry.agent.kernel.api.model.ModelRequest
 import cc.noharry.agent.model.ModelVariantRegistry
 import cc.noharry.bothy.app.model.ProviderConfig
+import cc.noharry.bothy.app.model.isOnDevice
 import cc.noharry.bothy.app.runtime.append
 import cc.noharry.bothy.app.usage.ModelUsage
 import cc.noharry.bothy.app.usage.UsageStore
@@ -26,6 +27,8 @@ internal suspend fun voiceAck(context: Context, task: String, words: String): St
         val config = ProviderConfig.load(context)
         val profile = config.activeProfile
         if (!config.isReady(profile)) return@withContext null.also { Log.w(TAG, "ack skipped: provider not ready") }
+        // The on-device server has one slot: an ack would wait behind the agent's round or evict its cached prompt.
+        if (profile.isOnDevice()) return@withContext null.also { Log.i(TAG, "ack skipped: on-device model") }
         val reply = StringBuilder()
         var firstThinking = -1L
         var firstText = -1L

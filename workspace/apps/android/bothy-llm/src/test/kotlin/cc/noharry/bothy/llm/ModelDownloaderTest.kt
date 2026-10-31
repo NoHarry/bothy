@@ -83,6 +83,46 @@ class ModelDownloaderTest {
     }
 
     @Test
+    fun aPageInsteadOfTheFileKeepsThePartAlreadyDownloaded() = runTest {
+        File(dir, "model.gguf.part").writeBytes(content.copyOfRange(0, 100_000))
+        server.enqueue(MockResponse().setBody("<html>请先登录</html>"))
+        server.enqueue(
+            MockResponse().setResponseCode(206).setBody(Buffer().write(content.copyOfRange(100_000, content.size))),
+        )
+
+        val progress = ModelDownloader(dir).download(spec()).toList()
+
+        assertEquals(listOf("bytes=100000-", "bytes=100000-"), List(2) { server.takeRequest().getHeader("Range") })
+        assertTrue(progress.last() is ModelDownloader.Progress.Done)
+    }
+
+    @Test
+    fun aRangeFromAnotherOffsetIsNotAppended() = runTest {
+        File(dir, "model.gguf.part").writeBytes(content.copyOfRange(0, 100_000))
+        server.enqueue(MockResponse().setResponseCode(206).setHeader("Content-Range", "bytes 0-299999/300000").setBody("x"))
+        server.enqueue(
+            MockResponse().setResponseCode(206).setBody(Buffer().write(content.copyOfRange(100_000, content.size))),
+        )
+
+        val progress = ModelDownloader(dir).download(spec()).toList()
+
+        assertTrue(progress.last() is ModelDownloader.Progress.Done)
+    }
+
+    @Test
+    fun anOlderFileOfAnotherSizeIsReplacedByTheDownload() = runTest {
+        File(dir, "model.gguf").writeText("an older release")
+        server.enqueue(MockResponse().setBody(Buffer().write(content)))
+        val downloader = ModelDownloader(dir)
+
+        val progress = downloader.download(spec()).toList()
+
+        assertTrue(progress.last() is ModelDownloader.Progress.Done)
+        assertTrue(downloader.isReady(spec()))
+        assertFalse(File(dir, "model.gguf.part").exists())
+    }
+
+    @Test
     fun onlyChecksAFileAlreadyInPlace() = runTest {
         File(dir, "model.gguf").writeBytes(content)
 
