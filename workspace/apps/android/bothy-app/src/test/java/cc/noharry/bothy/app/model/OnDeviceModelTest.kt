@@ -6,6 +6,7 @@ import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.model.ModelClient
 import cc.noharry.agent.kernel.api.model.ModelClientException
 import cc.noharry.agent.kernel.api.model.ModelEvent
+import cc.noharry.agent.kernel.api.model.ModelMessage
 import cc.noharry.agent.kernel.api.model.ModelRequest
 import cc.noharry.agent.kernel.api.model.ModelTool
 import cc.noharry.bothy.app.session.ModelProvider
@@ -105,6 +106,17 @@ class OnDeviceModelTest {
         val call = events.first() as ModelEvent.ToolCall
         assertEquals("finish" to """{"response":"调好了。"}""", call.name to call.argumentsJson)
         assertEquals(ModelEvent.Completed, events.last())
+    }
+
+    @Test
+    fun aBackendToolTheModelMadeUpReachesTheRuntimeAsASearch() = runBlocking {
+        val ready = LlamaServer.State.Ready("http://127.0.0.1:4321/v1", "key", LlamaDevice.NPU)
+        val client = OnDeviceModelClient(ready = { ready }) { fixed(ModelEvent.ToolCall("c", "home__set_temperature", "{}"), ModelEvent.Completed) }
+        val request = ModelRequest(messages = listOf(ModelMessage("user", "客厅调到25度")), tools = listOf(ModelTool("search_tools", "{}")))
+
+        val call = client.complete(request).toList().first() as ModelEvent.ToolCall
+
+        assertEquals("search_tools" to """{"query":"客厅调到25度 home set temperature"}""", call.name to call.argumentsJson)
     }
 
     @Test

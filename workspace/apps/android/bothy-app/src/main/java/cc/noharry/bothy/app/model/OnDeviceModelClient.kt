@@ -18,7 +18,8 @@ import kotlinx.coroutines.flow.flow
  * The on-device profile's model client: waits for the server ([ready]; the first call may load the model), then
  * delegates to the client [clientFor] builds for that start's address and key. One call at a time: the server has a
  * single slot. A server that cannot start fails the run with its reason rather than being retried. A tool call the
- * model wrote as text goes on as that call ([withTextToolCalls]).
+ * model wrote as text goes on as that call ([withTextToolCalls]), and a call of a backend tool it made up as a search
+ * ([withMadeUpCallsSearched]).
  */
 internal class OnDeviceModelClient(
     private val ready: suspend () -> LlamaServer.State.Ready,
@@ -39,6 +40,7 @@ internal class OnDeviceModelClient(
                 cause = e,
             )
         }
-        emitAll(clientFor(server).complete(request).withTextToolCalls(request.tools.mapTo(HashSet()) { it.name }))
+        val events = clientFor(server).complete(request).withTextToolCalls(request.tools.mapTo(HashSet()) { it.name })
+        emitAll(events.withMadeUpCallsSearched(request))
     }
 }
