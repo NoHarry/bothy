@@ -11,10 +11,12 @@ import java.util.Locale
  * summary, safe metadata and redacted rich previews. Hashes and hidden raw data are never
  * indexed, so a query can never surface something the UI would refuse to show.
  */
-internal fun TrajectoryRecord.searchIndexText(): String =
+internal fun TrajectoryRecord.searchIndexText(shownTitle: String = title): String =
     buildString {
         append(title)
         append(' ')
+        // The title as the screen words it, so what is read there is found too.
+        if (shownTitle != title) append(shownTitle).append(' ')
         append(summary)
         safeMetadata.forEach { (key, value) ->
             append(' ')
@@ -43,9 +45,9 @@ internal fun TrajectoryRecord.searchIndexText(): String =
 internal fun trajectorySearchTokens(query: String): List<String> =
     query.lowercase(Locale.ROOT).split(WHITESPACE).filter { it.isNotBlank() }
 
-internal fun TrajectoryRecord.matchesTrajectorySearch(tokens: List<String>): Boolean {
+internal fun TrajectoryRecord.matchesTrajectorySearch(tokens: List<String>, shownTitle: String = title): Boolean {
     if (tokens.isEmpty()) return true
-    val indexed = searchIndexText()
+    val indexed = searchIndexText(shownTitle)
     return tokens.all { indexed.contains(it) }
 }
 
@@ -56,11 +58,12 @@ internal fun TrajectoryRecord.matchesTrajectorySearch(tokens: List<String>): Boo
 internal fun trajectorySearchHits(
     groups: List<TrajectoryRunGroup>,
     query: String,
+    shownTitle: (TrajectoryRecord) -> String = { it.title },
 ): List<TrajectoryRecordId> {
     val tokens = trajectorySearchTokens(query)
     if (tokens.isEmpty()) return emptyList()
     return groups.flatMap { group -> group.records }
-        .filter { it.matchesTrajectorySearch(tokens) }
+        .filter { it.matchesTrajectorySearch(tokens, shownTitle(it)) }
         .map { it.id }
 }
 

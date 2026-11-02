@@ -26,7 +26,7 @@
     <string name="onboarding_permission_background_note">Keeps the system from clearing it to save battery; some systems also need Auto-start turned on here</string>
     <string name="onboarding_permission_granted">On</string>
     <string name="onboarding_permission_grant">Turn on</string>
-    <string name="onboarding_step_first_words">4 · Say \"OK Bothy\"</string>
+    <string name="onboarding_step_first_words">4 · Try saying</string>
     <string name="onboarding_first_words_note">Say \"OK Bothy\", or tap the floating Xiao Bo, then:</string>
     <string name="onboarding_playground_note">Bothy Playground is installed: open it and keep it in front, and Xiao Bo is in the virtual head unit, where it can turn on the air conditioning, open the windows and navigate.</string>
     <string name="onboarding_open_playground">Open Bothy Playground</string>

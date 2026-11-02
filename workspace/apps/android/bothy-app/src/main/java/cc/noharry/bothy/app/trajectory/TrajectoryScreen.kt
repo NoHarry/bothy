@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -120,8 +121,9 @@ internal fun TrajectoryScreen(
 
     val activeRun = snapshot.runGroups.firstOrNull { it.isActive } ?: snapshot.runGroups.firstOrNull()
     val focusedRun = snapshot.runGroups.firstOrNull { it.runId == selectedRunId } ?: activeRun
-    val hits = remember(snapshot.revision, snapshot.runGroups, searchQuery) {
-        trajectorySearchHits(snapshot.runGroups, searchQuery)
+    val resources = LocalResources.current
+    val hits = remember(snapshot.revision, snapshot.runGroups, searchQuery, resources) {
+        trajectorySearchHits(snapshot.runGroups, searchQuery) { resources.trajectoryTitleText(it.kind, it.title) }
     }
     val timeline = remember(focusedRun?.records, timelineMode) {
         projectTrajectoryTimeline(focusedRun?.records.orEmpty(), timelineMode)

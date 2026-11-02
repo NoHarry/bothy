@@ -243,10 +243,10 @@ internal object RuntimeSession {
         refreshModelOptions(context.applicationContext)
         notifyChanged()
     }
-    /** The screens changed language: what the config words as it loads (the on-device model's profile name) follows. */
+    /** The screens changed language: the config's worded names follow (on-device model); this session's choices stay. */
     fun languageChanged(context: Context) {
         if (config == null) return
-        applyLoadedConfig(ProviderConfig.load(context.applicationContext))
+        config = ProviderConfig.load(context.applicationContext)
         refreshModelOptions(context.applicationContext)
         notifyChanged()
     }
@@ -611,7 +611,7 @@ internal object RuntimeSession {
                 awaitIdleCar(holdForReading = false)
                 // Read now, not when the report came: siblings may have finished while it waited.
                 val working = BothySubagents.instance.statuses(report.parentSessionId).filter { !it.state.finished && it.id !in report.statuses.map { s -> s.id } }
-                val turn = report.toReport(working, context = app)
+                val turn = report.toReport(working)
                 BothySubagents.reportDelivered(report)
                 val title = app.getString(R.string.runtime_subagent_report_title)
                 turnOrSteer(turn.model, turn.display, title, { submitText(app, turn.display, backend = null, spoken = true, modelText = turn.model) })

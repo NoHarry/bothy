@@ -24,10 +24,16 @@ internal class MediaToolHints(private val delegate: ToolProvider) : ToolProvider
 }
 
 /** Whether [text] asks to play, pause, skip or name what plays (music, a video, a podcast). */
-internal fun aboutPlayback(text: String): Boolean = PLAYBACK_WORDS.any { it in text }
+internal fun aboutPlayback(text: String): Boolean = PLAYBACK_WORDS.any { it in text } || ENGLISH_PLAYBACK.containsMatchIn(text)
 
 private val MEDIA_HINT_TOOLS = listOf("media.control", "media.status")
 private val PLAYBACK_WORDS = listOf(
     "暂停", "播放", "继续放", "接着放", "放首", "放点", "放歌", "快进", "快退", "倒回",
     "下一首", "上一首", "下一集", "上一集", "切歌", "换一首", "这首歌", "什么歌",
+)
+
+/** The same asked in English, as the English screens' suggestions and English speakers put it; whole words only. */
+private val ENGLISH_PLAYBACK = Regex(
+    "\\b(pause|play|resume|skip|fast forward|rewind|(next|previous|last) (song|track|episode)|(what|this) song)\\b",
+    RegexOption.IGNORE_CASE,
 )

@@ -131,7 +131,7 @@ class SubagentsTest {
             lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
             result = "明天晴，22度", error = "",
         )
-        val report = SubagentReport("s", listOf(status)).toReport(now = 50_000L, context = appContext)
+        val report = SubagentReport("s", listOf(status)).toReport(now = 50_000L)
 
         assertEquals("后台任务「苏州天气」完成了", report.display)
         assertTrue(report.model, report.model.contains("用时 42 秒") && report.model.contains("明天晴，22度"))
@@ -141,18 +141,17 @@ class SubagentsTest {
         val other = status.copy(id = "sub-2", label = "杭州天气", result = "明天多云")
         val batch = SubagentReport("s", listOf(status, other)).toReport(
             stillWorking = listOf(other.copy(id = "sub-3", label = "南京天气", state = SubagentState.RUNNING)),
-            context = appContext,
         )
         assertEquals("后台任务「苏州天气」「杭州天气」都完成了", batch.display)
         assertTrue(batch.model, batch.model.contains("明天多云") && batch.model.contains("还在进行：「南京天气」（sub-3）"))
         // 图文: pictures a child found go into the summary card.
         assertFalse(batch.model.contains("图文卡片"))
         val pictured = SubagentReport("s", listOf(status.copy(result = "草莓音乐节\n图片：https://img.example.com/a.jpg")))
-            .toReport(context = appContext)
+            .toReport()
         assertTrue(pictured.model, pictured.model.contains("图文卡片"))
         // 网上核实 is relayed in two sentences at most, the details on the card.
         val verified = SubagentReport("s", listOf(status.copy(agentType = WEB_VERIFY_KIND)))
-            .toReport(context = appContext)
+            .toReport()
         assertTrue(verified.model, verified.model.contains("最多说两句短话") && verified.model.contains("show_card") && !verified.model.contains("用一段话"))
         val input = subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "苏州天气", "查苏州明天的天气", 1, null, false))
         assertTrue(input.contains("不能操作设备") && input.endsWith("查苏州明天的天气"))
@@ -161,16 +160,17 @@ class SubagentsTest {
 
     @Test
     @Config(qualifiers = "en")
-    fun inEnglishABatchNamesEachChildInQuotes() {
+    fun theReportTurnKeepsTheModelsWordsInEnglishToo() {
         val status = SubagentStatus(
             id = "sub-1", label = "Suzhou weather", state = SubagentState.COMPLETED, startedAtEpochMillis = 0L,
             lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
             result = "Sunny tomorrow", error = "",
         )
         val other = status.copy(id = "sub-2", label = "Hangzhou weather")
-        val batch = SubagentReport("s", listOf(status, other)).toReport(context = appContext)
+        val batch = SubagentReport("s", listOf(status, other)).toReport()
 
-        assertEquals("Background tasks “Suzhou weather”, “Hangzhou weather” are all done", batch.display)
+        // The display becomes the turn's user text, which later requests show the model.
+        assertEquals("后台任务「Suzhou weather」「Hangzhou weather」都完成了", batch.display)
         assertTrue(batch.model, batch.model.contains("「Suzhou weather」（sub-1）"))
     }
 

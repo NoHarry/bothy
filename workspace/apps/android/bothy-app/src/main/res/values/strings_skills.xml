@@ -139,11 +139,4 @@
     <string name="skills_subagent_stalled_latest">Background task “%1$s” has made no progress for %2$d s; latest: %3$s</string>
     <string name="skills_subagent_resumed">Background task “%1$s” is making progress again</string>
     <string name="skills_subagent_finished">Background task “%1$s”: %2$s · %3$s</string>
-    <string name="skills_subagent_report_done">Background task “%1$s” is done</string>
-    <string name="skills_subagent_report_stalled">Background task “%1$s” is making no progress</string>
-    <string name="skills_subagent_report_failed">Background task “%1$s” didn\'t finish</string>
-    <string name="skills_subagent_report_all_done">Background tasks %1$s are all done</string>
-    <string name="skills_subagent_report_news">News from background tasks %1$s</string>
-    <string name="skills_subagent_quoted">“%1$s”</string>
-    <string name="skills_subagent_quoted_separator">", "</string>
 </resources>

@@ -134,11 +134,4 @@
     <string name="skills_subagent_stalled_latest">后台任务「%1$s」%2$d 秒没有进展，最近：%3$s</string>
     <string name="skills_subagent_resumed">后台任务「%1$s」又有进展了</string>
     <string name="skills_subagent_finished">后台任务「%1$s」%2$s：%3$s</string>
-    <string name="skills_subagent_report_done">后台任务「%1$s」完成了</string>
-    <string name="skills_subagent_report_stalled">后台任务「%1$s」没有进展</string>
-    <string name="skills_subagent_report_failed">后台任务「%1$s」没有完成</string>
-    <string name="skills_subagent_report_all_done">后台任务%1$s都完成了</string>
-    <string name="skills_subagent_report_news">后台任务%1$s有消息了</string>
-    <string name="skills_subagent_quoted">「%1$s」</string>
-    <string name="skills_subagent_quoted_separator">""</string>
 </resources>

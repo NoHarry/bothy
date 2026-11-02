@@ -35,7 +35,8 @@ class BothyApplication : Application() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         // A change of the screens' language (Settings → General, or the system's) rewords what the loaded config names.
-        val locale = newConfig.locales.get(0)
+        // The app's own resources tell it: before Android 13 they keep the chosen language when the system's changes.
+        val locale = resources.configuration.locales.get(0)
         if (shownLocale != null && locale != shownLocale) RuntimeSession.languageChanged(this)
         shownLocale = locale
     }

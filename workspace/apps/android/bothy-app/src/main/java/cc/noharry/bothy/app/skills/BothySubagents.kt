@@ -336,22 +336,17 @@ internal fun subagentInput(spec: SubagentSpec, kind: SubagentKind? = null, instr
 }
 
 /**
- * A report as one turn: [A2aReport.display] for the transcript and card, in the screen's language, [A2aReport.model]
- * for the agent. It carries every child of the batch (owner 2026-10-17: a turn per child made the agent repeat itself
- * and say "还在查" about results it had not been handed yet), and [stillWorking] names siblings that are not done.
+ * A report as one turn: [A2aReport.display] for the transcript and card, [A2aReport.model] for the agent. The display
+ * is kept as the turn's user text, which later requests show the model, so it stays in the model's words whatever the
+ * screens' language. It carries every child of the batch (owner 2026-10-17: a turn per child made the agent repeat
+ * itself and say "还在查" about results it had not been handed yet), and [stillWorking] names siblings that are not done.
  */
-internal fun SubagentReport.toReport(
-    stillWorking: List<SubagentStatus> = emptyList(),
-    now: Long = System.currentTimeMillis(),
-    context: Context = BothySubagents.displayContext,
-): A2aReport {
-    val separator = context.getString(R.string.skills_subagent_quoted_separator)
-    val labels = statuses.joinToString(separator) { context.getString(R.string.skills_subagent_quoted, it.label) }
+internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyList(), now: Long = System.currentTimeMillis()): A2aReport {
+    val labels = statuses.joinToString("") { "「${it.label}」" }
     val display = when {
-        statuses.size == 1 -> statuses.single().reportHeadline(context)
-        statuses.all { it.state == SubagentState.COMPLETED } ->
-            context.getString(R.string.skills_subagent_report_all_done, labels)
-        else -> context.getString(R.string.skills_subagent_report_news, labels)
+        statuses.size == 1 -> statuses.single().reportHeadline()
+        statuses.all { it.state == SubagentState.COMPLETED } -> "后台任务${labels}都完成了"
+        else -> "后台任务${labels}有消息了"
     }
     val model = buildString {
         appendLine("【后台子任务回报】你之前用 spawn_agent 委派的后台任务：")
@@ -374,10 +369,10 @@ private const val VERIFY_REPORT_CLOSING =
     "这是对你刚才那个回答的网上核实。把核实到的细节更新到卡片上（show_card），嘴上最多说两句短话：只说会改变选择的" +
         "（哪家关了或对不上号、现在最推荐哪家），其余留在卡片上；不要再列选项，不要逐家复述，也不要用「好的」「核实回来」之类的话开头。"
 
-private fun SubagentStatus.reportHeadline(context: Context): String = when (state) {
-    SubagentState.COMPLETED -> context.getString(R.string.skills_subagent_report_done, label)
-    SubagentState.STALLED -> context.getString(R.string.skills_subagent_report_stalled, label)
-    else -> context.getString(R.string.skills_subagent_report_failed, label)
+private fun SubagentStatus.reportHeadline(): String = when (state) {
+    SubagentState.COMPLETED -> "后台任务「$label」完成了"
+    SubagentState.STALLED -> "后台任务「$label」没有进展"
+    else -> "后台任务「$label」没有完成"
 }
 
 private fun SubagentStatus.reportSection(now: Long): String {
