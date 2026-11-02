@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Usage and cost, and the context ring beside the message box. values-zh holds the Chinese. -->
+<resources>
+    <string name="usage_title">Usage and cost</string>
+    <string name="usage_tab_stats">Usage</string>
+    <string name="usage_tab_prices">Model prices</string>
+    <string name="usage_time_range">Time range</string>
+    <string name="usage_range_week">Last 7 days</string>
+    <string name="usage_range_month">Last 30 days</string>
+    <string name="usage_tokens_note">Tokens are input (cache hits included) + output (reasoning included). Costs use the prices and exchange rate under \"Model prices\"; models without a price cost nothing.</string>
+
+    <!-- Summary -->
+    <string name="usage_total_tokens">Total tokens</string>
+    <string name="usage_peak_day_tokens">Peak tokens in a day</string>
+    <string name="usage_total_cost">Total cost</string>
+    <string name="usage_current_streak">Current streak</string>
+    <string name="usage_longest_streak">Longest streak</string>
+    <plurals name="usage_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+
+    <!-- Token activity -->
+    <string name="usage_token_activity">Token activity</string>
+    <string name="usage_heat_daily">Daily</string>
+    <string name="usage_heat_weekly">Weekly</string>
+    <string name="usage_heat_cumulative">Cumulative</string>
+    <string name="usage_heatmap_hint">Tap a square to see that day\'s usage</string>
+    <string name="usage_week_detail">%1$s–%2$s this week · %3$s tokens · %4$s</string>
+    <string name="usage_cumulative_detail">%2$s tokens in total up to %1$s</string>
+    <plurals name="usage_day_detail">
+        <item quantity="one">%1$s %2$s · %3$s tokens (input %4$s / output %5$s) · %6$s · %7$d request</item>
+        <item quantity="other">%1$s %2$s · %3$s tokens (input %4$s / output %5$s) · %6$s · %7$d requests</item>
+    </plurals>
+    <plurals name="usage_heatmap_description">
+        <item quantity="one">Token activity, last %1$d week</item>
+        <item quantity="other">Token activity, last %1$d weeks</item>
+    </plurals>
+    <string name="usage_less">Less</string>
+    <string name="usage_more">More</string>
+
+    <!-- Daily trend -->
+    <string name="usage_metric_tokens">Tokens</string>
+    <string name="usage_metric_cost">Cost</string>
+    <string name="usage_trend_tokens">Daily token trend</string>
+    <string name="usage_trend_cost">Daily cost trend</string>
+    <plurals name="usage_cost_requests">
+        <item quantity="one">%1$s · %2$d request</item>
+        <item quantity="other">%1$s · %2$d requests</item>
+    </plurals>
+    <plurals name="usage_trend_description">
+        <item quantity="one">%1$s, %2$d day, peak %3$s</item>
+        <item quantity="other">%1$s, %2$d days, peak %3$s</item>
+    </plurals>
+    <string name="usage_empty_title">Nothing to show yet</string>
+    <string name="usage_empty_unpriced">The models used in this range have no price yet; sync or enter one under \"Model prices\".</string>
+    <string name="usage_empty_range">No usage to show in this range.</string>
+    <string name="usage_bars_hint">Tap a bar to see that day\'s usage; the labelled bar is the range\'s peak</string>
+
+    <!-- Usage by model -->
+    <string name="usage_model_usage">Usage by model</string>
+    <string name="usage_no_calls_title">No model calls yet</string>
+    <string name="usage_no_calls_body">No model usage recorded in this range.</string>
+    <string name="usage_model">Model</string>
+    <string name="usage_requests">Requests</string>
+    <string name="usage_input_with_cache_hits">Input (cache hits)</string>
+    <string name="usage_input_and_cache">%1$s (%2$s)</string>
+    <string name="usage_output">Output</string>
+    <string name="usage_cost">Cost</string>
+    <string name="usage_unpriced">No price</string>
+    <string name="usage_unpriced_hint">Sync or enter one under \"Model prices\"</string>
+
+    <!-- Model prices -->
+    <string name="usage_sync_and_rate">Sync and exchange rate</string>
+    <string name="usage_prices_note">Prices sync from models.dev in US dollars per million tokens and are converted to yuan at the exchange rate. DeepSeek uses its official prices: every flash model at deepseek-flash. Cache hits are charged at the cache price, or the input price when there is none. Prices entered by hand are kept when syncing.</string>
+    <string name="usage_model_prices_title">Model prices (USD per million tokens)</string>
+    <string name="usage_no_models_title">No models yet</string>
+    <string name="usage_no_models_body">Models you use show up here and get their prices after a sync.</string>
+    <string name="usage_rate_label">USD to CNY rate</string>
+    <string name="usage_rate_invalid">The rate must be a positive number</string>
+    <string name="usage_rate_saved">Rate saved</string>
+    <string name="usage_save_rate">Save rate</string>
+    <string name="usage_syncing_message">Syncing from models.dev…</string>
+    <plurals name="usage_synced">
+        <item quantity="one">Synced: %1$d / %2$d model matched a price</item>
+        <item quantity="other">Synced: %1$d / %2$d models matched a price</item>
+    </plurals>
+    <string name="usage_sync_failed">Sync failed: %1$s</string>
+    <string name="usage_syncing">Syncing…</string>
+    <string name="usage_sync_prices">Sync prices (models.dev)</string>
+    <string name="usage_never">Never</string>
+    <string name="usage_last_synced">Last synced: %1$s</string>
+    <string name="usage_input">Input</string>
+    <string name="usage_cache_hits">Cache hits</string>
+    <string name="usage_restore_synced">Use synced price</string>
+    <string name="usage_source_manual">Entered by hand</string>
+    <string name="usage_source_priced_as">%1$s (as %2$s)</string>
+
+    <!-- Context ring -->
+    <string name="usage_context_ring_description">Context used: %1$s. Tap for details</string>
+    <string name="usage_context_not_yet">not known yet</string>
+    <string name="usage_context_window">Context window</string>
+    <string name="usage_context_used">%1$s used</string>
+    <string name="usage_context_used_unknown">Share used not known yet</string>
+    <string name="usage_context_tokens">%1$s / %2$s tokens</string>
+    <string name="usage_unknown">unknown</string>
+    <string name="usage_context_remaining">%1$s tokens left</string>
+    <string name="usage_context_compacted">Compacted; waiting for the next request\'s usage</string>
+    <string name="usage_context_last_request">Input of the last request (cache included)</string>
+</resources>

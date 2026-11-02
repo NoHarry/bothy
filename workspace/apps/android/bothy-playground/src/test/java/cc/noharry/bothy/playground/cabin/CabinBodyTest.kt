@@ -1,5 +1,7 @@
 package cc.noharry.bothy.playground.cabin
+import android.content.Context
 import androidx.compose.ui.geometry.Offset
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.playground.PlaygroundStore
 import cc.noharry.bothy.playground.headunit.CabinSpots
 import cc.noharry.bothy.playground.headunit.cabin
@@ -19,9 +21,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Doors, the trunk, the screen and the volume: by tool, by hand, and in the state a plan watches. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class CabinBodyTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val store = PlaygroundStore(clock = { 0L })
     private val cabin = playgroundEndpoints(store).getValue("/cabin/mcp")
 
@@ -38,8 +46,8 @@ class CabinBodyTest {
         assertFalse(store.read().cabin.doorsLocked)
         call("set_door", """{"door":"all","open":false}""")
         assertTrue(store.read().cabin.doorsOpen.isEmpty())
-        store.setDriving(true)
-        store.tick(1.0)
+        store.setDriving(context, true)
+        store.tick(1.0, context)
         assertEquals("车在行驶，不能开车门", call("set_door", """{"door":"driver","open":true}""").text())
         assertEquals("车在行驶，不能打开后备箱", call("set_trunk", """{"open":true}""").text())
     }
@@ -59,11 +67,11 @@ class CabinBodyTest {
     @Test
     fun theTrunkAndTheDoorsAreTheStateAPlanWatches() {
         call("set_trunk", """{"open":true}""")
-        store.holdCabin(CabinSpots.windows.getValue(Seat.REAR_LEFT).let { (top, bottom) -> Offset(top.x, (top.y + bottom.y) / 2) })
+        store.holdCabin(context, CabinSpots.windows.getValue(Seat.REAR_LEFT).let { (top, bottom) -> Offset(top.x, (top.y + bottom.y) / 2) })
         val state = store.read().cabin.toJson(userHere = true)
         assertEquals("true", state.getValue("trunk_open").jsonPrimitive.content)
         assertEquals("true", state.getValue("doors_open").jsonObject.getValue("rear_left").jsonPrimitive.content)
-        store.tapCabin(CabinSpots.tailgate.center)
+        store.tapCabin(context, CabinSpots.tailgate.center)
         assertFalse(store.read().cabin.trunkOpen)
         assertEquals("后备箱关上", store.calls.value.first().summary)
     }

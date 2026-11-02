@@ -1,4 +1,5 @@
 package cc.noharry.bothy.playground.cabin
+import android.content.res.Resources
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -17,7 +18,9 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.TextUnit
@@ -38,7 +41,6 @@ import cc.noharry.bothy.playground.headunit.drawPerson
 import cc.noharry.bothy.playground.headunit.on
 import cc.noharry.bothy.playground.headunit.passengerImages
 import cc.noharry.bothy.playground.link.open
-import cc.noharry.bothy.playground.nav.km
 import kotlin.math.roundToInt
 
 /** The values the cabin overlay eases between, so a seat warms up and a window slides rather than jumping. */
@@ -82,6 +84,10 @@ internal fun CabinScene(
 ) {
     val chip = if (compact) COMPACT_CHIP else FULL_CHIP
     val measurer = rememberTextMeasurer()
+    // The chips' words, drawn outside composition.
+    val resources = LocalContext.current.resources
+    val speakingLabel = stringResource(R.string.cabin_speaking)
+    val lock = stringResource(if (cabin.doorsLocked) R.string.cabin_chip_locked else R.string.cabin_chip_unlocked)
     val motion = cabinMotion(cabin)
     val people = passengerImages()
     val wave = rememberInfiniteTransition(label = "speaker").animateFloat(0f, 1f, infiniteRepeatable(tween(WAVE_MS, easing = LinearEasing)), label = "wave")
@@ -93,19 +99,18 @@ internal fun CabinScene(
         drawAmbient(cabin.ambient, motion.ambient.value, flash.of(Highlight.AMBIENT))
         Seat.entries.forEach { drawSeat(it, cabin.seat(it), motion, flash.of(Highlight.seat(it)), measurer) }
         Seat.entries.filter { it in cabin.occupants }.forEach { drawPerson(people[it.ordinal], CabinSpots.seats.getValue(it).on(size), CabinSpots.SEAT_RADIUS * size.width * 2.1f) }
-        cabin.speaker?.takeIf { speaking }?.let { drawSpeaker(it, wave.value, measurer, chip) }
-        Seat.entries.forEach { drawComfortChip(it, cabin.seat(it), measurer, chip) }
+        cabin.speaker?.takeIf { speaking }?.let { drawSpeaker(it, wave.value, speakingLabel, measurer, chip) }
+        Seat.entries.forEach { drawComfortChip(it, cabin.seat(it), resources, measurer, chip) }
         val strip = stripColor(cabin.ambient, motion.ambient.value, flash.of(Highlight.AMBIENT))
         Seat.entries.forEach { seat ->
             val open = motion.doors.getValue(seat).value
             drawCabinDoor(seat, doorImages.getValue(seat), open, motion.windows.getValue(seat).value, strip, DoorFlash(flash.of(Highlight.door(seat)), flash.of(Highlight.window(seat))))
-            drawWindowChip(seat, cabin.window(seat), open, measurer, chip)
+            drawWindowChip(seat, cabin.window(seat), open, resources, measurer, chip)
         }
-        drawScreen(cabin, motion.screen.value, flash.of(Highlight.SCREEN), measurer, compact)
+        drawScreen(cabin, motion.screen.value, flash.of(Highlight.SCREEN), resources, measurer, compact)
         if (compact) return@FittedPicture
-        drawConsole(cabin, measurer)
-        drawChip(measurer, cabin.driveLine(), CabinSpots.hood.on(size), PlaygroundColors.text)
-        val lock = if (cabin.doorsLocked) "车门已锁" else "车门未锁"
+        drawConsole(cabin, resources, measurer)
+        drawChip(measurer, cabin.driveLine(resources), CabinSpots.hood.on(size), PlaygroundColors.text)
         drawChip(measurer, lock, CabinSpots.lockChip.on(size), if (cabin.doorsLocked) PlaygroundColors.sage else PlaygroundColors.ember)
         drawFlashRing(CabinSpots.lockChip.on(size), 28.dp.toPx(), flash.of(Highlight.DOOR))
     }
@@ -116,13 +121,21 @@ private fun stripColor(ambient: AmbientLight, level: Float, flash: Float): Color
     if (level <= 0.01f) null else Color(ambient.color).copy(alpha = (0.95f * level + flash * 0.3f).coerceAtMost(1f))
 
 /** How far a lowered window is open, beside it on its door wherever the door has swung. */
-private fun DrawScope.drawWindowChip(seat: Seat, percent: Int, open: Float, measurer: TextMeasurer, textSize: TextUnit) {
+private fun DrawScope.drawWindowChip(
+    seat: Seat,
+    percent: Int,
+    open: Float,
+    res: Resources,
+    measurer: TextMeasurer,
+    textSize: TextUnit,
+) {
     if (percent == 0) return
     val (a, b) = CabinSpots.windows.getValue(seat)
     val inward = if (seat.leftSide) 1f else -1f
     val beside = Offset((a.x + b.x) / 2 * size.width + inward * 12.dp.toPx(), (a.y + b.y) / 2 * size.height)
     val at = CabinParts.turned(beside, CabinParts.hinges.getValue(seat).on(size), CabinParts.swing(seat, open))
-    drawChip(measurer, "开 $percent%", at, PlaygroundColors.cool, if (seat.leftSide) ChipAlign.START else ChipAlign.END, textSize)
+    val text = res.getString(R.string.cabin_chip_window_open, percent)
+    drawChip(measurer, text, at, PlaygroundColors.cool, if (seat.leftSide) ChipAlign.START else ChipAlign.END, textSize)
 }
 
 private fun DrawScope.drawClimateWash(cabin: Cabin, flash: Float) {
@@ -161,29 +174,48 @@ private fun DrawScope.drawSeat(seat: Seat, comfort: SeatComfort, motion: CabinMo
 }
 
 /** The seat's heating or ventilation, as a label at the back of the seat, clear of whoever sits on it. */
-private fun DrawScope.drawComfortChip(seat: Seat, comfort: SeatComfort, measurer: TextMeasurer, textSize: TextUnit) {
+private fun DrawScope.drawComfortChip(
+    seat: Seat,
+    comfort: SeatComfort,
+    res: Resources,
+    measurer: TextMeasurer,
+    textSize: TextUnit,
+) {
     val at = CabinSpots.seats.getValue(seat).on(size) + Offset(0f, CabinSpots.SEAT_RADIUS * size.width * 1.05f)
     when {
-        comfort.heat > 0 -> drawChip(measurer, "加热 ${comfort.heat} 档", at, PlaygroundColors.heat, fontSize = textSize)
-        comfort.ventilation > 0 -> drawChip(measurer, "通风 ${comfort.ventilation} 档", at, PlaygroundColors.cool, fontSize = textSize)
+        comfort.heat > 0 -> {
+            val text = res.getString(R.string.cabin_chip_heat, comfort.heat)
+            drawChip(measurer, text, at, PlaygroundColors.heat, fontSize = textSize)
+        }
+        comfort.ventilation > 0 -> {
+            val text = res.getString(R.string.cabin_chip_vent, comfort.ventilation)
+            drawChip(measurer, text, at, PlaygroundColors.cool, fontSize = textSize)
+        }
     }
 }
 
 /** Rings going out from the speaker's seat, with a label in front of it. */
-private fun DrawScope.drawSpeaker(seat: Seat, wave: Float, measurer: TextMeasurer, textSize: TextUnit) {
+private fun DrawScope.drawSpeaker(seat: Seat, wave: Float, label: String, measurer: TextMeasurer, textSize: TextUnit) {
     val center = CabinSpots.seats.getValue(seat).on(size)
     val radius = CabinSpots.SEAT_RADIUS * size.width
     repeat(2) { i ->
         val t = (wave + i * 0.5f) % 1f
         drawCircle(PlaygroundColors.glow.copy(alpha = 0.85f * (1f - t)), radius * (0.95f + 0.55f * t), center, style = Stroke(2.5.dp.toPx()))
     }
-    drawChip(measurer, "说话中", center - Offset(0f, radius * 1.05f), PlaygroundColors.glow, fontSize = textSize)
+    drawChip(measurer, label, center - Offset(0f, radius * 1.05f), PlaygroundColors.glow, fontSize = textSize)
 }
 
 private fun DrawScope.drawGlow(center: Offset, radius: Float, color: Color) =
     drawCircle(Brush.radialGradient(listOf(color, Color.Transparent), center, radius), radius, center)
 
-private fun DrawScope.drawScreen(cabin: Cabin, brightness: Float, flash: Float, measurer: TextMeasurer, compact: Boolean = false) {
+private fun DrawScope.drawScreen(
+    cabin: Cabin,
+    brightness: Float,
+    flash: Float,
+    res: Resources,
+    measurer: TextMeasurer,
+    compact: Boolean = false,
+) {
     val rect = CabinSpots.screen.on(size)
     drawRoundRect(Color(0xFF0B0F0D), rect.topLeft, rect.size, CornerRadius(5.dp.toPx()))
     if (compact) {
@@ -192,14 +224,21 @@ private fun DrawScope.drawScreen(cabin: Cabin, brightness: Float, flash: Float, 
         if (flash > 0f) drawFlashRect(rect, flash)
         return
     }
-    val levels = (if (cabin.screenBrightness == 0) "熄屏" else "亮度 ${cabin.screenBrightness}%") + " · 音量 ${cabin.media.volume}"
+    val screen = if (cabin.screenBrightness == 0) {
+        res.getString(R.string.cabin_chip_screen_off)
+    } else {
+        res.getString(R.string.cabin_chip_brightness, cabin.screenBrightness)
+    }
+    val levels = res.getString(R.string.cabin_chip_levels, screen, cabin.media.volume)
     drawChip(measurer, levels, Offset(rect.center.x, rect.bottom + 13.dp.toPx()), PlaygroundColors.text, fontSize = 11.sp)
     if (brightness <= 0.01f) {
         if (flash > 0f) drawFlashRect(rect, flash)
         return
     }
     val lines = buildList {
-        cabin.nav.takeIf { it.active }?.let { add("→ ${it.destination?.name} ${it.remainingMeters.km()}" to PlaygroundColors.glow) }
+        cabin.nav.takeIf { it.active }?.let { nav ->
+            add(res.navLine(nav.destination?.name, nav.remainingMeters) to PlaygroundColors.glow)
+        }
         if (cabin.media.title.isNotEmpty()) add((if (cabin.media.playing) "♪ " else "Ⅱ ") + cabin.media.title to PlaygroundColors.sage)
         if (isEmpty()) add("Bothy" to PlaygroundColors.sage)
     }
@@ -214,15 +253,33 @@ private fun DrawScope.drawScreen(cabin: Cabin, brightness: Float, flash: Float, 
 }
 
 /** Inside temperature and the air conditioning, in the gap between the front seats and the rear ones. */
-private fun DrawScope.drawConsole(cabin: Cabin, measurer: TextMeasurer) {
+private fun DrawScope.drawConsole(cabin: Cabin, res: Resources, measurer: TextMeasurer) {
     val climate = cabin.climate
-    val setting = if (climate.on) "空调 ${climate.driverTemp.deg()} ${climate.mode.label}" else "空调关"
-    drawChip(measurer, "车内 ${cabin.insideTempC.deg()} · $setting", CabinSpots.betweenRows.on(size), if (climate.on) PlaygroundColors.cool else PlaygroundColors.text)
+    val setting = if (climate.on) {
+        res.getString(R.string.cabin_chip_climate, climate.driverTemp.deg(), res.getString(climate.mode.labelRes))
+    } else {
+        res.getString(R.string.cabin_chip_climate_off)
+    }
+    val text = res.getString(R.string.cabin_chip_console, cabin.insideTempC.deg(), setting)
+    val color = if (climate.on) PlaygroundColors.cool else PlaygroundColors.text
+    drawChip(measurer, text, CabinSpots.betweenRows.on(size), color)
 }
 
-private fun Cabin.driveLine(): String =
-    if (drive.moving) "行驶中 ${drive.speedKmh.roundToInt()} km/h · 电量 ${drive.batteryPct.roundToInt()}% · 续航 $rangeKm km"
-    else "停车 · 电量 ${drive.batteryPct.roundToInt()}% · 续航 $rangeKm km"
+private fun Cabin.driveLine(res: Resources): String =
+    if (drive.moving) {
+        res.getString(R.string.cabin_chip_driving, drive.speedKmh.roundToInt(), drive.batteryPct.roundToInt(), rangeKm)
+    } else {
+        res.getString(R.string.cabin_chip_parked, drive.batteryPct.roundToInt(), rangeKm)
+    }
+
+/** The screen's route line: where to and how far, in metres below a kilometre, else kilometres to one decimal. */
+private fun Resources.navLine(destination: String?, meters: Int): String =
+    if (meters < 1000) {
+        getString(R.string.cabin_screen_route_m, destination.toString(), meters)
+    } else {
+        val km = ((meters / 100) / 10.0).toString().removeSuffix(".0")
+        getString(R.string.cabin_screen_route_km, destination.toString(), km)
+    }
 
 private const val MOTION_MS = 600
 private const val WAVE_MS = 1600

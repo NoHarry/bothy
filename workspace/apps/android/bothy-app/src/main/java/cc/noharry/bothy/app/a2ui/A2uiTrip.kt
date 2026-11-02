@@ -31,11 +31,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.image.rememberPicture
@@ -49,7 +51,7 @@ import cc.noharry.bothy.app.overlay.OverlayPalette
 internal class A2uiTicket(private val carLook: Boolean) : A2uiComponent {
     override val name: String = TICKET_COMPONENT
     override val description: String = "One way of a trip: which leg, the flight, train or drive, departure and arrival times, the route and a note."
-    override val properties: List<A2uiProperty<*>> = listOf(LEG, SERVICE, TIMES, ROUTE, NOTE, MODE)
+    override val properties: List<A2uiProperty<*>> = listOf(LEG, SERVICE, TIMES, ROUTE, NOTE, ALTERNATIVES, MODE)
 
     @Composable
     override fun A2uiComponentScope.Content(properties: A2uiComponentProperties, modifier: Modifier) {
@@ -73,7 +75,10 @@ internal class A2uiTicket(private val carLook: Boolean) : A2uiComponent {
                 }
             }
             properties[ROUTE]?.takeIf(String::isNotBlank)?.let { Text(it, style = style.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-            properties[NOTE]?.takeIf(String::isNotBlank)?.let { Text(it, style = style.faint, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+            val alternatives = properties[ALTERNATIVES]?.takeIf(String::isNotBlank)
+                ?.let { stringResource(R.string.a2ui_trip_alternatives, it) }
+            val note = listOfNotNull(properties[NOTE]?.takeIf(String::isNotBlank), alternatives).joinToString(" · ")
+            if (note.isNotEmpty()) Text(note, style = style.faint, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 
@@ -83,6 +88,7 @@ internal class A2uiTicket(private val carLook: Boolean) : A2uiComponent {
         val TIMES = A2uiProperty.string("times", false, "Departure → arrival, such as 07:50 → 10:55.")
         val ROUTE = A2uiProperty.string("route", false, "From and to, such as 虹桥T1 → 天府T2.")
         val NOTE = A2uiProperty.string("note", false, "Price, other options.")
+        val ALTERNATIVES = A2uiProperty.string("alternatives", false, "Other flights or trains of this leg.")
         val MODE = A2uiProperty.string("mode", false, "flight, train or drive: the mark on the line between the times.")
     }
 }

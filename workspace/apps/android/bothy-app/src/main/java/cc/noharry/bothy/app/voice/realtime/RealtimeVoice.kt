@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.voice.NearSpeechGate
 import cc.noharry.bothy.voice.VoiceAudioEffects
 import cc.noharry.bothy.voice.VoiceAudioSource
@@ -100,7 +101,11 @@ internal class RealtimeVoice(
     private var reconnects = 0
     private val converter = Float32ToPcm16(REALTIME_OUTPUT_GAIN)
     private val mutableState = MutableStateFlow(
-        VoiceSessionState(status = VoiceSessionStatus.STARTING, engineLabel = REALTIME_LABEL, fullDuplex = config.bargeIn),
+        VoiceSessionState(
+            status = VoiceSessionStatus.STARTING,
+            engineLabel = context.getString(R.string.realtime_label),
+            fullDuplex = config.bargeIn,
+        ),
     )
     val state: StateFlow<VoiceSessionState> = mutableState
 
@@ -165,7 +170,9 @@ internal class RealtimeVoice(
 
     private fun connect(): DoubaoRealtimeConnection {
         val mine = ++generation
-        return DoubaoRealtimeConnection(client, key, { event -> actions.trySend { if (mine == generation) handle(event) } }, url)
+        return DoubaoRealtimeConnection(context, client, key, { event ->
+            actions.trySend { if (mine == generation) handle(event) }
+        }, url)
     }
 
     private fun open(next: DoubaoRealtimeConnection) {
@@ -358,7 +365,9 @@ internal class RealtimeVoice(
             }
             is DoubaoRealtimeEvent.Failure -> if (!reconnect(event.message)) end(event.message, failed = true)
             // Only the service closes while the session runs (stop() ignores what follows its own close).
-            DoubaoRealtimeEvent.Closed -> if (!reconnect("closed by the service")) end("closed by the service", failed = !created)
+            DoubaoRealtimeEvent.Closed -> if (!reconnect("closed by the service")) {
+                end(context.getString(R.string.realtime_closed_by_service), failed = !created)
+            }
         }
     }
 
@@ -429,7 +438,8 @@ internal class RealtimeVoice(
         RealtimeShown.exchange.value = RealtimeExchange(words, text)
         if (words.isBlank()) return
         heard = ""
-        main.post { RuntimeSession.recordCompanionTurn(context, words, text, REALTIME_LABEL, speak = false) }
+        val label = context.getString(R.string.realtime_label)
+        main.post { RuntimeSession.recordCompanionTurn(context, words, text, label, speak = false) }
     }
 
     private fun speak(pcm16: ByteArray) {
@@ -652,7 +662,8 @@ internal class RealtimeVoice(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            actions.trySend { end("麦克风出错：${error.message ?: error.javaClass.simpleName}", failed = true) }
+            val why = context.getString(R.string.realtime_mic_error, error.message ?: error.javaClass.simpleName)
+            actions.trySend { end(why, failed = true) }
         }
     }
 
@@ -820,7 +831,6 @@ private fun ShortArray.littleEndianBytes(): ByteArray {
 }
 
 private const val TAG = "DebugRealtime"
-internal const val REALTIME_LABEL = "豆包端到端"
 private const val REALTIME_USAGE_MODEL = "doubao-seeduplex"
 private const val PCM16_FORMAT = "pcm16"
 /** 20 ms at 16 kHz, the slice the realtime API asks for. */

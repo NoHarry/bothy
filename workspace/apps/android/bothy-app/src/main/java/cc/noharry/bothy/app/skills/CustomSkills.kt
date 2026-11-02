@@ -1,5 +1,8 @@
 package cc.noharry.bothy.app.skills
 import android.content.Context
+import android.content.res.Resources
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.plans.matches
 import cc.noharry.bothy.app.plans.number
 import java.io.File
@@ -25,19 +28,24 @@ internal object CustomSkills {
 
     /** Names a new skill (or one renamed from [editing]) may not take: the built-in ones and the other custom ones. */
     fun takenNames(context: Context, editing: String?): Set<String> =
-        builtinRuntimeSkillIds() + load(context).map { it.id }.filter { it != editing }
+        builtinRuntimeSkillIds(context) + load(context).map { it.id }.filter { it != editing }
 
-    /** Saves [text] as a new skill, or in place of [editing] (renamed if its name changed); null when saved, else why not. */
+    /**
+     * Saves [text] as a new skill, or in place of [editing] (renamed if its name changed); null when saved, else why
+     * not, in [context]'s language.
+     */
     fun save(context: Context, text: String, editing: String?): String? {
         val check = checkCustomSkill(text, takenNames(context, editing))
-        if (check.errors.isNotEmpty()) return check.errors.joinToString("\n")
+        if (check.errors.isNotEmpty()) return check.errors.joinToString("\n") { it.text(context.resources) }
         val name = checkNotNull(check.name)
         val dir = File(root(context), name)
         val saved = runCatching {
             dir.mkdirs()
             File(dir, SKILL_FILE).writeText(check.normalized, Charsets.UTF_8)
         }
-        if (saved.isFailure) return "无法保存：${saved.exceptionOrNull()?.message}"
+        if (saved.isFailure) {
+            return context.getString(R.string.skills_custom_save_failed, saved.exceptionOrNull()?.message)
+        }
         if (editing != null && editing != name) {
             renameRuntimeSkillChoice(context, editing, name)
             File(root(context), editing).deleteRecursively()
@@ -58,11 +66,20 @@ internal object CustomSkills {
 internal data class SkillCheck(
     val name: String?,
     val description: String?,
-    val errors: List<String>,
-    val warnings: List<String>,
+    val errors: List<SkillIssue>,
+    val warnings: List<SkillIssue>,
     /** The text as saved: LF line ends, no byte-order mark, one trailing newline. */
     val normalized: String,
 )
+
+/** One thing [checkCustomSkill] found, for the form: a string and its arguments, a list among them read as one. */
+internal class SkillIssue(@StringRes val message: Int, private vararg val args: Any) {
+    fun text(resources: Resources): String {
+        val separator = resources.getString(R.string.skills_list_separator)
+        val shown = args.map { (it as? List<*>)?.joinToString(separator) ?: it }
+        return resources.getString(message, *shown.toTypedArray())
+    }
+}
 
 /**
  * Whether [text] is a SKILL.md the runtime reads as meant: the Agent Skills layout (a YAML header between `---` lines
@@ -71,54 +88,60 @@ internal data class SkillCheck(
  */
 internal fun checkCustomSkill(text: String, taken: Set<String>): SkillCheck {
     val normalized = text.removePrefix("﻿").replace("\r\n", "\n").replace('\r', '\n').trimEnd() + "\n"
-    if (text.isBlank()) return SkillCheck(null, null, listOf("内容是空的。"), emptyList(), normalized)
-    val errors = mutableListOf<String>()
-    val warnings = mutableListOf<String>()
-    if (normalized.toByteArray(Charsets.UTF_8).size > MAX_SKILL_BYTES) errors += "超过 64 KB：运行时只读得到前 64 KB。"
+    if (text.isBlank()) {
+        return SkillCheck(null, null, listOf(SkillIssue(R.string.skills_check_empty)), emptyList(), normalized)
+    }
+    val errors = mutableListOf<SkillIssue>()
+    val warnings = mutableListOf<SkillIssue>()
+    if (normalized.toByteArray(Charsets.UTF_8).size > MAX_SKILL_BYTES) {
+        errors += SkillIssue(R.string.skills_check_too_big)
+    }
     val lines = normalized.lines()
     if (lines.first().trimEnd() != FENCE) {
-        errors += "第一行要是 ---：开头是 YAML 头，写 name 和 description，再用一行 --- 结束。"
+        errors += SkillIssue(R.string.skills_check_first_line)
         return SkillCheck(null, null, errors, warnings, normalized)
     }
     val close = lines.drop(1).indexOfFirst { it.trimEnd() == FENCE }.takeIf { it >= 0 }?.plus(1)
     if (close == null) {
-        errors += "YAML 头没有用一行 --- 结束。"
+        errors += SkillIssue(R.string.skills_check_unclosed)
         return SkillCheck(null, null, errors, warnings, normalized)
     }
     val fields = readHeader(lines.subList(1, close), errors)
     val name = fields["name"]?.let { unquoted(it, "name", errors) }
     val validName = name?.let { checkName(it, taken, errors) }
-    if (name == null) errors += "缺少 name。"
+    if (name == null) errors += SkillIssue(R.string.skills_check_no_name)
     val description = fields["description"]?.let { unquoted(it, "description", errors) }
     checkDescription(description, errors, warnings)
-    fields["metadata"]?.takeIf(String::isNotBlank)?.let { errors += "metadata 下面要换行、缩进写「键: 值」。" }
-    fields["scenes"]?.takeUnless { SCENES.matches(it) }?.let { errors += "scenes 要写成 [\"场景一\", \"场景二\"]。" }
+    fields["metadata"]?.takeIf(String::isNotBlank)?.let { errors += SkillIssue(R.string.skills_check_metadata) }
+    fields["scenes"]?.takeUnless { SCENES.matches(it) }?.let { errors += SkillIssue(R.string.skills_check_scenes) }
     val body = lines.drop(close + 1)
-    if (body.all(String::isBlank)) errors += "--- 下面的正文是空的：写上要模型怎么做。"
-    if (body.size > LONG_BODY_LINES) warnings += "正文有 ${body.size} 行，超过 $LONG_BODY_LINES 行，建议精简或拆成几个技能。"
+    if (body.all(String::isBlank)) errors += SkillIssue(R.string.skills_check_empty_body)
+    if (body.size > LONG_BODY_LINES) warnings += SkillIssue(R.string.skills_check_long_body, body.size, LONG_BODY_LINES)
     checkSections(body.joinToString("\n"), errors)
     return SkillCheck(validName, description, errors, warnings, normalized)
 }
 
 /** The header's top-level `key: value` lines; indented lines only under a key with no value (metadata's entries). */
-private fun readHeader(header: List<String>, errors: MutableList<String>): Map<String, String> {
+private fun readHeader(header: List<String>, errors: MutableList<SkillIssue>): Map<String, String> {
     val fields = linkedMapOf<String, String>()
     var nested = false
     header.forEachIndexed { index, line ->
         val number = index + 2
         when {
             line.isBlank() || line.trimStart().startsWith("#") -> Unit
-            line.first().isWhitespace() -> if (!nested) errors += "第 $number 行：缩进的内容只能写在 metadata 这样空着值的字段下面。"
+            line.first().isWhitespace() -> if (!nested) errors += SkillIssue(R.string.skills_check_indent, number)
             else -> {
                 val match = FIELD.matchEntire(line)
                 if (match == null) {
-                    errors += "第 $number 行不是「字段: 值」的格式。"
+                    errors += SkillIssue(R.string.skills_check_not_field, number)
                     nested = false
                     return@forEachIndexed
                 }
                 val (key, value) = match.destructured
-                if (key in fields) errors += "字段 $key 写了两遍。"
-                if (key !in HEADER_FIELDS) errors += "第 $number 行：不认识的字段「$key」，只能用 ${HEADER_FIELDS.joinToString("、")}。"
+                if (key in fields) errors += SkillIssue(R.string.skills_check_duplicate, key)
+                if (key !in HEADER_FIELDS) {
+                    errors += SkillIssue(R.string.skills_check_unknown_field, number, key, HEADER_FIELDS)
+                }
                 fields[key] = value.trim()
                 nested = value.isBlank()
             }
@@ -128,30 +151,36 @@ private fun readHeader(header: List<String>, errors: MutableList<String>): Map<S
 }
 
 /** Double quotes may wrap a value; single ones stay in it for this runtime's header reader. */
-private fun unquoted(value: String, key: String, errors: MutableList<String>): String {
+private fun unquoted(value: String, key: String, errors: MutableList<SkillIssue>): String {
     if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) return value.substring(1, value.length - 1).trim()
-    if (value.startsWith('\'')) errors += "$key 用双引号或不加引号：运行时不认单引号。"
+    if (value.startsWith('\'')) errors += SkillIssue(R.string.skills_check_single_quotes, key)
     return value
 }
 
-private fun checkName(name: String, taken: Set<String>, errors: MutableList<String>): String? {
+private fun checkName(name: String, taken: Set<String>, errors: MutableList<SkillIssue>): String? {
     when {
-        name.isEmpty() -> errors += "name 是空的。"
+        name.isEmpty() -> errors += SkillIssue(R.string.skills_check_name_empty)
         name.length > MAX_NAME_CHARS || !NAME.matches(name) ->
-            errors += "name「$name」只能用小写英文字母、数字和 -，不能以 - 开头或结尾，不能连着写 --，最长 $MAX_NAME_CHARS 个字符。"
-        name in taken -> errors += "已经有叫「$name」的技能，换个名字（改自己加的技能请在列表里点编辑）。"
+            errors += SkillIssue(R.string.skills_check_name_format, name, MAX_NAME_CHARS)
+        name in taken -> errors += SkillIssue(R.string.skills_check_name_taken, name)
         else -> return name
     }
     return null
 }
 
-private fun checkDescription(description: String?, errors: MutableList<String>, warnings: MutableList<String>) {
+private fun checkDescription(
+    description: String?,
+    errors: MutableList<SkillIssue>,
+    warnings: MutableList<SkillIssue>,
+) {
     when {
-        description == null -> errors += "缺少 description：一句话写清做什么、什么时候用，模型靠它决定要不要读这个技能。"
-        description.isEmpty() || description in BLOCK_SCALARS -> errors += "description 要写在「description:」同一行：运行时按行读。"
-        description.length > MAX_DESCRIPTION_CHARS -> errors += "description 超过 $MAX_DESCRIPTION_CHARS 个字符。"
-        '<' in description || '>' in description -> errors += "description 里不能有尖括号 < >。"
-        description.length < SHORT_DESCRIPTION_CHARS -> warnings += "description 太短：写清做什么、什么时候用，模型才知道什么时候读它。"
+        description == null -> errors += SkillIssue(R.string.skills_check_no_description)
+        description.isEmpty() || description in BLOCK_SCALARS ->
+            errors += SkillIssue(R.string.skills_check_description_line)
+        description.length > MAX_DESCRIPTION_CHARS ->
+            errors += SkillIssue(R.string.skills_check_description_long, MAX_DESCRIPTION_CHARS)
+        '<' in description || '>' in description -> errors += SkillIssue(R.string.skills_check_description_brackets)
+        description.length < SHORT_DESCRIPTION_CHARS -> warnings += SkillIssue(R.string.skills_check_description_short)
     }
 }
 
@@ -159,11 +188,11 @@ private fun checkDescription(description: String?, errors: MutableList<String>, 
  * `<!-- key -->` … `<!-- /key -->` sections ([withSections]) come in pairs: an extra opening or closing stays in the text
  * as is, and its condition does not apply. An opening never closed is an ordinary comment.
  */
-private fun checkSections(body: String, errors: MutableList<String>) {
+private fun checkSections(body: String, errors: MutableList<SkillIssue>) {
     val opened = SECTION_OPEN.findAll(body).map { it.groupValues[1] }.groupingBy { it }.eachCount()
     val closed = SECTION_CLOSE.findAll(body).map { it.groupValues[1] }.groupingBy { it }.eachCount()
     closed.keys.filter { opened[it] != closed[it] }.forEach { key ->
-        errors += "「<!-- $key -->」和「<!-- /$key -->」没有成对出现。"
+        errors += SkillIssue(R.string.skills_check_sections, key)
     }
 }
 

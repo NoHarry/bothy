@@ -3,6 +3,7 @@ import android.content.Context
 import cc.noharry.agent.a2a.A2aAuthProvider
 import cc.noharry.agent.a2a.A2aProtectedHeaders
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
@@ -20,12 +21,12 @@ internal object A2aTokens {
     /** Stores [token]; returns a message when it is unusable, null when saved. */
     fun save(context: Context, profileId: String, token: String): String? {
         val value = token.trim()
-        if (value.isEmpty() || value.any(Char::isWhitespace)) return "Access token must be one word without spaces."
+        if (value.isEmpty() || value.any(Char::isWhitespace)) return context.getString(R.string.a2a_token_spaces)
         return try {
             file(context, profileId).apply { parentFile?.mkdirs() }.writeText(value, Charsets.UTF_8)
             null
         } catch (_: IOException) {
-            "Could not save the access token."
+            context.getString(R.string.a2a_token_save_failed)
         }
     }
 

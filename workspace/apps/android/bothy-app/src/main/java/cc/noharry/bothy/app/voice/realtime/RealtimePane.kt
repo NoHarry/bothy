@@ -22,7 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -52,10 +54,13 @@ internal fun RealtimePane() {
     var saved by remember { mutableStateOf(loadRealtimeConfig(context)) }
     var persona by remember { mutableStateOf(saved.effectivePersona) }
     var note by remember { mutableStateOf(SettingsNote()) }
+    val savedAfterRestart = stringResource(R.string.realtime_saved_after_restart)
+    val savedNextWake = stringResource(R.string.realtime_saved_next_wake)
+    val discarded = stringResource(R.string.voice_discarded)
     val apply = { candidate: RealtimeConfig ->
         saveRealtimeConfig(context, candidate)
         saved = loadRealtimeConfig(context)
-        note = SettingsNote(if (VoiceController.listening) "已保存 · 结束当前对话后重新唤醒生效" else "已保存，下次唤醒生效")
+        note = SettingsNote(if (VoiceController.listening) savedAfterRestart else savedNextWake)
     }
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -63,9 +68,10 @@ internal fun RealtimePane() {
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
             RealtimeSwitches(saved, apply)
-            Text("音色", style = ConsoleType.label, color = ConsoleColors.muted)
+            Text(stringResource(R.string.voice_voice), style = ConsoleType.label, color = ConsoleColors.muted)
             DoubaoRealtimeVoice.entries.forEach { voice ->
-                SelectableOptionRow(voice.label, saved.voice == voice.id, { apply(saved.copy(voice = voice.id)) })
+                val label = voice.label(context)
+                SelectableOptionRow(label, saved.voice == voice.id, { apply(saved.copy(voice = voice.id)) })
             }
             RealtimePersonas(saved) { preset ->
                 apply(saved.copy(personaPreset = preset))
@@ -74,7 +80,7 @@ internal fun RealtimePane() {
             OutlinedTextField(
                 value = persona,
                 onValueChange = { persona = it },
-                label = { Text("人设内容（改了按保存就是自定义；办事交给小博、结束对话的规则会自动加在后面）") },
+                label = { Text(stringResource(R.string.realtime_persona_text)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 colors = outlinedTextFieldColors(),
@@ -88,7 +94,7 @@ internal fun RealtimePane() {
                 apply(saved.copy(persona = persona.trim().ifEmpty { DEFAULT_REALTIME_PERSONA }, personaPreset = CUSTOM_REALTIME_PERSONA))
                 persona = saved.effectivePersona
             },
-            onDiscard = { persona = saved.effectivePersona; note = SettingsNote("已放弃修改") },
+            onDiscard = { persona = saved.effectivePersona; note = SettingsNote(discarded) },
         )
     }
 }
@@ -96,26 +102,22 @@ internal fun RealtimePane() {
 @Composable
 private fun RealtimeSwitches(saved: RealtimeConfig, onApply: (RealtimeConfig) -> Unit) {
     val context = LocalContext.current
-    Text(
-        "演示用：唤醒后由豆包端到端实时语音（Seeduplex）直接听和说，闲聊它自己回答；要办事时它把事情交给小博执行（小博不出声），" +
-            "再把结果说给你。打开后，唤醒和麦克风按钮都走这条路，不经过语音识别、Jev 和陪聊。用的是 设置 → 语音 → 密钥 里的豆包语音 key，" +
-            "控制台要开通端到端实时语音。",
-        color = ConsoleColors.muted,
-    )
+    Text(stringResource(R.string.realtime_intro), color = ConsoleColors.muted)
     if (realtimeKey(context).isEmpty()) {
-        Text("还没有豆包语音 key：先到 设置 → 语音 → 密钥 填写。", style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+        Text(stringResource(R.string.realtime_no_key), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
     }
-    RealtimeSwitch("启用端到端演示模式", saved.enabled) { onApply(saved.copy(enabled = it)) }
-    RealtimeSwitch("允许打断（全双工）", saved.bargeIn) { onApply(saved.copy(bargeIn = it)) }
+    RealtimeSwitch(stringResource(R.string.realtime_enable), saved.enabled) { onApply(saved.copy(enabled = it)) }
+    RealtimeSwitch(stringResource(R.string.realtime_barge_in), saved.bargeIn) { onApply(saved.copy(bargeIn = it)) }
     Text(
-        "关着时豆包说话期间听不到你（设备回声消除不好时不会自己打断自己），想打断就喊唤醒词；打开后可以直接插话。",
+        stringResource(R.string.realtime_barge_in_note),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
-    RealtimeSwitch("小博补播报晚到的结果", saved.lateSpeech) { onApply(saved.copy(lateSpeech = it)) }
+    RealtimeSwitch(stringResource(R.string.realtime_late_speech), saved.lateSpeech) {
+        onApply(saved.copy(lateSpeech = it))
+    }
     Text(
-        "关着时（默认），豆包等不到的结果（超过等待时间、子任务和计划的回报）只显示在屏幕上，并悄悄告诉豆包，问起时它知道；" +
-            "打开后由小博等豆包说完再自己念出来。",
+        stringResource(R.string.realtime_late_speech_note),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
@@ -124,15 +126,20 @@ private fun RealtimeSwitches(saved: RealtimeConfig, onApply: (RealtimeConfig) ->
 /** The presets, then 自定义 (the persona last typed and saved). */
 @Composable
 private fun RealtimePersonas(saved: RealtimeConfig, onPick: (String) -> Unit) {
-    Text("人设", style = ConsoleType.label, color = ConsoleColors.muted)
+    Text(stringResource(R.string.realtime_persona), style = ConsoleType.label, color = ConsoleColors.muted)
     DoubaoRealtimePersona.entries.forEach { preset ->
-        SelectableOptionRow(preset.label, saved.personaPreset == preset.id, { onPick(preset.id) }, subtitle = preset.summary)
+        SelectableOptionRow(
+            stringResource(preset.label),
+            saved.personaPreset == preset.id,
+            { onPick(preset.id) },
+            subtitle = stringResource(preset.summary),
+        )
     }
     SelectableOptionRow(
-        "自定义",
+        stringResource(R.string.realtime_custom),
         saved.personaPreset == CUSTOM_REALTIME_PERSONA,
         { onPick(CUSTOM_REALTIME_PERSONA) },
-        subtitle = "用下面框里自己写的人设",
+        subtitle = stringResource(R.string.realtime_custom_summary),
     )
 }
 
@@ -148,30 +155,38 @@ private fun RealtimeSwitch(label: String, checked: Boolean, onChange: (Boolean) 
 private fun RealtimeTry(saved: RealtimeConfig) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var result by remember { mutableStateOf<String?>(null) }
+    // The last test's line, and whether it failed.
+    var result by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var busy by remember { mutableStateOf(false) }
+    val connecting = stringResource(R.string.realtime_connecting)
     TextButton(enabled = !busy, onClick = {
         busy = true
-        result = "正在连接豆包端到端…"
+        result = connecting to false
         scope.launch {
             result = realtimeConnectionLine(context, saved)
             busy = false
         }
-    }) { Text("测试连接（用已保存的设置）") }
-    result?.let { Text(it, style = ConsoleType.bodySmall, color = if (it.startsWith("失败")) ConsoleColors.danger else ConsoleColors.text) }
+    }) { Text(stringResource(R.string.realtime_test)) }
+    result?.let { (line, failed) ->
+        Text(line, style = ConsoleType.bodySmall, color = if (failed) ConsoleColors.danger else ConsoleColors.text)
+    }
 }
 
-private suspend fun realtimeConnectionLine(context: Context, config: RealtimeConfig): String {
+/** What the connection test says, and whether it failed. */
+private suspend fun realtimeConnectionLine(context: Context, config: RealtimeConfig): Pair<String, Boolean> {
     val key = withContext(Dispatchers.IO) { realtimeKey(context) }
-    if (key.isEmpty()) return "失败：缺少豆包语音 key"
+    if (key.isEmpty()) return context.getString(R.string.realtime_failed_no_key) to true
     return probeRealtime(context, key, config).fold(
-        onSuccess = { "会话建立用了 $it ms · ${DoubaoRealtimeVoice.labelOf(config.voice)} · ${config.personaLabel()}" },
-        onFailure = { "失败：${it.message ?: it.javaClass.simpleName}" },
+        onSuccess = {
+            val voice = DoubaoRealtimeVoice.labelOf(context, config.voice)
+            context.getString(R.string.realtime_connected, it, voice, config.personaLabel(context)) to false
+        },
+        onFailure = { context.getString(R.string.realtime_failed, it.message ?: it.javaClass.simpleName) to true },
     )
 }
 
 private suspend fun probeRealtime(context: Context, key: String, config: RealtimeConfig): Result<Long> = try {
-    withContext(Dispatchers.IO) { probeDoubaoRealtime(doubaoRealtimeClient(context), key, config) }
+    withContext(Dispatchers.IO) { probeDoubaoRealtime(context, doubaoRealtimeClient(context), key, config) }
 } catch (cancelled: CancellationException) {
     throw cancelled
 } catch (error: Exception) {
@@ -180,17 +195,28 @@ private suspend fun probeRealtime(context: Context, key: String, config: Realtim
 
 /** 一键检查 → 端到端演示: off, no key, or how long a session takes to open. */
 /** 端到端 in a report: on, 允许打断, the voice and the persona. */
-internal fun RealtimeConfig.reportLine(): String =
-    "开 · 允许打断${if (bargeIn) "开" else "关"} · 补播报${if (lateSpeech) "开" else "关"} · ${DoubaoRealtimeVoice.labelOf(voice)} · ${personaLabel()}"
+internal fun RealtimeConfig.reportLine(context: Context): String = context.getString(
+    R.string.realtime_report_line,
+    context.getString(if (bargeIn) R.string.common_on else R.string.common_off),
+    context.getString(if (lateSpeech) R.string.common_on else R.string.common_off),
+    DoubaoRealtimeVoice.labelOf(context, voice),
+    personaLabel(context),
+)
 
 internal suspend fun checkRealtime(context: Context): CheckResult {
     val config = loadRealtimeConfig(context)
-    if (!config.enabled) return CheckResult(CheckState.OFF, "没打开")
+    if (!config.enabled) return CheckResult(CheckState.OFF, context.getString(R.string.realtime_check_off))
     val key = withContext(Dispatchers.IO) { realtimeKey(context) }
-    if (key.isEmpty()) return CheckResult(CheckState.FAIL, "缺少豆包语音 key", CheckFix.VOICE)
-    val voice = DoubaoRealtimeVoice.labelOf(config.voice)
+    if (key.isEmpty()) {
+        return CheckResult(CheckState.FAIL, context.getString(R.string.realtime_check_no_key), CheckFix.VOICE)
+    }
+    val voice = DoubaoRealtimeVoice.labelOf(context, config.voice)
+    val bargeIn = context.getString(if (config.bargeIn) R.string.common_on else R.string.common_off)
     return probeRealtime(context, key, config).fold(
-        onSuccess = { CheckResult(CheckState.OK, "$voice · ${config.personaLabel()} · 允许打断${if (config.bargeIn) "开" else "关"} · 会话建立用了 $it ms") },
+        onSuccess = {
+            val persona = config.personaLabel(context)
+            CheckResult(CheckState.OK, context.getString(R.string.realtime_check_ok, voice, persona, bargeIn, it))
+        },
         onFailure = { CheckResult(CheckState.FAIL, it.message ?: it.javaClass.simpleName) },
     )
 }

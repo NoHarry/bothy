@@ -2,6 +2,7 @@ package cc.noharry.bothy.app.usage
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDate
+import java.util.Locale
 
 class UsageStatsTest {
     private fun day(date: String, tokens: Long) = date to mapOf("m" to ModelUsage(1, tokens))
@@ -42,7 +43,8 @@ class UsageStatsTest {
 
     @Test
     fun monthLabelsSitOnTheColumnHoldingTheFirst() {
-        assertEquals(listOf(3 to "10月"), heatmapMonths(LocalDate.parse("2026-10-11"), weeks = 5))
+        assertEquals(listOf(3 to "10月"), heatmapMonths(LocalDate.parse("2026-10-11"), weeks = 5, Locale.CHINESE))
+        assertEquals(listOf(3 to "Oct"), heatmapMonths(LocalDate.parse("2026-10-11"), weeks = 5, Locale.ENGLISH))
     }
 
     @Test
@@ -70,8 +72,14 @@ class UsageStatsTest {
         assertEquals(listOf(1.0, 5.0, 100.0, 1_000.0, 20_000.0, 500_000.0), listOf(0.0, 5.0, 100.0, 1_000.0, 12_345.0, 300_001.0).map(::niceCeiling))
         assertEquals(0.5, niceCeiling(0.2423), 1e-12)
         assertEquals(0.002, niceCeiling(0.0013), 1e-12)
-        assertEquals(listOf("8532", "1.5 万", "3 万", "3.3 亿"), listOf(8_532L, 15_000L, 30_000L, 330_000_000L).map(::tokens))
-        assertEquals("周日", weekdayName(LocalDate.parse("2026-10-11")))
+        assertEquals(listOf("8532", "1.5 万", "3 万", "3.3 亿"), listOf(8_532L, 15_000L, 30_000L, 330_000_000L).map { tokens(it, Locale.CHINESE) })
+        assertEquals("any Chinese locale", "1.5 万", tokens(15_000L, Locale.TRADITIONAL_CHINESE))
+        assertEquals(
+            listOf("999", "8.5K", "15K", "999.9K", "1M", "3.4M", "330M", "1.2B"),
+            listOf(999L, 8_532L, 15_000L, 999_949L, 999_950L, 3_400_000L, 330_000_000L, 1_234_000_000L).map { tokens(it, Locale.ENGLISH) },
+        )
+        assertEquals("周日", weekdayName(LocalDate.parse("2026-10-11"), Locale.CHINESE))
+        assertEquals("Sun", weekdayName(LocalDate.parse("2026-10-11"), Locale.ENGLISH))
     }
 
     @Test
@@ -83,6 +91,7 @@ class UsageStatsTest {
         assertEquals(900 * 7.0 / 1e6, costs.last().second, 1e-12)
         assertEquals("a day with requests but no tokens costs nothing", 0.0, dayCost(ledger, book, LocalDate.parse("2026-10-07")), 0.0)
         assertEquals(listOf("¥0", "¥0.25", "¥0.5", "¥20", "¥0.0063"), listOf(0.0, 0.25, 0.5, 20.0, 0.0063).map(::yuanShort))
-        assertEquals(listOf("¥0.25", "2.5 万"), listOf(TrendMetric.COST.format(0.25), TrendMetric.TOKENS.format(25_000.0)))
+        assertEquals(listOf("¥0.25", "2.5 万"), listOf(TrendMetric.COST.format(0.25, Locale.CHINESE), TrendMetric.TOKENS.format(25_000.0, Locale.CHINESE)))
+        assertEquals(listOf("¥0.25", "25K"), listOf(TrendMetric.COST.format(0.25, Locale.ENGLISH), TrendMetric.TOKENS.format(25_000.0, Locale.ENGLISH)))
     }
 }

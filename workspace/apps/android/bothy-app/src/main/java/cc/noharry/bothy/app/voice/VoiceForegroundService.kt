@@ -11,6 +11,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.AppLanguages
 
 /**
  * Keeps the microphone usable behind other apps while 语音唤醒 is on: a foreground service of the microphone
@@ -20,6 +22,10 @@ import android.util.Log
  * once the app is behind others. [sync] starts it from the console and the settings switch, both in front.
  */
 class VoiceForegroundService : Service() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -30,11 +36,12 @@ class VoiceForegroundService : Service() {
     private fun holdMicrophone(): Boolean = try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(NotificationChannel(WAKE_CHANNEL, "小博语音唤醒", NotificationManager.IMPORTANCE_MIN))
+            val name = getString(R.string.voice_wake_channel)
+            manager.createNotificationChannel(NotificationChannel(WAKE_CHANNEL, name, NotificationManager.IMPORTANCE_MIN))
             val notification = Notification.Builder(this, WAKE_CHANNEL)
                 .setSmallIcon(android.R.drawable.ic_btn_speak_now)
-                .setContentTitle("小博语音唤醒")
-                .setContentText("说「你好，小博」或「OK Bothy」唤醒；在 设置 → 语音 关闭")
+                .setContentTitle(name)
+                .setContentText(getString(R.string.voice_wake_notification))
                 .build()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 startForeground(WAKE_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)

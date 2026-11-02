@@ -1,6 +1,9 @@
 @file:OptIn(ExperimentalA2aClientApi::class)
 
 package cc.noharry.bothy.app.a2a
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.a2a.A2aClientConfig
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
@@ -27,9 +30,15 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Real sockets: the packaged direct client against the real A2A server, as client mode runs on the device. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class A2aClientLoopbackTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val inputs = Collections.synchronizedList(mutableListOf<Pair<String, String?>>())
     private val answered = CompletableDeferred<Unit>()
     private lateinit var server: A2aServer
@@ -68,6 +77,7 @@ class A2aClientLoopbackTest {
         val client = A2aModuleRegistry.packaged().create(DIRECT_MODULE_ID).factory()
             .create(A2aClientConfig(requestTimeout = 1.minutes, allowLoopbackHttpForDebug = true))
         val session = A2aClientSession(
+            texts = context.resources,
             client = client,
             remote = RemoteAgentRef("loopback", URI("http://127.0.0.1:${server.localPort}/a2a")),
             scope = this,

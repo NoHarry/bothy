@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The virtual cabin's screens: its controls, the picture's chips and the log lines of changes made by hand. -->
+<resources>
+    <!-- Seats, modes and colours as screens name them; the model keeps the Chinese names in the code. -->
+    <string name="cabin_seat_driver">Driver</string>
+    <string name="cabin_seat_passenger">Front passenger</string>
+    <string name="cabin_seat_rear_left">Rear left</string>
+    <string name="cabin_seat_rear_right">Rear right</string>
+    <string name="cabin_mode_auto">Auto</string>
+    <string name="cabin_mode_cool">Cool</string>
+    <string name="cabin_mode_heat">Heat</string>
+    <string name="cabin_mode_vent">Vent</string>
+    <string name="cabin_color_warm_white">Warm white</string>
+    <string name="cabin_color_warm_orange">Warm orange</string>
+    <string name="cabin_color_forest_green">Forest green</string>
+    <string name="cabin_color_ice_blue">Ice blue</string>
+    <string name="cabin_color_lavender">Lavender</string>
+    <string name="cabin_color_rose_red">Rose red</string>
+    <string name="cabin_color_champagne_gold">Champagne gold</string>
+
+    <!-- The controls by hand. -->
+    <string name="cabin_passengers">Passengers</string>
+    <string name="cabin_row_seated">Seated</string>
+    <string name="cabin_row_speaker">Speaker</string>
+    <string name="cabin_climate">Climate</string>
+    <string name="cabin_row_temp">Temp</string>
+    <string name="cabin_fan_level">Fan %1$d</string>
+    <string name="cabin_row_mode">Mode</string>
+    <string name="cabin_seats">Seats</string>
+    <string name="cabin_level_heat">Heat %1$d</string>
+    <string name="cabin_level_vent">Vent %1$d</string>
+    <string name="cabin_windows">Windows</string>
+    <string name="cabin_doors_and_trunk">Doors and trunk</string>
+    <string name="cabin_locked">Locked</string>
+    <string name="cabin_unlocked">Unlocked</string>
+    <string name="cabin_row_open_doors">Open</string>
+    <string name="cabin_row_trunk">Trunk</string>
+    <string name="cabin_trunk_open">Open</string>
+    <string name="cabin_trunk_shut">Closed</string>
+    <string name="cabin_screen_and_sound">Screen and sound</string>
+    <string name="cabin_row_brightness">Brightness</string>
+    <string name="cabin_slider_screen_off">Off</string>
+    <string name="cabin_row_volume">Volume</string>
+    <string name="cabin_muted">Muted</string>
+    <string name="cabin_ambient">Ambient light</string>
+    <string name="cabin_row_color">Color</string>
+    <string name="cabin_music">Music</string>
+    <string name="cabin_pause">Pause</string>
+    <string name="cabin_play">Play</string>
+    <string name="cabin_next_track">Next</string>
+    <string name="cabin_readings">Vehicle readings</string>
+    <string name="cabin_row_battery">Battery</string>
+    <string name="cabin_row_inside">Inside</string>
+    <string name="cabin_row_outside">Outside</string>
+
+    <!-- The log lines of changes made by hand. -->
+    <string name="cabin_log_got_in">%1$s: someone got in</string>
+    <string name="cabin_log_got_out">%1$s: someone got out</string>
+    <string name="cabin_log_speaker">%1$s is speaking now</string>
+    <string name="cabin_log_climate_on">Climate on</string>
+    <string name="cabin_log_climate_off">Climate off</string>
+    <string name="cabin_log_climate_temp">Climate set to %1$s</string>
+    <string name="cabin_log_fan">Fan speed %1$d</string>
+    <string name="cabin_log_climate_mode">Climate: %1$s</string>
+    <string name="cabin_log_seat_heat">%1$s seat: heat %2$d</string>
+    <string name="cabin_log_seat_vent">%1$s seat: ventilation %2$d</string>
+    <string name="cabin_log_seat_off">%1$s seat: heat and ventilation off</string>
+    <string name="cabin_log_window_closed">%1$s window closed</string>
+    <string name="cabin_log_window_open">%1$s window open %2$d%%</string>
+    <string name="cabin_log_doors_locked">Doors locked</string>
+    <string name="cabin_log_doors_unlocked">Doors unlocked</string>
+    <string name="cabin_log_screen_off">Screen off</string>
+    <string name="cabin_log_screen_brightness">Screen brightness %1$d%%</string>
+    <string name="cabin_log_volume">Volume %1$d</string>
+    <string name="cabin_log_ambient_on">Ambient light on</string>
+    <string name="cabin_log_ambient_off">Ambient light off</string>
+    <string name="cabin_log_ambient_color">Ambient light: %1$s</string>
+    <string name="cabin_log_ambient_brightness">Ambient brightness %1$d%%</string>
+    <string name="cabin_log_music_paused">Music paused</string>
+    <string name="cabin_log_playing">Playing “%1$s”</string>
+    <string name="cabin_log_battery">Battery set to %1$d%%</string>
+    <string name="cabin_log_inside_temp">Inside temperature set to %1$s</string>
+    <string name="cabin_log_outside_temp">Outside temperature set to %1$s</string>
+
+    <!-- The chips on the cabin picture. -->
+    <string name="cabin_speaking">Speaking</string>
+    <string name="cabin_chip_locked">Doors locked</string>
+    <string name="cabin_chip_unlocked">Doors unlocked</string>
+    <string name="cabin_chip_window_open">Open %1$d%%</string>
+    <string name="cabin_chip_heat">Heat %1$d</string>
+    <string name="cabin_chip_vent">Vent %1$d</string>
+    <string name="cabin_chip_screen_off">Screen off</string>
+    <string name="cabin_chip_brightness">Brightness %1$d%%</string>
+    <string name="cabin_chip_levels">%1$s · Volume %2$d</string>
+    <string name="cabin_chip_climate">Climate %1$s %2$s</string>
+    <string name="cabin_chip_climate_off">Climate off</string>
+    <string name="cabin_chip_console">Inside %1$s · %2$s</string>
+    <string name="cabin_chip_driving">Driving %1$d km/h · Battery %2$d%% · Range %3$d km</string>
+    <string name="cabin_chip_parked">Parked · Battery %1$d%% · Range %2$d km</string>
+    <string name="cabin_screen_route_m">→ %1$s %2$d m</string>
+    <string name="cabin_screen_route_km">→ %1$s %2$s km</string>
+</resources>

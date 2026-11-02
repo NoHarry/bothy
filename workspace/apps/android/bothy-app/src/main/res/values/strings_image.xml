@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Image model, its test generation, and generated pictures in the console. -->
+<resources>
+    <string name="image_intro">An OpenAI-compatible images/generations API, configured apart from the chat model. When on, the assistant can call image_generate to make pictures and show them on the floating card.</string>
+    <string name="image_allow">Let the assistant generate pictures</string>
+    <string name="image_base_url">Base URL (e.g. https://api.example.com/v1)</string>
+    <string name="image_api_key">API key</string>
+    <string name="image_api_key_saved">API key · saved (leave blank to keep it)</string>
+    <string name="image_size">Size (optional, e.g. 1024x1024; leave blank for the service default)</string>
+    <string name="image_timeout">Timeout (seconds, 10–300)</string>
+    <string name="image_delete_key">Delete API key</string>
+    <string name="image_key_deleted">API key deleted · image generation off</string>
+    <string name="image_saved">Saved · applies from the next request</string>
+    <string name="image_discarded">Changes discarded</string>
+    <string name="image_model_none">Model · none picked</string>
+    <string name="image_model_current">Model · %1$s</string>
+    <string name="image_refresh_list">Refresh list</string>
+    <string name="image_fetch_first">Fill in and save the Base URL and API key first, then load the model list from the service.</string>
+    <string name="image_fetching">Loading the model list…</string>
+    <string name="image_fetch_failed">Couldn\'t load the list: %1$s</string>
+    <string name="image_unknown_error">Unknown error</string>
+    <string name="image_no_models">The service lists no models.</string>
+    <string name="image_model_not_listed">In use, not in the service\'s list</string>
+    <string name="image_no_image_models">No image model recognized; look under other models.</string>
+    <string name="image_hide_others">Hide other models</string>
+    <string name="image_other_models">Other models (%1$d)</string>
+    <string name="image_test">Test generation</string>
+    <string name="image_prompt">Prompt</string>
+    <string name="image_generating">Generating…</string>
+    <string name="image_save_key_first">Save an API key first</string>
+    <string name="image_test_failed">Failed (%1$ds): %2$s</string>
+    <string name="image_revised_prompt">Revised prompt: %1$s</string>
+    <string name="image_generated">Generated picture</string>
+    <string name="image_view_larger">View larger</string>
+    <string name="image_generating_picture">Generating picture…</string>
+    <string name="image_file_cleared">Picture file cleared</string>
+
+    <string name="image_problem_base_url_scheme">Base URL must be https://, or http:// on 127.0.0.1 (adb reverse).</string>
+    <string name="image_problem_base_url_parts">Base URL cannot contain credentials, query or fragment.</string>
+    <string name="image_problem_model_whitespace">Model ID cannot contain whitespace.</string>
+    <string name="image_problem_no_model">Pick a model before enabling image generation.</string>
+    <string name="image_problem_size">Size must look like 1024x1024, or stay blank.</string>
+    <string name="image_problem_timeout">Timeout must be 10–300 s.</string>
+    <string name="image_problem_no_key">Add an API key before enabling image generation.</string>
+    <string name="image_problem_key_whitespace">API key cannot contain whitespace.</string>
+    <string name="image_problem_key_not_removed">Could not remove the stored key.</string>
+    <string name="image_problem_not_saved">Could not save image model settings.</string>
+    <string name="image_problem_key_not_saved">Could not save the API key.</string>
+</resources>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Memory: the profile, a memory's own page, adding one, and the lessons tab. -->
+<resources>
+    <string name="memory_title">Memory</string>
+    <string name="memory_tab_profile">Profile</string>
+    <string name="memory_tab_lessons">Lessons</string>
+    <string name="memory_off_note">Memory is off: Xiao Bo won\'t remember anything new or use what it already remembers. Everything remembered is kept and used again once you turn it back on.</string>
+    <string name="memory_empty">Nothing remembered yet. Tell Xiao Bo “Remember my home is in Wangjing Garden”, “I usually set the AC to 22 degrees” or “Call me Lao Wang”, or add it by hand below.</string>
+    <string name="memory_avatar_you">You</string>
+    <string name="memory_name_fallback">You, as Xiao Bo remembers you</string>
+    <string name="memory_switch_label">Let Xiao Bo remember what you tell it</string>
+    <string name="memory_add_button">+ Add</string>
+    <string name="memory_footer">Xiao Bo only remembers what you tell it yourself about yourself, never passwords, verification codes, ID numbers or bank card numbers; at most %1$d in all, %2$d per kind. Memories stay on this device and are not written to the logs (what you say in a conversation is logged like any other conversation); “Clear runtime data” does not delete them. “Clear memories only” keeps past conversations, so Xiao Bo may still see what you said when it looks back through them; if someone else will use the device, use “Clear memories and conversations”.</string>
+    <string name="memory_clear_memories">Clear memories only</string>
+    <string name="memory_clear_all">Clear memories and conversations</string>
+    <string name="memory_clear_title">%1$s?</string>
+    <plurals name="memory_clear_memories_text">
+        <item quantity="one">Xiao Bo will forget the %1$d thing it remembers. This can\'t be undone. Past conversations are kept, so Xiao Bo may still see what you said when it looks back through them.</item>
+        <item quantity="other">Xiao Bo will forget the %1$d things it remembers. This can\'t be undone. Past conversations are kept, so Xiao Bo may still see what you said when it looks back through them.</item>
+    </plurals>
+    <plurals name="memory_clear_all_text">
+        <item quantity="one">This deletes the %1$d thing Xiao Bo remembers and every conversation, along with lessons, generated images and run logs (the same as “Clear runtime data”). Running tasks will stop. Model services, keys and settings are kept. This can\'t be undone.</item>
+        <item quantity="other">This deletes the %1$d things Xiao Bo remembers and every conversation, along with lessons, generated images and run logs (the same as “Clear runtime data”). Running tasks will stop. Model services, keys and settings are kept. This can\'t be undone.</item>
+    </plurals>
+    <string name="memory_clearing">Stopping tasks and clearing…</string>
+    <string name="memory_cleared_all">Memories and conversations cleared</string>
+    <string name="memory_clear_all_failed">Not everything was cleared: a task didn\'t stop or storage failed. Please try again.</string>
+    <string name="memory_cleared">Memories cleared</string>
+    <string name="memory_clear_failed">Not cleared: device storage failed</string>
+
+    <string name="memory_summary_empty">Nothing remembered yet</string>
+    <plurals name="memory_summary_count">
+        <item quantity="one">Xiao Bo remembers %1$d thing</item>
+        <item quantity="other">Xiao Bo remembers %1$d things</item>
+    </plurals>
+    <plurals name="memory_summary_days">
+        <item quantity="one">has known you for %1$d day</item>
+        <item quantity="other">has known you for %1$d days</item>
+    </plurals>
+    <string name="memory_metric_count">Remembered</string>
+    <string name="memory_metric_said">From you</string>
+    <string name="memory_metric_kinds">Topics</string>
+    <string name="memory_metric_latest">Last updated</string>
+
+    <string name="memory_category_identity">Name and identity</string>
+    <string name="memory_category_identity_hint">What to call you, your job, your birthday</string>
+    <string name="memory_category_places">Places</string>
+    <string name="memory_category_places_hint">Home, work, favorite shops</string>
+    <string name="memory_category_home">Device and home preferences</string>
+    <string name="memory_category_home_hint">Temperature, lights, volume, brightness</string>
+    <string name="memory_category_media">Entertainment</string>
+    <string name="memory_category_media_hint">Favorite singers, stations, shows</string>
+    <string name="memory_category_travel">Travel habits</string>
+    <string name="memory_category_travel_hint">Commute times, route preferences, charging and fueling</string>
+    <string name="memory_category_people">Family and friends</string>
+    <string name="memory_category_people_hint">Family, friends and things about them</string>
+    <string name="memory_category_other">Other</string>
+    <string name="memory_category_other_hint">Other lasting information</string>
+    <string name="memory_source_said">You said</string>
+    <string name="memory_source_typed">Added by hand</string>
+
+    <string name="memory_back">‹ Memory</string>
+    <string name="memory_info_source">Source</string>
+    <string name="memory_info_said">Your words</string>
+    <string name="memory_quoted">“%1$s”</string>
+    <string name="memory_info_created">Added</string>
+    <string name="memory_info_updated">Last changed</string>
+    <string name="memory_edit_title">Change</string>
+    <string name="memory_save_changes">Save changes</string>
+    <string name="memory_delete">Delete this memory</string>
+    <string name="memory_delete_title">Delete this memory?</string>
+    <string name="memory_delete_text">“%1$s”\nXiao Bo will forget this.</string>
+    <string name="memory_add_title">Add a memory</string>
+    <string name="memory_add_note">Write a full sentence, such as “Home is Building 3, Wangjing Garden” or “I usually set the AC to 22 degrees”. Xiao Bo will know it in every conversation from then on.</string>
+    <string name="memory_content_label">Content (%1$d/%2$d)</string>
+    <string name="memory_note_added">Added</string>
+    <string name="memory_note_saved">Saved</string>
+    <string name="memory_note_deleted">Deleted</string>
+    <string name="memory_refused_empty">The content is empty</string>
+    <string name="memory_refused_too_long">Too long: a memory is at most %1$d characters</string>
+    <string name="memory_refused_secret">Passwords, verification codes and the like aren\'t remembered</string>
+    <string name="memory_refused_long_number">ID numbers, bank card numbers and other long numbers aren\'t remembered</string>
+    <string name="memory_refused_full">Already %1$d memories, which is the most: delete some in Settings → Memory first</string>
+    <string name="memory_refused_category_full">“%1$s” already has %2$d memories: change or delete an old one first</string>
+    <string name="memory_refused_missing">No such memory (%1$s)</string>
+    <string name="memory_refused_not_saved">Not saved: device storage failed</string>
+
+    <string name="memory_lessons_note">Lessons Xiao Bo sums up after finishing tasks, such as which service answers a kind of request fastest or which one keeps failing. A lesson takes effect only after it holds up in several tasks; it is used only to get things done faster and more reliably and has nothing to do with your personal information.</string>
+    <string name="memory_lessons_loading">Loading…</string>
+    <string name="memory_lessons_empty">No lessons yet</string>
+    <string name="memory_lessons_active">Active · %1$d</string>
+    <string name="memory_lessons_pending">Pending · %1$d</string>
+    <plurals name="memory_lesson_meta">
+        <item quantity="one">%1$s · confidence %2$d%% · verified %3$d time</item>
+        <item quantity="other">%1$s · confidence %2$d%% · verified %3$d times</item>
+    </plurals>
+</resources>

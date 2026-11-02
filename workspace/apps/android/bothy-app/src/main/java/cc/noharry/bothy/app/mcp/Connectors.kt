@@ -1,7 +1,9 @@
 package cc.noharry.bothy.app.mcp
 import android.content.Context
 import android.os.Build
+import androidx.annotation.StringRes
 import cc.noharry.agent.mcp.McpToolsListing
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aModuleConfig
 import cc.noharry.bothy.app.a2a.A2aTokens
 import cc.noharry.bothy.app.a2a.DIRECT_MODULE_ID
@@ -46,23 +48,30 @@ import okhttp3.RequestBody.Companion.toRequestBody
  */
 internal data class Connector(
     val id: String,
+    /** The label its MCP server or A2A profile is saved under, which the model reads: the same in every language. */
     val name: String,
-    val summary: String,
-    val category: String,
+    /** The name, summary and category the screens show, in the app's language. */
+    @StringRes val title: Int,
+    @StringRes val summary: Int,
+    @StringRes val category: Int,
     /** The A2A profile's description; empty for an MCP app. */
     val profileDescription: String = "",
     /** How an MCP app is reached; null for an agent that pairs through the relay. */
     val mcp: McpConnectorSpec? = null,
-    /** The icon: a letter on a colour (no brand artwork ships with the sample). */
-    val mark: String = name.take(1),
+    /** The icon: a letter on a colour (no brand artwork ships with the sample); null for the title's first letter. */
+    @StringRes val mark: Int? = null,
     val color: Long = 0xFF111111,
 )
+
+/** The name the screens show, in the app's language. */
+internal fun Connector.displayName(context: Context): String = context.getString(title)
 
 internal val GROK_BOT_CONNECTOR = Connector(
     id = "grok-bot",
     name = "Grok Bot",
-    summary = "把发邮件、查资料、设提醒这类要用你个人账号的事交给你自己的 Grok Bot，办完回到这里播报。",
-    category = "智能体",
+    title = R.string.mcp_app_grok_bot,
+    summary = R.string.mcp_grok_bot_summary,
+    category = R.string.mcp_category_agents,
     profileDescription = "用户自己的云端助手：发邮件、查资料、设提醒、网购等需要个人账号的事务",
 )
 
@@ -106,7 +115,7 @@ internal object SessionConnectorProfiles : ConnectorProfiles {
             context, label, DIRECT_MODULE_ID, endpoint, allowLoopbackHttpForDebug = false,
             description = description, token = token, replaceSameLabel = true,
         )?.let { return it }
-        val profile = userProfile(context, label) ?: return "连接后没有找到 $label 的配置。"
+        val profile = userProfile(context, label) ?: return context.getString(R.string.mcp_profile_missing, label)
         RuntimeSession.setA2aProfileEnabled(context, profile.id, enabled = true)
         return null
     }
@@ -119,7 +128,12 @@ internal object SessionConnectorProfiles : ConnectorProfiles {
  * The relay's pairing API (`/connect/…`, see the relay README): register this car, ask whether it was claimed, get a
  * new code, forget it. Errors carry the relay's own message when it sent one.
  */
-internal class RelayConnectClient(private val base: HttpUrl, private val client: OkHttpClient = CONNECT_HTTP_CLIENT) {
+internal class RelayConnectClient(
+    /** Where the errors' words come from, in the app's language. */
+    internal val context: Context,
+    private val base: HttpUrl,
+    private val client: OkHttpClient = CONNECT_HTTP_CLIENT,
+) {
     data class Registered(val token: String, val pairing: ConnectorStatus.Pairing)
 
     data class CarState(val connected: Boolean, val verified: Boolean, val account: String? = null)
@@ -127,7 +141,7 @@ internal class RelayConnectClient(private val base: HttpUrl, private val client:
     fun register(label: String): Registered {
         val body = buildJsonObject { put("label", label) }.toString().toRequestBody(JSON_TYPE)
         val json = call(Request.Builder().url(url("connect/devices")).post(body).build())
-            ?: throw ConnectorException("中转服务没有返回设备令牌。")
+            ?: throw ConnectorException(context.getString(R.string.mcp_relay_no_token))
         return Registered(json.text("token"), pairing(json))
     }
 
@@ -141,7 +155,7 @@ internal class RelayConnectClient(private val base: HttpUrl, private val client:
 
     fun newCode(token: String): ConnectorStatus.Pairing {
         val json = call(authorized("connect/device/code", token).post(ByteArray(0).toRequestBody(null)).build())
-            ?: throw ConnectorException("中转服务已经不认识这台设备，请重新连接。")
+            ?: throw ConnectorException(context.getString(R.string.mcp_relay_forgot_device))
         return pairing(json)
     }
 
@@ -152,14 +166,17 @@ internal class RelayConnectClient(private val base: HttpUrl, private val client:
     /** Unpairs; `state` cleaning names the bot's clean-up task to follow, disconnected carries the relay's words. */
     fun unpair(token: String): JsonObject =
         call(authorized("connect/device/unpair", token).post(ByteArray(0).toRequestBody(null)).build(), unknownIsNull = true)
-            ?: buildJsonObject { put("state", "disconnected"); put("text", "已解除绑定。") }
+            ?: buildJsonObject { put("state", "disconnected"); put("text", context.getString(R.string.mcp_unpaired)) }
 
     /** An A2A JSON-RPC call on the relay with the device token; the `result` object. */
     fun rpc(token: String, method: String, params: JsonObject): JsonObject {
         val json = call(authorized("a2a", token).post(rpcBody(method, params)).build())
-            ?: throw ConnectorException("中转服务已经不认识这台设备，请重新连接。")
-        (json["error"] as? JsonObject)?.let { throw ConnectorException("测试没发出去：${it.text("message")}") }
-        return json["result"] as? JsonObject ?: throw ConnectorException("中转服务的回答不完整。")
+            ?: throw ConnectorException(context.getString(R.string.mcp_relay_forgot_device))
+        (json["error"] as? JsonObject)?.let {
+            throw ConnectorException(context.getString(R.string.mcp_test_not_sent, it.text("message")))
+        }
+        return json["result"] as? JsonObject
+            ?: throw ConnectorException(context.getString(R.string.mcp_relay_incomplete))
     }
 
     private fun url(path: String): HttpUrl = base.newBuilder().addPathSegments(path).build()
@@ -167,7 +184,8 @@ internal class RelayConnectClient(private val base: HttpUrl, private val client:
     internal fun authorized(path: String, token: String): Request.Builder =
         Request.Builder().url(url(path)).header("Authorization", "Bearer $token")
 
-    internal fun call(request: Request, unknownIsNull: Boolean = false): JsonObject? = relayCall(client, request, unknownIsNull)
+    internal fun call(request: Request, unknownIsNull: Boolean = false): JsonObject? =
+        relayCall(context, client, request, unknownIsNull)
 }
 
 /** Signed in to [account]; [connected] once the account's connection took the device (or the device's became the account's). */
@@ -181,7 +199,7 @@ internal fun RelayConnectClient.signIn(token: String, name: String, password: St
         put("register", register)
     }.toString().toRequestBody(JSON_TYPE)
     val json = call(authorized("connect/device/login", token).post(body).build())
-        ?: throw ConnectorException("中转服务没有回答。")
+        ?: throw ConnectorException(context.getString(R.string.mcp_relay_no_answer))
     return RelaySignedIn(json.text("account"), json.text("state") == "connected")
 }
 
@@ -190,17 +208,24 @@ internal fun RelayConnectClient.signOut(token: String) {
 }
 
 /** The relay's JSON answer; null for 401 when [unknownIsNull]; otherwise errors carry the relay's own message. */
-private fun relayCall(client: OkHttpClient, request: Request, unknownIsNull: Boolean): JsonObject? = try {
+private fun relayCall(
+    context: Context,
+    client: OkHttpClient,
+    request: Request,
+    unknownIsNull: Boolean,
+): JsonObject? = try {
     client.newCall(request).execute().use { response ->
         val json = runCatching { Json.parseToJsonElement(response.body?.string().orEmpty()) as? JsonObject }.getOrNull()
         when {
             response.isSuccessful -> json
             response.code == 401 && unknownIsNull -> null
-            else -> throw ConnectorException(json?.text("error")?.ifBlank { null } ?: "中转服务返回 HTTP ${response.code}。")
+            else -> throw ConnectorException(
+                json?.text("error")?.ifBlank { null } ?: context.getString(R.string.mcp_relay_http, response.code),
+            )
         }
     }
 } catch (_: IOException) {
-    throw ConnectorException("连不上中转服务，请检查设备网络。")
+    throw ConnectorException(context.getString(R.string.mcp_relay_unreachable))
 }
 
 private fun pairing(json: JsonObject) = ConnectorStatus.Pairing(
@@ -231,7 +256,7 @@ internal class ConnectorController(
     private val context: Context,
     private val relayUrl: () -> String = { connectorRelayUrl() },
     private val profiles: ConnectorProfiles = SessionConnectorProfiles,
-    private val clientFor: (HttpUrl) -> RelayConnectClient = { RelayConnectClient(it) },
+    private val clientFor: (HttpUrl) -> RelayConnectClient = { RelayConnectClient(context, it) },
     private val carLabel: String = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
     private val note: (String) -> Unit = RuntimeSession::noteConnection,
     private val clock: () -> Long = System::currentTimeMillis,
@@ -265,10 +290,10 @@ internal class ConnectorController(
     suspend fun connect(connector: Connector): ConnectorStatus = withContext(Dispatchers.IO) {
         val configured = relayUrl().trim().trimEnd('/')
         if (configured.isEmpty()) {
-            throw ConnectorException("还没有配置中转：部署 tools/agent-relay 后，在 local.properties 写上 $AGENT_RELAY_URL_KEY=https://… 再重新打包。")
+            throw ConnectorException(string(R.string.mcp_relay_not_configured, AGENT_RELAY_URL_KEY))
         }
         val base = configured.toHttpUrlOrNull()?.takeIf { it.isHttps }
-            ?: throw ConnectorException("中转地址无效（打包时的 $AGENT_RELAY_URL_KEY 需要是 https 地址）。")
+            ?: throw ConnectorException(string(R.string.mcp_relay_invalid, AGENT_RELAY_URL_KEY))
         val registered = clientFor(base).register(carLabel)
         A2aTokens.save(context, tokenKey(connector), registered.token)?.let { throw ConnectorException(it) }
         prefs.edit().putString(key(connector, RELAY), base.toString()).commit()
@@ -296,10 +321,11 @@ internal class ConnectorController(
         withContext(Dispatchers.IO) {
             if (stored(connector) == null) connect(connector)
             changes.withLock {
-                val (client, token) = stored(connector) ?: throw ConnectorException("还没有连接。")
+                val (client, token) = stored(connector) ?: throw ConnectorException(string(R.string.mcp_not_connected))
                 val signedIn = client.signIn(token, name.trim(), password, register)
                 prefs.edit().putString(key(connector, ACCOUNT), signedIn.account).commit()
-                record(connector, if (register) "注册并登录了账号「${signedIn.account}」。" else "登录了账号「${signedIn.account}」。")
+                val event = if (register) R.string.mcp_event_registered else R.string.mcp_event_signed_in
+                record(connector, string(event, signedIn.account))
                 refreshLocked(connector)
             }
         }
@@ -309,7 +335,7 @@ internal class ConnectorController(
         val account = account(connector) ?: return@withContext
         stored(connector)?.let { (client, token) -> client.signOut(token) }
         prefs.edit().remove(key(connector, ACCOUNT)).commit()
-        record(connector, "退出了账号「$account」，这台设备仍然连着 ${connector.name}。")
+        record(connector, string(R.string.mcp_event_signed_out, account, connector.shown))
     }
 
     /** The newest connection events first, with their times, kept after a disconnect. */
@@ -326,7 +352,7 @@ internal class ConnectorController(
         val (client, token) = stored(connector) ?: return forget(connector)
         val wasConnected = status(connector) is ConnectorStatus.Connected
         val state = client.state(token) ?: return forget(connector).also {
-            if (wasConnected) record(connector, "${connector.name} 那边解除了绑定。")
+            if (wasConnected) record(connector, string(R.string.mcp_event_unpaired_remotely, connector.shown))
         }
         prefs.edit().apply { if (state.account == null) remove(key(connector, ACCOUNT)) else putString(key(connector, ACCOUNT), state.account) }.commit()
         return when {
@@ -338,12 +364,12 @@ internal class ConnectorController(
                 }
                 prefs.edit().putString(key(connector, STATE), STATE_CONNECTED).putBoolean(key(connector, VERIFIED), state.verified)
                     .remove(key(connector, CODE)).remove(key(connector, CONNECT_URL)).remove(key(connector, CODE_EXPIRES_AT)).commit()
-                if (!wasConnected) record(connector, "已连接到你的 ${connector.name}。")
+                if (!wasConnected) record(connector, string(R.string.mcp_event_connected_agent, connector.shown))
                 ConnectorStatus.Connected(state.verified)
             }
             wasConnected -> {
                 profiles.remove(context, connector.name)
-                record(connector, "${connector.name} 那边解除了绑定。")
+                record(connector, string(R.string.mcp_event_unpaired_remotely, connector.shown))
                 savePairing(connector, ConnectorStatus.Pairing("", "", 0L))
             }
             else -> status(connector)
@@ -355,7 +381,7 @@ internal class ConnectorController(
      * the reported text, or throws with why it did not come back.
      */
     suspend fun test(connector: Connector): String = withContext(Dispatchers.IO) {
-        val (client, token) = stored(connector) ?: throw ConnectorException("还没有连接。")
+        val (client, token) = stored(connector) ?: throw ConnectorException(string(R.string.mcp_not_connected))
         val message = buildJsonObject {
             put("message", buildJsonObject {
                 put("kind", "message")
@@ -368,11 +394,11 @@ internal class ConnectorController(
         val text = try {
             awaitReport(client, token, first, connector)
         } catch (failure: ConnectorException) {
-            record(connector, "测试连接没有通过：${failure.message}")
+            record(connector, string(R.string.mcp_event_test_failed, failure.message.orEmpty()))
             throw failure
         }
         prefs.edit().putBoolean(key(connector, VERIFIED), true).commit()
-        record(connector, "测试连接：${connector.name} 回报「$text」")
+        record(connector, string(R.string.mcp_event_test_passed, connector.shown, text))
         text
     }
 
@@ -387,30 +413,35 @@ internal class ConnectorController(
 
     private suspend fun disconnectLocked(connector: Connector, onProgress: (String) -> Unit): String {
         connector.mcp?.let { spec ->
-            if (!owns(connector)) return "还没有连接。"
+            if (!owns(connector)) return string(R.string.mcp_not_connected)
             servers.delete(context, spec.serverId)
             prefs.edit().remove(key(connector, OWNED)).commit()
-            return "已断开，小博不再使用${connector.name}。".also { record(connector, it) }
+            return string(R.string.mcp_disconnected_app, connector.shown).also { record(connector, it) }
         }
         val pairing = status(connector) is ConnectorStatus.Pairing
-        val text = stored(connector)?.let { (client, token) -> unpair(connector, client, token, onProgress) } ?: "已解除绑定。"
+        val said = stored(connector)?.let { (client, token) -> unpair(connector, client, token, onProgress) }
+            ?: string(R.string.mcp_unpaired)
         forget(connector)
-        return if (pairing) "已取消配对。".also { record(connector, it) } else text.also { record(connector, "解除绑定：$it") }
+        return if (pairing) {
+            string(R.string.mcp_pairing_cancelled).also { record(connector, it) }
+        } else {
+            said.also { record(connector, string(R.string.mcp_event_unpaired, it)) }
+        }
     }
 
     private suspend fun unpair(connector: Connector, client: RelayConnectClient, token: String, onProgress: (String) -> Unit): String {
         val reply = try {
             client.unpair(token)
         } catch (failure: ConnectorException) {
-            return "本机已解除绑定，但${failure.message}${connector.name} 里的「车载语音助手任务」和 car-relay 连接器请手动删除。"
+            return string(R.string.mcp_unpaired_here_only, failure.message.orEmpty(), connector.shown)
         }
-        if (reply.text("state") != "cleaning") return reply.text("text").ifEmpty { "已解除绑定。" }
-        onProgress("正在让 ${connector.name} 删除它那边的例行任务和连接器（最多等三分钟）…")
+        if (reply.text("state") != "cleaning") return reply.text("text").ifEmpty { string(R.string.mcp_unpaired) }
+        onProgress(string(R.string.mcp_cleanup_progress, connector.shown))
         val cleaned = runCatching { awaitReport(client, token, taskRef(reply.text("task_id")), connector) }
         runCatching { client.remove(token) }
         return cleaned.fold(
-            onSuccess = { "${connector.name} 回报：$it" },
-            onFailure = { "已解除绑定，但${it.message}「车载语音助手任务」和 car-relay 连接器请在 ${connector.name} 里手动删除。" },
+            onSuccess = { string(R.string.mcp_bot_reported, connector.shown, it) },
+            onFailure = { string(R.string.mcp_unpaired_cleanup_failed, it.message.orEmpty(), connector.shown) },
         )
     }
 
@@ -419,12 +450,14 @@ internal class ConnectorController(
         var task = start
         val deadline = clock() + REPORT_TIMEOUT_MS
         while (task.state() == "working" || task.state() == "submitted") {
-            if (clock() > deadline) throw ConnectorException("${connector.name} 三分钟内没有回报。")
+            if (clock() > deadline) throw ConnectorException(string(R.string.mcp_report_timeout, connector.shown))
             delay(REPORT_POLL_MS)
             task = client.rpc(token, "tasks/get", buildJsonObject { put("id", task.text("id")) })
         }
         val text = task.statusText()
-        if (task.state() != "completed") throw ConnectorException(text.ifEmpty { "任务没有完成（${task.state()}）。" })
+        if (task.state() != "completed") {
+            throw ConnectorException(text.ifEmpty { string(R.string.mcp_task_not_completed, task.state()) })
+        }
         return text
     }
 
@@ -437,20 +470,25 @@ internal class ConnectorController(
     }
 
     private suspend fun connectAppLocked(connector: Connector, credential: String, sandbox: Boolean): List<String> {
-        val spec = connector.mcp ?: throw ConnectorException("${connector.name} 不是这样连接的。")
+        val spec = connector.mcp ?: throw ConnectorException(string(R.string.mcp_wrong_connect_kind, connector.shown))
         servers.find(context, spec.serverId)?.takeUnless { owns(connector) }?.let { other ->
-            throw ConnectorException("设置 → MCP 里已经有一个「${other.label}」用着这个名字（${other.id}），请先在那里删除它。")
+            throw ConnectorException(string(R.string.mcp_server_name_taken, other.label, other.id))
         }
         val key = credential.trim()
-        if (spec.needsCredential && key.isEmpty()) throw ConnectorException("请先填${spec.credentialLabel}。")
-        if (key.any(Char::isWhitespace)) throw ConnectorException("${spec.credentialLabel}里不能有空格或换行。")
+        val label = spec.credentialLabel?.let { context.getString(it) }.orEmpty()
+        if (spec.needsCredential && key.isEmpty()) {
+            throw ConnectorException(string(R.string.mcp_credential_missing, label))
+        }
+        if (key.any(Char::isWhitespace)) throw ConnectorException(string(R.string.mcp_credential_whitespace, label))
         val url = spec.sandboxUrl?.takeIf { sandbox } ?: spec.url
         val tools = listedTools(connector, probe(spec.endpoint(url, key)))
         servers.save(context, spec.draft(servers.find(context, spec.serverId)?.id, connector.name, url, key))
             ?.let { throw ConnectorException(it) }
         servers.find(context, spec.serverId)?.let { saved -> prefs.edit().putString(key(connector, OWNED), ownership(saved)).commit() }
         if (servers.find(context, spec.serverId)?.enabled == false) servers.setEnabled(context, spec.serverId, true)
-        record(connector, "已连接${if (url == spec.sandboxUrl) "（沙箱）" else ""}，可以用 ${tools.size} 个功能。")
+        val connected =
+            if (url == spec.sandboxUrl) R.plurals.mcp_event_connected_sandbox else R.plurals.mcp_event_connected
+        record(connector, context.resources.getQuantityString(connected, tools.size, tools.size))
         return tools
     }
 
@@ -471,8 +509,9 @@ internal class ConnectorController(
     }
 
     private suspend fun checkAppLocked(connector: Connector, record: Boolean): List<String> {
-        val spec = connector.mcp ?: throw ConnectorException("${connector.name} 不是这样连接的。")
-        val server = servers.find(context, spec.serverId)?.takeIf { owns(connector) } ?: throw ConnectorException("还没有连接。")
+        val spec = connector.mcp ?: throw ConnectorException(string(R.string.mcp_wrong_connect_kind, connector.shown))
+        val server = servers.find(context, spec.serverId)?.takeIf { owns(connector) }
+            ?: throw ConnectorException(string(R.string.mcp_not_connected))
         val endpoint = McpEndpoint(
             server.url,
             McpSecrets.requestHeaders(context, server.id),
@@ -481,10 +520,13 @@ internal class ConnectorController(
         val tools = try {
             listedTools(connector, probe(endpoint))
         } catch (failure: ConnectorException) {
-            if (record) record(connector, "检查没有通过：${failure.message}")
+            if (record) record(connector, string(R.string.mcp_event_check_failed, failure.message.orEmpty()))
             throw failure
         }
-        if (record) record(connector, "检查通过，可以用 ${tools.size} 个功能。")
+        if (record) {
+            val passed = context.resources.getQuantityString(R.plurals.mcp_event_check_passed, tools.size, tools.size)
+            record(connector, passed)
+        }
         return tools
     }
 
@@ -492,7 +534,7 @@ internal class ConnectorController(
     suspend fun resumeApp(connector: Connector): ConnectorStatus {
         val spec = connector.mcp ?: return status(connector)
         servers.setEnabled(context, spec.serverId, true)
-        record(connector, "重新启用了。")
+        record(connector, string(R.string.mcp_event_resumed))
         return status(connector)
     }
 
@@ -509,8 +551,11 @@ internal class ConnectorController(
     }
 
     private fun listedTools(connector: Connector, listing: McpToolsListing): List<String> {
-        listing.problem?.let { throw ConnectorException(connector.connectFailure(it)) }
-        if (listing.tools.isEmpty()) throw ConnectorException("连上了，但 ${connector.name} 没有提供任何功能，请确认这个${connector.mcp?.credentialLabel}开通了权限。")
+        listing.problem?.let { throw ConnectorException(connector.connectFailure(context, it)) }
+        if (listing.tools.isEmpty()) {
+            val label = connector.mcp?.credentialLabel?.let { context.getString(it) }.orEmpty()
+            throw ConnectorException(string(R.string.mcp_no_tools, connector.shown, label))
+        }
         return listing.tools.map { tool ->
             tool.title?.takeIf { it.isNotBlank() && it != tool.description && it.length <= MAX_TOOL_TITLE_CHARS } ?: tool.name
         }
@@ -520,8 +565,13 @@ internal class ConnectorController(
         val stamped = "${SimpleDateFormat("MM-dd HH:mm", Locale.US).format(Date(clock()))} $text"
         val kept = (listOf(stamped) + events(connector)).take(MAX_EVENTS)
         prefs.edit().putString(key(connector, EVENTS), kept.joinToString(EVENT_SEPARATOR)).commit()
-        note("【连接应用】$text")
+        note(string(R.string.mcp_connection_note, text))
     }
+
+    private fun string(@StringRes id: Int, vararg args: Any): String = context.getString(id, *args)
+
+    /** The connector's name as the screens show it. */
+    private val Connector.shown: String get() = displayName(context)
 
     private fun stored(connector: Connector): Pair<RelayConnectClient, String>? {
         val base = prefs.getString(key(connector, RELAY), null)?.toHttpUrlOrNull() ?: return null

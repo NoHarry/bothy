@@ -56,12 +56,14 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.link.Assistant
 
 /**
@@ -232,7 +234,8 @@ private fun A2uiChoices(choices: List<A2uiChoice>, onPick: (String) -> Unit) {
                 Text(choice.label, color = Color.White, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.weight(1f))
                 if (choice.recommended) {
                     Text(
-                        "推荐", color = UnitColors.screen, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                        stringResource(R.string.headunit_recommended),
+                        color = UnitColors.screen, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(UnitColors.teal).padding(horizontal = 5.dp, vertical = 1.dp),
                     )
                 }
@@ -261,7 +264,7 @@ private fun A2uiPanel(controls: List<A2uiControl>, onConfirm: (String) -> Unit) 
             }
         }
         Text(
-            if (sent) "已发给小博" else "确定",
+            stringResource(if (sent) R.string.headunit_sent_to_xiaobo else R.string.common_ok),
             color = if (sent) UnitColors.muted else UnitColors.screen,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,

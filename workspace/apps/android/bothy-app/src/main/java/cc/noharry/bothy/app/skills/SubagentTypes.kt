@@ -2,7 +2,9 @@
 
 package cc.noharry.bothy.app.skills
 import android.content.Context
+import androidx.annotation.StringRes
 import cc.noharry.agent.runtime.SubagentType
+import cc.noharry.bothy.app.R
 
 /**
  * Kinds of subagent with their own instructions (owner 2026-10-17: 专门做成一个子 agent，可以配置是否加载，里面可以特化
@@ -14,7 +16,8 @@ import cc.noharry.agent.runtime.SubagentType
  */
 internal data class SubagentKind(
     val id: String,
-    val label: String,
+    /** Its name in Settings. */
+    @StringRes val label: Int,
     /** What the model reads in spawn_agent: when to use it. */
     val description: String,
     val assetPath: String,
@@ -30,23 +33,33 @@ internal data class SubagentKind(
     /** Whether the child searches at all: without it, neither web_search nor the provider's own search is offered. */
     val searches: Boolean get() = SubagentToolGroup.SEARCH in tools
 
-    /** Its tools in the page's order, e.g. 联网搜索、打开网页、读文件. */
+    /** Its tools in the page's order as the model reads them, e.g. 联网搜索、打开网页、读文件. */
     fun toolLabels(separator: String = "、"): String = SubagentToolGroup.entries.filter { it in tools }.joinToString(separator) { it.label }
 }
 
 /**
  * What a subagent type may call, by kind of tool rather than by name: the tool list stays the main agent's (one
- * prompt cache), and [SubagentGuard] refuses the rest. [changes] marks the ones that change something.
+ * prompt cache), and [SubagentGuard] refuses the rest. [changes] marks the ones that change something. [label] is
+ * the name the model reads (a refused call, the child's prompt); [screenLabel] and [detail] are what Settings shows.
  */
-internal enum class SubagentToolGroup(val wire: String, val label: String, val detail: String, val changes: Boolean = false) {
-    SEARCH("search", "联网搜索", "web_search，或模型服务自带的搜索"),
-    FETCH("fetch", "打开网页", "web_fetch"),
-    READ("read", "读文件", "list_dir、read_file、grep：工作区和技能"),
-    WRITE("write", "写文件", "write_file、edit_file", changes = true),
-    TODO("todo", "待办", "update_todo"),
-    DEVICE_QUERY("device_query", "查设备状态", "设备服务里查询类的工具"),
-    DEVICE_CONTROL("device_control", "操作设备", "设备服务里的操作；「允许子 agent 操作设备」也要开着", changes = true),
-    SERVICES("services", "其他服务", "地图、日历、外卖、打车、手机操作等已接入的工具", changes = true),
+internal enum class SubagentToolGroup(
+    val wire: String,
+    val label: String,
+    @StringRes val screenLabel: Int,
+    @StringRes val detail: Int,
+    val changes: Boolean = false,
+) {
+    SEARCH("search", "联网搜索", R.string.skills_tool_search, R.string.skills_tool_search_detail),
+    FETCH("fetch", "打开网页", R.string.skills_tool_fetch, R.string.skills_tool_fetch_detail),
+    READ("read", "读文件", R.string.skills_tool_read, R.string.skills_tool_read_detail),
+    WRITE("write", "写文件", R.string.skills_tool_write, R.string.skills_tool_write_detail, changes = true),
+    TODO("todo", "待办", R.string.skills_tool_todo, R.string.skills_tool_todo_detail),
+    DEVICE_QUERY("device_query", "查设备状态", R.string.skills_tool_device_query, R.string.skills_tool_device_query_detail),
+    DEVICE_CONTROL(
+        "device_control", "操作设备", R.string.skills_tool_device_control, R.string.skills_tool_device_control_detail,
+        changes = true,
+    ),
+    SERVICES("services", "其他服务", R.string.skills_tool_services, R.string.skills_tool_services_detail, changes = true),
     ;
 
     companion object {
@@ -56,10 +69,10 @@ internal enum class SubagentToolGroup(val wire: String, val label: String, val d
 
 /** Tools only the main agent has, whatever a type allows: shown greyed on a type's page. */
 internal val DEBUG_MAIN_AGENT_ONLY_TOOLS = listOf(
-    "问用户" to "ask、ask_async",
-    "卡片和选项" to "show_card、offer_*",
-    "计划" to "plan_manage",
-    "委托个人助手" to "a2a_message_send",
+    R.string.skills_tool_ask to R.string.skills_tool_ask_detail,
+    R.string.skills_tool_cards to R.string.skills_tool_cards_detail,
+    R.string.skills_tool_plans to R.string.skills_tool_plans_detail,
+    R.string.skills_tool_delegate to R.string.skills_tool_delegate_detail,
 )
 
 internal fun loadSubagentKinds(context: Context): List<SubagentKind> {
@@ -122,27 +135,27 @@ private val VERIFY_TOOLS = setOf(SubagentToolGroup.SEARCH, SubagentToolGroup.FET
 
 private val SUBAGENT_KINDS = listOf(
     SubagentKind(
-        "trip-transport", "行程 · 交通",
+        "trip-transport", R.string.skills_kind_trip_transport,
         "travel legs: flights, high-speed trains or a self-drive route between two cities on given dates, with times and prices",
         "runtime-workspace/agents/trip-transport/AGENT.md",
         // A self-drive leg may check the range.
         tools = TRIP_TOOLS + SubagentToolGroup.DEVICE_QUERY,
     ),
     SubagentKind(
-        "trip-stay", "行程 · 住宿",
+        "trip-stay", R.string.skills_kind_trip_stay,
         "where to stay on a trip: areas and hotels for the itinerary, with prices, transit and parking",
         "runtime-workspace/agents/trip-stay/AGENT.md",
         maxLookups = 6,
     ),
     SubagentKind(
-        "trip-days", "行程 · 每天安排",
+        "trip-days", R.string.skills_kind_trip_days,
         "each day of a trip: the weather forecast first, then 2–3 places a day in route order with times, indoor on rainy days",
         "runtime-workspace/agents/trip-days/AGENT.md",
     ),
     // owner 2026-10-19: 除了导航给出的数据，也派一个核实的 agent 去网页上搜一下、加点信息，不一定在哪种场景下触发;
     // 先答再补报.
     SubagentKind(
-        WEB_VERIFY_KIND, "网上核实",
+        WEB_VERIFY_KIND, R.string.skills_kind_web_verify,
         "check online and add to what a map or another service returned, or to a flight or train the user named: for " +
             "places (restaurants, hotels, sights) the rating, average price, opening hours and what people say; for a flight " +
             "or train today's times, terminal, gate and delays. Spawn it in the same round as your answer from the service " +

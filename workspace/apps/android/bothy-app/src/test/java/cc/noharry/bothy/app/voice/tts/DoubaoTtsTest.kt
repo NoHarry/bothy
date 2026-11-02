@@ -24,6 +24,7 @@ import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 豆包语音合成 as 播报: the V3 one-way stream, its errors, both ways to sign in, and the provider switch. */
 @RunWith(RobolectricTestRunner::class)
@@ -122,17 +123,24 @@ class DoubaoTtsTest {
     }
 
     @Test
+    @Config(qualifiers = "zh")
     fun theProviderSwitchPicksDoubaoAndItsKeyMakesItReady() {
         val values = mapOf(TTS_PROVIDER to "doubao", DOUBAO_TTS_API_KEY to "k", DOUBAO_TTS_VOICE to DoubaoTtsVoice.YUNZHOU.id)
         val tts = TtsConfig.from(values)
 
         assertEquals(TtsProvider.DOUBAO, tts.provider)
         assertTrue("on by default once its key is there", tts.enabled && tts.ready)
-        assertEquals("豆包 · seed-tts-2.0 · 云舟 · 通用男声", tts.label)
+        assertEquals("豆包 · seed-tts-2.0 · 云舟 · 通用男声", tts.label(context))
         assertFalse(TtsConfig.from(mapOf(TTS_PROVIDER to "doubao")).ready)
         // Nothing chosen and no key: the device's own voice (owner 2026-10-25).
         assertEquals(TtsProvider.SYSTEM, TtsConfig.from(emptyMap()).provider)
-        assertEquals("语速要在 -50 到 100 之间。", DoubaoTtsSettings(speechRate = 200).validationError())
+        assertEquals("语速要在 -50 到 100 之间。", context.getString(DoubaoTtsSettings(speechRate = 200).validationError()!!))
+    }
+
+    @Test
+    fun inEnglishAVoiceKeepsItsNameAndSaysWhatItSoundsLike() {
+        val values = mapOf(TTS_PROVIDER to "doubao", DOUBAO_TTS_API_KEY to "k", DOUBAO_TTS_VOICE to DoubaoTtsVoice.YUNZHOU.id)
+        assertEquals("Doubao · seed-tts-2.0 · 云舟 · General male voice", TtsConfig.from(values).label(context))
     }
 
     @Test

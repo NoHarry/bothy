@@ -1,9 +1,12 @@
 package cc.noharry.bothy.app.runtime
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 
 internal data class BasicTool(
     val name: String,
-    val description: String,
+    /** What the settings page says the tool does; the model reads the tool's own description, not this. */
+    @StringRes val description: Int,
     val enabled: Boolean = true,
     val required: Boolean = false,
 )
@@ -37,20 +40,20 @@ private const val EXEC_TOOL_NAME = "exec_js"
 
 private const val BASIC_TOOL_PREFS = "debug_basic_tools"
 private val BASIC_TOOLS = listOf(
-    BasicTool("exec_js", "执行短脚本并按依赖调用工具；独立开关，skill 不会自动开启。", enabled = false),
-    BasicTool("search_tools", "按语义发现 MCP 工具并加载参数定义。"),
-    BasicTool("list_dir", "列出工作区、skill 和 MCP 目录。"),
-    BasicTool("read_file", "读取工作区内容、skill 和工具定义。"),
-    BasicTool("grep", "搜索工作区文件内容。"),
-    BasicTool("write_file", "写入工作区文件。"),
-    BasicTool("edit_file", "修改工作区文件。"),
-    BasicTool("update_todo", "维护任务步骤与进度。"),
-    BasicTool("ask_async", "提出问题后继续执行；回答进入后续请求，不回复也不等待。"),
-    BasicTool("ask", "向用户提出澄清问题并等待回复。"),
-    BasicTool("web_fetch", "获取网页内容；模型服务自带可见搜索工具时会隐藏，开了「网页打不开时用 DeepSeek Fetch」除外。"),
-    BasicTool("web_search", "联网搜索，结果模型和日志都看得到；连接配置选用 DeepSeek Search 接口时才出现。"),
-    BasicTool("spawn_agent", "把可以并行的耗时任务交给后台子助手；由主助手自己决定要不要用。"),
-    BasicTool("wait_agent", "等待后台子助手，返回各自的进度或结果。"),
-    BasicTool("cancel_agent", "停掉不再需要或卡住的后台子助手。"),
-    BasicTool("finish", "结束任务并返回答复，运行协议必需。", required = true),
+    BasicTool("exec_js", R.string.runtime_tool_exec_js, enabled = false),
+    BasicTool("search_tools", R.string.runtime_tool_search_tools),
+    BasicTool("list_dir", R.string.runtime_tool_list_dir),
+    BasicTool("read_file", R.string.runtime_tool_read_file),
+    BasicTool("grep", R.string.runtime_tool_grep),
+    BasicTool("write_file", R.string.runtime_tool_write_file),
+    BasicTool("edit_file", R.string.runtime_tool_edit_file),
+    BasicTool("update_todo", R.string.runtime_tool_update_todo),
+    BasicTool("ask_async", R.string.runtime_tool_ask_async),
+    BasicTool("ask", R.string.runtime_tool_ask),
+    BasicTool("web_fetch", R.string.runtime_tool_web_fetch),
+    BasicTool("web_search", R.string.runtime_tool_web_search),
+    BasicTool("spawn_agent", R.string.runtime_tool_spawn_agent),
+    BasicTool("wait_agent", R.string.runtime_tool_wait_agent),
+    BasicTool("cancel_agent", R.string.runtime_tool_cancel_agent),
+    BasicTool("finish", R.string.runtime_tool_finish, required = true),
 )

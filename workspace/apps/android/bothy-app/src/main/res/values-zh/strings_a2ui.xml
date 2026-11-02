@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The host's own words around the cards, panels and picks the model draws, and the question cards. -->
+<resources>
+    <string name="a2ui_pick_one">选一个</string>
+    <string name="a2ui_pick_by_voice">说「第二个」也可以</string>
+    <string name="a2ui_trip_day">行程</string>
+    <string name="a2ui_trip_stays">住宿</string>
+    <string name="a2ui_trip_alternatives">备选 %1$s</string>
+    <string name="a2ui_question_running">任务继续执行中，可随时补充回答</string>
+    <string name="a2ui_question_ended">任务已结束，回答将作为新消息发送</string>
+    <string name="a2ui_question_type_answer">也可以直接输入回答</string>
+    <string name="a2ui_question_submit">提交回答</string>
+    <string name="a2ui_question_answer_received">回答已提交，等待处理</string>
+    <string name="a2ui_question_answered">回答已用于后续处理</string>
+    <string name="a2ui_question_closed">当前不可回答</string>
+</resources>

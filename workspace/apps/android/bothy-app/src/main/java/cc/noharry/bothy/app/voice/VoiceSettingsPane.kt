@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.voice
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,14 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.voice.DashScopeAsrModel
-import cc.noharry.bothy.voice.SherpaOnnxAsrEngine
 import cc.noharry.bothy.voice.WakeSensitivity
 import cc.noharry.bothy.voice.echoCancellerAvailable
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -60,7 +62,6 @@ import cc.noharry.bothy.app.console.ui.SelectableOptionRow
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.plans.number
 import cc.noharry.bothy.app.runtime.RuntimeSession
-import cc.noharry.bothy.app.skills.chinese
 import cc.noharry.bothy.app.voice.tts.DOUBAO_TTS_SPEECH_RATE
 import cc.noharry.bothy.app.voice.tts.DOUBAO_TTS_VOICE
 import cc.noharry.bothy.app.voice.tts.DoubaoTtsSettings
@@ -87,7 +88,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class VoiceSettingsTab(val label: String) { KEYS("密钥"), RECOGNITION("识别与唤醒"), TURNS("判断与打断"), SPEECH("播报") }
+private enum class VoiceSettingsTab(@StringRes val label: Int) {
+    KEYS(R.string.voice_tab_keys),
+    RECOGNITION(R.string.voice_tab_recognition),
+    TURNS(R.string.voice_tab_turns),
+    SPEECH(R.string.voice_tab_speech),
+}
 
 /** Saves one choice of the voice config at once, leaving typed edits pending. */
 private typealias VoiceChoice = ((VoiceConfig) -> VoiceConfig) -> Unit
@@ -108,7 +114,10 @@ internal fun VoiceSettingsPane() {
     val tab = VoiceSettingsTab.valueOf(tabName)
     val unsaved = unsavedTabs(state.forms, state.tts)
     Column(Modifier.fillMaxSize()) {
-        val labels = VoiceSettingsTab.entries.map { if (it in unsaved) "${it.label} ●" else it.label }
+        val labels = VoiceSettingsTab.entries.map {
+            val label = stringResource(it.label)
+            if (it in unsaved) "$label ●" else label
+        }
         SettingsTabs(labels, labels[tab.ordinal]) { label -> tabName = VoiceSettingsTab.entries[labels.indexOf(label)].name }
         Column(
             Modifier.weight(1f).widthIn(max = 880.dp).verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
@@ -136,14 +145,18 @@ private class VoiceSettingsState(private val context: Context, private val scope
 
     fun chooseVoice(change: (VoiceConfig) -> VoiceConfig) {
         val error = saveVoiceConfig(context, change(forms.saved))
-        note = SettingsNote(error ?: savedNote(), error = error != null)
+        note = SettingsNote(error ?: savedNote(context), error = error != null)
         if (error == null) forms = forms.withSaved(loadVoiceConfig(context))
     }
 
     fun chooseTts(name: String, value: String) {
         scope.launch {
             val ok = withContext(Dispatchers.IO) { saveTtsChoice(context, name, value) }
-            note = if (ok) SettingsNote(savedNote()) else SettingsNote("无法保存播报设置。", error = true)
+            note = if (ok) {
+                SettingsNote(savedNote(context))
+            } else {
+                SettingsNote(context.getString(R.string.tts_save_failed), error = true)
+            }
             if (!ok) return@launch
             val fresh = TtsForm.load(context)
             tts = tts?.let { typed -> fresh.copy(draft = typed.draft.withChoicesFrom(fresh.effective), key = typed.key) } ?: fresh
@@ -154,7 +167,7 @@ private class VoiceSettingsState(private val context: Context, private val scope
     fun save() {
         scope.launch {
             val error = withContext(Dispatchers.IO) { saveVoiceForms(context, forms, tts) }
-            note = SettingsNote(error ?: savedNote(), error = error != null)
+            note = SettingsNote(error ?: savedNote(context), error = error != null)
             if (error == null) {
                 forms = VoiceForms.load(context)
                 tts = TtsForm.load(context)
@@ -167,12 +180,13 @@ private class VoiceSettingsState(private val context: Context, private val scope
         scope.launch {
             forms = VoiceForms.load(context)
             tts = TtsForm.load(context)
-            note = SettingsNote("已放弃修改")
+            note = SettingsNote(context.getString(R.string.voice_discarded))
         }
     }
 }
 
-private fun savedNote(): String = if (VoiceController.listening) "已保存 · 结束当前监听后重新唤醒生效" else "已保存"
+private fun savedNote(context: Context): String =
+    context.getString(if (VoiceController.listening) R.string.voice_saved_after_restart else R.string.voice_saved)
 
 /** The tabs whose typed fields differ from what is saved; a typed key counts until it is saved. */
 private fun unsavedTabs(forms: VoiceForms, tts: TtsForm?): Set<VoiceSettingsTab> {
@@ -247,16 +261,21 @@ private data class TtsForm(
 private fun saveVoiceForms(context: Context, forms: VoiceForms, tts: TtsForm?): String? {
     val jevChanged = forms.jev.differsFrom(forms.jevSaved) || forms.jevKey.isNotBlank()
     return listOfNotNull(
-        saveVoiceConfig(context, forms.voice.applyTo(forms.saved), forms.asrKey)?.let { "识别与录音：$it" },
+        saveVoiceConfig(context, forms.voice.applyTo(forms.saved), forms.asrKey)
+            ?.let { context.getString(R.string.voice_error_recognition, it) },
         if (jevChanged) {
             val timeout = forms.jev.timeout.trim().toLongOrNull() ?: 0
-            saveJevConnection(context, forms.jev.endpoint, forms.jev.model, timeout, forms.jevKey)?.let { "Jev：$it" }
+            saveJevConnection(context, forms.jev.endpoint, forms.jev.model, timeout, forms.jevKey)
+                ?.let { context.getString(R.string.voice_error_jev, it) }
         } else {
             null
         },
-        tts?.takeIf { it.draft.typed() != it.effective.typed() }?.let { saveTtsSettings(context, it.draft) }?.let { "语音播报：$it" },
-        tts?.key?.takeIf(String::isNotBlank)?.let { saveTtsKey(context, it) }?.let { "MiMo key：$it" },
-        tts?.doubaoKey?.takeIf(String::isNotBlank)?.let { saveDoubaoTtsKey(context, it) }?.let { "豆包语音 key：$it" },
+        tts?.takeIf { it.draft.typed() != it.effective.typed() }?.let { saveTtsSettings(context, it.draft) }
+            ?.let { context.getString(R.string.voice_error_tts, it) },
+        tts?.key?.takeIf(String::isNotBlank)?.let { saveTtsKey(context, it) }
+            ?.let { context.getString(R.string.voice_error_mimo_key, it) },
+        tts?.doubaoKey?.takeIf(String::isNotBlank)?.let { saveDoubaoTtsKey(context, it) }
+            ?.let { context.getString(R.string.voice_error_doubao_key, it) },
     ).joinToString("\n").ifEmpty { null }
 }
 
@@ -268,10 +287,7 @@ private fun VoiceKeysTab(
     onTts: (TtsForm) -> Unit,
     onMessage: (String) -> Unit,
 ) {
-    Text(
-        "语音用到的 key 都在这里填，其他页签只改设置。Key 只能输入、不会显示，存在本机不备份的目录；留空保存不会改动已有的 key。",
-        color = ConsoleColors.muted,
-    )
+    Text(stringResource(R.string.voice_keys_intro), color = ConsoleColors.muted)
     DashScopeKeyCard(forms, onForms, onMessage)
     JevKeyCard(forms, onForms, onMessage)
     MimoKeyCard(tts, onTts, onMessage)
@@ -283,16 +299,18 @@ private fun DashScopeKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, o
     val context = LocalContext.current
     val saved = forms.saved
     val status = when {
-        saved.hasDashscopeKey -> "已保存" to ConsoleColors.success
-        saved.engine == VoiceEngine.DASHSCOPE -> "缺少：识别选的是百炼，语音会话开不了" to ConsoleColors.danger
-        else -> "未填：用本地识别时不需要" to ConsoleColors.muted
+        saved.hasDashscopeKey -> stringResource(R.string.voice_saved) to ConsoleColors.success
+        saved.engine == VoiceEngine.DASHSCOPE ->
+            stringResource(R.string.voice_dashscope_key_missing_status) to ConsoleColors.danger
+        else -> stringResource(R.string.voice_dashscope_key_optional) to ConsoleColors.muted
     }
-    VoiceCard("百炼", status) {
-        VoiceNote("识别与唤醒 → 识别引擎 选「云端 · 阿里云百炼」时用；热词表也建在这个账号下。")
+    val deleted = stringResource(R.string.voice_dashscope_key_deleted)
+    VoiceCard(stringResource(R.string.voice_dashscope_title), status) {
+        VoiceNote(stringResource(R.string.voice_dashscope_key_note))
         VoiceField(keyLabel(saved.hasDashscopeKey), forms.asrKey, { onForms(forms.copy(asrKey = it)) }, secret = true)
         DeleteKeyButton(saved.hasDashscopeKey) {
             val error = saveVoiceConfig(context, saved.copy(engine = VoiceEngine.LOCAL), clearKey = true)
-            onMessage(error ?: "已删除百炼 key · 已切回本地识别")
+            onMessage(error ?: deleted)
             if (error == null) {
                 onForms(forms.copy(saved = loadVoiceConfig(context), voice = forms.voice.copy(engine = VoiceEngine.LOCAL), asrKey = ""))
             }
@@ -304,13 +322,20 @@ private fun DashScopeKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, o
 private fun JevKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, onMessage: (String) -> Unit) {
     val context = LocalContext.current
     val saved = forms.jevSaved
-    val status = if (saved.hasApiKey) "已保存" to ConsoleColors.success else "缺少：语音会话开不了，工具检索也用不了" to ConsoleColors.danger
+    val status = if (saved.hasApiKey) {
+        stringResource(R.string.voice_saved) to ConsoleColors.success
+    } else {
+        stringResource(R.string.voice_jev_key_missing_status) to ConsoleColors.danger
+    }
+    val deleted = stringResource(
+        if (saved.enabled) R.string.voice_jev_key_deleted_search_off else R.string.voice_jev_key_deleted,
+    )
     VoiceCard("Jev", status) {
-        VoiceNote("判断每句话是不是对小博说、说完没有；工具与技能 → 工具检索 也用它。")
+        VoiceNote(stringResource(R.string.voice_jev_key_note))
         VoiceField(keyLabel(saved.hasApiKey), forms.jevKey, { onForms(forms.copy(jevKey = it)) }, secret = true)
         DeleteKeyButton(saved.hasApiKey) {
             val error = saveJevConnection(context, saved.endpoint, saved.model, saved.timeoutMillis, clearKey = true)
-            onMessage(error ?: "已删除 Jev key" + if (saved.enabled) " · 工具检索已关闭" else "")
+            onMessage(error ?: deleted)
             if (error == null) onForms(forms.copy(jevSaved = loadJevConfig(context), jevKey = ""))
         }
     }
@@ -322,20 +347,22 @@ private fun MimoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (Str
     val scope = rememberCoroutineScope()
     val packaged = tts != null && !tts.keyStored && tts.effective.apiKey.isNotBlank()
     val status = when {
-        tts == null -> "读取中…" to ConsoleColors.muted
-        tts.keyStored -> "已保存" to ConsoleColors.success
-        packaged -> "用打包时的 MiMo key" to ConsoleColors.success
-        else -> "缺少：回复只显示、不播报" to ConsoleColors.danger
+        tts == null -> stringResource(R.string.voice_loading) to ConsoleColors.muted
+        tts.keyStored -> stringResource(R.string.voice_saved) to ConsoleColors.success
+        packaged -> stringResource(R.string.voice_mimo_key_packaged) to ConsoleColors.success
+        else -> stringResource(R.string.voice_key_missing_silent) to ConsoleColors.danger
     }
+    val deleted = stringResource(R.string.voice_mimo_key_deleted)
+    val deleteFailed = stringResource(R.string.voice_mimo_key_delete_failed)
     VoiceCard("MiMo", status) {
-        VoiceNote("播报回复用（MiMo TTS）；不填就用 MiMo 模型服务的 key。")
+        VoiceNote(stringResource(R.string.voice_mimo_key_note))
         if (tts == null) return@VoiceCard
-        val label = if (packaged) "API key · 留空则用打包时的 MiMo key" else keyLabel(tts.keyStored)
+        val label = if (packaged) stringResource(R.string.voice_mimo_key_label_packaged) else keyLabel(tts.keyStored)
         VoiceField(label, tts.key, { onTts(tts.copy(key = it)) }, secret = true)
         DeleteKeyButton(tts.keyStored) {
             scope.launch {
                 val cleared = withContext(Dispatchers.IO) { clearTtsKey(context) }
-                onMessage(if (cleared) "已删除这里保存的 MiMo key" else "无法删除 MiMo key")
+                onMessage(if (cleared) deleted else deleteFailed)
                 if (cleared) {
                     onTts(TtsForm.load(context))
                     RuntimeSession.refreshTts(context)
@@ -348,59 +375,68 @@ private fun MimoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (Str
 @Composable
 private fun VoiceRecognitionTab(forms: VoiceForms, onForms: (VoiceForms) -> Unit, choose: VoiceChoice) {
     val context = LocalContext.current
-    val localError = remember { SherpaOnnxAsrEngine.availabilityError(context.assets) }
+    val localError = remember { localAsrUnavailable(context) }
     val saved = forms.saved
     val draft = forms.voice
     val onDraft = { next: VoiceDraft -> onForms(forms.copy(voice = next)) }
     val status = when {
-        saved.engine == VoiceEngine.LOCAL -> (localError ?: "可用 · 本机识别，音频不出设备") to (if (localError == null) ConsoleColors.success else ConsoleColors.danger)
-        saved.hasDashscopeKey -> "可用 · 百炼 ${saved.dashscopeModel}" to ConsoleColors.success
-        else -> "缺少百炼 key：到「密钥」页填写" to ConsoleColors.danger
+        saved.engine == VoiceEngine.LOCAL -> (localError ?: stringResource(R.string.voice_local_ready)) to
+            (if (localError == null) ConsoleColors.success else ConsoleColors.danger)
+        saved.hasDashscopeKey ->
+            stringResource(R.string.voice_dashscope_ready, saved.dashscopeModel) to ConsoleColors.success
+        else -> stringResource(R.string.voice_dashscope_key_missing_go) to ConsoleColors.danger
     }
-    VoiceCard("识别引擎", status) {
+    VoiceCard(stringResource(R.string.voice_recognizer), status) {
         VoiceEngineOptions(draft.engine, localError) { engine -> choose { it.copy(engine = engine) } }
         if (draft.engine == VoiceEngine.LOCAL) {
-            VoiceField("CPU 线程数（1–4）", draft.threads, { onDraft(draft.copy(threads = it)) }, number = true)
+            val label = stringResource(R.string.voice_cpu_threads)
+            VoiceField(label, draft.threads, { onDraft(draft.copy(threads = it)) }, number = true)
         } else {
             DashScopeSettings(draft, onDraft, choose)
         }
     }
-    VoiceCard("录音方式") {
-        VoiceSwitchRow("系统回声消除（AEC + 降噪）", draft.echoCancel) { on -> choose { it.copy(echoCancel = on) } }
+    VoiceCard(stringResource(R.string.voice_capture)) {
+        VoiceSwitchRow(stringResource(R.string.voice_echo_cancel), draft.echoCancel) { on ->
+            choose { it.copy(echoCancel = on) }
+        }
         EchoCancelNote()
-        VoiceSwitchRow("过滤远处人声（以唤醒词的音量为准，明显更轻的说话声不送去识别）", saved.nearGate) { on -> choose { it.copy(nearGate = on) } }
+        VoiceSwitchRow(stringResource(R.string.voice_near_gate), saved.nearGate) { on ->
+            choose { it.copy(nearGate = on) }
+        }
         if (saved.nearGate) {
-            VoiceField("近场门（比唤醒词轻多少 dB 以内都算唤醒人，4–30）", draft.nearBelow, { onDraft(draft.copy(nearBelow = it)) }, number = true)
+            val label = stringResource(R.string.voice_near_gate_db)
+            VoiceField(label, draft.nearBelow, { onDraft(draft.copy(nearBelow = it)) }, number = true)
         }
     }
-    VoiceCard("语音唤醒") { VoiceWakeSection() }
+    VoiceCard(stringResource(R.string.voice_wake_title)) { VoiceWakeSection() }
 }
 
 @Composable
 private fun VoiceEngineOptions(selected: VoiceEngine, localError: String?, onSelect: (VoiceEngine) -> Unit) {
     SelectableOptionRow(
-        VoiceEngine.LOCAL.label,
+        stringResource(VoiceEngine.LOCAL.label),
         selected == VoiceEngine.LOCAL,
         { onSelect(VoiceEngine.LOCAL) },
-        subtitle = localError ?: "Zipformer Small 中英双语流式 · INT8 编码器/Joiner · FP32 解码器 · 音频不出设备",
+        subtitle = localError ?: stringResource(R.string.voice_engine_local_detail),
     )
     SelectableOptionRow(
-        VoiceEngine.DASHSCOPE.label,
+        stringResource(VoiceEngine.DASHSCOPE.label),
         selected == VoiceEngine.DASHSCOPE,
         { onSelect(VoiceEngine.DASHSCOPE) },
-        subtitle = "实时识别 WebSocket · 音频会上传到百炼，按识别时长计费 · key 在「密钥」页",
+        subtitle = stringResource(R.string.voice_engine_dashscope_detail),
     )
 }
 
 @Composable
 private fun DashScopeSettings(draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
-    Text("识别模型", style = ConsoleType.label, color = ConsoleColors.muted)
+    Text(stringResource(R.string.voice_recognition_model), style = ConsoleType.label, color = ConsoleColors.muted)
     DashScopeAsrModel.entries.forEach { model ->
-        SelectableOptionRow(model.label, draft.model == model.id, { choose { it.copy(dashscopeModel = model.id) } }, subtitle = model.id)
+        val label = stringResource(model.displayLabel())
+        SelectableOptionRow(label, draft.model == model.id, { choose { it.copy(dashscopeModel = model.id) } }, subtitle = model.id)
     }
-    VoiceField("WebSocket 地址", draft.endpoint, { onDraft(draft.copy(endpoint = it)) })
+    VoiceField(stringResource(R.string.voice_websocket_address), draft.endpoint, { onDraft(draft.copy(endpoint = it)) })
     VoiceField(
-        "热词（逗号分隔，每个最多 15 字；保存后在你的百炼账号里建一张热词表）",
+        stringResource(R.string.voice_hotwords),
         draft.hotwords,
         { onDraft(draft.copy(hotwords = it)) },
     )
@@ -409,83 +445,108 @@ private fun DashScopeSettings(draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, 
 @Composable
 private fun VoiceTurnsTab(forms: VoiceForms, onForms: (VoiceForms) -> Unit, choose: VoiceChoice) {
     val onDraft = { next: VoiceDraft -> onForms(forms.copy(voice = next)) }
-    VoiceNote(
-        "点击控制台发送按钮旁的麦克风唤醒，持续监听，再点一次结束。开着 Jev 判断时，由 Jev 判断是否对小博说、是否说完，" +
-            "旁人的对话和拿不准的内容只标记、不执行；关掉或没有 Jev key 时，识别出的每句话直接交给 Agent。",
-    )
-    VoiceCard("说完与对象判断") {
-        VoiceSwitchRow("用 Jev 判断话说完没、是不是对小博说（需要 Jev key）", forms.voice.jevTurns) { on -> choose { it.copy(jevTurns = on) } }
+    VoiceNote(stringResource(R.string.voice_turns_intro))
+    VoiceCard(stringResource(R.string.voice_turn_judging)) {
+        VoiceSwitchRow(stringResource(R.string.voice_jev_turns), forms.voice.jevTurns) { on ->
+            choose { it.copy(jevTurns = on) }
+        }
     }
     JevConnectionCard(forms, onForms)
-    VoiceCard("判断阈值") { VoiceJudgeSection(forms.voice, onDraft, choose) }
-    VoiceCard("打断与提示音") { VoiceBargeInSection(forms.voice, onDraft, choose) }
+    VoiceCard(stringResource(R.string.voice_thresholds)) { VoiceJudgeSection(forms.voice, onDraft, choose) }
+    VoiceCard(stringResource(R.string.voice_barge_in_title)) { VoiceBargeInSection(forms.voice, onDraft, choose) }
 }
 
 @Composable
 private fun JevConnectionCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit) {
     val saved = forms.jevSaved
     val status = when {
-        !forms.saved.jevTurns -> "已关闭：每句话直接交给 Agent" to ConsoleColors.muted
-        saved.hasApiKey -> "可用 · ${saved.model}" to ConsoleColors.success
-        else -> "没有 Jev key：每句话直接交给 Agent（到「密钥」页填写可开启判断）" to ConsoleColors.muted
+        !forms.saved.jevTurns -> stringResource(R.string.voice_jev_off) to ConsoleColors.muted
+        saved.hasApiKey -> stringResource(R.string.voice_ready_detail, saved.model) to ConsoleColors.success
+        else -> stringResource(R.string.voice_jev_no_key) to ConsoleColors.muted
     }
-    VoiceCard("Jev 连接", status) {
-        VoiceNote(
-            "工具与技能 → 工具检索 也用这个连接。识别出的文字（含可能的旁聊）和最近几轮对话会发给 Jev，" +
-                "每次判断约 2k 输入 token，按调用量计费。",
-        )
+    VoiceCard(stringResource(R.string.voice_jev_connection), status) {
+        VoiceNote(stringResource(R.string.voice_jev_connection_note))
         val jev = forms.jev
         VoiceFieldRow(
-            { VoiceField("地址", jev.endpoint, { onForms(forms.copy(jev = jev.copy(endpoint = it))) }, it) },
-            { VoiceField("模型", jev.model, { onForms(forms.copy(jev = jev.copy(model = it))) }, it) },
+            {
+                val label = stringResource(R.string.voice_address)
+                VoiceField(label, jev.endpoint, { onForms(forms.copy(jev = jev.copy(endpoint = it))) }, it)
+            },
+            {
+                val label = stringResource(R.string.voice_model)
+                VoiceField(label, jev.model, { onForms(forms.copy(jev = jev.copy(model = it))) }, it)
+            },
         )
-        VoiceField("超时（毫秒，500–15000）", jev.timeout, { onForms(forms.copy(jev = jev.copy(timeout = it))) }, number = true)
+        val timeout = stringResource(R.string.voice_jev_timeout)
+        VoiceField(timeout, jev.timeout, { onForms(forms.copy(jev = jev.copy(timeout = it))) }, number = true)
     }
 }
 
 @Composable
 private fun VoiceSpeechTab(tts: TtsForm?, onTts: (TtsForm) -> Unit, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
     if (tts == null) {
-        VoiceNote("读取中…")
+        VoiceNote(stringResource(R.string.voice_loading))
         return
     }
     val context = LocalContext.current
     TtsProviderPicker(tts.effective.provider) { choose(TTS_PROVIDER, it.wireName) }
     if (tts.effective.provider == TtsProvider.DOUBAO) return DoubaoSpeechCard(tts, onTts, choose, onMessage)
     if (tts.effective.provider == TtsProvider.SYSTEM) return SystemSpeechCard(tts, choose, onMessage)
-    val status = ttsStatusLine(tts.effective) to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
-    VoiceCard("语音播报（MiMo TTS）", status) {
+    val status = ttsStatusLine(context, tts.effective) to
+        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+    VoiceCard(stringResource(R.string.voice_speech_mimo_title), status) {
         val draft = tts.draft
         val edit = { next: TtsConfig -> onTts(tts.copy(draft = next)) }
-        VoiceSwitchRow("播报回复", draft.enabled) { choose(MIMO_TTS_ENABLED, it.toString()) }
+        VoiceSwitchRow(stringResource(R.string.voice_speak_replies), draft.enabled) {
+            choose(MIMO_TTS_ENABLED, it.toString())
+        }
         VoiceFieldRow(
-            { VoiceField("地址", draft.baseUrl, { edit(draft.copy(baseUrl = it)) }, it) },
-            { VoiceField("模型", draft.model, { edit(draft.copy(model = it)) }, it) },
+            {
+                val label = stringResource(R.string.voice_address)
+                VoiceField(label, draft.baseUrl, { edit(draft.copy(baseUrl = it)) }, it)
+            },
+            { VoiceField(stringResource(R.string.voice_model), draft.model, { edit(draft.copy(model = it)) }, it) },
         )
         MimoVoicePicker(draft.voice) { choose(MIMO_TTS_VOICE, it) }
-        VoiceField("风格（告诉 TTS 怎么读）", draft.style, { edit(draft.copy(style = it)) }, singleLine = false)
-        VoiceSwitchRow("流式播放（边合成边播）", draft.stream) { choose(MIMO_TTS_STREAM, it.toString()) }
-        VoiceNote("语音发起的请求，回复总会播报，部分完成和失败也播；打字发起的只在完成或需要你回答时播报。")
-        TextButton(enabled = tts.effective.ready, onClick = {
-            onMessage("正在试听已保存的设置…")
-            RuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok -> onMessage(if (ok) "已开始播报" else "播报没有启动") }
-        }) { Text("试听") }
+        val style = stringResource(R.string.voice_tts_style)
+        VoiceField(style, draft.style, { edit(draft.copy(style = it)) }, singleLine = false)
+        VoiceSwitchRow(stringResource(R.string.voice_tts_stream), draft.stream) {
+            choose(MIMO_TTS_STREAM, it.toString())
+        }
+        VoiceNote(stringResource(R.string.voice_speech_note))
+        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, onMessage)
     }
+}
+
+/** 试听: speaks a line with the saved settings; [onMessage] hears [starting], then whether speech started. */
+@Composable
+private fun PreviewButton(enabled: Boolean, @StringRes starting: Int, onMessage: (String) -> Unit) {
+    val context = LocalContext.current
+    val startingText = stringResource(starting)
+    val started = stringResource(R.string.voice_preview_started)
+    val failed = stringResource(R.string.voice_preview_failed)
+    TextButton(enabled = enabled, onClick = {
+        onMessage(startingText)
+        RuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok ->
+            onMessage(if (ok) started else failed)
+        }
+    }) { Text(stringResource(R.string.voice_preview)) }
 }
 
 /** 音色: the mimo-v2.5-tts presets as chips; a voice set elsewhere (local.properties, the provider file) keeps a chip. */
 @Composable
 private fun MimoVoicePicker(selected: String, onSelect: (String) -> Unit) {
-    Text("音色", style = ConsoleType.label, color = ConsoleColors.muted)
+    val context = LocalContext.current
+    Text(stringResource(R.string.voice_voice), style = ConsoleType.label, color = ConsoleColors.muted)
     MimoTtsVoice.entries.partition { it.chinese }.toList().forEach { voices ->
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            voices.forEach { voice -> VoiceChip(voice.label, selected == voice.id) { onSelect(voice.id) } }
+            voices.forEach { voice -> VoiceChip(voice.label(context), selected == voice.id) { onSelect(voice.id) } }
         }
     }
     if (selected.isNotBlank() && MimoTtsVoice.entries.none { it.id == selected }) {
-        VoiceChip("其他 · $selected", selected = true) {}
+        VoiceChip(stringResource(R.string.voice_other_voice, selected), selected = true) {}
     }
-    VoiceNote("预置音色只用于 mimo-v2.5-tts 模型。")
+    VoiceNote(stringResource(R.string.voice_mimo_presets_note))
 }
 
 @Composable
@@ -505,12 +566,14 @@ private fun VoiceChip(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
-internal fun ttsStatusLine(config: TtsConfig): String = when {
-    config.ready -> "可用 · ${config.label}"
-    config.provider == TtsProvider.DOUBAO && config.doubao.key.isBlank() -> "缺少豆包语音 key：到「密钥」页填写；现在回复只显示、不播报"
-    config.provider == TtsProvider.MIMO && config.apiKey.isBlank() -> "缺少 MiMo key：到「密钥」页填写；现在回复只显示、不播报"
-    !config.enabled -> "已关闭"
-    else -> "配置不完整"
+internal fun ttsStatusLine(context: Context, config: TtsConfig): String = when {
+    config.ready -> context.getString(R.string.voice_ready_detail, config.label(context))
+    config.provider == TtsProvider.DOUBAO && config.doubao.key.isBlank() ->
+        context.getString(R.string.voice_doubao_key_missing_status)
+    config.provider == TtsProvider.MIMO && config.apiKey.isBlank() ->
+        context.getString(R.string.voice_mimo_key_missing_status)
+    !config.enabled -> context.getString(R.string.voice_off)
+    else -> context.getString(R.string.voice_config_incomplete)
 }
 
 /** A titled panel; [status] is one line in the colour that says whether it is good news. */
@@ -537,10 +600,12 @@ private fun VoiceNote(text: String) {
 
 @Composable
 private fun DeleteKeyButton(stored: Boolean, onClick: () -> Unit) {
-    TextButton(enabled = stored, onClick = onClick) { Text("删除 key") }
+    TextButton(enabled = stored, onClick = onClick) { Text(stringResource(R.string.voice_delete_key)) }
 }
 
-private fun keyLabel(stored: Boolean): String = if (stored) "API key · 已保存（留空保持不变）" else "API key"
+@Composable
+private fun keyLabel(stored: Boolean): String =
+    stringResource(if (stored) R.string.voice_api_key_saved else R.string.voice_api_key)
 
 /**
  * 语音唤醒, off by default: applied at once, outside 保存, since it opens the microphone. While on, the wake word is
@@ -554,22 +619,23 @@ private fun VoiceWakeSection() {
     var message by remember { mutableStateOf("") }
     // The switch as saved, even before the overlay has started.
     LaunchedEffect(Unit) { WakeWord.load(context) }
-    VoiceSwitchRow("说「你好，小博」「hi，小博」「OK Bothy」或长按小博唤醒（关闭时长按小博是让它休息）", enabled) { on ->
-        message = if (WakeWord.setEnabled(context, on)) "" else "无法保存开关。"
+    val switchFailed = stringResource(R.string.voice_switch_save_failed)
+    val sensitivityFailed = stringResource(R.string.voice_wake_sensitivity_save_failed)
+    VoiceSwitchRow(stringResource(R.string.voice_wake_switch), enabled) { on ->
+        message = if (WakeWord.setEnabled(context, on)) "" else switchFailed
     }
     Text(
-        "立即生效，不用点保存。唤醒词由本机的小模型一直听（约 4.6 MB，不上传音频）；唤醒后小博飞到中间打开卡片，卡片的输入框换成语音，" +
-            "空闲 ${WAKE_IDLE_END_MILLIS / 1000} 秒、点「收起」或说「退下吧」「再见」后结束，再回到听唤醒词（说退出只对唤醒的会话有效）。" +
-            "操作屏幕时，听到的话显示在屏幕顶部，截图时隐藏。",
+        stringResource(R.string.voice_wake_explainer, WAKE_IDLE_END_MILLIS / 1000),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
     Text(
-        listOf(if (enabled) "状态：${status.message}" else "", message).filter(String::isNotEmpty).joinToString(" · "),
+        listOf(if (enabled) stringResource(R.string.voice_wake_status, status.message) else "", message)
+            .filter(String::isNotEmpty).joinToString(" · "),
         style = ConsoleType.bodySmall,
         color = if (status.listening) ConsoleColors.success else ConsoleColors.muted,
     )
-    WakeSensitivityOptions { failed -> message = if (failed) "无法保存唤醒阈值。" else "" }
+    WakeSensitivityOptions { failed -> message = if (failed) sensitivityFailed else "" }
 }
 
 /** 唤醒阈值: how readily the wake word wakes, applied at once; the spotter starts again with it. */
@@ -577,7 +643,7 @@ private fun VoiceWakeSection() {
 private fun WakeSensitivityOptions(onSaved: (failed: Boolean) -> Unit) {
     val context = LocalContext.current
     var selected by remember { mutableStateOf(loadVoiceConfig(context).wakeSensitivity) }
-    Text("唤醒阈值", style = ConsoleType.label, color = ConsoleColors.muted)
+    Text(stringResource(R.string.voice_wake_sensitivity), style = ConsoleType.label, color = ConsoleColors.muted)
     WakeSensitivity.entries.forEach { sensitivity ->
         val (label, subtitle) = sensitivity.labels()
         SelectableOptionRow(label, selected == sensitivity, {
@@ -588,12 +654,18 @@ private fun WakeSensitivityOptions(onSaved: (failed: Boolean) -> Unit) {
     }
 }
 
+@Composable
 private fun WakeSensitivity.labels(): Pair<String, String> {
-    val phrases = XIAOBO_WAKE_PROFILE.phrasesFor(this).map { it.phrase }.distinct().joinToString("、") { "「$it」" }
+    val phrases = XIAOBO_WAKE_PROFILE.phrasesFor(this).map { it.phrase }.distinct()
+        .map { stringResource(R.string.voice_phrase_quoted, it) }
+        .joinToString(stringResource(R.string.voice_phrase_separator))
     return when (this) {
-        WakeSensitivity.HIGH -> "高 · 不易误唤醒" to "只认 $phrases，要说得清楚"
-        WakeSensitivity.STANDARD -> "中 · 默认" to "认 $phrases"
-        WakeSensitivity.LOW -> "低 · 容易唤醒" to "认 $phrases，发音不太准也唤醒"
+        WakeSensitivity.HIGH ->
+            stringResource(R.string.voice_wake_high) to stringResource(R.string.voice_wake_high_detail, phrases)
+        WakeSensitivity.STANDARD ->
+            stringResource(R.string.voice_wake_standard) to stringResource(R.string.voice_wake_standard_detail, phrases)
+        WakeSensitivity.LOW ->
+            stringResource(R.string.voice_wake_low) to stringResource(R.string.voice_wake_low_detail, phrases)
     }
 }
 
@@ -684,8 +756,8 @@ private data class VoiceDraft(
 private fun EchoCancelNote() {
     val aecAvailable = remember { echoCancellerAvailable() }
     Text(
-        if (aecAvailable) "开启后录音改用通话音源，由系统做回声消除和降噪。"
-        else "此设备没有系统回声消除：保持半双工，Agent 处理和播报期间暂停收音。",
+        if (aecAvailable) stringResource(R.string.voice_aec_note)
+        else stringResource(R.string.voice_aec_missing),
         style = ConsoleType.bodySmall,
         color = if (aecAvailable) ConsoleColors.muted else ConsoleColors.warning,
     )
@@ -693,31 +765,54 @@ private fun EchoCancelNote() {
 
 @Composable
 private fun VoiceBargeInSection(draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
-    VoiceSwitchRow("播报和执行任务时继续收音、可以打断（需开启回声消除）", draft.bargeIn) { on -> choose { it.copy(bargeIn = on) } }
+    VoiceSwitchRow(stringResource(R.string.voice_barge_in), draft.bargeIn) { on -> choose { it.copy(bargeIn = on) } }
     Text(
-        "和播报内容重合的残余回声在本地丢弃，Jev 判断为插话时立即停止播报。",
+        stringResource(R.string.voice_barge_in_note),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
-    VoiceField("打断阈值（Jev taking_floor ≥）", draft.bargeInScore, { onDraft(draft.copy(bargeInScore = it)) }, number = true)
-    VoiceSwitchRow("追加 / 换任务时的提示音（嘀嘀 = 追加，嘀 = 换任务）", draft.handOverChime) { on -> choose { it.copy(handOverChime = on) } }
+    val score = stringResource(R.string.voice_barge_in_score)
+    VoiceField(score, draft.bargeInScore, { onDraft(draft.copy(bargeInScore = it)) }, number = true)
+    val chime = stringResource(R.string.voice_hand_over_chime)
+    VoiceSwitchRow(chime, draft.handOverChime) { on -> choose { it.copy(handOverChime = on) } }
 }
 
 @Composable
 private fun VoiceJudgeSection(draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
     VoiceFieldRow(
-        { VoiceField("说完阈值（无静音时）", draft.eos, { onDraft(draft.copy(eos = it)) }, it, number = true) },
-        { VoiceField("说完阈值下限（静音 3 秒后）", draft.eosFloor, { onDraft(draft.copy(eosFloor = it)) }, it, number = true) },
+        {
+            val label = stringResource(R.string.voice_eos)
+            VoiceField(label, draft.eos, { onDraft(draft.copy(eos = it)) }, it, number = true)
+        },
+        {
+            val label = stringResource(R.string.voice_eos_floor)
+            VoiceField(label, draft.eosFloor, { onDraft(draft.copy(eosFloor = it)) }, it, number = true)
+        },
     )
     VoiceFieldRow(
-        { VoiceField("面向 Agent ≥", draft.agentBound, { onDraft(draft.copy(agentBound = it)) }, it, number = true) },
-        { VoiceField("人人对话 <", draft.sideBound, { onDraft(draft.copy(sideBound = it)) }, it, number = true) },
+        {
+            val label = stringResource(R.string.voice_addressee_agent)
+            VoiceField(label, draft.agentBound, { onDraft(draft.copy(agentBound = it)) }, it, number = true)
+        },
+        {
+            val label = stringResource(R.string.voice_addressee_side)
+            VoiceField(label, draft.sideBound, { onDraft(draft.copy(sideBound = it)) }, it, number = true)
+        },
     )
     VoiceFieldRow(
-        { VoiceField("静音上限（秒）", draft.silenceCapSeconds, { onDraft(draft.copy(silenceCapSeconds = it)) }, it, number = true) },
-        { VoiceField("上下文条数（0–12）", draft.history, { onDraft(draft.copy(history = it)) }, it, number = true) },
+        {
+            val label = stringResource(R.string.voice_silence_cap)
+            val onChange = { text: String -> onDraft(draft.copy(silenceCapSeconds = text)) }
+            VoiceField(label, draft.silenceCapSeconds, onChange, it, number = true)
+        },
+        {
+            val label = stringResource(R.string.voice_history)
+            VoiceField(label, draft.history, { onDraft(draft.copy(history = it)) }, it, number = true)
+        },
     )
-    VoiceSwitchRow("面向 Agent 的话自动执行并播报", draft.autoSubmit) { on -> choose { it.copy(autoSubmit = on) } }
+    VoiceSwitchRow(stringResource(R.string.voice_auto_submit), draft.autoSubmit) { on ->
+        choose { it.copy(autoSubmit = on) }
+    }
 }
 
 @Composable
@@ -763,9 +858,11 @@ private fun VoiceField(
 /** 播报服务: MiMo or 豆包, saved when tapped; each keeps its own settings. */
 @Composable
 private fun TtsProviderPicker(selected: TtsProvider, onSelect: (TtsProvider) -> Unit) {
-    Text("播报服务", style = ConsoleType.label, color = ConsoleColors.muted)
+    Text(stringResource(R.string.voice_tts_provider), style = ConsoleType.label, color = ConsoleColors.muted)
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        TtsProvider.entries.forEach { provider -> VoiceChip(provider.label, selected == provider) { onSelect(provider) } }
+        TtsProvider.entries.forEach { provider ->
+            VoiceChip(stringResource(provider.label), selected == provider) { onSelect(provider) }
+        }
     }
 }
 
@@ -773,16 +870,18 @@ private fun TtsProviderPicker(selected: TtsProvider, onSelect: (TtsProvider) -> 
 @Composable
 private fun SystemSpeechCard(tts: TtsForm, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
     val context = LocalContext.current
-    val status = ttsStatusLine(tts.effective) to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
-    VoiceCard("语音播报（系统语音）", status) {
-        VoiceSwitchRow("播报回复", tts.draft.enabled) { choose(MIMO_TTS_ENABLED, it.toString()) }
-        VoiceNote("用设备自带的「文字转语音」，不需要任何 key。想要更自然的声音，到「密钥」页填豆包语音 key（推荐），再在上面选「豆包」。")
+    val status = ttsStatusLine(context, tts.effective) to
+        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+    VoiceCard(stringResource(R.string.voice_speech_system_title), status) {
+        VoiceSwitchRow(stringResource(R.string.voice_speak_replies), tts.draft.enabled) {
+            choose(MIMO_TTS_ENABLED, it.toString())
+        }
+        VoiceNote(stringResource(R.string.voice_system_speech_note))
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            TextButton(onClick = {
-                onMessage("正在试听系统语音…")
-                RuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok -> onMessage(if (ok) "已开始播报" else "播报没有启动") }
-            }) { Text("试听") }
-            TextButton(onClick = { runCatching { context.startActivity(SystemTts.settingsIntent()) } }) { Text("系统语音设置") }
+            PreviewButton(enabled = true, starting = R.string.voice_preview_system, onMessage = onMessage)
+            TextButton(onClick = { runCatching { context.startActivity(SystemTts.settingsIntent()) } }) {
+                Text(stringResource(R.string.voice_system_tts_settings))
+            }
         }
     }
 }
@@ -791,38 +890,51 @@ private fun SystemSpeechCard(tts: TtsForm, choose: (String, String) -> Unit, onM
 @Composable
 private fun DoubaoSpeechCard(tts: TtsForm, onTts: (TtsForm) -> Unit, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
     val context = LocalContext.current
-    val status = ttsStatusLine(tts.effective) to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
-    VoiceCard("语音播报（豆包语音合成）", status) {
+    val status = ttsStatusLine(context, tts.effective) to
+        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+    VoiceCard(stringResource(R.string.voice_speech_doubao_title), status) {
         val draft = tts.draft
         val edit = { next: DoubaoTtsSettings -> onTts(tts.copy(draft = draft.copy(doubao = next))) }
-        VoiceSwitchRow("播报回复", draft.enabled) { choose(MIMO_TTS_ENABLED, it.toString()) }
+        VoiceSwitchRow(stringResource(R.string.voice_speak_replies), draft.enabled) {
+            choose(MIMO_TTS_ENABLED, it.toString())
+        }
         VoiceFieldRow(
-            { VoiceField("资源 ID（2.0 音色用 seed-tts-2.0）", draft.doubao.resourceId, { edit(draft.doubao.copy(resourceId = it)) }, it) },
-            { VoiceField("App ID（用 API key 时留空）", draft.doubao.appId, { edit(draft.doubao.copy(appId = it)) }, it) },
+            {
+                val label = stringResource(R.string.voice_doubao_resource_id)
+                VoiceField(label, draft.doubao.resourceId, { edit(draft.doubao.copy(resourceId = it)) }, it)
+            },
+            {
+                val label = stringResource(R.string.voice_doubao_app_id)
+                VoiceField(label, draft.doubao.appId, { edit(draft.doubao.copy(appId = it)) }, it)
+            },
         )
         DoubaoVoicePicker(draft.doubao.voice) { choose(DOUBAO_TTS_VOICE, it) }
-        Text("语速", style = ConsoleType.label, color = ConsoleColors.muted)
+        Text(stringResource(R.string.voice_speech_rate), style = ConsoleType.label, color = ConsoleColors.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            DOUBAO_SPEEDS.forEach { (label, rate) -> VoiceChip(label, draft.doubao.speechRate == rate) { choose(DOUBAO_TTS_SPEECH_RATE, rate.toString()) } }
+            DOUBAO_SPEEDS.forEach { (label, rate) ->
+                VoiceChip(stringResource(label), draft.doubao.speechRate == rate) {
+                    choose(DOUBAO_TTS_SPEECH_RATE, rate.toString())
+                }
+            }
         }
-        VoiceNote("用火山引擎「豆包语音」的单向流式接口，边合成边播。新版控制台的 API key 直接填在「密钥」页；旧版用 App ID + Access Token 时，App ID 填这里、Access Token 填「密钥」页。")
-        TextButton(enabled = tts.effective.ready, onClick = {
-            onMessage("正在试听已保存的设置…")
-            RuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok -> onMessage(if (ok) "已开始播报" else "播报没有启动") }
-        }) { Text("试听") }
+        VoiceNote(stringResource(R.string.voice_doubao_note))
+        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, onMessage)
     }
 }
 
 /** 音色: some 豆包 2.0 voices as chips; an id typed elsewhere (local.properties) keeps a chip. */
 @Composable
 private fun DoubaoVoicePicker(selected: String, onSelect: (String) -> Unit) {
-    Text("音色", style = ConsoleType.label, color = ConsoleColors.muted)
+    val context = LocalContext.current
+    Text(stringResource(R.string.voice_voice), style = ConsoleType.label, color = ConsoleColors.muted)
     DoubaoTtsVoice.entries.chunked(DOUBAO_VOICES_PER_ROW).forEach { voices ->
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            voices.forEach { voice -> VoiceChip(voice.label, selected == voice.id) { onSelect(voice.id) } }
+            voices.forEach { voice -> VoiceChip(voice.label(context), selected == voice.id) { onSelect(voice.id) } }
         }
     }
-    if (selected.isNotBlank() && DoubaoTtsVoice.entries.none { it.id == selected }) VoiceChip("其他 · $selected", selected = true) {}
+    if (selected.isNotBlank() && DoubaoTtsVoice.entries.none { it.id == selected }) {
+        VoiceChip(stringResource(R.string.voice_other_voice, selected), selected = true) {}
+    }
 }
 
 @Composable
@@ -831,19 +943,21 @@ private fun DoubaoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (S
     val scope = rememberCoroutineScope()
     val packaged = tts != null && !tts.doubaoKeyStored && tts.effective.doubao.key.isNotBlank()
     val status = when {
-        tts == null -> "读取中…" to ConsoleColors.muted
-        tts.doubaoKeyStored -> "已保存" to ConsoleColors.success
-        packaged -> "用打包时的豆包语音 key" to ConsoleColors.success
-        else -> "未填：选了豆包播报时需要" to ConsoleColors.muted
+        tts == null -> stringResource(R.string.voice_loading) to ConsoleColors.muted
+        tts.doubaoKeyStored -> stringResource(R.string.voice_saved) to ConsoleColors.success
+        packaged -> stringResource(R.string.voice_doubao_key_packaged) to ConsoleColors.success
+        else -> stringResource(R.string.voice_doubao_key_optional) to ConsoleColors.muted
     }
-    VoiceCard("豆包语音", status) {
-        VoiceNote("播报选豆包时用：新版控制台的 API key，或旧版的 Access Token（App ID 填在「语音播报」页）。")
+    val deleted = stringResource(R.string.voice_doubao_key_deleted)
+    val deleteFailed = stringResource(R.string.voice_doubao_key_delete_failed)
+    VoiceCard(stringResource(R.string.voice_doubao_speech), status) {
+        VoiceNote(stringResource(R.string.voice_doubao_key_note))
         if (tts == null) return@VoiceCard
         VoiceField(keyLabel(tts.doubaoKeyStored), tts.doubaoKey, { onTts(tts.copy(doubaoKey = it)) }, secret = true)
         DeleteKeyButton(tts.doubaoKeyStored) {
             scope.launch {
                 val cleared = withContext(Dispatchers.IO) { clearDoubaoTtsKey(context) }
-                onMessage(if (cleared) "已删除这里保存的豆包语音 key" else "无法删除豆包语音 key")
+                onMessage(if (cleared) deleted else deleteFailed)
                 if (cleared) {
                     onTts(TtsForm.load(context))
                     RuntimeSession.refreshTts(context)
@@ -853,5 +967,10 @@ private fun DoubaoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (S
     }
 }
 
-private val DOUBAO_SPEEDS = listOf("慢" to -25, "正常" to 0, "快" to 25, "很快" to 50)
+private val DOUBAO_SPEEDS = listOf(
+    R.string.voice_speed_slow to -25,
+    R.string.voice_speed_normal to 0,
+    R.string.voice_speed_fast to 25,
+    R.string.voice_speed_very_fast to 50,
+)
 private const val DOUBAO_VOICES_PER_ROW = 4

@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.voice.realtime
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.evidence.benchTrustedClient
 import cc.noharry.bothy.app.memory.UserMemory
 import cc.noharry.bothy.app.memory.memoryProfileText
@@ -59,15 +61,17 @@ internal data class RealtimeConfig(
 }
 
 /** The voices the realtime model speaks with (its own jupiter set, not the TTS ones). */
-internal enum class DoubaoRealtimeVoice(val id: String, val label: String) {
-    VV("zh_female_vv_jupiter_bigtts", "Vivi · 女声"),
-    XIAOHE("zh_female_xiaohe_jupiter_bigtts", "小何 · 女声"),
-    YUNZHOU("zh_male_yunzhou_jupiter_bigtts", "云舟 · 男声"),
-    XIAOTIAN("zh_male_xiaotian_jupiter_bigtts", "小天 · 男声"),
+internal enum class DoubaoRealtimeVoice(val id: String, val title: String, @StringRes val description: Int) {
+    VV("zh_female_vv_jupiter_bigtts", "Vivi", R.string.tts_voice_female),
+    XIAOHE("zh_female_xiaohe_jupiter_bigtts", "小何", R.string.tts_voice_female),
+    YUNZHOU("zh_male_yunzhou_jupiter_bigtts", "云舟", R.string.tts_voice_male),
+    XIAOTIAN("zh_male_xiaotian_jupiter_bigtts", "小天", R.string.tts_voice_male),
     ;
 
+    fun label(context: Context): String = "$title · ${context.getString(description)}"
+
     companion object {
-        fun labelOf(id: String): String = entries.firstOrNull { it.id == id }?.label ?: id
+        fun labelOf(context: Context, id: String): String = entries.firstOrNull { it.id == id }?.label(context) ?: id
     }
 }
 
@@ -306,8 +310,12 @@ internal class Float32ToPcm16(private val gain: Float = 1f) {
     }
 }
 
-/** The realtime WebSocket: [onEvent] gets every event it understands, on OkHttp's thread, then [DoubaoRealtimeEvent.Closed] or a failure. */
+/**
+ * The realtime WebSocket: [onEvent] gets every event it understands, on OkHttp's thread, then
+ * [DoubaoRealtimeEvent.Closed] or a failure, worded in [context]'s language.
+ */
 internal class DoubaoRealtimeConnection(
+    private val context: Context,
     private val client: OkHttpClient,
     private val key: String,
     private val onEvent: (DoubaoRealtimeEvent) -> Unit,
@@ -332,7 +340,7 @@ internal class DoubaoRealtimeConnection(
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) = onEvent(DoubaoRealtimeEvent.Closed)
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) =
-                onEvent(DoubaoRealtimeEvent.Failure(realtimeFailure(t, response)))
+                onEvent(DoubaoRealtimeEvent.Failure(realtimeFailure(context, t, response)))
         })
     }
 
@@ -349,6 +357,7 @@ internal class DoubaoRealtimeConnection(
 
 /** Opens a session and closes it again: how long `session.created` took in milliseconds, or why it did not come. */
 internal suspend fun probeDoubaoRealtime(
+    context: Context,
     client: OkHttpClient,
     key: String,
     config: RealtimeConfig,
@@ -357,19 +366,21 @@ internal suspend fun probeDoubaoRealtime(
     val outcome = CompletableDeferred<Result<Long>>()
     val started = System.nanoTime()
     fun fail(message: String) = outcome.complete(Result.failure(IllegalStateException(message)))
-    val connection = DoubaoRealtimeConnection(client, key, { event ->
+    val connection = DoubaoRealtimeConnection(context, client, key, { event ->
         when (event) {
             is DoubaoRealtimeEvent.SessionCreated -> outcome.complete(Result.success((System.nanoTime() - started) / NANOS_PER_MILLI))
             is DoubaoRealtimeEvent.Failure -> fail(event.message)
-            is DoubaoRealtimeEvent.ServerError -> fail("豆包端到端报错：${event.message}")
-            DoubaoRealtimeEvent.Closed -> fail("豆包端到端没有建立会话就关闭了连接")
+            is DoubaoRealtimeEvent.ServerError -> fail(context.getString(R.string.realtime_server_error, event.message))
+            DoubaoRealtimeEvent.Closed -> fail(context.getString(R.string.realtime_closed_early))
             else -> Unit
         }
     }, url)
     connection.open()
     connection.send(doubaoRealtimeSessionCreate(config))
+    val seconds = (PROBE_MILLIS / 1000).toInt()
+    val timedOut = { context.resources.getQuantityString(R.plurals.realtime_probe_timeout, seconds, seconds) }
     return try {
-        withTimeoutOrNull(PROBE_MILLIS) { outcome.await() } ?: Result.failure(IllegalStateException("${PROBE_MILLIS / 1000} 秒内没有建立会话"))
+        withTimeoutOrNull(PROBE_MILLIS) { outcome.await() } ?: Result.failure(IllegalStateException(timedOut()))
     } finally {
         connection.close()
     }
@@ -396,12 +407,13 @@ internal fun realtimeKey(context: Context): String = loadDoubaoTtsKey(context).i
 }
 
 /** Why the connection failed, in the words 设置 and the voice bar show: a refused handshake names what to open in the console. */
-internal fun realtimeFailure(error: Throwable, response: Response?): String {
-    val code = response?.code ?: return "连不上豆包端到端：${error.message ?: error.javaClass.simpleName}"
+internal fun realtimeFailure(context: Context, error: Throwable, response: Response?): String {
+    val code = response?.code
+        ?: return context.getString(R.string.realtime_unreachable, error.message ?: error.javaClass.simpleName)
     val body = runCatching { response.body?.string() }.getOrNull().orEmpty().take(MAX_ERROR_CHARS)
     return when (code) {
-        401, 403 -> "豆包端到端拒绝了这个 key（HTTP $code）：确认控制台已开通端到端实时语音。$body".trim()
-        else -> "豆包端到端连接失败（HTTP $code）$body".trim()
+        401, 403 -> context.getString(R.string.realtime_key_refused, code, body).trim()
+        else -> context.getString(R.string.realtime_connect_failed, code, body).trim()
     }
 }
 

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Models and services: the service pages and the on-device model. values-zh holds the Chinese. -->
+<resources>
+    <!-- A service (provider profile) -->
+    <string name="model_add_service">Add service</string>
+    <string name="model_saved_choose_model">Saved. Choose the model to use beside the message box.</string>
+    <string name="model_service_name">Service name</string>
+    <string name="model_type">Type</string>
+    <string name="model_endpoint">Endpoint</string>
+    <string name="model_delete_service">Delete service</string>
+    <string name="model_missing_api_key">Missing API key for %1$s. Set it in Config or provide one of:\n%2$s</string>
+    <string name="model_choose_model_first">Choose a model beside the message box; you can fetch or add models in Settings first.</string>
+
+    <!-- DeepSeek balance -->
+    <string name="model_deepseek_balance_hint">An official DeepSeek key can check its balance</string>
+    <string name="model_balance">Balance: %1$s</string>
+    <string name="model_balance_failed">Couldn\'t check: %1$s</string>
+    <string name="model_balance_checking">Checking…</string>
+    <string name="model_balance_check">Check balance</string>
+    <string name="model_balance_separator">"; "</string>
+    <string name="model_balance_amount">%1$s (topped up %2$s, granted %3$s)</string>
+    <string name="model_deepseek_available">Available</string>
+    <string name="model_balance_insufficient">Insufficient balance, unavailable for now</string>
+    <string name="model_balance_amounts_insufficient">%1$s · Insufficient balance, unavailable for now</string>
+    <string name="model_balance_key_rejected">The API key is invalid or disabled</string>
+    <string name="model_http_error">HTTP %1$d: %2$s</string>
+
+    <!-- DeepSeek check of a relay -->
+    <string name="model_deepseek_features">DeepSeek official features</string>
+    <string name="model_deepseek_probe_intro">When a relay has DeepSeek\'s official API behind it, what passes the check (balance, Search/Fetch, native deferred tools) goes through this service\'s address and key (the check runs one search, ¥0.005)</string>
+    <string name="model_deepseek_probe_stale">The address, endpoint or key changed since the last check; check again</string>
+    <string name="model_deepseek_probe_current">Checked with the address and key filled in; changes take effect once saved</string>
+    <string name="model_probe_checking">Checking…</string>
+    <string name="model_probe_check">Check</string>
+    <string name="model_probe_balance">Balance API</string>
+    <string name="model_probe_tools">Search/Fetch API</string>
+    <string name="model_probe_passthrough">Native deferred tools</string>
+    <string name="model_probe_passthrough_messages_only">Native deferred tools: Messages endpoint only</string>
+    <string name="model_probe_line_passed">%1$s: ✓ %2$s</string>
+    <string name="model_probe_line_failed">%1$s: ✗ %2$s</string>
+    <string name="model_probe_not_http">Base URL isn\'t an http(s) address</string>
+    <string name="model_probe_not_balance">HTTP 200, but not DeepSeek\'s balance</string>
+    <string name="model_probe_not_search">HTTP 200, but not DeepSeek\'s search results</string>
+    <string name="model_probe_no_model">No model chosen, can\'t check</string>
+    <string name="model_probe_dropped">The model answered as usual; the relay dropped %1$s</string>
+    <string name="model_probe_passed_through">Passed through unchanged</string>
+    <string name="model_probe_unreachable">Can\'t connect: %1$s</string>
+
+    <!-- The model list -->
+    <string name="model_models_count">Models · %1$d</string>
+    <string name="model_fetch_empty">The service listed no models. The list is kept, and you can still add models by hand.</string>
+    <plurals name="model_fetched_unselected">
+        <item quantity="one">Fetched %1$d model and replaced the list. The service no longer offers %2$s, which was chosen; after saving, choose a model again beside the message box.</item>
+        <item quantity="other">Fetched %1$d models and replaced the list. The service no longer offers %2$s, which was chosen; after saving, choose a model again beside the message box.</item>
+    </plurals>
+    <plurals name="model_fetched">
+        <item quantity="one">Fetched %1$d model and replaced the list; after saving, choose it beside the message box.</item>
+        <item quantity="other">Fetched %1$d models and replaced the list; after saving, choose one beside the message box.</item>
+    </plurals>
+    <string name="model_fetch_failed">Couldn\'t fetch models. The list is kept, and you can still add models by hand.</string>
+    <string name="model_fetch_connection_changed">The connection changed; fetch the models again.</string>
+    <string name="model_fetching">Fetching…</string>
+    <string name="model_fetch">Fetch models from the service</string>
+    <string name="model_add_by_hand">Add a model name by hand</string>
+    <string name="model_add_model">Add model</string>
+    <string name="model_list_hint">Manage the model list and context limits here; choose the model to use beside the message box.</string>
+    <string name="model_context_limit">Context limit (tokens)</string>
+    <string name="model_context_default">Default %1$s</string>
+    <string name="model_context_default_compacts">Default %1$s · compacts at 80%%</string>
+    <string name="model_context_invalid">Enter a positive whole number, or a number with K / M</string>
+    <string name="model_image_input_description">%1$s image input</string>
+    <string name="model_text_and_images">Text + images</string>
+    <string name="model_text_only">Text only</string>
+
+    <!-- On-device model -->
+    <string name="model_on_device">On-device model</string>
+    <string name="model_on_device_intro">Runs on this device, so conversations stay on it: llama.cpp on the NPU, falling back to the CPU when the NPU can\'t be used. Models aren\'t installed with the app; download the one you want to use, then choose it beside the message box or here. It starts when \"On-device model\" is chosen and stops when you switch to another service, freeing memory.</string>
+    <string name="model_on_device_missing">On-device model %1$s isn\'t downloaded: Settings → Models and services → On-device model → %1$s → Download (about %2$s GB).</string>
+    <string name="model_publisher_qwen">Alibaba Qwen</string>
+    <string name="model_publisher_minicpm">ModelBest</string>
+    <string name="model_note_gemma_4_e4b">Steadiest in tests: never said something was done without calling the tool, and asks when unsure.</string>
+    <string name="model_note_qwen3_4b">Quickest to act in tests, but now and then says something is done without having called the tool.</string>
+    <string name="model_note_minicpm5_2b">Finds tools on its own in tests and never falsely said something was done; thinks before each step, so it\'s slower.</string>
+    <string name="model_in_use">In use</string>
+    <string name="model_use">Use</string>
+    <string name="model_resume_download">Resume download</string>
+    <string name="model_download">Download</string>
+    <string name="model_downloading">Downloading %1$s / %2$s GB (%3$s, %4$s)</string>
+    <string name="model_verifying">Verifying… (checking SHA-256, about half a minute)</string>
+    <string name="model_ready">Ready</string>
+    <string name="model_partly_downloaded">Downloaded %1$s / %2$s GB, can resume</string>
+    <string name="model_not_downloaded">Not downloaded</string>
+    <string name="model_download_no_source">Download failed: no download address</string>
+    <string name="model_download_failed">Download failed: %1$s</string>
+    <string name="model_download_checksum_failed">Verification failed: the file doesn\'t match the published SHA-256. It was deleted; download it again</string>
+    <string name="model_download_rename_failed">Couldn\'t save: the downloaded file couldn\'t be renamed to %1$s. Try again</string>
+    <string name="model_server_stopped">Not started</string>
+    <string name="model_server_starting">Starting (%1$s, %2$s), loading the model takes ten-odd seconds…</string>
+    <string name="model_server_running">Running (%1$s, %2$s, %3$s)</string>
+    <string name="model_server_failed">Couldn\'t start: %1$s</string>
+    <string name="model_inference_server">Inference server</string>
+    <string name="model_stop">Stop</string>
+    <string name="model_start">Start %1$s</string>
+</resources>

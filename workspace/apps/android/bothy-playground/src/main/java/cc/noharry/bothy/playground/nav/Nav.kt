@@ -193,11 +193,15 @@ internal fun List<Place>.stopIndex(index: Int?, name: String?): Int? {
 
 /** The weather where the car is, as the head unit's weather card shows it. */
 data class WeatherReport(
+    /** AMap's name for the city; empty where none is known (no key, the device's own place). */
     val city: String,
     val weather: String,
     val temperature: String,
     val humidity: String,
-    val wind: String,
+    /** Where the wind comes from, as AMap words it (东南); empty from Open-Meteo, which gives none. */
+    val windDirection: String,
+    /** The wind's force on the Beaufort scale, as AMap gives it (3, ≤3). */
+    val windForce: String,
     val days: List<DayWeather>,
     val at: Long = System.currentTimeMillis(),
 )

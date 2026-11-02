@@ -1,4 +1,5 @@
 package cc.noharry.bothy.playground
+import android.content.Context
 import cc.noharry.bothy.playground.cabin.Cabin
 import cc.noharry.bothy.playground.cabin.ClimateMode
 import cc.noharry.bothy.playground.cabin.Drive
@@ -23,10 +24,23 @@ import kotlin.random.Random
  * weather outside, a drive drains the battery and counts down the route, and the vacuum works through its rooms.
  * [notes] collects what happened worth telling (an arrival, a room cleaned).
  */
-internal fun World.tick(seconds: Double, random: Random = Random.Default, notes: MutableList<String> = mutableListOf()): World =
-    copy(cabin = cabin.tick(seconds, random, notes), home = home.tick(seconds, notes))
+internal fun World.tick(
+    seconds: Double,
+    random: Random = Random.Default,
+    notes: MutableList<WorldNote> = mutableListOf(),
+): World = copy(cabin = cabin.tick(seconds, random, notes), home = home.tick(seconds, notes))
 
-internal fun Cabin.tick(seconds: Double, random: Random, notes: MutableList<String>): Cabin {
+/** Something the world did on its own worth a line in the log; [text] words it for the screen. */
+internal sealed interface WorldNote {
+    /** The vacuum is done with [room]. */
+    data class RoomCleaned(val room: Room) : WorldNote
+}
+
+internal fun WorldNote.text(context: Context): String = when (this) {
+    is WorldNote.RoomCleaned -> context.getString(R.string.home_log_vacuum_cleaned, context.getString(room.labelRes))
+}
+
+internal fun Cabin.tick(seconds: Double, random: Random, notes: MutableList<WorldNote>): Cabin {
     val moved = when {
         // Navigating, the car goes as fast as the navigation (or its simulation) says, and uses what its range says a
         // kilometre takes: a whole demo route must not empty it, as the quick drain below would.
@@ -58,7 +72,7 @@ private fun Cabin.nextInsideTemp(seconds: Double): Double {
     return approach(insideTempC, target, rate * seconds)
 }
 
-internal fun Home.tick(seconds: Double, notes: MutableList<String>): Home {
+internal fun Home.tick(seconds: Double, notes: MutableList<WorldNote>): Home {
     val warmed = Room.entries.fold(this) { home, room ->
         home.withRoom(room) { state ->
             val cooling = state.climate.on && state.climate.mode != ClimateMode.VENT
@@ -69,7 +83,7 @@ internal fun Home.tick(seconds: Double, notes: MutableList<String>): Home {
     return warmed.copy(vacuum = vacuum.tick(seconds, notes))
 }
 
-internal fun Vacuum.tick(seconds: Double, notes: MutableList<String>): Vacuum = when (status) {
+internal fun Vacuum.tick(seconds: Double, notes: MutableList<WorldNote>): Vacuum = when (status) {
     VacuumStatus.DOCKED -> copy(battery = min(100.0, battery + CHARGE_PER_SECOND * seconds))
     VacuumStatus.PAUSED -> this
     VacuumStatus.RETURNING -> (progress + seconds / RETURN_SECONDS).let { done ->
@@ -78,11 +92,11 @@ internal fun Vacuum.tick(seconds: Double, notes: MutableList<String>): Vacuum = 
     VacuumStatus.CLEANING -> cleaned(seconds, notes)
 }
 
-private fun Vacuum.cleaned(seconds: Double, notes: MutableList<String>): Vacuum {
+private fun Vacuum.cleaned(seconds: Double, notes: MutableList<WorldNote>): Vacuum {
     val done = progress + seconds / ROOM_SECONDS
     val drained = max(0.0, battery - DISCHARGE_PER_SECOND * seconds)
     if (done < 1.0) return copy(progress = done, battery = drained)
-    room?.let { notes += "扫地机扫完了${it.label}" }
+    room?.let { notes += WorldNote.RoomCleaned(it) }
     val next = queue.firstOrNull()
     return if (next != null) {
         copy(room = next, queue = queue.drop(1), progress = 0.0, battery = drained)

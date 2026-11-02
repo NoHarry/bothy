@@ -1,9 +1,11 @@
 package cc.noharry.bothy.playground
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -42,8 +44,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -69,6 +74,7 @@ import cc.noharry.bothy.playground.headunit.tapCabin
 import cc.noharry.bothy.playground.headunit.tapHome
 import cc.noharry.bothy.playground.home.HomeScene
 import cc.noharry.bothy.playground.home.UserPlace
+import cc.noharry.bothy.playground.home.World
 import cc.noharry.bothy.playground.link.open
 import cc.noharry.bothy.playground.nav.AMapConsent
 import cc.noharry.bothy.playground.nav.AmapApp
@@ -78,6 +84,10 @@ import cc.noharry.bothy.playground.nav.place
 
 /** The playground's one screen; it also starts [PlaygroundService], which serves the world to Bothy. */
 class PlaygroundActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         HeadUnitModes.load(this)
         AmapKey.apply(this)
@@ -171,7 +181,11 @@ private const val PHONE_SCALE = 0.75f
 /** Bothy's 「回到车机」: the scene to show, `cabin`, `home` or `nav` (DebugPlaygroundToolProvider). */
 private const val EXTRA_SCENE = "scene"
 
-internal enum class PlaygroundScene(val label: String, val server: String) { CABIN("虚拟座舱", "cabin"), HOME("虚拟小家", "home") }
+/** [labelRes] is what screens show; [label] stays for the Chinese callers that have not moved to it yet. */
+internal enum class PlaygroundScene(val label: String, val server: String, @StringRes val labelRes: Int) {
+    CABIN("虚拟座舱", "cabin", R.string.playground_scene_cabin),
+    HOME("虚拟小家", "home", R.string.playground_scene_home),
+}
 
 @Composable
 internal fun PlaygroundApp(store: PlaygroundStore) {
@@ -201,25 +215,41 @@ internal fun PlaygroundApp(store: PlaygroundStore) {
         Column(Modifier.fillMaxSize().background(PlaygroundColors.bg).padding(horizontal = 20.dp, vertical = 14.dp)) {
             TopBar(scene, { scene = it }, server, world.cabin.drive.moving, store)
             Spacer(Modifier.height(12.dp))
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                val wide = maxWidth > WIDE_LAYOUT
-                val sceneView: @Composable (Modifier) -> Unit = { modifier ->
-                    when (scene) {
-                        PlaygroundScene.CABIN -> CabinScene(world.cabin, flash, modifier, store::tapCabin, store::holdCabin)
-                        PlaygroundScene.HOME -> HomeScene(world.home, flash, modifier, store::tapHome, store::holdHome)
-                    }
-                }
-                if (wide) {
-                    Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                        sceneView(Modifier.weight(1f).fillMaxHeight())
-                        SidePanel(scene, world, calls, server, level.value, store, Modifier.width(SIDE_WIDTH).fillMaxHeight())
-                    }
-                } else {
-                    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        sceneView(Modifier.weight(1f).fillMaxWidth())
-                        SidePanel(scene, world, calls, server, level.value, store, Modifier.fillMaxWidth().height(NARROW_PANEL_HEIGHT))
-                    }
-                }
+            SceneWithPanel(scene, world, calls, server, flash, level.value, store, Modifier.weight(1f).fillMaxWidth())
+        }
+    }
+}
+
+/** The scene beside its side panel, or above it on a narrow screen; taps on the picture are manual changes. */
+@Composable
+private fun SceneWithPanel(
+    scene: PlaygroundScene,
+    world: World,
+    calls: List<CallRecord>,
+    server: ServerState,
+    flash: Flash,
+    level: Float,
+    store: PlaygroundStore,
+    modifier: Modifier,
+) {
+    val context = LocalContext.current
+    BoxWithConstraints(modifier) {
+        val wide = maxWidth > WIDE_LAYOUT
+        val sceneView: @Composable (Modifier) -> Unit = { at ->
+            when (scene) {
+                PlaygroundScene.CABIN -> CabinScene(world.cabin, flash, at, { store.tapCabin(context, it) }, { store.holdCabin(context, it) })
+                PlaygroundScene.HOME -> HomeScene(world.home, flash, at, { store.tapHome(context, it) }, { store.holdHome(context, it) })
+            }
+        }
+        if (wide) {
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                sceneView(Modifier.weight(1f).fillMaxHeight())
+                SidePanel(scene, world, calls, server, level, store, Modifier.width(SIDE_WIDTH).fillMaxHeight())
+            }
+        } else {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                sceneView(Modifier.weight(1f).fillMaxWidth())
+                SidePanel(scene, world, calls, server, level, store, Modifier.fillMaxWidth().height(NARROW_PANEL_HEIGHT))
             }
         }
     }
@@ -235,6 +265,7 @@ private fun TakeAskedScene(onScene: (PlaygroundScene) -> Unit) {
 
 @Composable
 private fun TopBar(scene: PlaygroundScene, onScene: (PlaygroundScene) -> Unit, server: ServerState, driving: Boolean, store: PlaygroundStore) {
+    val context = LocalContext.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(38.dp))
         Column(Modifier.weight(1f)) {
@@ -245,14 +276,14 @@ private fun TopBar(scene: PlaygroundScene, onScene: (PlaygroundScene) -> Unit, s
         PlaceSwitch(store)
         SceneTabs(scene, onScene)
         if (scene == PlaygroundScene.CABIN) {
-            Text("模拟行驶", color = PlaygroundColors.muted, fontSize = 13.sp)
+            Text(stringResource(R.string.playground_simulated_drive), color = PlaygroundColors.muted, fontSize = 13.sp)
             Switch(
                 checked = driving,
-                onCheckedChange = { store.setDriving(it) },
+                onCheckedChange = { store.setDriving(context, it) },
                 colors = SwitchDefaults.colors(checkedTrackColor = PlaygroundColors.sage, checkedThumbColor = PlaygroundColors.bg),
             )
         }
-        Pill("重置", selected = false) { store.reset() }
+        Pill(stringResource(R.string.playground_reset), selected = false) { store.reset() }
     }
 }
 
@@ -260,14 +291,20 @@ private fun TopBar(scene: PlaygroundScene, onScene: (PlaygroundScene) -> Unit, s
 @Composable
 internal fun PlaceSwitch(store: PlaygroundStore) {
     val world by store.world.collectAsState()
-    Text("你在", color = PlaygroundColors.muted, fontSize = 13.sp)
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    Text(stringResource(R.string.playground_you_are), color = PlaygroundColors.muted, fontSize = 13.sp)
     Row(
         Modifier.clip(RoundedCornerShape(50)).background(PlaygroundColors.elevated).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         UserPlace.entries.forEach { place ->
-            Pill(place.label, selected = world.userAt == place) {
-                store.manual("playground", "你现在在${place.label}") { it.copy(userAt = place) }
+            Pill(stringResource(place.labelRes), selected = world.userAt == place) {
+                val now = when (place) {
+                    UserPlace.CABIN -> R.string.playground_log_now_in_car
+                    UserPlace.HOME -> R.string.playground_log_now_at_home
+                }
+                store.manual("playground", resources.getString(now)) { it.copy(userAt = place) }
             }
         }
     }
@@ -279,7 +316,9 @@ private fun SceneTabs(scene: PlaygroundScene, onScene: (PlaygroundScene) -> Unit
         Modifier.clip(RoundedCornerShape(50)).background(PlaygroundColors.elevated).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        PlaygroundScene.entries.forEach { entry -> Pill(entry.label, selected = entry == scene) { onScene(entry) } }
+        PlaygroundScene.entries.forEach { entry ->
+            Pill(stringResource(entry.labelRes), selected = entry == scene) { onScene(entry) }
+        }
     }
 }
 
@@ -296,10 +335,11 @@ internal fun Pill(label: String, selected: Boolean, onClick: () -> Unit) {
     }
 }
 
+@Composable
 private fun ServerState.headline(): String = when (status) {
-    ServerStatus.STARTING -> "MCP 服务启动中…"
-    ServerStatus.RUNNING -> "MCP 服务运行中 · $address/cabin/mcp · $address/home/mcp"
-    ServerStatus.FAILED -> "MCP 服务没能启动：$problem"
+    ServerStatus.STARTING -> stringResource(R.string.playground_server_starting)
+    ServerStatus.RUNNING -> stringResource(R.string.playground_server_running, address)
+    ServerStatus.FAILED -> stringResource(R.string.playground_server_failed, problem)
 }
 
 private const val FLASH_MS = 1800

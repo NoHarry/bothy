@@ -6,7 +6,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DashScopeVocabularyTest {
@@ -34,8 +33,11 @@ class DashScopeVocabularyTest {
     @Test
     fun overlongHotwordsAreRefused() {
         assertNull(hotwordProblem("你好助手"))
-        assertTrue(hotwordProblem("一二三四五六七八九十一二三四五六")!!.contains("15"))
-        assertTrue(hotwordProblem("one two three four five six seven eight")!!.contains("7"))
-        assertTrue(hotwordProblem(" ") != null)
+        assertEquals(HotwordProblem.TooManyChars("一二三四五六七八九十一二三四五六", 15), hotwordProblem("一二三四五六七八九十一二三四五六"))
+        assertEquals(
+            HotwordProblem.TooManyWords("one two three four five six seven eight", 7),
+            hotwordProblem("one two three four five six seven eight"),
+        )
+        assertEquals(HotwordProblem.Blank, hotwordProblem(" "))
     }
 }

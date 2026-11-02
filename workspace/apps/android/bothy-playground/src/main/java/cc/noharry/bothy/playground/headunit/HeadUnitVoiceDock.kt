@@ -40,10 +40,12 @@ import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.home.line
 import cc.noharry.bothy.playground.link.Assistant
 import cc.noharry.bothy.playground.link.AssistantView
@@ -72,11 +74,13 @@ internal fun VoiceDock(view: AssistantView, wide: Dp, onClose: () -> Unit, modif
     ) {
         Mascot(view, 40.dp)
         Column(Modifier.weight(1f, fill = listening)) {
-            Text("小博", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            val name = stringResource(R.string.headunit_xiaobo)
+            Text(name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             if (listening) {
                 TailText(view.voiceText(), Color.White, 13.sp)
             } else {
-                Text("说「你好小博」或点我", color = UnitColors.muted, fontSize = 11.sp, maxLines = 1)
+                val hint = stringResource(R.string.headunit_wake_hint)
+                Text(hint, color = UnitColors.muted, fontSize = 11.sp, maxLines = 1)
             }
         }
     }
@@ -101,7 +105,7 @@ internal fun SuggestionTicker(lines: List<String>, onSay: (String) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("试试说", color = UnitColors.muted, fontSize = 12.sp)
+        Text(stringResource(R.string.headunit_try_saying), color = UnitColors.muted, fontSize = 12.sp)
         AnimatedContent(
             targetState = line,
             transitionSpec = {
@@ -109,7 +113,10 @@ internal fun SuggestionTicker(lines: List<String>, onSay: (String) -> Unit) {
                     (fadeOut(tween(ROLL_MS)) + slideOutVertically(tween(ROLL_MS)) { -it })
             },
             label = "suggestion",
-        ) { Text("「$it」", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1) }
+        ) {
+            val quoted = stringResource(R.string.headunit_quoted, it)
+            Text(quoted, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        }
     }
 }
 

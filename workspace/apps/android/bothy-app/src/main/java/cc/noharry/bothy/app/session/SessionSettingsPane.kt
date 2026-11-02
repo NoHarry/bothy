@@ -15,9 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -31,13 +34,16 @@ internal fun SettingsSessionGroup() {
     val context = LocalContext.current
     val policy by SessionSettings.policy.collectAsState()
     fun save(next: SessionPolicy) = SessionSettings.save(context, next)
-    SettingsGroup(title = "会话", subtitle = "唤醒时什么时候开新会话，最多留几个") {
+    SettingsGroup(
+        title = stringResource(R.string.session_settings_title),
+        subtitle = stringResource(R.string.session_settings_subtitle),
+    ) {
         Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("每次唤醒都开新会话", style = ConsoleType.body, color = ConsoleColors.text)
+                Text(stringResource(R.string.session_every_wake), style = ConsoleType.body, color = ConsoleColors.text)
+                val note = if (policy.everyWake) R.string.session_every_wake_on else R.string.session_every_wake_off
                 Text(
-                    if (policy.everyWake) "开：每次唤醒都从新会话开始，不接上一轮（后台任务还没回报的会话除外）"
-                    else "关：隔一段时间没说话再唤醒才开新会话，之内接着聊，「再高一点」还能接上",
+                    stringResource(note),
                     style = ConsoleType.meta,
                     color = ConsoleColors.muted,
                 )
@@ -46,17 +52,17 @@ internal fun SettingsSessionGroup() {
         }
         SessionDivider()
         SessionStepperRow(
-            title = "多久没说话再唤醒开新会话",
-            note = if (policy.everyWake) "每次唤醒都开新会话时不用" else "离上一轮超过这么久，唤醒就开新会话",
-            value = "${policy.idleMinutes} 分钟",
+            title = stringResource(R.string.session_idle_title),
+            note = stringResource(if (policy.everyWake) R.string.session_idle_unused else R.string.session_idle_note),
+            value = pluralStringResource(R.plurals.session_minutes, policy.idleMinutes, policy.idleMinutes),
             enabled = !policy.everyWake,
             onStep = { up -> save(policy.copy(idleMinutes = stepped(policy.idleMinutes, IDLE_MINUTE_STEPS, up))) },
         )
         SessionDivider()
         SessionStepperRow(
-            title = "最多保留会话",
-            note = "超过时，开新会话那一刻删掉最久没用的，连同记录和生成的图片；正在运行或后台任务没回报的保留",
-            value = "${policy.maxSessions} 个",
+            title = stringResource(R.string.session_max_title),
+            note = stringResource(R.string.session_max_note),
+            value = pluralStringResource(R.plurals.session_count, policy.maxSessions, policy.maxSessions),
             enabled = true,
             onStep = { up -> save(policy.copy(maxSessions = stepped(policy.maxSessions, SESSION_COUNT_STEPS, up))) },
         )

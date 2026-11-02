@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 连接应用：应用市场 -->
+    <string name="mcp_connect_apps">连接应用</string>
+    <plurals name="mcp_connected_count">
+        <item quantity="other">已连接 %1$d 个</item>
+    </plurals>
+    <string name="mcp_none_connected">还没有连接</string>
+    <string name="mcp_search_placeholder">搜索应用，比如 咖啡、叫车、地图</string>
+    <string name="mcp_no_results">没有找到「%1$s」</string>
+    <string name="mcp_filter_all">全部</string>
+    <string name="mcp_filter_custom">自定义</string>
+    <string name="mcp_custom_a2a_title">自定义 A2A 智能体</string>
+    <string name="mcp_custom_a2a_summary">填写地址和访问令牌，接入任何支持 A2A 协议的智能体。</string>
+    <string name="mcp_manage">管理</string>
+    <string name="mcp_status_connected">已连接</string>
+    <string name="mcp_status_paused">已停用</string>
+    <string name="mcp_status_pairing">配对中</string>
+
+    <!-- 连接应用：分类 -->
+    <string name="mcp_category_demo">演示</string>
+    <string name="mcp_category_travel">出行</string>
+    <string name="mcp_category_dev">开发</string>
+    <string name="mcp_category_food">餐饮</string>
+    <string name="mcp_category_work">办公</string>
+    <string name="mcp_category_agents">智能体</string>
+
+    <!-- 连接应用：经中转配对的智能体（Grok Bot） -->
+    <string name="mcp_via_relay">通过预置中转 %1$s 连接</string>
+    <string name="mcp_agent_intro">连接后，小博会把需要你个人账号的事交给你自己的 %1$s，办完再回到这里播报。需要一部能扫码的手机，和你的 %1$s 账号；手机上的页面会一步步带你配置。</string>
+    <string name="mcp_start_connecting">开始连接</string>
+    <string name="mcp_connected_to_your">已连接到你的 %1$s</string>
+    <string name="mcp_agent_verified">已经走通过一次完整流程。直接对小博说「让 %1$s 帮我……」就行。</string>
+    <string name="mcp_agent_unverified">还没有走通过完整流程：可以在手机连接页点「测试连接」，或直接对小博说「让 %1$s 帮我……」。</string>
+    <string name="mcp_test_connection">测试连接</string>
+    <string name="mcp_unpair">解除绑定</string>
+    <string name="mcp_test_waiting">已交给 %1$s，等它汇报（一般半分钟到两分钟）…</string>
+    <string name="mcp_test_reply">%1$s：%2$s</string>
+    <string name="mcp_unpair_title">解除和 %1$s 的绑定？</string>
+    <string name="mcp_unpair_message">解除绑定后小博不能再把事交给 %1$s。会先让 %1$s 删掉它那边的例行任务和 car-relay 连接器并回报结果（最多等三分钟），两边都会留下记录。</string>
+    <string name="mcp_account">账号</string>
+    <string name="mcp_signed_in_as">已登录：%1$s</string>
+    <string name="mcp_sign_out">退出账号</string>
+    <string name="mcp_account_signed_in_hint">在别的平板或手机上登录这个账号，就会加入同一个 %1$s 连接，不用扫码。手机打开 %2$s 可以管理设备、看委托记录、更新例行任务的 Webhook。</string>
+    <string name="mcp_account_register_hint">注册一个账号接管这个连接：以后别的设备登录同一个账号就能直接用，例行任务的 Webhook 换了也能在网页上改。</string>
+    <string name="mcp_account_sign_in_hint">已经有账号？直接登录，这台设备会加入账号的 %1$s 连接，不用扫码。</string>
+    <string name="mcp_username">用户名</string>
+    <string name="mcp_password">密码（至少 8 位）</string>
+    <string name="mcp_show">显示</string>
+    <string name="mcp_hide">隐藏</string>
+    <string name="mcp_sign_in">登录</string>
+    <string name="mcp_register">注册</string>
+    <string name="mcp_pairing_scan">用手机扫码，按页面提示完成连接</string>
+    <string name="mcp_pairing_manual">扫不了码时，用手机浏览器打开 %1$s，输入配对码：</string>
+    <string name="mcp_pairing_valid_until">有效期到 %1$s，连好后这里会自动显示「已连接」。</string>
+    <string name="mcp_pairing_expired">配对码已过期，请刷新。</string>
+    <string name="mcp_refresh_code">刷新配对码</string>
+    <string name="mcp_recent_events">最近记录</string>
+    <string name="mcp_pairing_code_invalid">配对码已失效</string>
+    <string name="mcp_phone_steps">手机上要做的事</string>
+    <string name="mcp_phone_step_1">复制页面上的第一段话发给 Grok Bot，它会建好例行任务，发来两个链接</string>
+    <string name="mcp_phone_step_2">点开链接复制 Webhook 地址和密钥，粘到页面上，点「连接」</string>
+    <string name="mcp_phone_step_3">把页面给的第二段话发给 Grok Bot，并在 Auto-review 里放行 car-relay 的两个汇报工具</string>
+    <string name="mcp_pairing_qr">配对二维码</string>
+
+    <!-- 连接应用：MCP 应用自己的页面 -->
+    <string name="mcp_checking">正在检查…</string>
+    <string name="mcp_enabling">正在启用…</string>
+    <string name="mcp_connecting_app">正在连接%1$s…</string>
+    <string name="mcp_disconnecting">正在断开…</string>
+    <string name="mcp_error_generic">出错了：%1$s</string>
+    <string name="mcp_connected_sandbox">已连接 · 沙箱</string>
+    <string name="mcp_list_separator">、</string>
+    <string name="mcp_tools_more">%1$s 等</string>
+    <plurals name="mcp_tools_available">
+        <item quantity="other">可以用 %1$d 个功能：%2$s</item>
+    </plurals>
+    <string name="mcp_say_example">直接对小博说「%1$s」就行。</string>
+    <string name="mcp_sandbox_hint">现在连的是沙箱，数据是模拟的。要真用，点「更换%1$s」选正式环境。</string>
+    <string name="mcp_check_connection">检查连接</string>
+    <string name="mcp_replace_credential">更换%1$s</string>
+    <string name="mcp_paused_hint">已在 设置 → 连接 → MCP 里停用，小博暂时不会用它。</string>
+    <string name="mcp_turn_back_on">重新启用</string>
+    <string name="mcp_open_local_hint">本机的演示服务，不需要 key：先打开 Bothy Playground，再点「连接」。</string>
+    <string name="mcp_open_public_hint">公开服务，不需要 key：点「连接」测一下，就能直接用。</string>
+    <string name="mcp_save_and_connect">保存并连接</string>
+    <string name="mcp_how_to_get">怎么获取%1$s</string>
+    <string name="mcp_paste_step">把%1$s粘贴到下面，点「连接」</string>
+    <string name="mcp_portal_manual">扫不了码时，用手机浏览器打开 %1$s</string>
+    <string name="mcp_sandbox_choice">沙箱：模拟数据，不会真的叫车（先用它试）</string>
+    <string name="mcp_production_choice">正式：会真实派单、扣费</string>
+    <string name="mcp_abilities">能做什么</string>
+    <string name="mcp_disconnect_title">断开%1$s？</string>
+    <string name="mcp_disconnect_open">断开后小博不能再用%1$s。</string>
+    <string name="mcp_disconnect_keyed">断开后小博不能再用%1$s，这台设备上保存的%2$s也会删掉。</string>
+    <string name="mcp_token">令牌</string>
+
+    <!-- 连接应用：连接时说的话（错误，和带时间的记录） -->
+    <string name="mcp_profile_missing">连接后没有找到 %1$s 的配置。</string>
+    <string name="mcp_relay_no_token">中转服务没有返回设备令牌。</string>
+    <string name="mcp_relay_forgot_device">中转服务已经不认识这台设备，请重新连接。</string>
+    <string name="mcp_unpaired">已解除绑定。</string>
+    <string name="mcp_test_not_sent">测试没发出去：%1$s</string>
+    <string name="mcp_relay_incomplete">中转服务的回答不完整。</string>
+    <string name="mcp_relay_no_answer">中转服务没有回答。</string>
+    <string name="mcp_relay_http">中转服务返回 HTTP %1$d。</string>
+    <string name="mcp_relay_unreachable">连不上中转服务，请检查设备网络。</string>
+    <string name="mcp_relay_not_configured">还没有配置中转：部署 tools/agent-relay 后，在 local.properties 写上 %1$s=https://… 再重新打包。</string>
+    <string name="mcp_relay_invalid">中转地址无效（打包时的 %1$s 需要是 https 地址）。</string>
+    <string name="mcp_not_connected">还没有连接。</string>
+    <string name="mcp_event_registered">注册并登录了账号「%1$s」。</string>
+    <string name="mcp_event_signed_in">登录了账号「%1$s」。</string>
+    <string name="mcp_event_signed_out">退出了账号「%1$s」，这台设备仍然连着 %2$s。</string>
+    <string name="mcp_event_unpaired_remotely">%1$s 那边解除了绑定。</string>
+    <string name="mcp_event_connected_agent">已连接到你的 %1$s。</string>
+    <string name="mcp_event_test_failed">测试连接没有通过：%1$s</string>
+    <string name="mcp_event_test_passed">测试连接：%1$s 回报「%2$s」</string>
+    <string name="mcp_disconnected_app">已断开，小博不再使用%1$s。</string>
+    <string name="mcp_pairing_cancelled">已取消配对。</string>
+    <string name="mcp_event_unpaired">解除绑定：%1$s</string>
+    <string name="mcp_unpaired_here_only">本机已解除绑定，但%1$s%2$s 里的「车载语音助手任务」和 car-relay 连接器请手动删除。</string>
+    <string name="mcp_cleanup_progress">正在让 %1$s 删除它那边的例行任务和连接器（最多等三分钟）…</string>
+    <string name="mcp_bot_reported">%1$s 回报：%2$s</string>
+    <string name="mcp_unpaired_cleanup_failed">已解除绑定，但%1$s「车载语音助手任务」和 car-relay 连接器请在 %2$s 里手动删除。</string>
+    <string name="mcp_report_timeout">%1$s 三分钟内没有回报。</string>
+    <string name="mcp_task_not_completed">任务没有完成（%1$s）。</string>
+    <string name="mcp_wrong_connect_kind">%1$s 不是这样连接的。</string>
+    <string name="mcp_server_name_taken">设置 → MCP 里已经有一个「%1$s」用着这个名字（%2$s），请先在那里删除它。</string>
+    <string name="mcp_credential_missing">请先填%1$s。</string>
+    <string name="mcp_credential_whitespace">%1$s里不能有空格或换行。</string>
+    <plurals name="mcp_event_connected">
+        <item quantity="other">已连接，可以用 %1$d 个功能。</item>
+    </plurals>
+    <plurals name="mcp_event_connected_sandbox">
+        <item quantity="other">已连接（沙箱），可以用 %1$d 个功能。</item>
+    </plurals>
+    <string name="mcp_event_check_failed">检查没有通过：%1$s</string>
+    <plurals name="mcp_event_check_passed">
+        <item quantity="other">检查通过，可以用 %1$d 个功能。</item>
+    </plurals>
+    <string name="mcp_event_resumed">重新启用了。</string>
+    <string name="mcp_no_tools">连上了，但 %1$s 没有提供任何功能，请确认这个%2$s开通了权限。</string>
+    <string name="mcp_connection_note">【连接应用】%1$s</string>
+    <string name="mcp_connect_failed_local">连不上%1$s：先在这台设备上安装并打开 Bothy Playground，再点连接。</string>
+    <string name="mcp_connect_failed_network">连不上%1$s：%2$s。请检查设备网络。</string>
+    <string name="mcp_connect_failed_open">%1$s 现在用不了（%2$s）。稍后再试。</string>
+    <string name="mcp_connect_failed_refused">%1$s 没有接受这个%2$s（%3$s）。请确认%2$s 没填错、没过期。</string>
+
+    <!-- 屏幕上显示的 MCP 问题（给模型的留在 ChineseMcpMessages） -->
+    <string name="mcp_problem_timed_out">%1$d 秒没有回应</string>
+    <string name="mcp_problem_unreachable">连不上：%1$s</string>
+    <string name="mcp_problem_unreachable_plain">连不上</string>
+    <string name="mcp_problem_not_json_rpc">服务的回应不是 JSON-RPC</string>
+    <string name="mcp_problem_no_initialize">服务没有回应 initialize</string>
+    <string name="mcp_problem_no_initialize_hint">服务没有回应 initialize：%1$s</string>
+    <string name="mcp_problem_http_refused">服务拒绝了（HTTP %1$d），检查令牌或请求头</string>
+    <string name="mcp_problem_http_not_found">地址不对（HTTP 404）</string>
+    <string name="mcp_problem_http_no_post">这个地址不收 POST（HTTP 405），可能是旧版 SSE 服务，只支持 Streamable HTTP</string>
+    <string name="mcp_problem_http_format">服务不接受这个格式（HTTP %1$d）</string>
+    <string name="mcp_problem_http_server">服务出错了（HTTP %1$d）</string>
+    <string name="mcp_problem_tools_list_failed">tools/list 失败（status=%1$d）</string>
+    <string name="mcp_problem_tools_list_not_json">tools/list 的回应不是 JSON</string>
+    <string name="mcp_problem_tools_list_error">tools/list 出错：%1$s</string>
+    <string name="mcp_problem_tools_list_cursor">tools/list 的分页游标重复了</string>
+    <string name="mcp_problem_tools_list_pages">tools/list 超过 %1$d 页</string>
+
+    <!-- 应用目录：凭证名称 -->
+    <string name="mcp_credential_access_token">访问令牌</string>
+    <string name="mcp_credential_mcp_token">MCP Token</string>
+    <string name="mcp_credential_key">Key</string>
+    <string name="mcp_credential_mcp_key">MCP Key</string>
+
+    <!-- 应用目录：瑞幸咖啡 -->
+    <string name="mcp_app_luckin">瑞幸咖啡</string>
+    <string name="mcp_luckin_summary">查附近门店、点咖啡，到店自取。</string>
+    <string name="mcp_luckin_step_1">用手机扫码打开瑞幸 AI 开放平台</string>
+    <string name="mcp_luckin_step_2">用手机号登录，复制 MCP 访问令牌（大约 30 天有效，过期了回这里更换）</string>
+    <string name="mcp_luckin_ability_1">找附近门店</string>
+    <string name="mcp_luckin_ability_2">按口味推荐、搜索饮品</string>
+    <string name="mcp_luckin_ability_3">下单前预览价格</string>
+    <string name="mcp_luckin_ability_4">下单、取消订单（只能到店自取）</string>
+    <string name="mcp_luckin_example">帮我在最近的瑞幸点一杯生椰拿铁</string>
+    <string name="mcp_luckin_note">付款要用微信扫码，这里只做到下单这一步。</string>
+
+    <!-- 应用目录：麦当劳 -->
+    <string name="mcp_app_mcdonalds">麦当劳</string>
+    <string name="mcp_mcdonalds_summary">领券、点餐，到店取餐或麦乐送。</string>
+    <string name="mcp_mcdonalds_step_1">用手机扫码打开麦当劳 MCP 开放平台，点右上角「登录」，用手机号验证登录</string>
+    <string name="mcp_mcdonalds_step_2">点右上角「控制台」→「激活」，同意服务协议后一键复制 MCP Token</string>
+    <string name="mcp_mcdonalds_ability_1">查附近门店、菜单和套餐搭配</string>
+    <string name="mcp_mcdonalds_ability_2">查我的积分和券，领可用的券</string>
+    <string name="mcp_mcdonalds_ability_3">按门店和取餐方式算价格</string>
+    <string name="mcp_mcdonalds_ability_4">下单：到店取餐、得来速或麦乐送</string>
+    <string name="mcp_mcdonalds_ability_5">查订单进度、活动日历</string>
+    <string name="mcp_mcdonalds_example">看看麦当劳今天有什么优惠券</string>
+    <string name="mcp_mcdonalds_note">付款要回麦当劳 App 完成。菜单上的价格只是展示，以算价结果为准。</string>
+
+    <!-- 应用目录：高德地图 -->
+    <string name="mcp_app_amap">高德地图</string>
+    <string name="mcp_amap_summary">找地点、查周边、规划路线、查天气。</string>
+    <string name="mcp_amap_step_1">用手机扫码打开高德开放平台控制台并登录</string>
+    <string name="mcp_amap_step_2">创建应用、添加 Key，服务平台选「Web 服务」，复制这个 Key</string>
+    <string name="mcp_amap_ability_1">关键字和周边搜索（带评分、地址）</string>
+    <string name="mcp_amap_ability_2">驾车、步行、骑行、公交路线规划</string>
+    <string name="mcp_amap_ability_3">天气查询</string>
+    <string name="mcp_amap_ability_4">地址和坐标互查</string>
+    <string name="mcp_amap_example">附近两公里有什么评分高的火锅</string>
+    <string name="mcp_amap_note">导航本身仍由手机或平板上的地图应用执行，高德补充搜索和路线信息。</string>
+
+    <!-- 应用目录：滴滴出行 -->
+    <string name="mcp_app_didi">滴滴出行</string>
+    <string name="mcp_didi_summary">帮家人叫车：估价、叫车、查司机位置。</string>
+    <string name="mcp_didi_step_1">用手机扫码打开滴滴 MCP 开放平台</string>
+    <string name="mcp_didi_step_2">点「立即体验」并登录，复制 MCP Key</string>
+    <string name="mcp_didi_ability_1">估价</string>
+    <string name="mcp_didi_ability_2">叫车、预约用车</string>
+    <string name="mcp_didi_ability_3">查订单和司机位置</string>
+    <string name="mcp_didi_ability_4">取消订单</string>
+    <string name="mcp_didi_example">帮我妈叫一辆车从家到火车站，先估个价</string>
+    <string name="mcp_didi_note">沙箱的数据是模拟的，不会真的叫车；正式环境会真实派单、扣费。</string>
+
+    <!-- 应用目录：腾讯文档 -->
+    <string name="mcp_app_tencent_docs">腾讯文档</string>
+    <string name="mcp_mark_tencent_docs">文</string>
+    <string name="mcp_tencent_docs_summary">查找、阅读和编辑你的在线文档。</string>
+    <string name="mcp_tencent_docs_step_1">用手机扫码打开腾讯文档开放平台并登录</string>
+    <string name="mcp_tencent_docs_step_2">申请个人 MCP 访问令牌并复制</string>
+    <string name="mcp_tencent_docs_ability_1">搜索和读取文档</string>
+    <string name="mcp_tencent_docs_ability_2">新建、编辑文档</string>
+    <string name="mcp_tencent_docs_ability_3">知识库管理</string>
+    <string name="mcp_tencent_docs_example">把我周报文档的要点念给我听</string>
+
+    <!-- 应用目录：Bothy Playground 的虚拟座舱和虚拟小家 -->
+    <string name="mcp_playground_note">Bothy Playground 是仓库里的另一个演示 App（workspace/apps/android/bothy-playground），装在这台设备上并打开后才能连。车和家都是虚构的，只在 Playground 里显示，不会控制任何真实设备。</string>
+    <string name="mcp_app_cabin">虚拟座舱</string>
+    <string name="mcp_mark_cabin">座</string>
+    <string name="mcp_cabin_summary">一辆虚构的车：空调、座椅、车窗车门、后备箱、屏幕和音量、氛围灯，改了就在 Bothy Playground 里看得见。</string>
+    <string name="mcp_cabin_ability_1">空调、温度、风量</string>
+    <string name="mcp_cabin_ability_2">四个座椅的加热和通风，知道谁坐在哪、谁在说话</string>
+    <string name="mcp_cabin_ability_3">车窗、车门、后备箱，车门锁</string>
+    <string name="mcp_cabin_ability_4">中控屏亮度、音量、氛围灯</string>
+    <string name="mcp_cabin_ability_5">放音乐、导航（都是虚构的）</string>
+    <string name="mcp_cabin_ability_6">车内温度、电量、车门这些读数可以设成计划来监听</string>
+    <string name="mcp_cabin_example">我有点冷，把主驾座椅加热开到二档</string>
+    <string name="mcp_app_home">虚拟小家</string>
+    <string name="mcp_mark_home">家</string>
+    <string name="mcp_home_summary">一个虚构的小家：灯、窗帘、空调、门锁、扫地机和场景，改了就在 Bothy Playground 里看得见。</string>
+    <string name="mcp_home_ability_1">四个房间的灯：开关、亮度、色调</string>
+    <string name="mcp_home_ability_2">窗帘、空调</string>
+    <string name="mcp_home_ability_3">入户门锁（开锁会先确认）</string>
+    <string name="mcp_home_ability_4">扫地机</string>
+    <string name="mcp_home_ability_5">回家、离家、睡觉、观影、起床场景</string>
+    <string name="mcp_home_ability_6">房间温度可以设成计划来监听</string>
+    <string name="mcp_home_example">我要睡觉了</string>
+
+    <!-- 应用目录：公开服务 -->
+    <string name="mcp_app_kiwi">Kiwi.com 机票</string>
+    <string name="mcp_kiwi_summary">搜全球航班、比价，不用注册。</string>
+    <string name="mcp_kiwi_ability_1">按出发地、目的地和日期搜航班（可前后浮动几天）</string>
+    <string name="mcp_kiwi_ability_2">比价，看中转、时长和行李额</string>
+    <string name="mcp_kiwi_ability_3">给出预订链接，在 Kiwi.com 网页上完成预订</string>
+    <string name="mcp_kiwi_example">下周五从深圳飞成都最便宜的航班是哪班</string>
+    <string name="mcp_kiwi_note">公开服务，不需要 key。价格以 Kiwi.com 网页为准；可以设成计划，在最低价低于某个数时提醒你。</string>
+    <string name="mcp_app_deepwiki">DeepWiki</string>
+    <string name="mcp_deepwiki_summary">读懂 GitHub 开源仓库：文档结构、内容和问答。</string>
+    <string name="mcp_deepwiki_ability_1">列出仓库文档的目录</string>
+    <string name="mcp_deepwiki_ability_2">读某一页文档</string>
+    <string name="mcp_deepwiki_ability_3">就仓库的代码和设计提问</string>
+    <string name="mcp_deepwiki_example">用 DeepWiki 看看 k2-fsa/sherpa-onnx 是怎么做关键词唤醒的</string>
+    <string name="mcp_deepwiki_note">公开服务，不需要 key，只支持公开仓库。</string>
+    <string name="mcp_app_huggingface">Hugging Face</string>
+    <string name="mcp_huggingface_summary">搜模型、数据集和 Space，看下载量和许可。</string>
+    <string name="mcp_huggingface_ability_1">搜索模型、数据集和 Space</string>
+    <string name="mcp_huggingface_ability_2">看仓库详情：下载量、点赞、许可和文件</string>
+    <string name="mcp_huggingface_example">Hugging Face 上有哪些下载量高的中文语音识别模型</string>
+    <string name="mcp_huggingface_note">匿名可用，不需要 key；要用自己账号的私有仓库时，可在 设置 → 连接 → MCP 里给它加访问令牌。</string>
+    <string name="mcp_app_context7">Context7</string>
+    <string name="mcp_context7_summary">查各种库和框架的最新文档与示例代码。</string>
+    <string name="mcp_context7_ability_1">按名字找到库</string>
+    <string name="mcp_context7_ability_2">按问题查这个库的最新文档和示例</string>
+    <string name="mcp_context7_example">用 Context7 查一下 Jetpack Compose 的 LazyColumn 怎么做吸顶标题</string>
+    <string name="mcp_context7_note">公开服务，不需要 key；用得多时可在 设置 → 连接 → MCP 里加 Context7 的 API key 提高额度。</string>
+
+    <!-- 应用目录：Grok Bot -->
+    <string name="mcp_app_grok_bot">Grok Bot</string>
+    <string name="mcp_grok_bot_summary">把发邮件、查资料、设提醒这类要用你个人账号的事交给你自己的 Grok Bot，办完回到这里播报。</string>
+
+    <!-- 设置 → 连接 → MCP -->
+    <string name="mcp_providers_title">MCP 服务</string>
+    <string name="mcp_add_server_title">添加 MCP</string>
+    <string name="mcp_edit_server_title">编辑 %1$s</string>
+    <string name="mcp_breadcrumb">设置 › MCP</string>
+    <string name="mcp_breadcrumb_add">设置 › MCP › 添加</string>
+    <string name="mcp_breadcrumb_edit">设置 › MCP › 编辑</string>
+    <string name="mcp_providers_hint">开关立即生效 · 点一行可以预览工具。</string>
+    <string name="mcp_add_server">+ 添加 MCP</string>
+    <string name="mcp_loaded_count">已加载 %1$d / %2$d</string>
+    <string name="mcp_media_access_on">通知使用权已开：能看到在放什么、指定控制哪个 App</string>
+    <string name="mcp_media_access_off">通知使用权未开：只能播放、暂停、切歌和调音量，看不到在放什么</string>
+    <string name="mcp_turn_on">去开启</string>
+    <string name="mcp_loaded_in_runtime">已加载到运行时</string>
+    <string name="mcp_not_loaded">未加载</string>
+    <string name="mcp_token_set">令牌已设置</string>
+    <string name="mcp_key_set">密钥已设置</string>
+    <plurals name="mcp_header_count">
+        <item quantity="other">%1$d 个请求头</item>
+    </plurals>
+    <string name="mcp_not_loaded_hint">未加载：打开开关才能用这些工具。</string>
+    <string name="mcp_loading_tools">正在加载工具…</string>
+    <string name="mcp_no_tools_reported">没有报告任何工具。</string>
+    <string name="mcp_tools_shown">%1$d / %2$d 个工具</string>
+    <string name="mcp_filter_tools">筛选工具…</string>
+    <string name="mcp_provider_tools_json">Tools JSON</string>
+    <string name="mcp_provider_device_calendar">设备日历</string>
+    <string name="mcp_provider_device_notifications">设备通知</string>
+    <string name="mcp_provider_device_media">设备媒体</string>
+    <string name="mcp_tools_json_missing">assets 里没有 mcp/tools.json</string>
+    <string name="mcp_unknown_provider">未知的服务：%1$s</string>
+    <string name="mcp_server_unreachable">%1$s 连不上</string>
+    <string name="mcp_server_tools_timeout">%1$s tools/list 超时</string>
+
+    <!-- 设置 → 连接 → MCP：添加和编辑表单 -->
+    <string name="mcp_form_name">名称</string>
+    <string name="mcp_form_type">类型</string>
+    <string name="mcp_kind_http">标准 MCP（Streamable HTTP）</string>
+    <string name="mcp_form_kind_http_subtitle">服务器地址，可带令牌和请求头</string>
+    <string name="mcp_form_url">地址（Streamable HTTP）</string>
+    <string name="mcp_form_token">令牌（可不填，作为 Authorization: Bearer 发送，只存在本机）</string>
+    <string name="mcp_form_token_kept">已设置，留空不变</string>
+    <string name="mcp_form_headers">其他请求头（可不填，一行一个「名称: 值」，只存在本机）</string>
+    <plurals name="mcp_form_headers_kept">
+        <item quantity="other">已设置 %1$d 个，留空不变</item>
+    </plurals>
+    <string name="mcp_form_clear_secrets">清除已存的令牌和请求头</string>
+    <string name="mcp_server_deleted">这个 MCP 已经被删除了</string>
+    <string name="mcp_name_required">请填名称</string>
+    <string name="mcp_name_too_long">名称最多 %1$d 个字</string>
+    <string name="mcp_url_invalid">地址格式不对，比如 https://example.com/mcp</string>
+    <string name="mcp_url_scheme">地址要以 https:// 或 http:// 开头</string>
+    <string name="mcp_url_no_host">地址里没有主机名</string>
+    <string name="mcp_url_http_loopback_only">http:// 只能连本机（127.0.0.1 或 localhost，配合 adb reverse），其他地址请用 https://</string>
+    <string name="mcp_header_format">请求头要写成「名称: 值」，一行一个：%1$s</string>
+    <string name="mcp_header_reserved">请求头 %1$s 由 App 自己设置，不能填</string>
+    <string name="mcp_token_spaces">令牌不能有空格</string>
+    <string name="mcp_key_spaces">密钥不能有空格</string>
+    <string name="mcp_token_save_failed">令牌没能保存</string>
+</resources>

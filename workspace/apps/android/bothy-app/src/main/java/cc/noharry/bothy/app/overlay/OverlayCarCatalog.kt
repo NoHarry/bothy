@@ -41,11 +41,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import kotlinx.coroutines.delay
 
@@ -209,7 +211,7 @@ private fun Numeral(ordinal: Int) {
 @Composable
 private fun RecommendedBadge() {
     Text(
-        "推荐",
+        stringResource(R.string.overlay_recommended),
         color = OverlayPalette.onSignature,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,

@@ -55,7 +55,7 @@ class WakeWordListener(
 
     fun start() {
         if (listening) return
-        availabilityError(assets, modelDir)?.let { throw IllegalStateException(it) }
+        availabilityProblem(assets, modelDir)?.let { throw IllegalStateException(it.toString()) }
         job = scope.launch { spot() }
     }
 
@@ -99,11 +99,11 @@ class WakeWordListener(
 
     companion object {
         /** Null when the native library and every model file are present, else why wake-word listening cannot run. */
-        fun availabilityError(assets: AssetManager, modelDir: String = WAKE_MODEL_ASSET_DIR): String? {
+        fun availabilityProblem(assets: AssetManager, modelDir: String = WAKE_MODEL_ASSET_DIR): ModelProblem? {
             val files = runCatching { assets.list(modelDir)?.toSet().orEmpty() }.getOrDefault(emptySet())
             val missing = WAKE_MODEL_FILES.filterNot(files::contains)
-            if (missing.isNotEmpty()) return "唤醒词模型未安装：assets/$modelDir 里缺少 ${missing.joinToString()}，放进去后重新打包"
-            return SherpaOnnxAsrEngine.nativeLibraryError
+            if (missing.isNotEmpty()) return ModelProblem.Missing(modelDir, missing)
+            return SherpaOnnxAsrEngine.nativeLibraryProblem
         }
     }
 }

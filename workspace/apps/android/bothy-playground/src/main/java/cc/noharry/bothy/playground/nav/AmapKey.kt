@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.StringRes
 import cc.noharry.bothy.playground.BuildConfig
+import cc.noharry.bothy.playground.R
 import com.amap.api.location.AMapLocationClient
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.navi.AMapNavi
@@ -31,18 +33,19 @@ internal object AmapKey {
 
     @Volatile private var cached: String? = null
 
-    /** Null when saved, else why not. */
-    fun save(context: Context, key: String): String? {
+    /** Null when saved, else why not (as the screen words it). */
+    @StringRes
+    fun save(context: Context, key: String): Int? {
         val trimmed = key.trim()
-        if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return "key 不能为空或包含空白字符"
-        if (!KEY_SHAPE.matches(trimmed)) return "这不像高德的 Android key（32 位字母和数字）"
+        if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return R.string.nav_key_blank
+        if (!KEY_SHAPE.matches(trimmed)) return R.string.nav_key_shape
         return try {
             context.noBackupFilesDir.mkdirs()
             File(context.noBackupFilesDir, KEY_FILE).writeText(trimmed, Charsets.UTF_8)
             cached = trimmed
             null
         } catch (_: IOException) {
-            "保存失败"
+            R.string.nav_key_save_failed
         }
     }
 

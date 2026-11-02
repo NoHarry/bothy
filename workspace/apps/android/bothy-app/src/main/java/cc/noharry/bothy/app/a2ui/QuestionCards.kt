@@ -17,8 +17,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.session.UiState
@@ -84,15 +86,19 @@ private fun QuestionCard(question: UserQuestion, mode: QuestionAnswerMode, answe
         Column(Modifier.padding(Dimens.spaceSm)) {
             Text(question.title)
             if (mode != QuestionAnswerMode.NONE) {
-                Text(if (mode == QuestionAnswerMode.ACTIVE) "任务继续执行中，可随时补充回答" else "任务已结束，回答将作为新消息发送")
+                val active = mode == QuestionAnswerMode.ACTIVE
+                Text(stringResource(if (active) R.string.a2ui_question_running else R.string.a2ui_question_ended))
                 question.options.forEach { option -> TextButton(onClick = { answer(question, option) }) { Text(option) } }
-                OutlinedTextField(draft, { draft = it }, label = { Text("也可以直接输入回答") }, modifier = Modifier.fillMaxWidth())
-                TextButton(onClick = { answer(question, draft.trim()) }, enabled = draft.isNotBlank()) { Text("提交回答") }
-            } else Text(when (question.state) {
-                "ANSWER_RECEIVED" -> "回答已提交，等待处理"
-                "ANSWERED" -> "回答已用于后续处理"
-                else -> "当前不可回答"
-            })
+                val typeAnswer = stringResource(R.string.a2ui_question_type_answer)
+                OutlinedTextField(draft, { draft = it }, Modifier.fillMaxWidth(), label = { Text(typeAnswer) })
+                TextButton(onClick = { answer(question, draft.trim()) }, enabled = draft.isNotBlank()) {
+                    Text(stringResource(R.string.a2ui_question_submit))
+                }
+            } else Text(stringResource(when (question.state) {
+                "ANSWER_RECEIVED" -> R.string.a2ui_question_answer_received
+                "ANSWERED" -> R.string.a2ui_question_answered
+                else -> R.string.a2ui_question_closed
+            }))
         }
     }
 }

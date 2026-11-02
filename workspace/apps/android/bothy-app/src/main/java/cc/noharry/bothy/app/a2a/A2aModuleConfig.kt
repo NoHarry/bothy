@@ -8,6 +8,7 @@ import cc.noharry.agent.a2a.A2aClientModule
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.direct.DirectA2aClientModule
 import cc.noharry.agent.a2a.official.OfficialA2aClientModule
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.summary
 import java.net.URI
 import kotlinx.serialization.json.Json
@@ -201,9 +202,11 @@ internal data class A2aModuleConfig(
         ): A2aSaveResult {
             val trimmedLabel = label.trim()
             val trimmedEndpoint = endpoint.trim()
-            validateUserProfile(trimmedLabel, moduleId, trimmedEndpoint, allowLoopbackHttpForDebug, registry)
+            validateUserProfile(context, trimmedLabel, moduleId, trimmedEndpoint, allowLoopbackHttpForDebug, registry)
                 ?.let { return A2aSaveResult.Rejected(it) }
-            if (token.trim().any(Char::isWhitespace)) return A2aSaveResult.Rejected("Access token must be one word without spaces.")
+            if (token.trim().any(Char::isWhitespace)) {
+                return A2aSaveResult.Rejected(context.getString(R.string.a2a_token_spaces))
+            }
             val preferences = context.getSharedPreferences(A2A_PREFS_NAME, Context.MODE_PRIVATE)
             val stored = readUserProfiles(preferences)
             val replaced = stored.firstOrNull { replaceSameLabel && it.label == trimmedLabel }
@@ -351,18 +354,19 @@ private fun writeUserProfiles(preferences: SharedPreferences, profiles: List<A2a
 }
 
 private fun validateUserProfile(
+    context: Context,
     label: String,
     moduleId: String,
     endpoint: String,
     allowLoopbackHttpForDebug: Boolean,
     registry: A2aModuleRegistry,
 ): String? {
-    if (label.isEmpty()) return "Label is required"
-    if (moduleId !in registry.moduleIds()) return "Unknown A2A module: $moduleId"
-    val uri = parseHttpEndpoint(endpoint) ?: return "Endpoint must be a valid http(s) URL"
-    if (uri.userInfo != null) return "Endpoint must not include user credentials"
+    if (label.isEmpty()) return context.getString(R.string.a2a_label_required)
+    if (moduleId !in registry.moduleIds()) return context.getString(R.string.a2a_unknown_module, moduleId)
+    val uri = parseHttpEndpoint(endpoint) ?: return context.getString(R.string.a2a_endpoint_invalid)
+    if (uri.userInfo != null) return context.getString(R.string.a2a_endpoint_credentials)
     if (!allowLoopbackHttpForDebug && (uri.scheme == HTTP_SCHEME || isLoopbackHost(uri.host))) {
-        return "Plain http or loopback endpoints require loopback debug access"
+        return context.getString(R.string.a2a_endpoint_loopback)
     }
     return null
 }

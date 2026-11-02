@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.runtime
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,7 +25,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -73,16 +77,16 @@ internal fun RuntimeSkillsPane() {
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${skills.count { it.enabled }} of ${skills.size} loaded · applies to the next request", Modifier.weight(1f), color = ConsoleColors.muted)
-            TextButton(onClick = { editing = "" }) { Text("+ 添加技能") }
+            Text(stringResource(R.string.runtime_skills_loaded, skills.count { it.enabled }, skills.size), Modifier.weight(1f), color = ConsoleColors.muted)
+            TextButton(onClick = { editing = "" }) { Text(stringResource(R.string.runtime_add_skill)) }
         }
-        SkillGroupTitle("自己添加的", "可以编辑、删除")
+        SkillGroupTitle(R.string.runtime_skills_added, R.string.runtime_skills_added_note)
         if (added.isEmpty()) {
-            Text("还没有。点「+ 添加技能」粘贴 SKILL.md 内容，保存前会检查格式。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+            Text(stringResource(R.string.runtime_skills_added_empty), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
         }
         added.forEach { skill ->
             row(skill) {
-                TextButton(onClick = { editing = skill.id }) { Text("编辑") }
+                TextButton(onClick = { editing = skill.id }) { Text(stringResource(R.string.common_edit)) }
                 // Two taps: the first asks, the second deletes.
                 TextButton(onClick = {
                     if (deleting == skill.id) {
@@ -92,19 +96,21 @@ internal fun RuntimeSkillsPane() {
                     } else {
                         deleting = skill.id
                     }
-                }) { Text(if (deleting == skill.id) "确认删除" else "删除", color = ConsoleColors.danger) }
+                }) {
+                    Text(stringResource(if (deleting == skill.id) R.string.runtime_confirm_delete else R.string.common_delete), color = ConsoleColors.danger)
+                }
             }
         }
-        SkillGroupTitle("预置", "随 App 打包，只能开关，不能删除")
+        SkillGroupTitle(R.string.runtime_skills_preset, R.string.runtime_skills_preset_note)
         preset.forEach { skill -> row(skill, null) }
     }
 }
 
 @Composable
-private fun SkillGroupTitle(title: String, note: String) {
+private fun SkillGroupTitle(@StringRes title: Int, @StringRes note: Int) {
     Row(Modifier.padding(top = Dimens.spaceSm), verticalAlignment = Alignment.Bottom) {
-        Text(title, style = ConsoleType.panelTitle, color = ConsoleColors.text)
-        Text("  $note", style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(stringResource(title), style = ConsoleType.panelTitle, color = ConsoleColors.text)
+        Text("  ${stringResource(note)}", style = ConsoleType.meta, color = ConsoleColors.muted)
     }
 }
 
@@ -123,7 +129,14 @@ private fun SkillRow(
             Column(Modifier.weight(1f).clickable(onClick = onTap)) {
                 Text(skill.label, style = ConsoleType.body, color = ConsoleColors.text)
                 Text(skill.description, style = ConsoleType.meta, color = ConsoleColors.muted)
-                Text(if (skill.enabled) "Loaded · tap to preview" else "Not loaded · tap to preview", color = ConsoleColors.muted)
+                Text(
+                    if (skill.enabled) {
+                        stringResource(R.string.runtime_skill_loaded)
+                    } else {
+                        stringResource(R.string.runtime_skill_not_loaded)
+                    },
+                    color = ConsoleColors.muted,
+                )
             }
             Switch(skill.enabled, onCheckedChange = onSwitch, colors = switchColors())
         }
@@ -141,12 +154,13 @@ private fun SkillRow(
 @Composable
 internal fun JevToolSearchPane() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var saved by remember { mutableStateOf(loadJevConfig(context)) }
     var draft by remember { mutableStateOf(ToolSearchDraft.of(saved)) }
     var note by remember { mutableStateOf(SettingsNote()) }
     val apply = { next: JevConfig ->
         val error = saveJevToolSearch(context, next)
-        note = SettingsNote(error ?: "已保存 · 下一次请求生效", error = error != null)
+        note = SettingsNote(error ?: resources.getString(R.string.runtime_saved_next_request), error = error != null)
         if (error == null) saved = loadJevConfig(context)
         error == null
     }
@@ -159,26 +173,29 @@ internal fun JevToolSearchPane() {
             JevEnabledSwitch(saved.enabled) { apply(saved.copy(enabled = it)) }
             JevModeSelector(saved.mode) { apply(saved.copy(mode = it)) }
             if (saved.mode != JevMode.FLAT) {
-                JevField("领域相关度（0–1）", draft.domainMinScore) { draft = draft.copy(domainMinScore = it) }
+                JevField(stringResource(R.string.runtime_jev_domain_min_score), draft.domainMinScore) { draft = draft.copy(domainMinScore = it) }
             }
-            JevField("最低相关度（0–1）", draft.minScore) { draft = draft.copy(minScore = it) }
-            JevField("最多候选工具（1–24）", draft.maxTools) { draft = draft.copy(maxTools = it) }
+            JevField(stringResource(R.string.runtime_jev_min_score), draft.minScore) { draft = draft.copy(minScore = it) }
+            JevField(stringResource(R.string.runtime_jev_max_tools), draft.maxTools) { draft = draft.copy(maxTools = it) }
         }
         SettingsSaveBar(
             unsaved = draft != ToolSearchDraft.of(saved),
             note = note,
             onSave = { if (apply(draft.applyTo(saved))) draft = ToolSearchDraft.of(saved) },
-            onDiscard = { draft = ToolSearchDraft.of(saved); note = SettingsNote("已放弃修改") },
+            onDiscard = {
+                draft = ToolSearchDraft.of(saved)
+                note = SettingsNote(resources.getString(R.string.runtime_changes_discarded))
+            },
         )
     }
 }
 
 @Composable
 private fun ToolSearchIntro(saved: JevConfig) {
-    Text("第一次调用模型前，先让 Jev 挑出相关的工具；Jev 出错时照常可以搜索工具。", color = ConsoleColors.muted)
+    Text(stringResource(R.string.runtime_tool_search_intro), color = ConsoleColors.muted)
     Text(
-        if (saved.hasApiKey) "使用 设置 → 语音 里的 Jev 连接：${saved.model} · ${saved.endpoint}"
-        else "Jev 还没有 API key：请先在 设置 → 语音 → 密钥 保存，再开启工具检索。",
+        if (saved.hasApiKey) stringResource(R.string.runtime_tool_search_connection, saved.model, saved.endpoint)
+        else stringResource(R.string.runtime_tool_search_no_key),
         style = ConsoleType.bodySmall,
         color = if (saved.hasApiKey) ConsoleColors.muted else ConsoleColors.danger,
     )
@@ -200,7 +217,7 @@ private data class ToolSearchDraft(val minScore: String, val maxTools: String, v
 @Composable
 private fun JevEnabledSwitch(enabled: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("用 Jev 挑选工具", Modifier.weight(1f), color = ConsoleColors.text)
+        Text(stringResource(R.string.runtime_tool_search_switch), Modifier.weight(1f), color = ConsoleColors.text)
         Switch(enabled, onChange, colors = switchColors())
     }
 }
@@ -211,7 +228,7 @@ private fun JevModeSelector(mode: JevMode, onChange: (JevMode) -> Unit) {
         JevMode.entries.forEach { option ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = mode == option, onClick = { onChange(option) })
-                Text(option.label, Modifier.clickable { onChange(option) }, color = ConsoleColors.text)
+                Text(stringResource(option.label), Modifier.clickable { onChange(option) }, color = ConsoleColors.text)
             }
         }
     }

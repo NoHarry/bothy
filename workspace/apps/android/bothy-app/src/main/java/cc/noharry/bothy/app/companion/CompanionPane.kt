@@ -21,9 +21,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -63,6 +66,8 @@ internal fun CompanionPane() {
     // Credentials are never saveable UI state or echoed from storage.
     var key by remember { mutableStateOf("") }
     var note by remember { mutableStateOf(SettingsNote()) }
+    val savedNote = stringResource(R.string.companion_saved)
+    val discardedNote = stringResource(R.string.companion_discarded)
     val apply = { candidate: CompanionConfig, newKey: String, done: String ->
         val error = saveCompanionConfig(context, candidate, newKey)
         note = SettingsNote(error ?: done, error = error != null)
@@ -77,7 +82,7 @@ internal fun CompanionPane() {
             Modifier.weight(1f).widthIn(max = 880.dp).verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
-            CompanionSwitches(saved) { candidate -> apply(candidate, "", COMPANION_SAVED) }
+            CompanionSwitches(saved) { candidate -> apply(candidate, "", savedNote) }
             CompanionServiceFields(saved, draft, key, { draft = it }, { key = it })
             CompanionTry(saved)
             CompanionDecisions()
@@ -85,8 +90,8 @@ internal fun CompanionPane() {
         SettingsSaveBar(
             unsaved = draft != CompanionDraft.of(saved) || key.isNotBlank(),
             note = note,
-            onSave = { if (apply(draft.applyTo(saved), key, COMPANION_SAVED)) key = "" },
-            onDiscard = { draft = CompanionDraft.of(saved); key = ""; note = SettingsNote("已放弃修改") },
+            onSave = { if (apply(draft.applyTo(saved), key, savedNote)) key = "" },
+            onDiscard = { draft = CompanionDraft.of(saved); key = ""; note = SettingsNote(discardedNote) },
         )
     }
 }
@@ -94,20 +99,24 @@ internal fun CompanionPane() {
 @Composable
 private fun CompanionSwitches(saved: CompanionConfig, onApply: (CompanionConfig) -> Unit) {
     Text(
-        "语音里的闲聊（聊天、倾诉、讲笑话）交给陪聊服务，用小博自己的声音回答；要办事的话照常交给小博。Jev 每轮多打一个「是不是闲聊」的分，" +
-            "说到导航、空调、放歌这类词或小博刚问了问题时一律交给小博；陪聊服务失败或判断是要办事时也会转回小博。",
+        stringResource(R.string.companion_intro),
         color = ConsoleColors.muted,
     )
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("启用陪聊", Modifier.weight(1f), color = ConsoleColors.text)
+        Text(stringResource(R.string.companion_enable), Modifier.weight(1f), color = ConsoleColors.text)
         Switch(saved.enabled, { onApply(saved.copy(enabled = it)) }, colors = switchColors())
     }
     CompanionMode.entries.forEach { mode ->
-        SelectableOptionRow(mode.label, saved.mode == mode, { onApply(saved.copy(mode = mode)) })
+        SelectableOptionRow(stringResource(mode.label), saved.mode == mode, { onApply(saved.copy(mode = mode)) })
     }
-    Text("陪聊服务", style = ConsoleType.label, color = ConsoleColors.muted)
+    Text(stringResource(R.string.companion_service), style = ConsoleType.label, color = ConsoleColors.muted)
     CompanionService.entries.forEach { service ->
-        SelectableOptionRow(service.label, saved.service == service, { onApply(saved.copy(service = service)) }, subtitle = service.hint)
+        SelectableOptionRow(
+            stringResource(service.label),
+            saved.service == service,
+            { onApply(saved.copy(service = service)) },
+            subtitle = stringResource(service.hint),
+        )
     }
 }
 
@@ -122,56 +131,110 @@ private fun CompanionServiceFields(
     val context = LocalContext.current
     val ownKey = remember(saved.service, saved) { CompanionKeys.hasOwn(context, saved.service) }
     val keyLabel = when {
-        ownKey -> "API key · 已保存（留空保持不变）"
-        saved.service == CompanionService.QWEN -> "API key（留空用语音识别的百炼 key）"
-        else -> "API key"
+        ownKey -> stringResource(R.string.companion_key_saved)
+        saved.service == CompanionService.QWEN -> stringResource(R.string.companion_key_qwen)
+        else -> stringResource(R.string.companion_key)
     }
-    val missing = listOfNotNull(saved.readinessError(), "还没有 API key".takeIf { CompanionKeys.read(context, saved.service).isEmpty() })
+    val noKey = stringResource(R.string.companion_no_key_yet)
+    val hasKey = CompanionKeys.read(context, saved.service).isNotEmpty()
+    val missing = listOfNotNull(saved.readinessError(context), noKey.takeIf { !hasKey })
     if (missing.isNotEmpty()) {
+        val name = stringResource(saved.service.label)
         Text(
-            "${saved.service.label}：${missing.joinToString("，")}。填好保存前，闲聊会全部交给小博。",
+            if (missing.size == 1) {
+                stringResource(R.string.companion_missing_one, name, missing[0])
+            } else {
+                stringResource(R.string.companion_missing_two, name, missing[0], missing[1])
+            },
             style = ConsoleType.bodySmall,
             color = ConsoleColors.warning,
         )
     }
-    CompanionField("地址（到 /v1 这一级，不含 /chat/completions）", draft.baseUrl, { onDraft(draft.copy(baseUrl = it)) })
-    CompanionField("模型", draft.model, { onDraft(draft.copy(model = it)) })
+    val address = stringResource(R.string.companion_field_address)
+    val extra = stringResource(R.string.companion_field_extra)
+    val threshold = stringResource(R.string.companion_field_threshold)
+    val persona = stringResource(R.string.companion_field_persona)
+    CompanionField(address, draft.baseUrl, { onDraft(draft.copy(baseUrl = it)) })
+    CompanionField(stringResource(R.string.companion_field_model), draft.model, { onDraft(draft.copy(model = it)) })
     CompanionField(keyLabel, key, onKey, secret = true)
-    CompanionField("额外参数（JSON，可不填，比如 {\"enable_thinking\": false}）", draft.extraBody, { onDraft(draft.copy(extraBody = it)) })
-    CompanionField("灵敏度（0.5–1，闲聊分数到这里才算闲聊；越高越保守）", draft.threshold, { onDraft(draft.copy(threshold = it)) })
-    CompanionField("人设（系统提示）", draft.persona, { onDraft(draft.copy(persona = it)) }, singleLine = false)
+    CompanionField(extra, draft.extraBody, { onDraft(draft.copy(extraBody = it)) })
+    CompanionField(threshold, draft.threshold, { onDraft(draft.copy(threshold = it)) })
+    CompanionField(persona, draft.persona, { onDraft(draft.copy(persona = it)) }, singleLine = false)
 }
 
 @Composable
 private fun CompanionTry(saved: CompanionConfig) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var result by remember { mutableStateOf<String?>(null) }
+    var failed by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    val asking = stringResource(R.string.companion_try_asking, stringResource(saved.service.label))
+    val words = stringResource(R.string.companion_try_words)
     TextButton(enabled = !busy, onClick = {
         busy = true
-        result = "正在问${saved.service.label}…"
+        failed = false
+        result = asking
         scope.launch {
             val started = System.currentTimeMillis()
-            result = runCatching { SmallTalkCompanion.ask(context, saved, COMPANION_TRY_WORDS) }.fold(
-                onSuccess = { "「$COMPANION_TRY_WORDS」→ $it（${System.currentTimeMillis() - started} ms）" },
-                onFailure = { "失败：${it.message ?: it.javaClass.simpleName}" },
+            result = runCatching { SmallTalkCompanion.ask(context, saved, words) }.fold(
+                onSuccess = { reply ->
+                    resources.getString(R.string.companion_try_reply, words, reply, System.currentTimeMillis() - started)
+                },
+                onFailure = {
+                    failed = true
+                    resources.getString(R.string.companion_try_failed, companionFailureText(context, it))
+                },
             )
             busy = false
         }
-    }) { Text("试一试（用已保存的设置）") }
-    result?.let { Text(it, style = ConsoleType.bodySmall, color = if (it.startsWith("失败")) ConsoleColors.danger else ConsoleColors.text) }
+    }) { Text(stringResource(R.string.companion_try)) }
+    result?.let { text ->
+        Text(text, style = ConsoleType.bodySmall, color = if (failed) ConsoleColors.danger else ConsoleColors.text)
+    }
 }
 
 @Composable
 private fun CompanionDecisions() {
     var decisions by remember { mutableStateOf(SmallTalkCompanion.recentDecisions()) }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("最近的分流判断（本次启动以来）", Modifier.weight(1f), style = ConsoleType.label, color = ConsoleColors.muted)
-        TextButton(onClick = { decisions = SmallTalkCompanion.recentDecisions() }) { Text("刷新") }
+        Text(
+            stringResource(R.string.companion_decisions_title),
+            Modifier.weight(1f),
+            style = ConsoleType.label,
+            color = ConsoleColors.muted,
+        )
+        TextButton(onClick = { decisions = SmallTalkCompanion.recentDecisions() }) {
+            Text(stringResource(R.string.common_refresh))
+        }
     }
-    if (decisions.isEmpty()) Text("还没有语音轮次经过判断。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-    decisions.forEach { Text(it, style = ConsoleType.bodySmall, color = ConsoleColors.text) }
+    if (decisions.isEmpty()) {
+        val empty = stringResource(R.string.companion_decisions_empty)
+        Text(empty, style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+    }
+    decisions.forEach { recent ->
+        val route = stringResource(
+            if (recent.decision.toCompanion) R.string.companion_route_companion else R.string.companion_route_agent,
+        )
+        val reason = reasonText(recent.decision.why)
+        Text(
+            stringResource(R.string.companion_decision_line, recent.time, route, reason, recent.words),
+            style = ConsoleType.bodySmall,
+            color = ConsoleColors.text,
+        )
+    }
+}
+
+@Composable
+private fun reasonText(why: CompanionRouteReason): String = when (why) {
+    CompanionRouteReason.Off -> stringResource(R.string.companion_reason_off)
+    CompanionRouteReason.NotScored -> stringResource(R.string.companion_reason_not_scored)
+    is CompanionRouteReason.BelowThreshold -> stringResource(R.string.companion_reason_below, why.score, why.threshold)
+    is CompanionRouteReason.TaskWord -> stringResource(R.string.companion_reason_task_word, why.word)
+    CompanionRouteReason.AnswersAgent -> stringResource(R.string.companion_reason_answers_agent)
+    is CompanionRouteReason.Observing -> stringResource(R.string.companion_reason_observing, why.score)
+    is CompanionRouteReason.SmallTalk -> stringResource(R.string.companion_reason_small_talk, why.score)
 }
 
 @Composable
@@ -187,6 +250,3 @@ private fun CompanionField(label: String, value: String, onChange: (String) -> U
         colors = outlinedTextFieldColors(),
     )
 }
-
-private const val COMPANION_SAVED = "已保存，下一轮语音生效"
-private const val COMPANION_TRY_WORDS = "今天有点累"

@@ -1,22 +1,28 @@
 package cc.noharry.bothy.playground.home
 
+import androidx.annotation.StringRes
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.cabin.Cabin
 import cc.noharry.bothy.playground.cabin.ClimateMode
 import cc.noharry.bothy.playground.headunit.cabin
 import cc.noharry.bothy.playground.headunit.home
 import cc.noharry.bothy.playground.headunit.on
-/** The flat's four rooms; the kitchen has no air conditioner. */
-enum class Room(val id: String, val label: String, val hasClimate: Boolean) {
-    LIVING("living", "客厅", true),
-    BEDROOM("bedroom", "卧室", true),
-    KITCHEN("kitchen", "厨房", false),
-    STUDY("study", "书房", true),
+/**
+ * The flat's four rooms; the kitchen has no air conditioner. [label] is what the model reads, [labelRes] what screens
+ * show.
+ */
+enum class Room(val id: String, val label: String, val hasClimate: Boolean, @StringRes val labelRes: Int) {
+    LIVING("living", "客厅", true, R.string.home_room_living),
+    BEDROOM("bedroom", "卧室", true, R.string.home_room_bedroom),
+    KITCHEN("kitchen", "厨房", false, R.string.home_room_kitchen),
+    STUDY("study", "书房", true, R.string.home_room_study),
 }
 
-enum class LightTone(val id: String, val label: String, val color: Long) {
-    WARM("warm", "暖光", 0xFFFFC27A),
-    NEUTRAL("neutral", "自然光", 0xFFFFF1D6),
-    COOL("cool", "冷白", 0xFFDCEBFF),
+/** [label] is what the model reads, [labelRes] what screens show. */
+enum class LightTone(val id: String, val label: String, val color: Long, @StringRes val labelRes: Int) {
+    WARM("warm", "暖光", 0xFFFFC27A, R.string.home_tone_warm),
+    NEUTRAL("neutral", "自然光", 0xFFFFF1D6, R.string.home_tone_neutral),
+    COOL("cool", "冷白", 0xFFDCEBFF, R.string.home_tone_cool),
 }
 
 data class RoomLight(val on: Boolean = false, val brightness: Int = 80, val tone: LightTone = LightTone.WARM)
@@ -62,10 +68,10 @@ data class Home(
     fun withRoom(room: Room, change: (RoomState) -> RoomState): Home = copy(rooms = rooms + (room to change(room(room))))
 }
 
-/** Where the user is: in the car or at home, never both; picked in the playground. */
-enum class UserPlace(val id: String, val label: String) {
-    CABIN("cabin", "车上"),
-    HOME("home", "家里"),
+/** Where the user is: in the car or at home, never both; picked in the playground. [labelRes] is what screens show. */
+enum class UserPlace(val id: String, val label: String, @StringRes val labelRes: Int) {
+    CABIN("cabin", "车上", R.string.home_place_cabin),
+    HOME("home", "家里", R.string.home_place_home),
 }
 
 /**

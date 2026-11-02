@@ -30,9 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -55,14 +58,18 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun ImageModelPane() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var saved by remember { mutableStateOf(loadImageModelConfig(context)) }
     var draft by remember { mutableStateOf(ImageModelDraft.of(saved)) }
     // Credentials are never saveable UI state or echoed from storage.
     var key by remember { mutableStateOf("") }
     var note by remember { mutableStateOf(SettingsNote()) }
+    val savedNote = stringResource(R.string.image_saved)
+    val keyDeleted = stringResource(R.string.image_key_deleted)
+    val discarded = stringResource(R.string.image_discarded)
     val apply = { candidate: ImageModelConfig, newKey: String, clearKey: Boolean, done: String ->
         val error = saveImageModelConfig(context, candidate, newKey, clearKey)
-        note = SettingsNote(error ?: done, error = error != null)
+        note = SettingsNote(error?.let { resources.getString(it.shown) } ?: done, error = error != null)
         if (error == null) saved = loadImageModelConfig(context)
         error == null
     }
@@ -71,29 +78,29 @@ internal fun ImageModelPane() {
             Modifier.weight(1f).widthIn(max = 880.dp).verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
-            Text(
-                "OpenAI 兼容的 images/generations 接口，与对话模型分开配置。开启后助手可以调用 image_generate 生成图片，并显示在悬浮窗上。",
-                color = ConsoleColors.muted,
-            )
+            Text(stringResource(R.string.image_intro), color = ConsoleColors.muted)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("允许助手生成图片", Modifier.weight(1f), color = ConsoleColors.text)
-                Switch(saved.enabled, { apply(saved.copy(enabled = it), "", false, IMAGE_SAVED) }, colors = switchColors())
+                Text(stringResource(R.string.image_allow), Modifier.weight(1f), color = ConsoleColors.text)
+                Switch(saved.enabled, { apply(saved.copy(enabled = it), "", false, savedNote) }, colors = switchColors())
             }
-            ImageModelField("Base URL（例如 https://api.example.com/v1）", draft.baseUrl, { draft = draft.copy(baseUrl = it) })
-            ImageModelField(if (saved.hasApiKey) "API key · 已保存（留空保持不变）" else "API key", key, { key = it }, secret = true)
-            ImageModelPicker(saved) { model -> apply(saved.copy(model = model), "", false, IMAGE_SAVED) }
-            ImageModelField("Size（可选，如 1024x1024；留空用服务默认）", draft.size, { draft = draft.copy(size = it) })
-            ImageModelField("超时（秒，10–300）", draft.timeoutSeconds, { draft = draft.copy(timeoutSeconds = it) })
+            ImageModelField(stringResource(R.string.image_base_url), draft.baseUrl, { draft = draft.copy(baseUrl = it) })
+            val keyLabel = if (saved.hasApiKey) R.string.image_api_key_saved else R.string.image_api_key
+            ImageModelField(stringResource(keyLabel), key, { key = it }, secret = true)
+            ImageModelPicker(saved) { model -> apply(saved.copy(model = model), "", false, savedNote) }
+            ImageModelField(stringResource(R.string.image_size), draft.size, { draft = draft.copy(size = it) })
+            ImageModelField(stringResource(R.string.image_timeout), draft.timeoutSeconds, { draft = draft.copy(timeoutSeconds = it) })
             TextButton(onClick = {
-                if (apply(saved.copy(enabled = false), "", true, "已删除 API key · 生图已关闭")) key = ""
-            }, enabled = saved.hasApiKey) { Text("删除 API key") }
+                if (apply(saved.copy(enabled = false), "", true, keyDeleted)) key = ""
+            }, enabled = saved.hasApiKey) { Text(stringResource(R.string.image_delete_key)) }
             ImageModelTestButton(saved)
         }
         SettingsSaveBar(
             unsaved = draft != ImageModelDraft.of(saved) || key.isNotBlank(),
             note = note,
-            onSave = { if (apply(draft.applyTo(saved), key, false, IMAGE_SAVED)) { key = ""; draft = ImageModelDraft.of(saved) } },
-            onDiscard = { draft = ImageModelDraft.of(saved); key = ""; note = SettingsNote("已放弃修改") },
+            onSave = {
+                if (apply(draft.applyTo(saved), key, false, savedNote)) { key = ""; draft = ImageModelDraft.of(saved) }
+            },
+            onDiscard = { draft = ImageModelDraft.of(saved); key = ""; note = SettingsNote(discarded) },
         )
     }
 }
@@ -127,21 +134,24 @@ private fun ImageModelPicker(saved: ImageModelConfig, onPick: (String) -> Unit) 
         loading = false
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            if (saved.model.isBlank()) "模型 · 未选" else "模型 · ${saved.model}",
-            Modifier.weight(1f),
-            style = ConsoleType.label,
-            color = if (saved.model.isBlank()) ConsoleColors.warning else ConsoleColors.muted,
-        )
-        TextButton(enabled = canFetch && !loading, onClick = { refresh += 1 }) { Text("刷新列表") }
+        val current = if (saved.model.isBlank()) stringResource(R.string.image_model_none)
+        else stringResource(R.string.image_model_current, saved.model)
+        val currentColor = if (saved.model.isBlank()) ConsoleColors.warning else ConsoleColors.muted
+        Text(current, Modifier.weight(1f), style = ConsoleType.label, color = currentColor)
+        TextButton(enabled = canFetch && !loading, onClick = { refresh += 1 }) {
+            Text(stringResource(R.string.image_refresh_list))
+        }
     }
     val result = models
     when {
-        !canFetch -> Text("先填 Base URL 和 API key 并保存，再从服务拉取模型列表。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-        loading -> Text("正在拉取模型列表…", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+        !canFetch -> Text(stringResource(R.string.image_fetch_first), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+        loading -> Text(stringResource(R.string.image_fetching), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
         result == null -> Unit
         result.isFailure -> Text(
-            "拉取失败：${result.exceptionOrNull()?.message ?: "未知错误"}",
+            stringResource(
+                R.string.image_fetch_failed,
+                result.exceptionOrNull()?.message ?: stringResource(R.string.image_unknown_error),
+            ),
             style = ConsoleType.bodySmall,
             color = ConsoleColors.danger,
         )
@@ -154,21 +164,29 @@ private fun ImageModelPicker(saved: ImageModelConfig, onPick: (String) -> Unit) 
 private fun ImageModelList(ids: List<String>, selected: String, onPick: (String) -> Unit) {
     val (images, others) = ids.partition(::looksLikeImageModel)
     var showOthers by remember(selected) { mutableStateOf(selected in others) }
-    if (ids.isEmpty()) Text("服务没有列出任何模型。", style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+    if (ids.isEmpty()) {
+        Text(stringResource(R.string.image_no_models), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+    }
     if (selected.isNotBlank() && selected !in ids) {
-        SelectableOptionRow(selected, true, {}, subtitle = "当前在用，服务的列表里没有")
+        SelectableOptionRow(selected, true, {}, subtitle = stringResource(R.string.image_model_not_listed))
     }
     if (images.isEmpty() && others.isNotEmpty()) {
-        Text("没认出生图模型，到其他模型里找。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+        Text(stringResource(R.string.image_no_image_models), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
     }
     images.forEach { id -> SelectableOptionRow(id, id == selected, { onPick(id) }) }
     if (others.isNotEmpty()) {
-        TextButton(onClick = { showOthers = !showOthers }) { Text(if (showOthers) "收起其他模型" else "其他模型（${others.size}）") }
+        TextButton(onClick = { showOthers = !showOthers }) {
+            Text(
+                if (showOthers) {
+                    stringResource(R.string.image_hide_others)
+                } else {
+                    stringResource(R.string.image_other_models, others.size)
+                },
+            )
+        }
         if (showOthers) others.forEach { id -> SelectableOptionRow(id, id == selected, { onPick(id) }) }
     }
 }
-
-private const val IMAGE_SAVED = "已保存 · 下一次请求生效"
 
 /** One generation with the saved settings; shows elapsed time while waiting and the image when done. */
 @Composable
@@ -186,8 +204,13 @@ private fun ImageModelTestButton(config: ImageModelConfig) {
             delay(TICK_MS)
         }
     }
-    Text("测试生成", style = ConsoleType.body, color = ConsoleColors.text, modifier = Modifier.padding(top = Dimens.spaceMd))
-    ImageModelField("描述", prompt, { prompt = it })
+    Text(
+        stringResource(R.string.image_test),
+        style = ConsoleType.body,
+        color = ConsoleColors.text,
+        modifier = Modifier.padding(top = Dimens.spaceMd),
+    )
+    ImageModelField(stringResource(R.string.image_prompt), prompt, { prompt = it })
     Row(verticalAlignment = Alignment.CenterVertically) {
         TextButton(
             onClick = {
@@ -199,12 +222,15 @@ private fun ImageModelTestButton(config: ImageModelConfig) {
                 }
             },
             enabled = !running && config.hasApiKey && config.validationError() == null,
-        ) { Text(if (running) "生成中…" else "测试生成") }
+        ) { Text(stringResource(if (running) R.string.image_generating else R.string.image_test)) }
         if (running) Text("${elapsed / 1000}s", color = ConsoleColors.muted)
-        if (!config.hasApiKey) Text("先保存 API key", color = ConsoleColors.muted)
+        if (!config.hasApiKey) Text(stringResource(R.string.image_save_key_first), color = ConsoleColors.muted)
     }
     when (val outcome = result) {
-        is ImageResult.Failure -> Text("失败（${outcome.elapsedMillis / 1000}s）：${outcome.message}", color = ConsoleColors.danger)
+        is ImageResult.Failure -> Text(
+            stringResource(R.string.image_test_failed, outcome.elapsedMillis / 1000, outcome.message),
+            color = ConsoleColors.danger,
+        )
         is ImageResult.Success -> GeneratedPreview(outcome.image)
         null -> Unit
     }
@@ -219,16 +245,17 @@ private fun GeneratedPreview(image: GeneratedImageResult) {
         "${image.width}×${image.height} · ${image.bytes / 1024} KB · ${"%.1f".format(image.elapsedMillis / 1000.0)}s · ${image.reference}",
         color = ConsoleColors.muted,
     )
-    image.revisedPrompt?.let { Text("改写后的描述：$it", color = ConsoleColors.muted) }
+    image.revisedPrompt?.let { Text(stringResource(R.string.image_revised_prompt, it), color = ConsoleColors.muted) }
+    val viewLarger = stringResource(R.string.image_view_larger)
     bitmap?.let {
         Image(
             it,
-            contentDescription = "生成的图片",
+            contentDescription = stringResource(R.string.image_generated),
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .size(PREVIEW_SIZE)
                 .clip(RoundedCornerShape(Dimens.radiusMd))
-                .clickable(onClickLabel = "放大查看") { viewing = true },
+                .clickable(onClickLabel = viewLarger) { viewing = true },
         )
     }
 }

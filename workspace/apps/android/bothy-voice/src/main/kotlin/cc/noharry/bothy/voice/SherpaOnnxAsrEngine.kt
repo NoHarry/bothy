@@ -29,7 +29,7 @@ class SherpaOnnxAsrEngine(
     private val floats = FloatArray(VOICE_FRAME_SAMPLES)
 
     override fun start(listener: AsrListener) {
-        availabilityError(assets, modelDir)?.let { throw IllegalStateException(it) }
+        availabilityProblem(assets, modelDir)?.let { throw IllegalStateException(it.toString()) }
         val created = OnlineRecognizer(assets, recognizerConfig(modelDir, numThreads))
         recognizer = created
         stream = created.createStream()
@@ -65,18 +65,27 @@ class SherpaOnnxAsrEngine(
 
     companion object {
         /** Null when the native library and every model file are present, else why local recognition cannot run. */
-        fun availabilityError(assets: AssetManager, modelDir: String = SHERPA_MODEL_ASSET_DIR): String? {
+        fun availabilityProblem(assets: AssetManager, modelDir: String = SHERPA_MODEL_ASSET_DIR): ModelProblem? {
             val files = runCatching { assets.list(modelDir)?.toSet().orEmpty() }.getOrDefault(emptySet())
             val missing = SHERPA_MODEL_FILES.filterNot(files::contains)
-            if (missing.isNotEmpty()) return "本地模型未安装：assets/$modelDir 里缺少 ${missing.joinToString()}，放进去后重新打包"
-            return nativeLibraryError
+            if (missing.isNotEmpty()) return ModelProblem.Missing(modelDir, missing)
+            return nativeLibraryProblem
         }
 
-        internal val nativeLibraryError: String? by lazy {
+        internal val nativeLibraryProblem: ModelProblem? by lazy {
             runCatching { System.loadLibrary("sherpa-onnx-jni") }
-                .exceptionOrNull()?.let { "sherpa-onnx 原生库加载失败（${it.message}），这台设备的 ABI 可能不在 bothy-voice 自带的库里" }
+                .exceptionOrNull()?.let { ModelProblem.NativeLibrary(it.message.orEmpty()) }
         }
     }
+}
+
+/** Why an on-device model (recognition or the wake word) cannot run, for the host to word. */
+sealed interface ModelProblem {
+    /** The APK was built without [files] in assets/[modelDir]. */
+    data class Missing(val modelDir: String, val files: List<String>) : ModelProblem
+
+    /** The sherpa-onnx native library did not load; this device's ABI may not be among the bundled ones. */
+    data class NativeLibrary(val detail: String) : ModelProblem
 }
 
 internal fun recognizerConfig(modelDir: String, numThreads: Int): OnlineRecognizerConfig = OnlineRecognizerConfig(

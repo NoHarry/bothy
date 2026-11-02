@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_hello">Hi, I\'m Xiao Bo</string>
+    <string name="onboarding_intro">One model key is all it takes to start; everything else can be skipped and added later in Settings.</string>
+    <string name="onboarding_checking">Checking…</string>
+    <string name="onboarding_step_model_key">1 · Add a DeepSeek key (required)</string>
+    <string name="onboarding_model_key_note">Xiao Bo thinks and gets things done with DeepSeek, billed by use and cheap. Create an API key on the DeepSeek platform and paste it below.</string>
+    <string name="onboarding_deepseek_link">Get a key on the DeepSeek platform</string>
+    <string name="onboarding_model_ready">Ready to go · %1$s</string>
+    <string name="onboarding_save_and_check">Save and check</string>
+    <string name="onboarding_step_doubao_key">2 · (Recommended) Add a Doubao speech key, or skip it</string>
+    <string name="onboarding_doubao_key_note">With it, Xiao Bo speaks in Doubao\'s voice and can open the end-to-end voice mode, a continuous conversation like a phone call. It works without one too: Xiao Bo then speaks with the device\'s own system voice. In the Volcano Engine Doubao speech console, under Activation enable Speech Synthesis 2.0 and End-to-end Realtime Speech, then create a key under API Key in the left menu and paste it below.</string>
+    <string name="onboarding_doubao_link">Enable it in the Doubao speech console</string>
+    <string name="onboarding_doubao_key_label">Doubao speech API key</string>
+    <string name="onboarding_doubao_saved">Saved: Xiao Bo will speak in Doubao\'s voice</string>
+    <string name="onboarding_step_permissions">3 · Grant permissions</string>
+    <string name="onboarding_permission_microphone">Microphone (required)</string>
+    <string name="onboarding_permission_microphone_note">Wake Xiao Bo by saying \"OK Bothy\", and talk by voice</string>
+    <string name="onboarding_permission_overlay">Overlay (required)</string>
+    <string name="onboarding_permission_overlay_note">Xiao Bo floats over other apps, ready to wake at any time</string>
+    <string name="onboarding_permission_notifications">Notification access (recommended)</string>
+    <string name="onboarding_permission_notifications_note">See and control the music playing in apps such as NetEase Cloud Music</string>
+    <string name="onboarding_permission_accessibility">Accessibility (optional)</string>
+    <string name="onboarding_permission_accessibility_note">Let Xiao Bo operate other apps for you (open, tap, type)</string>
+    <string name="onboarding_permission_background">Run in the background (optional)</string>
+    <string name="onboarding_permission_background_note">Keeps the system from clearing it to save battery; some systems also need Auto-start turned on here</string>
+    <string name="onboarding_permission_granted">On</string>
+    <string name="onboarding_permission_grant">Turn on</string>
+    <string name="onboarding_step_first_words">4 · Say \"OK Bothy\"</string>
+    <string name="onboarding_first_words_note">Say \"OK Bothy\", or tap the floating Xiao Bo, then:</string>
+    <string name="onboarding_playground_note">Bothy Playground is installed: open it and keep it in front, and Xiao Bo is in the virtual head unit, where it can turn on the air conditioning, open the windows and navigate.</string>
+    <string name="onboarding_open_playground">Open Bothy Playground</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_try_weather">What\'s the weather in Shenzhen tomorrow</string>
+    <string name="onboarding_try_reminder">Remind me to take an umbrella at eight tomorrow morning</string>
+    <string name="onboarding_try_song">What song is playing (turn on notification access first)</string>
+    <string name="onboarding_try_calculator">Open the calculator and work out 23 times 47 (turn on accessibility first)</string>
+</resources>

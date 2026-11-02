@@ -1,19 +1,28 @@
 package cc.noharry.bothy.app.voice.realtime
 
+import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.summary
 /**
  * Ready-made personas for the end-to-end voice, one of them deliberately biting. Each is only who 小博 is and how it
  * talks; the rule for handing tasks to 小博 and ending the conversation follows it in `realtimeInstructions`. All keep
- * the name 小博, the wake word, and keep replies short: they are spoken aloud.
+ * the name 小博, the wake word, and keep replies short: they are spoken aloud. [label] and [summary] are what the
+ * settings page shows; [text] is what the model is told.
  */
-internal enum class DoubaoRealtimePersona(val id: String, val label: String, val summary: String, val text: String) {
-    WARM("warm", "小博（默认）", "温暖、机灵，口语化", DEFAULT_REALTIME_PERSONA),
-    SAVAGE("savage", "毒舌损友", "特别刻毒：开口先损你一句，再把事办了", SAVAGE_PERSONA),
-    BUTLER("butler", "贴心管家", "沉稳得体，称呼「您」，先说结论", BUTLER_PERSONA),
-    SUNNY("sunny", "元气搭子", "热情爱夸人，轻快俏皮", SUNNY_PERSONA),
-    LAOTIE("laotie", "东北老铁", "豪爽幽默，一股东北味儿", LAOTIE_PERSONA),
-    GENTLE("gentle", "温柔树洞", "轻声慢语，先接住情绪，适合深夜", GENTLE_PERSONA),
-    TERSE("terse", "极简高冷", "话最少，只说结果", TERSE_PERSONA),
+internal enum class DoubaoRealtimePersona(
+    val id: String,
+    @StringRes val label: Int,
+    @StringRes val summary: Int,
+    val text: String,
+) {
+    WARM("warm", R.string.realtime_persona_warm, R.string.realtime_persona_warm_summary, DEFAULT_REALTIME_PERSONA),
+    SAVAGE("savage", R.string.realtime_persona_savage, R.string.realtime_persona_savage_summary, SAVAGE_PERSONA),
+    BUTLER("butler", R.string.realtime_persona_butler, R.string.realtime_persona_butler_summary, BUTLER_PERSONA),
+    SUNNY("sunny", R.string.realtime_persona_sunny, R.string.realtime_persona_sunny_summary, SUNNY_PERSONA),
+    LAOTIE("laotie", R.string.realtime_persona_laotie, R.string.realtime_persona_laotie_summary, LAOTIE_PERSONA),
+    GENTLE("gentle", R.string.realtime_persona_gentle, R.string.realtime_persona_gentle_summary, GENTLE_PERSONA),
+    TERSE("terse", R.string.realtime_persona_terse, R.string.realtime_persona_terse_summary, TERSE_PERSONA),
     ;
 
     companion object {
@@ -25,7 +34,8 @@ internal enum class DoubaoRealtimePersona(val id: String, val label: String, val
 internal const val CUSTOM_REALTIME_PERSONA = "custom"
 
 /** The persona's name on the settings page and in checks: a preset's label, or 自定义人设. */
-internal fun RealtimeConfig.personaLabel(): String = DoubaoRealtimePersona.byId(personaPreset)?.label ?: "自定义人设"
+internal fun RealtimeConfig.personaLabel(context: Context): String =
+    context.getString(DoubaoRealtimePersona.byId(personaPreset)?.label ?: R.string.realtime_custom_persona)
 
 // Biting, but no swearing and no jabs at looks, origin, sex, illness or family; the task still gets done and safety is
 // said straight.

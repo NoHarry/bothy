@@ -79,7 +79,7 @@ class VoiceSessionTest {
         runCurrent()
 
         assertEquals(VoiceSessionStatus.ERROR, session.state.value.status)
-        assertEquals("boom", session.state.value.message)
+        assertEquals(VoiceProblem.Other("boom"), session.state.value.problem)
         assertFalse(session.state.value.micActive)
     }
 
@@ -480,7 +480,7 @@ class VoiceSessionTest {
 
         override fun accept(samples: ShortArray) {
             frames++
-            if (frames == failAt) listener?.onError("boom")
+            if (frames == failAt) listener?.onError(VoiceProblem.Other("boom"))
             partials[frames]?.let { listener?.onPartial(it) }
             finals[frames]?.let { listener?.onFinal(it) }
             if (handedOver() && samples.all { it.toInt() == 0 }) silentFramesAfterHandOver++

@@ -27,11 +27,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import kotlin.math.ceil
 
@@ -50,8 +53,9 @@ internal fun OverlayCloseButton(collapseAt: Long, collapseMillis: Long, onClick:
     }
     // Recomposes once a second, not every frame: the ring reads the animation while drawing.
     val seconds by remember(collapseMillis) { derivedStateOf { ceil(left.value * collapseMillis / 1000f).toInt() } }
+    val fold = stringResource(R.string.overlay_fold)
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (seconds > 0) Text("$seconds 秒后收起", color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        if (seconds > 0) Text(pluralStringResource(R.plurals.overlay_folding_in, seconds, seconds), color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -59,7 +63,7 @@ internal fun OverlayCloseButton(collapseAt: Long, collapseMillis: Long, onClick:
                 .clip(CircleShape)
                 .background(OverlayPalette.tile)
                 .clickable(onClick = onClick)
-                .semantics { contentDescription = "收起" },
+                .semantics { contentDescription = fold },
         ) {
             if (seconds > 0) {
                 Canvas(Modifier.fillMaxSize()) {

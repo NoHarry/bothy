@@ -36,7 +36,7 @@ Bothy（苏格兰山间小屋）向所有路人开放，小博就住在里面。
 
 ## 5 分钟上手
 
-不用装开发环境，只要一个模型 key。
+不用装开发环境，只要一个模型 key。两个 App 的界面跟随系统语言显示中文或英文，也可以在 Bothy 的「设置 → 通用 → 语言」和 Playground 的设置里选定。
 
 1. **下载安装**：到 [Releases](https://github.com/NoHarry/bothy/releases) 下载最新的 `bothy-*.apk`（小博）和 `bothy-playground-*.apk`（虚拟车机，可选），装到 Android 平板或手机上（Android 7.0 以上，arm64）。
 2. **填 DeepSeek key**：打开 Bothy，第一屏就是上手向导。到 [DeepSeek 开放平台](https://platform.deepseek.com/api_keys) 创建一个 API key，粘贴进去点「保存并检查」。

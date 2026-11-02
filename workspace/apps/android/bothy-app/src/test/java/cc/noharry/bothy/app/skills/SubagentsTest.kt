@@ -1,6 +1,9 @@
 @file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.app.skills
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.kernel.api.HookContext
 import cc.noharry.agent.kernel.api.HookDecision
 import cc.noharry.agent.kernel.api.ToolSource
@@ -23,9 +26,16 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+/** The lines the screen shows are checked in Chinese. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class SubagentsTest {
     private val context = HookContext(sessionId = "s", runId = "r", requestId = "q")
+    private val appContext: Context = ApplicationProvider.getApplicationContext()
 
     @Test
     fun byDefaultAChildQueriesTheDeviceButNeitherOperatesItNorTalksToTheUser() = runBlocking {
@@ -121,7 +131,7 @@ class SubagentsTest {
             lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
             result = "明天晴，22度", error = "",
         )
-        val report = SubagentReport("s", listOf(status)).toReport(now = 50_000L)
+        val report = SubagentReport("s", listOf(status)).toReport(now = 50_000L, context = appContext)
 
         assertEquals("后台任务「苏州天气」完成了", report.display)
         assertTrue(report.model, report.model.contains("用时 42 秒") && report.model.contains("明天晴，22度"))
@@ -129,15 +139,20 @@ class SubagentsTest {
 
         // A batch is one turn naming every child; a sibling still at work is named, not waited for.
         val other = status.copy(id = "sub-2", label = "杭州天气", result = "明天多云")
-        val batch = SubagentReport("s", listOf(status, other)).toReport(stillWorking = listOf(other.copy(id = "sub-3", label = "南京天气", state = SubagentState.RUNNING)))
+        val batch = SubagentReport("s", listOf(status, other)).toReport(
+            stillWorking = listOf(other.copy(id = "sub-3", label = "南京天气", state = SubagentState.RUNNING)),
+            context = appContext,
+        )
         assertEquals("后台任务「苏州天气」「杭州天气」都完成了", batch.display)
         assertTrue(batch.model, batch.model.contains("明天多云") && batch.model.contains("还在进行：「南京天气」（sub-3）"))
         // 图文: pictures a child found go into the summary card.
         assertFalse(batch.model.contains("图文卡片"))
-        val pictured = SubagentReport("s", listOf(status.copy(result = "草莓音乐节\n图片：https://img.example.com/a.jpg"))).toReport()
+        val pictured = SubagentReport("s", listOf(status.copy(result = "草莓音乐节\n图片：https://img.example.com/a.jpg")))
+            .toReport(context = appContext)
         assertTrue(pictured.model, pictured.model.contains("图文卡片"))
         // 网上核实 is relayed in two sentences at most, the details on the card.
-        val verified = SubagentReport("s", listOf(status.copy(agentType = WEB_VERIFY_KIND))).toReport()
+        val verified = SubagentReport("s", listOf(status.copy(agentType = WEB_VERIFY_KIND)))
+            .toReport(context = appContext)
         assertTrue(verified.model, verified.model.contains("最多说两句短话") && verified.model.contains("show_card") && !verified.model.contains("用一段话"))
         val input = subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "苏州天气", "查苏州明天的天气", 1, null, false))
         assertTrue(input.contains("不能操作设备") && input.endsWith("查苏州明天的天气"))
@@ -145,8 +160,23 @@ class SubagentsTest {
     }
 
     @Test
+    @Config(qualifiers = "en")
+    fun inEnglishABatchNamesEachChildInQuotes() {
+        val status = SubagentStatus(
+            id = "sub-1", label = "Suzhou weather", state = SubagentState.COMPLETED, startedAtEpochMillis = 0L,
+            lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
+            result = "Sunny tomorrow", error = "",
+        )
+        val other = status.copy(id = "sub-2", label = "Hangzhou weather")
+        val batch = SubagentReport("s", listOf(status, other)).toReport(context = appContext)
+
+        assertEquals("Background tasks “Suzhou weather”, “Hangzhou weather” are all done", batch.display)
+        assertTrue(batch.model, batch.model.contains("「Suzhou weather」（sub-1）"))
+    }
+
+    @Test
     fun switchingSubagentsOffHidesTheirToolsAndPromptsTheRest() {
-        val tools = listOf(BasicTool("spawn_agent", ""), BasicTool("wait_agent", ""), BasicTool("read_file", ""))
+        val tools = listOf(BasicTool("spawn_agent", 0), BasicTool("wait_agent", 0), BasicTool("read_file", 0))
 
         assertEquals(tools, tools.withSubagentSwitch(enabled = true))
         val off = tools.withSubagentSwitch(enabled = false)
@@ -169,7 +199,10 @@ class SubagentsTest {
             error = "", modelCalls = 1, inputTokens = 27_376, cachedTokens = 20_608, outputTokens = 639,
         )
         assertEquals("5s · 工具 1 次 · 模型 1 次 · 输入 27376 缓存 75% · 输出 639", done.logLine())
-        assertEquals("后台任务「上海油价」完成：5s · 工具 1 次 · 模型 1 次 · 输入 27376 缓存 75% · 输出 639", done.transcriptLine(SubagentChange.FINISHED))
+        assertEquals(
+            "后台任务「上海油价」完成：5s · 工具 1 次 · 模型 1 次 · 输入 27376 缓存 75% · 输出 639",
+            done.transcriptLine(SubagentChange.FINISHED, appContext),
+        )
     }
 
     private suspend fun SubagentGuard.decide(name: String, source: ToolSource = ToolSource.BACKEND) =

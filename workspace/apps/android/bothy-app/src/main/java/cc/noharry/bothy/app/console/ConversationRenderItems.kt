@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.console
+import android.content.res.Resources
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.overlay.OverlayPicture
 import cc.noharry.bothy.app.overlay.generatedPicture
 import cc.noharry.bothy.app.session.ConversationItem
@@ -211,29 +213,36 @@ private fun ConversationItem.endsLiveThinkingStream(): Boolean =
         is ConversationItem.RuntimePhaseItem -> false
     }
 
-internal fun ConversationRenderItem.ContextToolGroup.summaryLabel(): String {
+internal fun ConversationRenderItem.ContextToolGroup.summaryLabel(resources: Resources): String {
     val reads = tools.count { it.toolName.isReadToolName() }
     val lists = tools.count { it.toolName.isListToolName() }
     val searches = tools.count { it.toolName.isSearchToolName() }
     val parts = mutableListOf<String>()
-    if (reads > 0) parts += "Read ${reads.countLabel("file", "files")}"
-    if (lists > 0) parts += "Listed ${lists.countLabel("dir", "dirs")}"
-    if (searches > 0) parts += if (searches == 1) "searched code" else "searched code $searches times"
-    return parts.joinToString(" and ").ifBlank { "Context lookups" }
+    if (reads > 0) parts += resources.getQuantityString(R.plurals.console_read_files, reads, reads)
+    if (lists > 0) parts += resources.getQuantityString(R.plurals.console_listed_dirs, lists, lists)
+    if (searches > 0) {
+        parts += if (searches == 1) {
+            resources.getString(R.string.console_searched_code_once)
+        } else {
+            resources.getQuantityString(R.plurals.console_searched_code_times, searches, searches)
+        }
+    }
+    return parts.joinToString(resources.getString(R.string.console_lookups_joiner))
+        .ifBlank { resources.getString(R.string.console_context_lookups) }
 }
 
-internal fun ConversationRenderItem.BusinessToolGroup.summaryLabel(): String {
+internal fun ConversationRenderItem.BusinessToolGroup.summaryLabel(resources: Resources): String {
     val names = tools.map { it.toolName }.distinct()
     return when {
         names.size == 1 -> {
             val name = names.single()
             if (tools.size == 1) name else "$name × ${tools.size}"
         }
-        else -> "Used ${tools.size} tools"
+        else -> resources.getQuantityString(R.plurals.console_used_tools, tools.size, tools.size)
     }
 }
 
-internal fun ConversationRenderItem.RuntimePhaseGroup.summaryLabel(): String {
+internal fun ConversationRenderItem.RuntimePhaseGroup.summaryLabel(resources: Resources): String {
     val n = phases.size
     val titles = phases.mapNotNull { phase ->
         when (phase) {
@@ -245,9 +254,9 @@ internal fun ConversationRenderItem.RuntimePhaseGroup.summaryLabel(): String {
     }
     val preview = titles.firstOrNull()?.take(RUNTIME_GROUP_PREVIEW_CHARS).orEmpty()
     return when {
-        preview.isBlank() -> "Runtime · $n steps"
+        preview.isBlank() -> resources.getQuantityString(R.plurals.console_runtime_steps, n, n)
         n == 1 -> preview
-        else -> "Runtime · $n steps · $preview"
+        else -> resources.getQuantityString(R.plurals.console_runtime_steps_preview, n, n, preview)
     }
 }
 
@@ -257,12 +266,17 @@ internal fun ConversationRenderItem.ContextToolGroup.status(): ToolCallStatus =
 internal fun ConversationRenderItem.BusinessToolGroup.status(): ToolCallStatus =
     tools.aggregateToolStatus()
 
-internal fun ConversationItem.ToolCallItem.contextLookupLabel(): String =
-    when {
-        toolName.isSearchToolName() -> searchLookupLabel()
-        toolName.isListToolName() -> "Listed ${displayPath() ?: "directory"}"
-        else -> "Read ${displayPath() ?: "file"}"
+internal fun ConversationItem.ToolCallItem.contextLookupLabel(resources: Resources): String {
+    val path = displayPath()
+    return when {
+        toolName.isSearchToolName() -> searchLookupLabel(resources)
+        toolName.isListToolName() ->
+            path?.let { resources.getString(R.string.console_listed_path, it) }
+                ?: resources.getString(R.string.console_listed_directory)
+        else -> path?.let { resources.getString(R.string.console_read_path, it) }
+            ?: resources.getString(R.string.console_read_file)
     }
+}
 
 internal fun ConversationItem.ToolCallItem.businessToolLineLabel(): String {
     if (toolName.equals("web_search", ignoreCase = true)) {
@@ -312,14 +326,15 @@ private fun String.isSearchToolName(): Boolean =
         startsWith(GREP_TOOL, ignoreCase = true) ||
         startsWith(SEARCH_TOOL_PREFIX, ignoreCase = true)
 
-private fun ConversationItem.ToolCallItem.searchLookupLabel(): String {
+private fun ConversationItem.ToolCallItem.searchLookupLabel(resources: Resources): String {
     val query = argumentField("pattern", "query", "keyword", "regex")
     val path = displayPath()
     return when {
-        !query.isNullOrBlank() && !path.isNullOrBlank() -> "Searched for ${query.cleanLabel()} in $path"
-        !query.isNullOrBlank() -> "Searched for ${query.cleanLabel()}"
-        !path.isNullOrBlank() -> "Searched $path"
-        else -> "Searched code"
+        !query.isNullOrBlank() && !path.isNullOrBlank() ->
+            resources.getString(R.string.console_searched_for_in, query.cleanLabel(), path)
+        !query.isNullOrBlank() -> resources.getString(R.string.console_searched_for, query.cleanLabel())
+        !path.isNullOrBlank() -> resources.getString(R.string.console_searched_path, path)
+        else -> resources.getString(R.string.console_searched_code)
     }
 }
 
@@ -332,9 +347,6 @@ private fun ConversationItem.ToolCallItem.argumentField(vararg names: String): S
     val obj = runCatching { ToolDisplayJson.parseToJsonElement(json) as? JsonObject }.getOrNull() ?: return null
     return names.firstNotNullOfOrNull { name -> obj[name]?.jsonPrimitive?.contentOrNull }
 }
-
-private fun Int.countLabel(one: String, many: String): String =
-    "$this ${if (this == 1) one else many}"
 
 private fun String.shortPath(): String {
     val clean = cleanLabel()

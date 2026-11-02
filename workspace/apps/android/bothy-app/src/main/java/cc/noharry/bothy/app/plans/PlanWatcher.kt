@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.plans
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.valueText
 import cc.noharry.bothy.app.mcp.loadMcpServers
 import cc.noharry.bothy.app.mcp.readMcpResourceAll
@@ -18,14 +20,14 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /** Where one watched resource stands, for the 计划 page. */
-internal enum class SubscriptionState(val label: String) {
-    OFFLINE("未连接"),
-    PENDING("订阅中"),
-    LIVE("实时"),
+internal enum class SubscriptionState(@StringRes val label: Int) {
+    OFFLINE(R.string.plans_feed_offline),
+    PENDING(R.string.plans_feed_pending),
+    LIVE(R.string.plans_feed_live),
     /** The server answered a subscribe with an error: its owners read it on their own pace instead. */
-    REFUSED("不支持推送"),
+    REFUSED(R.string.plans_feed_refused),
     /** Read on the plan's own pace. */
-    NO_PUSH("定时读取"),
+    NO_PUSH(R.string.plans_feed_polled),
 }
 
 /**

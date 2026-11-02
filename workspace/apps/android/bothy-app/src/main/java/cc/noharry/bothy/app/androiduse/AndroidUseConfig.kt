@@ -4,6 +4,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import cc.noharry.agent.androiduse.AndroidUseAccessibility
+import cc.noharry.bothy.app.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -34,12 +35,14 @@ internal fun applyAndroidUseSwitch(context: Context, enabled: Boolean = loadAndr
 internal fun androidUseReady(context: Context): Boolean =
     loadAndroidUseEnabled(context) && AndroidUseAccessibility.isConnected()
 
-internal fun androidUseStatus(context: Context): String = when {
-    !loadAndroidUseEnabled(context) -> "已关闭"
-    AndroidUseAccessibility.isConnected() -> "已连接 · 助手可查看并操作屏幕"
-    AndroidUseAccessibility.isEnabled(context) -> "已启用 · 等待系统连接无障碍服务"
-    else -> "未能启用 · 需要平台签名授予 WRITE_SECURE_SETTINGS"
-}
+internal fun androidUseStatus(context: Context): String = context.getString(
+    when {
+        !loadAndroidUseEnabled(context) -> R.string.androiduse_status_off
+        AndroidUseAccessibility.isConnected() -> R.string.androiduse_status_connected
+        AndroidUseAccessibility.isEnabled(context) -> R.string.androiduse_status_waiting
+        else -> R.string.androiduse_status_failed
+    },
+)
 
 /**
  * Brings 操作屏幕 back when the switch is on but the system never binds the accessibility service (owner 2026-10-12:

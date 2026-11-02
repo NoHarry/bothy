@@ -1,4 +1,5 @@
 package cc.noharry.bothy.playground.headunit
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -46,6 +47,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -55,6 +57,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import cc.noharry.bothy.playground.AppLanguage
+import cc.noharry.bothy.playground.AppLanguages
 import cc.noharry.bothy.playground.CallRecord
 import cc.noharry.bothy.playground.Highlight
 import cc.noharry.bothy.playground.Pill
@@ -62,6 +66,7 @@ import cc.noharry.bothy.playground.PlaceSwitch
 import cc.noharry.bothy.playground.Playground
 import cc.noharry.bothy.playground.PlaygroundScene
 import cc.noharry.bothy.playground.PlaygroundStore
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.home.World
 import cc.noharry.bothy.playground.home.line
@@ -244,7 +249,7 @@ private fun HomeCards(world: World, grid: Grid) {
     val context = LocalContext.current
     val weather = rememberWeather()
     WeatherCard(weather, world.cabin.drive.outsideTempC, grid.column(3))
-    SuggestionsCard(SUGGESTIONS, { Assistant.say(context, it) }, grid.column(4))
+    SuggestionsCard(SUGGESTIONS.map { stringResource(it) }, { Assistant.say(context, it) }, grid.column(4))
 }
 
 /**
@@ -323,6 +328,7 @@ private fun FittingColumn(gap: Dp, modifier: Modifier = Modifier, content: @Comp
 @Composable
 private fun DrivingControls(nav: NavState, map: NaviMapHandle, store: PlaygroundStore, slots: RouteSlots, onMore: (() -> Unit)?) {
     val scope = rememberCoroutineScope()
+    val exited = stringResource(R.string.headunit_log_nav_exited)
     var overview by remember { mutableStateOf(false) }
     var muted by remember { mutableStateOf(false) }
     // A simulated drive can be held, as on AMap's stock screen; a new route drives again.
@@ -334,7 +340,7 @@ private fun DrivingControls(nav: NavState, map: NaviMapHandle, store: Playground
         onExit = {
             scope.launch {
                 withContext(Dispatchers.IO) { Playground.navigation?.stop() }
-                store.record("cabin", PlaygroundStore.MANUAL, "退出导航", setOf(Highlight.NAV), fromAssistant = false)
+                store.record("cabin", PlaygroundStore.MANUAL, exited, setOf(Highlight.NAV), fromAssistant = false)
             }
         },
         onOverview = { overview = !overview; map.overview(overview) },
@@ -374,9 +380,12 @@ internal fun MapToolbar(modifier: Modifier) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Icon(Icons.Filled.Search, contentDescription = null, tint = UnitColors.muted, modifier = Modifier.size(18.dp))
-            Text("搜索", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
+            Text(stringResource(R.string.headunit_search), color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
         }
-        NEARBY.forEach { (label, line) -> UnitPill(label, on = false) { Assistant.say(context, line) } }
+        NEARBY.forEach { (label, line) ->
+            val said = stringResource(line)
+            UnitPill(stringResource(label), on = false) { Assistant.say(context, said) }
+        }
     }
 }
 
@@ -390,7 +399,7 @@ private fun StatusRow(world: World, server: ServerState, now: Long, grid: Grid, 
 
 /** The one map, moved and resized between the small one at home and the big one, never made again. */
 @Composable
-internal fun MapLayer(blocked: String?, map: NaviMapHandle, box: MapBox, corner: Dp = 18.dp) {
+internal fun MapLayer(@StringRes blocked: Int?, map: NaviMapHandle, box: MapBox, corner: Dp = 18.dp) {
     val x by animateDpAsState(box.x, tween(MOVE_MS.toInt()), label = "mapX")
     val y by animateDpAsState(box.y, tween(MOVE_MS.toInt()), label = "mapY")
     val w by animateDpAsState(box.width, tween(MOVE_MS.toInt()), label = "mapW")
@@ -400,7 +409,7 @@ internal fun MapLayer(blocked: String?, map: NaviMapHandle, box: MapBox, corner:
         blocked == null -> NaviMap(map, placed)
         // No key yet: the way to one, in the map's place.
         !AmapKey.configured(LocalContext.current) -> AmapKeyPrompt(placed)
-        else -> MapPlaceholder(blocked, placed)
+        else -> MapPlaceholder(stringResource(blocked), placed)
     }
 }
 
@@ -561,10 +570,11 @@ internal fun rememberWeather(): WeatherReport? {
 }
 
 /** Why the map cannot show yet, or null when it can (key built in, terms agreed, the SDK started). */
-internal fun mapBlocked(context: android.content.Context): String? = when {
-    !AmapKey.configured(context) -> "没有高德 key：在设置里填写"
-    !AMapPrivacy.agreed(context) -> "同意高德地图隐私政策后显示地图"
-    Playground.engine?.ensureStarted() == null -> "高德导航启动中…"
+@StringRes
+internal fun mapBlocked(context: android.content.Context): Int? = when {
+    !AmapKey.configured(context) -> R.string.headunit_map_no_key
+    !AMapPrivacy.agreed(context) -> R.string.headunit_map_privacy
+    Playground.engine?.ensureStarted() == null -> R.string.headunit_map_starting
     else -> null
 }
 
@@ -581,30 +591,34 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("设置与控制", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                val title = stringResource(R.string.headunit_settings_title)
+                Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 PlainIcon(Icons.Filled.Close, onClick = onClose)
             }
             AmapKeyRow()
+            LanguageRow()
             // Real navigation: the device's own position and real driving, the simulated car and home taken down.
-            SheetSwitch("真实导航模式（用设备的真实定位，不模拟车和家）", mode.realNav) { on ->
+            SheetSwitch(stringResource(R.string.headunit_real_nav_mode), mode.realNav) { on ->
                 scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = on)) }
             }
             if (mode.realNav) {
                 // Routes driven in the 高德地图 App instead, its stock screen with all it shows (owner 2026-10-22: 方案二).
-                SheetSwitch("导航交给高德地图 App（有途经点时在高德里点开始导航）", mode.amapApp) { on ->
+                SheetSwitch(stringResource(R.string.headunit_amap_app_mode), mode.amapApp) { on ->
                     scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(amapApp = on)) }
                 }
                 return@Column
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) { PlaceSwitch(store) }
-            SheetSwitch("导航模拟行驶（不用真开车）", world.cabin.nav.simulated) { on -> scope.launch(Dispatchers.IO) { Playground.navigation?.setSimulated(on) } }
+            SheetSwitch(stringResource(R.string.headunit_simulated_drive), world.cabin.nav.simulated) { on ->
+                scope.launch(Dispatchers.IO) { Playground.navigation?.setSimulated(on) }
+            }
             var demoStart by remember { mutableStateOf(Playground.engine?.demoStart == true) }
-            SheetSwitch("车停在深圳市民中心（不用设备的真实位置）", demoStart) { on ->
+            SheetSwitch(stringResource(R.string.headunit_demo_start), demoStart) { on ->
                 Playground.engine?.demoStart = on
                 demoStart = on
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Pill("重置车和家", selected = false) { store.reset() }
+                Pill(stringResource(R.string.headunit_reset), selected = false) { store.reset() }
             }
             SidePanel(PlaygroundScene.CABIN, world, calls, server, flash, store, Modifier.weight(1f).fillMaxWidth())
         }
@@ -619,18 +633,45 @@ private fun SheetSwitch(label: String, checked: Boolean, onChange: (Boolean) -> 
     }
 }
 
+/** 语言: follow the system, or always Chinese or English ([AppLanguages]); each language is named in itself. */
+@Composable
+private fun LanguageRow() {
+    val context = LocalContext.current
+    var language by remember { mutableStateOf(AppLanguages.current(context)) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.settings_language), color = PlaygroundColors.text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Row(
+            Modifier.clip(RoundedCornerShape(50)).background(PlaygroundColors.elevated).padding(3.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            AppLanguage.entries.forEach { option ->
+                val label = when (option) {
+                    AppLanguage.SYSTEM -> stringResource(R.string.settings_language_system)
+                    AppLanguage.CHINESE -> "中文"
+                    AppLanguage.ENGLISH -> "English"
+                }
+                Pill(label, selected = option == language) {
+                    language = option
+                    AppLanguages.set(context, option)
+                }
+            }
+        }
+    }
+}
+
 /** Quick searches on the map's bar, and what each says to 小博. */
-private val NEARBY = listOf("充电站" to "找一下附近的充电站", "停车场" to "找一下附近的停车场")
+private val NEARBY = listOf(
+    R.string.headunit_nearby_charging to R.string.headunit_say_find_charging,
+    R.string.headunit_nearby_parking to R.string.headunit_say_find_parking,
+)
 
 /** The demo's lines, as the head unit offers them at home; tapped, each is said to 小博. */
 private val SUGGESTIONS = listOf(
-    "我有个朋友坐CA3636来深圳，她是吃素的，你先去机场接她，然后带她去吃一家好点的素食餐厅，你规划下路线",
-    "我带外地朋友来深圳，想把这8个地方都打卡一遍：莲花山、世界之窗、欢乐谷、深圳湾公园、平安金融中心、华强北、东门老街、大梅沙，" +
-        "先去莲花山，最后去大梅沙看海，你帮我排一条路线",
-    "我老婆在深圳湾万象城逛街，老大在南山书城学美术，老二在香蜜湖学芭蕾，老三在科技园学乐高，老四在深圳湾体育中心打羽毛球，" +
-        "先去接老大，然后接老四，再接老三，最后接上老二再去接我老婆，晚上要在海上世界给老四过生日，帮我规划一条导航路线",
-    "我有点冷，把我的座椅加热打开",
-    "打开后备箱",
+    R.string.headunit_say_demo_airport,
+    R.string.headunit_say_demo_eight_places,
+    R.string.headunit_say_demo_pickups,
+    R.string.headunit_say_cold_seat,
+    R.string.headunit_say_open_trunk,
 )
 
 private const val LEFT_SHARE = 0.25f

@@ -1,4 +1,6 @@
 package cc.noharry.bothy.playground.headunit
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.playground.PlaygroundStore
 import cc.noharry.bothy.playground.cabin.Cabin
 import cc.noharry.bothy.playground.cabin.Seat
@@ -19,9 +21,15 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Who sits where and who is speaking, and the world changed by hand: the inputs an automation reacts to. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class PeopleAndManualTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val store = PlaygroundStore(clock = { 0L })
     private val cabin = playgroundEndpoints(store).getValue("/cabin/mcp")
 
@@ -34,7 +42,7 @@ class PeopleAndManualTest {
     @Test
     fun meIsTheSpeakersSeatAndPassengersAreWhoeverRidesAlong() {
         assertTrue(call("set_seat", """{"seat":"passengers","ventilation":2}""").text().contains("没有乘客"))
-        store.holdCabin(CabinSpots.seats.getValue(Seat.REAR_RIGHT))
+        store.holdCabin(context, CabinSpots.seats.getValue(Seat.REAR_RIGHT))
         assertEquals(Seat.REAR_RIGHT, store.read().cabin.speaker)
         assertEquals(setOf(Seat.DRIVER, Seat.REAR_RIGHT), store.read().cabin.occupants)
         assertEquals("右后座椅通风 2 档。", call("set_seat", """{"seat":"我这边","ventilation":2}""").text())
@@ -58,16 +66,16 @@ class PeopleAndManualTest {
 
     @Test
     fun tapsOnThePicturesChangeTheWorldAndAreLoggedAsManual() {
-        store.tapCabin(CabinSpots.seats.getValue(Seat.PASSENGER))
+        store.tapCabin(context, CabinSpots.seats.getValue(Seat.PASSENGER))
         assertTrue(Seat.PASSENGER in store.read().cabin.occupants)
         val window = CabinSpots.windows.getValue(Seat.DRIVER)
-        store.tapCabin(androidx.compose.ui.geometry.Offset(window.first.x, (window.first.y + window.second.y) / 2))
+        store.tapCabin(context, androidx.compose.ui.geometry.Offset(window.first.x, (window.first.y + window.second.y) / 2))
         assertEquals(100, store.read().cabin.window(Seat.DRIVER))
-        store.tapHome(HomeSpots.door.center)
+        store.tapHome(context, HomeSpots.door.center)
         assertFalse(store.read().home.doorLocked)
-        store.holdHome(HomeSpots.rooms.getValue(Room.BEDROOM).center)
+        store.holdHome(context, HomeSpots.rooms.getValue(Room.BEDROOM).center)
         assertTrue(store.read().home.room(Room.BEDROOM).presence)
-        store.tapHome(HomeSpots.rooms.getValue(Room.STUDY).center)
+        store.tapHome(context, HomeSpots.rooms.getValue(Room.STUDY).center)
         assertTrue(store.read().home.room(Room.STUDY).light.on)
         val record = store.calls.value.first()
         assertEquals(PlaygroundStore.MANUAL to false, record.tool to record.fromAssistant)
@@ -76,8 +84,15 @@ class PeopleAndManualTest {
     }
 
     @Test
+    @Config(qualifiers = "en")
+    fun aChangeByHandIsLoggedInTheScreensLanguage() {
+        store.tapHome(context, HomeSpots.rooms.getValue(Room.STUDY).center)
+        assertEquals("Study: light on", store.calls.value.first().summary)
+    }
+
+    @Test
     fun aRoomsPresenceIsInTheStateAPlanWatches() {
-        store.changeRoom(Room.BEDROOM, "有人了") { it.copy(presence = true) }
+        store.changeRoom(Room.BEDROOM, "卧室有人了") { it.copy(presence = true) }
         val rooms = store.read().home.toJson(userHere = false).getValue("rooms").jsonObject
         assertEquals("true", rooms.getValue("bedroom").jsonObject.getValue("presence").jsonPrimitive.content)
         assertEquals("false", rooms.getValue("study").jsonObject.getValue("presence").jsonPrimitive.content)

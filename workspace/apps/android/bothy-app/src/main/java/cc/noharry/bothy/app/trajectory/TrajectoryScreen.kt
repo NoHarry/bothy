@@ -21,9 +21,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.console.ConsoleActions
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleLayoutPolicy
 import cc.noharry.bothy.app.console.ConsoleType
@@ -164,7 +166,7 @@ internal fun TrajectoryScreen(
         }
     }
 
-    PanelBox("Trajectory", modifier) {
+    PanelBox(stringResource(R.string.trajectory_title), modifier) {
         TrajectoryToolbar(
             snapshot = snapshot,
             focusedRun = focusedRun,
@@ -299,13 +301,13 @@ private fun TrajectoryEmptyState(refreshing: Boolean, modifier: Modifier = Modif
     Box(modifier.fillMaxSize().padding(Dimens.spaceLg), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = if (refreshing) "Loading trajectory…" else "暂无 v2 轨迹",
+                text = stringResource(if (refreshing) R.string.trajectory_loading else R.string.trajectory_empty),
                 style = ConsoleType.hero,
                 color = colors.text,
             )
             Spacer(Modifier.height(Dimens.spaceXs))
             Text(
-                text = "Run a turn in Debug to record a v2 SessionEventLog trajectory for this session.",
+                text = stringResource(R.string.trajectory_empty_hint),
                 style = ConsoleType.body,
                 color = colors.muted,
             )

@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalA2aClientApi::class)
 
 package cc.noharry.bothy.app.a2a
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import cc.noharry.agent.a2a.A2aArtifact
 import cc.noharry.agent.a2a.A2aClientError
 import cc.noharry.agent.a2a.A2aMessage
@@ -9,6 +11,7 @@ import cc.noharry.agent.a2a.A2aStreamEvent
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.A2aValue
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionAnswerMode
 import cc.noharry.bothy.app.a2ui.questionCards
 import cc.noharry.bothy.app.console.status
@@ -19,15 +22,15 @@ import cc.noharry.bothy.app.runtime.formatWorkedDuration
 import cc.noharry.bothy.app.runtime.reduce
 
 /** Where a client-mode message was typed or injected; shown on the user turn. */
-internal enum class A2aInputSource(val label: String) {
-    CONSOLE("输入框"),
-    OVERLAY("悬浮窗"),
-    ADB("adb"),
-    ASR("ASR"),
+internal enum class A2aInputSource(@StringRes val label: Int) {
+    CONSOLE(R.string.a2a_source_console),
+    OVERLAY(R.string.a2a_source_overlay),
+    ADB(R.string.a2a_source_adb),
+    ASR(R.string.a2a_source_asr),
     /** An inbound request from a PC debug tool (`metadata.debugMirror=true`), mirrored read-only. */
-    PC("PC 调试"),
+    PC(R.string.a2a_source_pc),
     /** An inbound request from any other A2A client, mirrored read-only while "显示外部 A2A 任务" is on. */
-    EXTERNAL("外部 A2A"),
+    EXTERNAL(R.string.a2a_source_external),
 }
 
 /** Wire-only client projection: every item comes from what crossed A2A, never from local runtime events. */
@@ -112,20 +115,22 @@ internal data class A2aReduction(val state: A2aClientState, val speech: A2aSpeec
 
 /**
  * Applies one wire event. Routing follows `metadata.channel`; legacy `kind` is used only without a channel.
- * Mirrored events pass [bindTask] false so they never become this client's own task.
+ * Mirrored events pass [bindTask] false so they never become this client's own task. [texts] words the notices.
  */
 internal fun A2aClientState.reduce(
+    texts: Resources,
     event: A2aStreamEvent,
     nowEpochMillis: Long,
     startedAtEpochMillis: Long? = runStartedAtEpochMillis,
     bindTask: Boolean = true,
 ): A2aReduction = when (event) {
     is A2aStreamEvent.Task -> A2aReduction(reduceTask(event, nowEpochMillis, startedAtEpochMillis, bindTask))
-    is A2aStreamEvent.Artifact -> reduceArtifact(event.taskId, event.artifact)
+    is A2aStreamEvent.Artifact -> reduceArtifact(texts, event.taskId, event.artifact)
     is A2aStreamEvent.Message -> A2aReduction(reduceMessage(event.value))
     A2aStreamEvent.Completed -> A2aReduction(this)
-    is A2aStreamEvent.Failed -> A2aReduction(notice("A2A 错误：${event.error.describe()}", error = true))
-    is A2aStreamEvent.Incomplete -> A2aReduction(notice("连接已结束，但未收到任务终态；结果未知，不会自动重试。", error = true))
+    is A2aStreamEvent.Failed ->
+        A2aReduction(notice(texts.getString(R.string.a2a_notice_error, event.error.describe()), error = true))
+    is A2aStreamEvent.Incomplete -> A2aReduction(notice(texts.getString(R.string.a2a_notice_incomplete), error = true))
 }
 
 private fun A2aClientState.reduceTask(
@@ -160,7 +165,7 @@ private fun A2aClientState.reduceTask(
     return next.append { A2aClientItem.Status(it, task.id, text) }
 }
 
-private fun A2aClientState.reduceArtifact(taskId: String, artifact: A2aArtifact): A2aReduction {
+private fun A2aClientState.reduceArtifact(texts: Resources, taskId: String, artifact: A2aArtifact): A2aReduction {
     val text = artifact.parts.text()
     val metadata = artifact.metadata
     return when (val channel = metadata.channel()) {
@@ -172,13 +177,18 @@ private fun A2aClientState.reduceArtifact(taskId: String, artifact: A2aArtifact)
             )
         }
         CHANNEL_DISPLAY -> A2aReduction(append { A2aClientItem.Display(it, taskId, text) })
-        CHANNEL_QUESTION -> A2aReduction(reduceQuestion(taskId, text, metadata))
-        else -> A2aReduction(notice("[未知输出 ${channel ?: "-"}] $text"))
+        CHANNEL_QUESTION -> A2aReduction(reduceQuestion(texts, taskId, text, metadata))
+        else -> A2aReduction(notice(texts.getString(R.string.a2a_notice_unknown_output, channel ?: "-", text)))
     }
 }
 
-private fun A2aClientState.reduceQuestion(taskId: String, text: String, metadata: A2aValue.ObjectValue?): A2aClientState {
-    val questionId = metadata.string("questionId") ?: return notice("[问题] $text")
+private fun A2aClientState.reduceQuestion(
+    texts: Resources,
+    taskId: String,
+    text: String,
+    metadata: A2aValue.ObjectValue?,
+): A2aClientState {
+    val questionId = metadata.string("questionId") ?: return notice(texts.getString(R.string.a2a_notice_question, text))
     val phase = metadata.string("phase").orEmpty()
     val options = (metadata?.values?.get("options") as? A2aValue.ListValue)?.values
         ?.mapNotNull { (it as? A2aValue.StringValue)?.value }.orEmpty()

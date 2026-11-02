@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.console
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.overlay.clientMode
 import cc.noharry.bothy.app.runtime.RuntimeDemoState
@@ -14,20 +16,36 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Demo presentation mode is gone: the console has Debug and Trajectory plus the opt-in A2A client
  * mode, and the transcript is a single full-fidelity Debug stream with no mode filter.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], application = Application::class)
 class PresentationRemovalTest {
     @Test
+    @Config(qualifiers = "zh")
     fun consoleHasTrajectoryAndOptInA2aViews() {
         assertEquals(
             listOf(ConsoleView.DEBUG, ConsoleView.TRAJECTORY, ConsoleView.A2A, ConsoleView.PLANS),
             ConsoleView.entries.toList(),
         )
         // 计划 sits right of A2A (owner 2026-10-15).
-        assertEquals(listOf("Debug", "Trajectory", "A2A", "计划"), ConsoleView.entries.map { it.label })
+        assertEquals(listOf("调试", "轨迹", "A2A", "计划"), viewLabels())
+    }
+
+    @Test
+    fun consoleViewsAreNamedInEnglishByDefault() {
+        assertEquals(listOf("Debug", "Trajectory", "A2A", "Plans"), viewLabels())
+    }
+
+    private fun viewLabels(): List<String> {
+        val resources = ApplicationProvider.getApplicationContext<Application>().resources
+        return ConsoleView.entries.map { resources.getString(it.label) }
     }
 
     @Test

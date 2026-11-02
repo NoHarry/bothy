@@ -1,6 +1,7 @@
 @file:OptIn(ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.app.overlay
+import android.content.res.Resources
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -53,6 +54,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -61,11 +65,12 @@ import androidx.compose.ui.unit.sp
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.runtime.SubagentState
 import cc.noharry.agent.runtime.SubagentStatus
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.console.color
+import cc.noharry.bothy.app.console.labelRes
 import cc.noharry.bothy.app.skills.BothySubagents
 import cc.noharry.bothy.app.skills.REPORT_QUEUED
-import cc.noharry.bothy.app.skills.chinese
 import cc.noharry.bothy.app.skills.deliveryKey
 import cc.noharry.bothy.app.trajectory.lane
 import cc.noharry.bothy.app.usage.tokens
@@ -104,12 +109,15 @@ private fun SubagentStatus.onCard(now: Long, delivered: Long?): Boolean = when {
 private fun SubagentStatus.queued(deliveries: Map<String, Long>): Boolean = state.finished && deliveries[deliveryKey()] == REPORT_QUEUED
 
 /** One line on what a child is doing, or what it came back with, in the card's words. */
-internal fun SubagentStatus.cardActivity(now: Long): String = when (state) {
-    SubagentState.RUNNING -> latestStep() ?: "思考中"
-    SubagentState.STALLED -> "${(now - lastActivityEpochMillis) / 1_000} 秒没有进展"
+internal fun SubagentStatus.cardActivity(resources: Resources, now: Long): String = when (state) {
+    SubagentState.RUNNING -> latestStep(resources) ?: resources.getString(R.string.overlay_subagent_thinking)
+    SubagentState.STALLED -> ((now - lastActivityEpochMillis) / 1_000).toInt()
+        .let { resources.getQuantityString(R.plurals.overlay_subagent_stalled, it, it) }
     SubagentState.COMPLETED -> result.headline()
-    SubagentState.CANCELLED -> state.chinese()
-    SubagentState.FAILED, SubagentState.TIMED_OUT -> state.chinese() + error.takeIf(String::isNotEmpty)?.let { "：$it" }.orEmpty()
+    SubagentState.CANCELLED -> resources.getString(state.labelRes())
+    SubagentState.FAILED, SubagentState.TIMED_OUT -> resources.getString(state.labelRes()).let { label ->
+        if (error.isEmpty()) label else resources.getString(R.string.overlay_subagent_failed_with, label, error)
+    }
 }
 
 /**
@@ -117,7 +125,12 @@ internal fun SubagentStatus.cardActivity(now: Long): String = when (state) {
  * single child turns instead); amber while one is stalled; all lit while their results wait to be told. Null once the
  * batch has been reported.
  */
-internal fun overlaySubagentSignal(board: Map<String, List<SubagentStatus>>, now: Long, deliveries: Map<String, Long> = emptyMap()): OverlayTaskSignal? {
+internal fun overlaySubagentSignal(
+    resources: Resources,
+    board: Map<String, List<SubagentStatus>>,
+    now: Long,
+    deliveries: Map<String, Long> = emptyMap(),
+): OverlayTaskSignal? {
     val lanes = subagentsOnCard(board, now, deliveries)
     val working = lanes.filter { !it.state.finished }
     if (working.isEmpty() && lanes.none { it.queued(deliveries) }) return null
@@ -129,14 +142,15 @@ internal fun overlaySubagentSignal(board: Map<String, List<SubagentStatus>>, now
         stepsDone = done,
         stepsTotal = if (lanes.size > 1) lanes.size else 0,
         title = when {
-            focus == null -> "子任务都完成了"
-            lanes.size > 1 -> "子任务 · $done/${lanes.size} 完成"
-            else -> "子任务「${focus.label}」"
+            focus == null -> resources.getString(R.string.overlay_subagents_all_told)
+            lanes.size > 1 -> resources.getString(R.string.overlay_subagents_progress, done, lanes.size)
+            else -> resources.getString(R.string.overlay_subagent_named, focus.label)
         },
         detail = when {
-            focus == null -> "马上告诉你结果"
-            lanes.size > 1 -> "「${focus.label}」" + focus.cardActivity(now)
-            else -> focus.cardActivity(now)
+            focus == null -> resources.getString(R.string.overlay_subagents_results_soon)
+            lanes.size > 1 ->
+                resources.getString(R.string.overlay_subagent_named_activity, focus.label, focus.cardActivity(resources, now))
+            else -> focus.cardActivity(resources, now)
         },
         more = 0,
         key = "subagents|${lanes.first().id}|$done|${stalled?.id}",
@@ -144,8 +158,13 @@ internal fun overlaySubagentSignal(board: Map<String, List<SubagentStatus>>, now
 }
 
 /** What folded 小博 shows: a delegation first (it may hold a result), else subagents at work. */
-internal fun overlayFoldedSignal(delegations: List<DelegationView>, now: Long = System.currentTimeMillis()): OverlayTaskSignal? =
-    overlayTaskSignal(delegations, now) ?: overlaySubagentSignal(BothySubagents.board.value, now, BothySubagents.deliveries.value)
+internal fun overlayFoldedSignal(
+    resources: Resources,
+    delegations: List<DelegationView>,
+    now: Long = System.currentTimeMillis(),
+): OverlayTaskSignal? =
+    overlayTaskSignal(resources, delegations, now)
+        ?: overlaySubagentSignal(resources, BothySubagents.board.value, now, BothySubagents.deliveries.value)
 
 /** Calls [onChange] whenever a subagent starts, moves, settles or is reported, so folded 小博's ring follows. */
 internal fun CoroutineScope.followSubagents(onChange: () -> Unit): Job =
@@ -211,9 +230,11 @@ internal fun OverlaySubagentLanes(turnDone: Boolean = false) {
 /** The settled batch in one line: how many, how long, what they read, and the way to open it. */
 @Composable
 private fun FoldedLanes(lanes: List<SubagentStatus>) {
-    val seconds = delegationElapsed(lanes.maxOf { it.finishedAtEpochMillis }, lanes.minOf { it.startedAtEpochMillis })
+    val seconds = LocalContext.current.resources
+        .delegationElapsed(lanes.maxOf { it.finishedAtEpochMillis }, lanes.minOf { it.startedAtEpochMillis })
     val tokens = lanes.sumOf { it.inputTokens + it.outputTokens }
     val failed = lanes.count { it.state != SubagentState.COMPLETED }
+    val tok = compactTokens(tokens)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -221,14 +242,18 @@ private fun FoldedLanes(lanes: List<SubagentStatus>) {
     ) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(if (failed > 0) OverlayPalette.amber else OverlayPalette.live))
         Text(
-            "${lanes.size} 路子任务完成" + (if (failed > 0) "（$failed 路没成）" else "") + " · $seconds · ${compactTokens(tokens)} tok",
+            if (failed > 0) {
+                pluralStringResource(R.plurals.overlay_subagents_folded_failed, lanes.size, lanes.size, failed, seconds, tok)
+            } else {
+                pluralStringResource(R.plurals.overlay_subagents_folded, lanes.size, lanes.size, seconds, tok)
+            },
             color = OverlayPalette.secondary,
             fontSize = 13.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Text("展开", color = OverlayPalette.glow, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(stringResource(R.string.overlay_expand), color = OverlayPalette.glow, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -241,13 +266,16 @@ private fun LanesHeader(lanes: List<SubagentStatus>, now: Long, pulse: State<Flo
     val done = lanes.count { it.state.finished }
     val all = done == lanes.size
     val end = if (all) lanes.maxOf { it.finishedAtEpochMillis } else now
+    val resources = LocalContext.current.resources
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         Canvas(Modifier.width(GUTTER).fillMaxHeight()) { drawRoot(pulse.value, all) }
         Text(
             when {
-                all -> (if (lanes.size > 1) "子任务全部完成" else "子任务完成") + if (telling) " · 马上汇报" else ""
-                lanes.size > 1 -> "${lanes.size} 路子任务并行"
-                else -> "子任务进行中"
+                all -> (if (lanes.size > 1) R.string.overlay_subagents_all_done else R.string.overlay_subagent_done)
+                    .let { stringResource(it) }
+                    .let { if (telling) stringResource(R.string.overlay_subagents_reporting_soon, it) else it }
+                lanes.size > 1 -> stringResource(R.string.overlay_subagents_parallel, lanes.size)
+                else -> stringResource(R.string.overlay_subagent_running)
             },
             color = OverlayPalette.secondary,
             fontSize = 13.sp,
@@ -257,7 +285,7 @@ private fun LanesHeader(lanes: List<SubagentStatus>, now: Long, pulse: State<Flo
         )
         Text("  $done/${lanes.size}", color = if (all) OverlayPalette.live else OverlayPalette.glow, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, style = Tabular)
         Spacer(Modifier.weight(1f))
-        Text(delegationElapsed(end, lanes.minOf { it.startedAtEpochMillis }), color = OverlayPalette.secondary, fontSize = 13.sp, style = Tabular)
+        Text(resources.delegationElapsed(end, lanes.minOf { it.startedAtEpochMillis }), color = OverlayPalette.secondary, fontSize = 13.sp, style = Tabular)
     }
 }
 
@@ -280,7 +308,7 @@ private fun Lane(lane: SubagentStatus, now: Long, pulse: State<Float>, last: Boo
         Column(Modifier.weight(1f).padding(vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             LaneTitle(lane, now, tone)
             Text(
-                lane.cardActivity(now),
+                lane.cardActivity(LocalContext.current.resources, now),
                 color = if (lane.state == SubagentState.COMPLETED) OverlayPalette.text.copy(alpha = 0.88f) else OverlayPalette.secondary,
                 fontSize = 13.sp,
                 maxLines = 1,
@@ -310,7 +338,7 @@ private fun LaneTitle(lane: SubagentStatus, now: Long, tone: Color) {
             if (lane.toolCalls > MAX_PIPS) Text("+${lane.toolCalls - MAX_PIPS}", color = OverlayPalette.faint, fontSize = 11.sp)
         }
         if (tokens > 0) Text("${compactTokens(tokens.toLong())} tok", color = OverlayPalette.faint, fontSize = 11.sp, style = Tabular)
-        Text(delegationElapsed(end, lane.startedAtEpochMillis), color = OverlayPalette.text, fontSize = 13.sp, style = Tabular)
+        Text(LocalContext.current.resources.delegationElapsed(end, lane.startedAtEpochMillis), color = OverlayPalette.text, fontSize = 13.sp, style = Tabular)
     }
 }
 
@@ -434,18 +462,23 @@ private fun SubagentState.tone(): Color = when (this) {
 private fun wave(phase: Float): Float = (sin(phase * 2 * PI).toFloat() + 1f) / 2f
 
 /** The latest call as a phrase: 搜索「…」, 读取 host, or the tool's own name. */
-private fun SubagentStatus.latestStep(): String? {
+private fun SubagentStatus.latestStep(resources: Resources): String? {
     if (latest.isEmpty()) return null
     val args = latest.substringAfter(' ', "")
     val name = latest.substringBefore(' ').let { if (it == "call_tool") args.stringArg("name") ?: it else it }
     return when (val tool = name.substringAfterLast("__")) {
-        "web_search" -> args.stringArg("query")?.let { "搜索「${it.take(MAX_ARG_CHARS)}」" } ?: "联网搜索"
-        "web_fetch" -> "读取 " + (args.stringArg("url")?.let(::hostOf) ?: "网页")
-        "read_file", "list_dir", "grep" -> "查阅资料"
-        "search_tools" -> "找工具"
-        "exec_js" -> "计算"
-        "update_todo" -> "排步骤"
-        else -> "调用 $tool"
+        "web_search" -> args.stringArg("query")
+            ?.let { resources.getString(R.string.overlay_subagent_searching, it.take(MAX_ARG_CHARS)) }
+            ?: resources.getString(R.string.overlay_subagent_web_search)
+        "web_fetch" -> resources.getString(
+            R.string.overlay_subagent_reading,
+            args.stringArg("url")?.let(::hostOf) ?: resources.getString(R.string.overlay_subagent_web_page),
+        )
+        "read_file", "list_dir", "grep" -> resources.getString(R.string.overlay_subagent_looking_up)
+        "search_tools" -> resources.getString(R.string.overlay_subagent_finding_tools)
+        "exec_js" -> resources.getString(R.string.overlay_subagent_calculating)
+        "update_todo" -> resources.getString(R.string.overlay_subagent_planning)
+        else -> resources.getString(R.string.overlay_subagent_calling, tool)
     }
 }
 

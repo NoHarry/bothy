@@ -30,6 +30,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,6 +39,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cc.noharry.agent.device.DeviceMediaMcpProvider
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.initialValue
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -70,14 +73,20 @@ internal fun McpProvidersPane(
         if (!embedded || editing != null) {
             SettingsNavBar(
                 title = when {
-                    editing == null -> "MCP providers"
-                    editedServer == null -> "添加 MCP"
-                    else -> "编辑 ${editedServer.label}"
+                    editing == null -> stringResource(R.string.mcp_providers_title)
+                    editedServer == null -> stringResource(R.string.mcp_add_server_title)
+                    else -> stringResource(R.string.mcp_edit_server_title, editedServer.label)
                 },
-                breadcrumb = if (editing == null) "Settings › MCP" else "Settings › MCP › ${if (editedServer == null) "添加" else "编辑"}",
-                backLabel = "Back",
+                breadcrumb = stringResource(
+                    when {
+                        editing == null -> R.string.mcp_breadcrumb
+                        editedServer == null -> R.string.mcp_breadcrumb_add
+                        else -> R.string.mcp_breadcrumb_edit
+                    },
+                ),
+                backLabel = stringResource(R.string.common_back),
                 onBack = { if (editing != null) editing = null else onBack() },
-                hint = "Toggles apply immediately · tap a row to preview tools.",
+                hint = stringResource(R.string.mcp_providers_hint),
             )
             Spacer(Modifier.height(Dimens.spaceSm))
             HorizontalDivider(color = ConsoleColors.borderSubtle)
@@ -104,9 +113,13 @@ private fun McpProviderList(
     Column(modifier) {
         // The add button leads the row: the 小博 bubble rests on the top-right corner of the screen and covered it there.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onAdd) { Text("+ 添加 MCP") }
+            TextButton(onClick = onAdd) { Text(stringResource(R.string.mcp_add_server)) }
             Text(
-                "${state.mcpProviders.count { it.enabled }} of ${state.mcpProviders.size} loaded",
+                stringResource(
+                    R.string.mcp_loaded_count,
+                    state.mcpProviders.count { it.enabled },
+                    state.mcpProviders.size,
+                ),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 modifier = Modifier.weight(1f),
@@ -164,8 +177,12 @@ private fun ProviderToggleRow(
             Spacer(Modifier.width(Dimens.spaceXs))
             ProviderRowInfo(provider, Modifier.weight(1f).clickable(onClick = onToggleExpanded))
             provider.server?.let { server ->
-                TextButton(onClick = onEdit) { Text("编辑") }
-                if (server.deletable) TextButton(onClick = { actions.deleteMcpServer(server.id) }) { Text("删除", color = ConsoleColors.danger) }
+                TextButton(onClick = onEdit) { Text(stringResource(R.string.common_edit)) }
+                if (server.deletable) {
+                    TextButton(onClick = { actions.deleteMcpServer(server.id) }) {
+                        Text(stringResource(R.string.common_delete), color = ConsoleColors.danger)
+                    }
+                }
             }
             Switch(
                 checked = provider.enabled,
@@ -201,13 +218,13 @@ private fun MediaAccessLine() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            if (granted) "通知使用权已开：能看到在放什么、指定控制哪个 App" else "通知使用权未开：只能播放、暂停、切歌和调音量，看不到在放什么",
+            stringResource(if (granted) R.string.mcp_media_access_on else R.string.mcp_media_access_off),
             style = ConsoleType.meta,
             color = if (granted) ConsoleColors.success else ConsoleColors.muted,
             modifier = Modifier.weight(1f),
         )
         TextButton(onClick = { runCatching { context.startActivity(DeviceMediaMcpProvider.notificationAccessIntent().addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }) {
-            Text(if (granted) "管理" else "去开启")
+            Text(stringResource(if (granted) R.string.mcp_manage else R.string.mcp_turn_on))
         }
     }
 }
@@ -219,9 +236,14 @@ private fun ProviderRowInfo(provider: McpProviderState, modifier: Modifier) {
     val server = provider.server
     val secrets = remember(server) { server?.takeIf { it.kind == McpServerKind.HTTP }?.let { McpSecrets.read(context, it.id) } }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) {
-        Text(provider.label, style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.Medium)
         Text(
-            if (provider.enabled) "Loaded in runtime" else "Not loaded",
+            fixedMcpProviderTitle(provider.id)?.let { stringResource(it) } ?: provider.label,
+            style = ConsoleType.body,
+            color = colors.text,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            stringResource(if (provider.enabled) R.string.mcp_loaded_in_runtime else R.string.mcp_not_loaded),
             style = ConsoleType.meta,
             color = if (provider.enabled) colors.success else colors.muted,
         )
@@ -230,13 +252,16 @@ private fun ProviderRowInfo(provider: McpProviderState, modifier: Modifier) {
 }
 
 /** Where the server is, and whether a token or headers are stored (never what they are). */
-private fun serverLine(server: McpServer, secrets: McpSecrets.Stored?): String =
-    listOfNotNull(
+@Composable
+private fun serverLine(server: McpServer, secrets: McpSecrets.Stored?): String {
+    val headers = secrets?.headers?.size ?: 0
+    return listOfNotNull(
         server.summary(),
-        "令牌已设置".takeIf { secrets?.token?.isNotEmpty() == true },
-        "密钥已设置".takeIf { secrets?.query?.isNotEmpty() == true },
-        secrets?.headers?.size?.takeIf { it > 0 }?.let { "$it 个请求头" },
+        stringResource(R.string.mcp_token_set).takeIf { secrets?.token?.isNotEmpty() == true },
+        stringResource(R.string.mcp_key_set).takeIf { secrets?.query?.isNotEmpty() == true },
+        pluralStringResource(R.plurals.mcp_header_count, headers, headers).takeIf { headers > 0 },
     ).joinToString(" · ")
+}
 
 @Composable
 private fun McpToolPreviewList(provider: McpProviderState, refreshKey: Any? = null) {
@@ -253,14 +278,14 @@ private fun McpToolPreviewList(provider: McpProviderState, refreshKey: Any? = nu
     ) {
         if (!provider.enabled) {
             Text(
-                "Not loaded — enable to use these tools.",
+                stringResource(R.string.mcp_not_loaded_hint),
                 style = ConsoleType.meta,
                 color = colors.warning,
             )
             Spacer(Modifier.height(Dimens.spaceXs))
         }
         when (val tools = result) {
-            null -> Text("Loading tools…", style = ConsoleType.meta, color = colors.muted)
+            null -> Text(stringResource(R.string.mcp_loading_tools), style = ConsoleType.meta, color = colors.muted)
             is McpToolsResult.Unavailable -> Text(
                 tools.reason,
                 style = ConsoleType.meta,
@@ -281,7 +306,7 @@ private fun LoadedMcpToolPreview(
 ) {
     val colors = ConsoleColors
     if (tools.tools.isEmpty()) {
-        Text("No tools reported.", style = ConsoleType.meta, color = colors.muted)
+        Text(stringResource(R.string.mcp_no_tools_reported), style = ConsoleType.meta, color = colors.muted)
         return
     }
     val shown = tools.tools.filter {
@@ -317,7 +342,7 @@ private fun McpToolFilterHeader(
     val colors = ConsoleColors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "$shownCount / $totalCount tools",
+            stringResource(R.string.mcp_tools_shown, shownCount, totalCount),
             style = ConsoleType.meta,
             color = colors.muted,
             modifier = Modifier.weight(1f),
@@ -328,7 +353,7 @@ private fun McpToolFilterHeader(
                 onFilterChange,
                 true,
                 Modifier.widthIn(max = MCP_FILTER_FIELD_MAX_WIDTH),
-                placeholder = "Filter tools…",
+                placeholder = stringResource(R.string.mcp_filter_tools),
             )
         }
     }

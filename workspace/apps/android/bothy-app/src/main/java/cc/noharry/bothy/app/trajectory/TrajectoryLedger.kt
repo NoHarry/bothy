@@ -1,4 +1,7 @@
+@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.app.trajectory
+import android.content.res.Resources
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +23,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -27,6 +33,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -125,18 +132,28 @@ private fun TrajectoryRunHeader(
 ) {
     val colors = ConsoleColors
     val summary = when {
-        loading -> "loading…"
-        group.loadFailed -> "load failed"
-        !group.recordsLoaded -> "not loaded"
-        else -> "${group.records.size} events · ${group.toolCallCount} tool calls · ${group.lifecycleStatus}"
+        loading -> stringResource(R.string.trajectory_run_loading)
+        group.loadFailed -> stringResource(R.string.trajectory_run_load_failed)
+        !group.recordsLoaded -> stringResource(R.string.trajectory_run_not_loaded)
+        else -> stringResource(
+            R.string.trajectory_run_summary,
+            group.records.size,
+            group.toolCallCount,
+            group.lifecycleStatus,
+        )
     }
+    val description = stringResource(
+        if (collapsed) R.string.trajectory_run_description_collapsed else R.string.trajectory_run_description_expanded,
+        group.runId,
+        summary,
+        stringResource(group.health.eventLogStatus.labelRes()),
+    )
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)
             .semantics {
-                contentDescription = "Run ${group.runId}, $summary, EventLog ${group.health.badgeLabel}" +
-                    if (collapsed) ", collapsed" else ", expanded"
+                contentDescription = description
                 role = Role.Button
             },
         shape = RoundedCornerShape(Dimens.radiusSm),
@@ -165,7 +182,7 @@ private fun TrajectoryRunHeader(
             )
             if (group.isActive) {
                 Spacer(Modifier.width(Dimens.spaceXs))
-                TrajectoryBadge("Live", colors.activity)
+                TrajectoryBadge(stringResource(R.string.trajectory_live_badge), colors.activity)
             }
         }
     }
@@ -187,6 +204,7 @@ private fun TrajectoryRecordRow(
         return
     }
     val alpha = if (dimmed) DIMMED_ALPHA else 1f
+    val description = record.rowDescription(LocalContext.current.resources, dimmed, isHit, collapsedToolSummary)
     Row(
         Modifier
             .fillMaxWidth()
@@ -200,7 +218,7 @@ private fun TrajectoryRecordRow(
             )
             .clickable(onClick = onClick)
             .semantics {
-                contentDescription = record.rowDescription(dimmed, isHit, collapsedToolSummary)
+                contentDescription = description
                 role = Role.Button
                 this.selected = selected
             }
@@ -214,7 +232,7 @@ private fun TrajectoryRecordRow(
             modifier = Modifier.width(SEQUENCE_WIDTH),
         )
         Text(
-            text = record.title,
+            text = record.displayTitle(),
             style = ConsoleType.code,
             color = colors.text.copy(alpha = alpha),
             maxLines = 1,
@@ -222,10 +240,14 @@ private fun TrajectoryRecordRow(
             modifier = Modifier.weight(1f),
         )
         if (record.correlation.toolCallId != null) {
-            TrajectoryTextButton("Group", onToggleToolCall)
+            TrajectoryTextButton(stringResource(R.string.trajectory_group), onToggleToolCall)
         }
         if (record.isLive) {
-            Text(text = "live", style = ConsoleType.label, color = colors.activity.copy(alpha = alpha))
+            Text(
+                text = stringResource(R.string.trajectory_live),
+                style = ConsoleType.label,
+                color = colors.activity.copy(alpha = alpha),
+            )
             Spacer(Modifier.width(Dimens.spaceXs))
         }
         Text(
@@ -274,26 +296,28 @@ private fun TrajectoryRetryRow(reasonCode: String?, onRetry: () -> Unit) {
             color = colors.muted,
             modifier = Modifier.weight(1f),
         )
-        TrajectoryTextButton("Retry", onRetry)
+        TrajectoryTextButton(stringResource(R.string.common_retry), onRetry)
     }
 }
 
 private fun TrajectoryRecord.rowDescription(
+    resources: Resources,
     dimmed: Boolean,
     isHit: Boolean,
     collapsedToolSummary: String?,
-): String = buildString {
-    append(sequence?.let { "sequence $it" } ?: "not persisted")
-    append(", ")
-    append(kind.name.lowercase().replace('_', ' '))
-    append(", ")
-    append(title)
-    status?.let { append(", status $it") }
-    if (isLive) append(", live only")
-    if (isHit) append(", search hit")
-    if (dimmed) append(", outside selected range")
-    collapsedToolSummary?.let { append(", collapsed: $it") }
-}
+): String = buildList {
+    add(
+        sequence?.let { resources.getString(R.string.trajectory_row_sequence, it) }
+            ?: resources.getString(R.string.trajectory_row_not_persisted),
+    )
+    add(kind.name.lowercase().replace('_', ' '))
+    add(resources.trajectoryTitleText(kind, title))
+    status?.let { add(resources.getString(R.string.trajectory_row_status, it)) }
+    if (isLive) add(resources.getString(R.string.trajectory_row_live_only))
+    if (isHit) add(resources.getString(R.string.trajectory_row_search_hit))
+    if (dimmed) add(resources.getString(R.string.trajectory_row_outside_range))
+    collapsedToolSummary?.let { add(resources.getString(R.string.trajectory_row_collapsed, it)) }
+}.joinToString(", ")
 
 @Composable
 private fun TrajectoryBoundaryRow(record: TrajectoryRecord) {
@@ -305,7 +329,7 @@ private fun TrajectoryBoundaryRow(record: TrajectoryRecord) {
         border = BorderStroke(1.dp, colors.warning.copy(alpha = BOUNDARY_BORDER_ALPHA)),
     ) {
         Column(Modifier.fillMaxWidth().padding(Dimens.spaceSm)) {
-            Text(record.title, style = ConsoleType.meta, color = colors.text)
+            Text(record.displayTitle(), style = ConsoleType.meta, color = colors.text)
             if (record.summary.isNotBlank()) {
                 Text(record.summary, style = ConsoleType.label, color = colors.muted)
             }
@@ -321,12 +345,12 @@ private fun TrajectoryHistoryBoundary(remaining: Int, onLoadOlder: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "$remaining older run${if (remaining == 1) "" else "s"}",
+            text = pluralStringResource(R.plurals.trajectory_older_runs, remaining, remaining),
             style = ConsoleType.label,
             color = colors.muted,
             modifier = Modifier.weight(1f),
         )
-        TrajectoryTextButton("Load older", onLoadOlder)
+        TrajectoryTextButton(stringResource(R.string.trajectory_load_older), onLoadOlder)
     }
 }
 

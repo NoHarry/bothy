@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.console
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,10 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
 import cc.noharry.bothy.app.console.ui.CodeBlock
@@ -42,8 +47,6 @@ import cc.noharry.bothy.app.session.ConfirmationStatus
 import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.session.ToolCallStatus
 import cc.noharry.bothy.app.session.TranscriptRole
-import cc.noharry.bothy.app.session.compactLabel
-import cc.noharry.bothy.app.session.compactTitle
 import cc.noharry.bothy.app.tools.prettyToolPayload
 import kotlinx.coroutines.delay
 
@@ -72,7 +75,7 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
             .fillMaxWidth()
             .padding(vertical = Dimens.spaceXs),
     ) {
-        Text(item.label, style = ConsoleType.label, color = colors.tertiary)
+        Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
         Spacer(Modifier.height(Dimens.spaceXs))
         Surface(
             modifier = Modifier
@@ -127,7 +130,12 @@ private fun MessageRow(
         if (!DisplaySettings.showThinking.collectAsState().value) return
         val streaming = isStreamingThinking
         val expanded = !streaming && !item.collapsed
-        val line = thinkingDisplayLine(item.content, streaming = streaming, collapsed = item.collapsed)
+        val line = thinkingDisplayLine(
+            LocalContext.current.resources,
+            item.content,
+            streaming = streaming,
+            collapsed = item.collapsed,
+        )
         TimelineRow(
             accent = if (streaming) colors.activity else colors.tertiary,
             onClick = if (streaming) {
@@ -177,7 +185,7 @@ private fun MessageRow(
     val toggle = if (expandable) ({ actions.toggleItem(item.copy(collapsed = !item.collapsed)) }) else null
     val rowColor = if (item.role == TranscriptRole.ERROR) colors.danger else colors.muted
     TimelineRow(item.role.color(), toggle) {
-        Text(item.role.compactTitle(), style = ConsoleType.meta, color = rowColor)
+        Text(stringResource(item.role.titleRes()), style = ConsoleType.meta, color = rowColor)
         Spacer(Modifier.height(Dimens.spaceXs))
         when {
             collapsed -> PreviewText(item.content)
@@ -191,20 +199,30 @@ private fun MessageRow(
  * Collapsed/done: head summary. Expanded header stays a short "Thinking" label.
  */
 internal fun thinkingDisplayLine(
+    resources: Resources,
     content: String,
     streaming: Boolean,
     collapsed: Boolean,
     maxChars: Int = THINKING_ONE_LINE_CHARS,
 ): String {
     val preview = content.lineSequence().joinToString(" ").trim().replace(WHITESPACE_RUN, " ")
-    if (preview.isBlank()) return if (streaming) "Thinking…" else "Thinking"
+    val thinking = resources.getString(R.string.console_thinking)
+    if (preview.isBlank()) return if (streaming) resources.getString(R.string.console_thinking_streaming) else thinking
     if (streaming) {
         val tail = if (preview.length <= maxChars) preview else "…${preview.takeLast(maxChars)}"
-        return "Thinking · $tail"
+        return resources.getString(R.string.console_thinking_line, tail)
     }
-    if (!collapsed) return "Thinking"
+    if (!collapsed) return thinking
     val head = if (preview.length <= maxChars) preview else "${preview.take(maxChars)}…"
-    return "Thinking · $head"
+    return resources.getString(R.string.console_thinking_line, head)
+}
+
+/** The label a turn was stored with ([cc.noharry.bothy.app.a2a.turnLabel]), in the screen's language. */
+@Composable
+private fun turnHeaderLabel(label: String): String = when (label) {
+    "You" -> stringResource(R.string.console_turn_you)
+    "委托回报" -> stringResource(R.string.console_turn_delegation_report)
+    else -> label
 }
 
 @Composable
@@ -333,7 +351,7 @@ private fun ConfirmationContent(
             StatusDot(color = item.status.color())
             Spacer(Modifier.width(Dimens.spaceSm))
             Text(
-                text = "Network approval",
+                text = stringResource(R.string.console_network_approval),
                 style = ConsoleType.body,
                 fontWeight = FontWeight.SemiBold,
                 color = colors.text,
@@ -341,7 +359,7 @@ private fun ConfirmationContent(
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(Dimens.spaceSm))
-            Text(item.status.compactLabel(), style = ConsoleType.meta, color = colors.muted, maxLines = 1)
+            Text(stringResource(item.status.labelRes()), style = ConsoleType.meta, color = colors.muted, maxLines = 1)
         }
         Spacer(Modifier.height(Dimens.spaceXs))
         Text(
@@ -352,7 +370,7 @@ private fun ConfirmationContent(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = "Mode: ${item.mode.label}",
+            text = stringResource(R.string.console_confirmation_mode, stringResource(item.mode.labelRes())),
             style = ConsoleType.meta,
             color = colors.muted,
             maxLines = 1,
@@ -379,8 +397,9 @@ private fun ToolDetails(
     val result = item.resultJson?.takeIf { it.isNotBlank() }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-            ToolMetaChip("Status", item.status.name.lowercase())
-            toolElapsedLabel(item)?.let { ToolMetaChip("Elapsed", it) }
+            ToolMetaChip(stringResource(R.string.console_tool_status), stringResource(item.status.labelRes()))
+            val elapsedLabel = stringResource(R.string.console_tool_elapsed)
+            toolElapsedLabel(item)?.let { ToolMetaChip(elapsedLabel, it) }
         }
         if (item.toolCallId.isNotBlank()) {
             Text(
@@ -394,16 +413,18 @@ private fun ToolDetails(
         if (args == null && result == null) {
             Text(
                 if (item.status == ToolCallStatus.RUNNING) {
-                    "Waiting for arguments / result…"
+                    stringResource(R.string.console_tool_waiting_payload)
                 } else {
-                    "No arguments or result payload recorded."
+                    stringResource(R.string.console_tool_no_payload)
                 },
                 style = ConsoleType.meta,
                 color = colors.muted,
             )
         } else {
-            args?.let { body -> ToolPayloadBlock(label = "Arguments", body = body) }
-            result?.let { body -> ToolPayloadBlock(label = "Result", body = body) }
+            val argumentsLabel = stringResource(R.string.console_tool_arguments)
+            val resultLabel = stringResource(R.string.console_tool_result)
+            args?.let { body -> ToolPayloadBlock(label = argumentsLabel, body = body) }
+            result?.let { body -> ToolPayloadBlock(label = resultLabel, body = body) }
         }
     }
 }
@@ -525,7 +546,8 @@ internal fun toolElapsedLabel(item: ConversationItem.ToolCallItem): String? {
         }
     }
     val end = item.finishedAt ?: if (item.status == ToolCallStatus.RUNNING) now else null
-    return end?.let { formatElapsed((it - item.startedAt).coerceAtLeast(0L)) }
+    val resources = LocalContext.current.resources
+    return end?.let { resources.shortElapsedText((it - item.startedAt).coerceAtLeast(0L)) }
 }
 
 @Composable
@@ -552,6 +574,31 @@ internal fun ToolCallStatus.color(): Color {
     }
 }
 
+/** A row's role title; the transcript text keeps [cc.noharry.bothy.app.session.compactTitle]. */
+@StringRes
+internal fun TranscriptRole.titleRes(): Int =
+    when (this) {
+        TranscriptRole.ASSISTANT -> R.string.console_role_assistant
+        TranscriptRole.THINKING -> R.string.console_role_thinking
+        TranscriptRole.RUNTIME -> R.string.console_role_runtime
+        TranscriptRole.STATUS -> R.string.console_role_status
+        TranscriptRole.ERROR -> R.string.console_role_error
+        TranscriptRole.NOTICE -> R.string.console_role_notice
+    }
+
+@StringRes
+internal fun ConfirmationStatus.labelRes(): Int =
+    when (this) {
+        ConfirmationStatus.PENDING -> R.string.console_confirmation_pending
+        ConfirmationStatus.APPROVED -> R.string.console_confirmation_approved
+        ConfirmationStatus.DENIED -> R.string.console_confirmation_denied
+        ConfirmationStatus.AUTO_APPROVED -> R.string.console_confirmation_auto_approved
+        ConfirmationStatus.AUTO_DENIED -> R.string.console_confirmation_auto_denied
+        ConfirmationStatus.CONSUMED -> R.string.console_confirmation_consumed
+        ConfirmationStatus.EXPIRED -> R.string.console_confirmation_expired
+        ConfirmationStatus.FAILED -> R.string.console_confirmation_failed
+    }
+
 @Composable
 internal fun ConfirmationStatus.color(): Color {
     val colors = ConsoleColors
@@ -572,11 +619,7 @@ internal fun ConfirmationStatus.color(): Color {
 private fun String.compactPreview(): String =
     lineSequence().joinToString(" ").let { if (it.length <= PREVIEW_CHARS) it else it.take(PREVIEW_CHARS) + "..." }
 
-private fun formatElapsed(millis: Long): String =
-    if (millis < MILLIS_PER_SECOND) "${millis}ms" else "%.1fs".format(millis / MILLIS_PER_SECOND.toDouble())
-
 private const val PREVIEW_CHARS = 140
 private const val THINKING_ONE_LINE_CHARS = 72
 private val WHITESPACE_RUN = Regex("""\s+""")
-private const val MILLIS_PER_SECOND = 1000L
 private const val RUNNING_ELAPSED_TICK_MS = 1000L

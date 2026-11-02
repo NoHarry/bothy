@@ -25,10 +25,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.color
@@ -74,9 +76,12 @@ private fun ContextUsageRing(usage: ContextUsage, onClick: () -> Unit) {
         fraction >= CONTEXT_WARNING_FRACTION -> colors.warning
         else -> colors.muted
     }
+    val description = stringResource(
+        R.string.usage_context_ring_description, usage.percentText ?: stringResource(R.string.usage_context_not_yet),
+    )
     Box(
         Modifier.size(CONTEXT_TOUCH_SIZE).clip(CircleShape).clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = "上下文占用：${usage.percentText ?: "尚未获取"}，点击查看详情" },
+            .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(CONTEXT_RING_SIZE)) {
@@ -95,18 +100,39 @@ private fun ContextUsageRing(usage: ContextUsage, onClick: () -> Unit) {
 private fun ContextUsageDetails(usage: ContextUsage, model: String) {
     val colors = ConsoleColors
     Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-        Text("上下文窗口", style = ConsoleType.label, color = colors.muted)
+        Text(stringResource(R.string.usage_context_window), style = ConsoleType.label, color = colors.muted)
         Spacer(Modifier.height(8.dp))
-        Text(usage.percentText?.let { "已用 $it" } ?: "尚未获取占用比例", style = ConsoleType.body, color = colors.text)
         Text(
-            "${usage.inputTokens?.let(::formatContextTokens) ?: "—"} / ${usage.windowTokens?.let(::formatContextTokens) ?: "未知"} tokens",
+            usage.percentText?.let { stringResource(R.string.usage_context_used, it) }
+                ?: stringResource(R.string.usage_context_used_unknown),
+            style = ConsoleType.body,
+            color = colors.text,
+        )
+        Text(
+            stringResource(
+                R.string.usage_context_tokens,
+                usage.inputTokens?.let(::formatContextTokens) ?: "—",
+                usage.windowTokens?.let(::formatContextTokens) ?: stringResource(R.string.usage_unknown),
+            ),
             style = ConsoleType.body, color = colors.text,
         )
-        usage.remainingTokens?.let { Text("剩余 ${formatContextTokens(it)} tokens", style = ConsoleType.meta, color = colors.muted) }
+        usage.remainingTokens?.let {
+            Text(
+                stringResource(R.string.usage_context_remaining, formatContextTokens(it)),
+                style = ConsoleType.meta,
+                color = colors.muted,
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Text(model, style = ConsoleType.meta, color = colors.muted)
         Text(
-            if (usage.awaitingAfterCompaction) "已压缩，等待下一次请求用量" else "最近一次请求的输入用量（含缓存）",
+            stringResource(
+                if (usage.awaitingAfterCompaction) {
+                    R.string.usage_context_compacted
+                } else {
+                    R.string.usage_context_last_request
+                },
+            ),
             style = ConsoleType.meta, color = colors.muted,
         )
     }

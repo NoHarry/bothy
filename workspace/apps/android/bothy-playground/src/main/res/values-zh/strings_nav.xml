@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AMap's privacy terms, before the navigation can start -->
+    <string name="nav_consent_title">使用高德地图导航</string>
+    <string name="nav_consent_text">Playground 的车载导航用高德地图 SDK 规划路线、导航和搜索地点。使用前需要你同意《高德地图开放平台隐私权政策》，高德会处理定位和网络信息来提供这些服务。不同意的话，导航不可用，其他功能照常。</string>
+    <string name="nav_consent_agree">同意</string>
+    <string name="nav_consent_view_policy">查看隐私政策</string>
+    <!-- The AMap key typed in -->
+    <string name="nav_key_blank">key 不能为空或包含空白字符</string>
+    <string name="nav_key_shape">这不像高德的 Android key（32 位字母和数字）</string>
+    <string name="nav_key_save_failed">保存失败</string>
+    <!-- The destination's badge, on the map's pin and in the route's list -->
+    <string name="nav_end_badge">终</string>
+</resources>

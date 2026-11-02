@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -22,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.playground.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -35,16 +37,25 @@ internal fun ModeSwitch() {
     val context = LocalContext.current
     val mode by HeadUnitModes.mode.collectAsState()
     val scope = rememberCoroutineScope()
+    val switchedReal = stringResource(R.string.headunit_switched_real)
+    val switchedSimulated = stringResource(R.string.headunit_switched_simulated)
     val choose = { real: Boolean ->
         if (mode.realNav != real) {
-            val said = if (real) "已切到真实模式：用设备定位导航，小博开了新会话" else "已切到模拟模式：模拟的车和家，小博开了新会话"
-            Toast.makeText(context, said, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, if (real) switchedReal else switchedSimulated, Toast.LENGTH_SHORT).show()
             scope.launch(Dispatchers.IO) { HeadUnitModes.set(context, mode.copy(realNav = real)) }
         }
     }
     Row(SWITCH_GROUP) {
-        ModeOption("模拟", "模拟模式：模拟的车和家", selected = !mode.realNav) { choose(false) }
-        ModeOption("真实", "真实模式：用设备定位导航", selected = mode.realNav) { choose(true) }
+        ModeOption(
+            stringResource(R.string.headunit_simulated),
+            stringResource(R.string.headunit_simulated_description),
+            selected = !mode.realNav,
+        ) { choose(false) }
+        ModeOption(
+            stringResource(R.string.headunit_real),
+            stringResource(R.string.headunit_real_description),
+            selected = mode.realNav,
+        ) { choose(true) }
     }
 }
 
@@ -55,8 +66,17 @@ internal fun ModeSwitch() {
 @Composable
 internal fun SceneSwitch(onHome: () -> Unit) {
     Row(SWITCH_GROUP) {
-        ModeOption("车机", "车机：虚拟座舱", selected = true) {}
-        ModeOption("小家", "小家：虚拟的家", selected = false, onClick = onHome)
+        ModeOption(
+            stringResource(R.string.headunit_scene_head_unit),
+            stringResource(R.string.headunit_scene_head_unit_description),
+            selected = true,
+        ) {}
+        ModeOption(
+            stringResource(R.string.headunit_scene_home),
+            stringResource(R.string.headunit_scene_home_description),
+            selected = false,
+            onClick = onHome,
+        )
     }
 }
 

@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Connect apps: the market -->
+    <string name="mcp_connect_apps">Connect apps</string>
+    <plurals name="mcp_connected_count">
+        <item quantity="one">%1$d connected</item>
+        <item quantity="other">%1$d connected</item>
+    </plurals>
+    <string name="mcp_none_connected">Nothing connected</string>
+    <string name="mcp_search_placeholder">Search apps, e.g. coffee, ride, map</string>
+    <string name="mcp_no_results">Nothing found for \"%1$s\"</string>
+    <string name="mcp_filter_all">All</string>
+    <string name="mcp_filter_custom">Custom</string>
+    <string name="mcp_custom_a2a_title">Custom A2A agent</string>
+    <string name="mcp_custom_a2a_summary">Enter an address and access token to add any agent that speaks A2A.</string>
+    <string name="mcp_manage">Manage</string>
+    <string name="mcp_status_connected">Connected</string>
+    <string name="mcp_status_paused">Turned off</string>
+    <string name="mcp_status_pairing">Pairing</string>
+
+    <!-- Connect apps: categories -->
+    <string name="mcp_category_demo">Demo</string>
+    <string name="mcp_category_travel">Travel</string>
+    <string name="mcp_category_dev">Developer</string>
+    <string name="mcp_category_food">Food &amp; drink</string>
+    <string name="mcp_category_work">Work</string>
+    <string name="mcp_category_agents">Agents</string>
+
+    <!-- Connect apps: an agent paired through the relay (Grok Bot) -->
+    <string name="mcp_via_relay">Connects through the preset relay %1$s</string>
+    <string name="mcp_agent_intro">Once connected, Xiao Bo hands tasks that need your personal accounts to your own %1$s and announces the result here when it\'s done. You need a phone that can scan a QR code and your %1$s account; the page on the phone walks you through the setup.</string>
+    <string name="mcp_start_connecting">Start connecting</string>
+    <string name="mcp_connected_to_your">Connected to your %1$s</string>
+    <string name="mcp_agent_verified">The full flow has worked once. Just say to Xiao Bo: \"Ask %1$s to…\"</string>
+    <string name="mcp_agent_unverified">The full flow hasn\'t worked yet: tap \"Test connection\" on the phone\'s connect page, or just say to Xiao Bo: \"Ask %1$s to…\"</string>
+    <string name="mcp_test_connection">Test connection</string>
+    <string name="mcp_unpair">Unpair</string>
+    <string name="mcp_test_waiting">Sent to %1$s; waiting for its report (usually 30 seconds to two minutes)…</string>
+    <string name="mcp_test_reply">%1$s: %2$s</string>
+    <string name="mcp_unpair_title">Unpair from %1$s?</string>
+    <string name="mcp_unpair_message">After unpairing, Xiao Bo can no longer hand tasks to %1$s. %1$s is first asked to delete its routine and the car-relay connector and report back (up to three minutes); both sides keep a record.</string>
+    <string name="mcp_account">Account</string>
+    <string name="mcp_signed_in_as">Signed in: %1$s</string>
+    <string name="mcp_sign_out">Sign out</string>
+    <string name="mcp_account_signed_in_hint">Sign in to this account on another tablet or phone to join the same %1$s connection without scanning. Open %2$s on your phone to manage devices, see delegation history and update the routine\'s webhook.</string>
+    <string name="mcp_account_register_hint">Register an account to take over this connection: other devices that sign in to it can use it right away, and a changed routine webhook can be updated on the web.</string>
+    <string name="mcp_account_sign_in_hint">Already have an account? Sign in and this device joins the account\'s %1$s connection, no scanning needed.</string>
+    <string name="mcp_username">Username</string>
+    <string name="mcp_password">Password (at least 8 characters)</string>
+    <string name="mcp_show">Show</string>
+    <string name="mcp_hide">Hide</string>
+    <string name="mcp_sign_in">Sign in</string>
+    <string name="mcp_register">Register</string>
+    <string name="mcp_pairing_scan">Scan with your phone and follow the page to finish connecting</string>
+    <string name="mcp_pairing_manual">Can\'t scan? Open %1$s in your phone\'s browser and enter the pairing code:</string>
+    <string name="mcp_pairing_valid_until">Valid until %1$s. Once connected, this page shows \"Connected\" by itself.</string>
+    <string name="mcp_pairing_expired">The pairing code has expired. Refresh it.</string>
+    <string name="mcp_refresh_code">Refresh code</string>
+    <string name="mcp_recent_events">Recent activity</string>
+    <string name="mcp_pairing_code_invalid">Pairing code expired</string>
+    <string name="mcp_phone_steps">On your phone</string>
+    <string name="mcp_phone_step_1">Copy the first message on the page and send it to Grok Bot; it sets up a routine and sends back two links</string>
+    <string name="mcp_phone_step_2">Open the links, copy the webhook address and secret, paste them on the page and tap \"Connect\"</string>
+    <string name="mcp_phone_step_3">Send the page\'s second message to Grok Bot, and allow car-relay\'s two report tools in Auto-review</string>
+    <string name="mcp_pairing_qr">Pairing QR code</string>
+
+    <!-- Connect apps: an MCP app's page -->
+    <string name="mcp_checking">Checking…</string>
+    <string name="mcp_enabling">Turning on…</string>
+    <string name="mcp_connecting_app">Connecting %1$s…</string>
+    <string name="mcp_disconnecting">Disconnecting…</string>
+    <string name="mcp_error_generic">Something went wrong: %1$s</string>
+    <string name="mcp_connected_sandbox">Connected · sandbox</string>
+    <string name="mcp_list_separator">", "</string>
+    <string name="mcp_tools_more">%1$s and more</string>
+    <plurals name="mcp_tools_available">
+        <item quantity="one">%1$d feature available: %2$s</item>
+        <item quantity="other">%1$d features available: %2$s</item>
+    </plurals>
+    <string name="mcp_say_example">Just say to Xiao Bo: \"%1$s\"</string>
+    <string name="mcp_sandbox_hint">This is the sandbox, with simulated data. For real use, tap \"Replace %1$s\" and choose production.</string>
+    <string name="mcp_check_connection">Check connection</string>
+    <string name="mcp_replace_credential">Replace %1$s</string>
+    <string name="mcp_paused_hint">Turned off in Settings → Connections → MCP; Xiao Bo won\'t use it for now.</string>
+    <string name="mcp_turn_back_on">Turn back on</string>
+    <string name="mcp_open_local_hint">A demo service on this device, no key needed: open Bothy Playground first, then tap \"Connect\".</string>
+    <string name="mcp_open_public_hint">A public service, no key needed: tap \"Connect\" to test it and it\'s ready to use.</string>
+    <string name="mcp_save_and_connect">Save and connect</string>
+    <string name="mcp_how_to_get">How to get the %1$s</string>
+    <string name="mcp_paste_step">Paste the %1$s below and tap \"Connect\"</string>
+    <string name="mcp_portal_manual">Can\'t scan? Open %1$s in your phone\'s browser</string>
+    <string name="mcp_sandbox_choice">Sandbox: simulated data, no real rides (try this first)</string>
+    <string name="mcp_production_choice">Production: real rides, real charges</string>
+    <string name="mcp_abilities">What it can do</string>
+    <string name="mcp_disconnect_title">Disconnect %1$s?</string>
+    <string name="mcp_disconnect_open">After disconnecting, Xiao Bo can no longer use %1$s.</string>
+    <string name="mcp_disconnect_keyed">After disconnecting, Xiao Bo can no longer use %1$s, and the %2$s saved on this device is deleted too.</string>
+    <string name="mcp_token">token</string>
+
+    <!-- Connect apps: what connecting says (errors, and the timestamped log) -->
+    <string name="mcp_profile_missing">Connected, but the settings for %1$s were not found.</string>
+    <string name="mcp_relay_no_token">The relay didn\'t return a device token.</string>
+    <string name="mcp_relay_forgot_device">The relay no longer knows this device. Connect again.</string>
+    <string name="mcp_unpaired">Unpaired.</string>
+    <string name="mcp_test_not_sent">The test wasn\'t sent: %1$s</string>
+    <string name="mcp_relay_incomplete">The relay\'s answer was incomplete.</string>
+    <string name="mcp_relay_no_answer">The relay didn\'t answer.</string>
+    <string name="mcp_relay_http">The relay returned HTTP %1$d.</string>
+    <string name="mcp_relay_unreachable">Can\'t reach the relay. Check the device\'s network.</string>
+    <string name="mcp_relay_not_configured">No relay configured: deploy tools/agent-relay, set %1$s=https://… in local.properties, then rebuild.</string>
+    <string name="mcp_relay_invalid">Invalid relay address (%1$s at build time must be an https address).</string>
+    <string name="mcp_not_connected">Not connected yet.</string>
+    <string name="mcp_event_registered">Registered and signed in as \"%1$s\".</string>
+    <string name="mcp_event_signed_in">Signed in as \"%1$s\".</string>
+    <string name="mcp_event_signed_out">Signed out of \"%1$s\"; this device is still connected to %2$s.</string>
+    <string name="mcp_event_unpaired_remotely">%1$s unpaired this device.</string>
+    <string name="mcp_event_connected_agent">Connected to your %1$s.</string>
+    <string name="mcp_event_test_failed">Connection test failed: %1$s</string>
+    <string name="mcp_event_test_passed">Connection test: %1$s reported \"%2$s\"</string>
+    <string name="mcp_disconnected_app">Disconnected. Xiao Bo no longer uses %1$s.</string>
+    <string name="mcp_pairing_cancelled">Pairing cancelled.</string>
+    <string name="mcp_event_unpaired">Unpaired: %1$s</string>
+    <string name="mcp_unpaired_here_only">Unpaired on this device, but %1$s Please delete the \"车载语音助手任务\" routine and the car-relay connector in %2$s yourself.</string>
+    <string name="mcp_cleanup_progress">Asking %1$s to delete its routine and connector (up to three minutes)…</string>
+    <string name="mcp_bot_reported">%1$s reported: %2$s</string>
+    <string name="mcp_unpaired_cleanup_failed">Unpaired, but %1$s Please delete the \"车载语音助手任务\" routine and the car-relay connector in %2$s yourself.</string>
+    <string name="mcp_report_timeout">%1$s didn\'t report within three minutes.</string>
+    <string name="mcp_task_not_completed">The task didn\'t complete (%1$s).</string>
+    <string name="mcp_wrong_connect_kind">%1$s doesn\'t connect this way.</string>
+    <string name="mcp_server_name_taken">Settings → MCP already has \"%1$s\" using this name (%2$s). Delete it there first.</string>
+    <string name="mcp_credential_missing">Enter the %1$s first.</string>
+    <string name="mcp_credential_whitespace">The %1$s can\'t contain spaces or line breaks.</string>
+    <plurals name="mcp_event_connected">
+        <item quantity="one">Connected; %1$d feature available.</item>
+        <item quantity="other">Connected; %1$d features available.</item>
+    </plurals>
+    <plurals name="mcp_event_connected_sandbox">
+        <item quantity="one">Connected (sandbox); %1$d feature available.</item>
+        <item quantity="other">Connected (sandbox); %1$d features available.</item>
+    </plurals>
+    <string name="mcp_event_check_failed">Check failed: %1$s</string>
+    <plurals name="mcp_event_check_passed">
+        <item quantity="one">Check passed; %1$d feature available.</item>
+        <item quantity="other">Check passed; %1$d features available.</item>
+    </plurals>
+    <string name="mcp_event_resumed">Turned back on.</string>
+    <string name="mcp_no_tools">Connected, but %1$s offers no features. Check that this %2$s has access enabled.</string>
+    <string name="mcp_connection_note">[Connect apps] %1$s</string>
+    <string name="mcp_connect_failed_local">Can\'t reach %1$s: install and open Bothy Playground on this device first, then tap Connect.</string>
+    <string name="mcp_connect_failed_network">Can\'t reach %1$s: %2$s. Check the device\'s network.</string>
+    <string name="mcp_connect_failed_open">%1$s isn\'t available right now (%2$s). Try again later.</string>
+    <string name="mcp_connect_failed_refused">%1$s didn\'t accept this %2$s (%3$s). Check that the %2$s is correct and hasn\'t expired.</string>
+
+    <!-- MCP problems the screen shows (the model's stay in ChineseMcpMessages) -->
+    <string name="mcp_problem_timed_out">No answer in %1$d s</string>
+    <string name="mcp_problem_unreachable">Can\'t connect: %1$s</string>
+    <string name="mcp_problem_unreachable_plain">Can\'t connect</string>
+    <string name="mcp_problem_not_json_rpc">The server\'s answer is not JSON-RPC</string>
+    <string name="mcp_problem_no_initialize">The server did not answer initialize</string>
+    <string name="mcp_problem_no_initialize_hint">The server did not answer initialize: %1$s</string>
+    <string name="mcp_problem_http_refused">The server refused (HTTP %1$d); check the token or headers</string>
+    <string name="mcp_problem_http_not_found">Wrong address (HTTP 404)</string>
+    <string name="mcp_problem_http_no_post">This address does not take POST (HTTP 405); it may be an old SSE server, and only Streamable HTTP is supported</string>
+    <string name="mcp_problem_http_format">The server does not accept this format (HTTP %1$d)</string>
+    <string name="mcp_problem_http_server">The server failed (HTTP %1$d)</string>
+    <string name="mcp_problem_tools_list_failed">tools/list failed (status=%1$d)</string>
+    <string name="mcp_problem_tools_list_not_json">The tools/list answer is not JSON</string>
+    <string name="mcp_problem_tools_list_error">tools/list failed: %1$s</string>
+    <string name="mcp_problem_tools_list_cursor">tools/list repeated a page cursor</string>
+    <string name="mcp_problem_tools_list_pages">tools/list has more than %1$d pages</string>
+
+    <!-- The catalog: credential names, written for the middle of a sentence -->
+    <string name="mcp_credential_access_token">access token</string>
+    <string name="mcp_credential_mcp_token">MCP Token</string>
+    <string name="mcp_credential_key">key</string>
+    <string name="mcp_credential_mcp_key">MCP key</string>
+
+    <!-- The catalog: Luckin Coffee -->
+    <string name="mcp_app_luckin">Luckin Coffee</string>
+    <string name="mcp_luckin_summary">Find nearby stores and order coffee for in-store pickup.</string>
+    <string name="mcp_luckin_step_1">Scan with your phone to open the Luckin AI Open Platform</string>
+    <string name="mcp_luckin_step_2">Sign in with your phone number and copy the MCP access token (valid for about 30 days; come back here to replace it when it expires)</string>
+    <string name="mcp_luckin_ability_1">Find nearby stores</string>
+    <string name="mcp_luckin_ability_2">Recommend and search drinks by taste</string>
+    <string name="mcp_luckin_ability_3">Preview prices before ordering</string>
+    <string name="mcp_luckin_ability_4">Place and cancel orders (in-store pickup only)</string>
+    <string name="mcp_luckin_example">Order a coconut latte at the nearest Luckin</string>
+    <string name="mcp_luckin_note">Payment is by WeChat QR code; this only goes as far as placing the order.</string>
+
+    <!-- The catalog: McDonald's -->
+    <string name="mcp_app_mcdonalds">McDonald\'s</string>
+    <string name="mcp_mcdonalds_summary">Claim coupons and order for pickup or McDelivery.</string>
+    <string name="mcp_mcdonalds_step_1">Scan with your phone to open the McDonald\'s MCP Open Platform, tap Sign in at the top right and sign in with your phone number</string>
+    <string name="mcp_mcdonalds_step_2">Tap Console → Activate at the top right, accept the service agreement and copy the MCP Token</string>
+    <string name="mcp_mcdonalds_ability_1">Nearby stores, menus and meal combos</string>
+    <string name="mcp_mcdonalds_ability_2">Check my points and coupons, claim available coupons</string>
+    <string name="mcp_mcdonalds_ability_3">Price an order by store and pickup method</string>
+    <string name="mcp_mcdonalds_ability_4">Order for in-store pickup, drive-thru or McDelivery</string>
+    <string name="mcp_mcdonalds_ability_5">Track orders and see the promotions calendar</string>
+    <string name="mcp_mcdonalds_example">What McDonald\'s coupons are there today?</string>
+    <string name="mcp_mcdonalds_note">Payment is completed in the McDonald\'s app. Menu prices are for display only; the calculated price is what counts.</string>
+
+    <!-- The catalog: AMap -->
+    <string name="mcp_app_amap">AMap</string>
+    <string name="mcp_amap_summary">Find places, search nearby, plan routes and check the weather.</string>
+    <string name="mcp_amap_step_1">Scan with your phone to open the AMap Open Platform console and sign in</string>
+    <string name="mcp_amap_step_2">Create an app and add a key with the service platform set to Web Service, then copy the key</string>
+    <string name="mcp_amap_ability_1">Keyword and nearby search (with ratings and addresses)</string>
+    <string name="mcp_amap_ability_2">Driving, walking, cycling and transit routes</string>
+    <string name="mcp_amap_ability_3">Weather</string>
+    <string name="mcp_amap_ability_4">Convert between addresses and coordinates</string>
+    <string name="mcp_amap_example">Any highly rated hot pot within two kilometers?</string>
+    <string name="mcp_amap_note">Navigation itself still runs in the map app on the phone or tablet; AMap adds search and route information.</string>
+
+    <!-- The catalog: DiDi -->
+    <string name="mcp_app_didi">DiDi</string>
+    <string name="mcp_didi_summary">Hail rides for family: fare estimates, booking and driver location.</string>
+    <string name="mcp_didi_step_1">Scan with your phone to open the DiDi MCP Open Platform</string>
+    <string name="mcp_didi_step_2">Tap Try now, sign in and copy the MCP key</string>
+    <string name="mcp_didi_ability_1">Fare estimates</string>
+    <string name="mcp_didi_ability_2">Hail now or book ahead</string>
+    <string name="mcp_didi_ability_3">Order status and driver location</string>
+    <string name="mcp_didi_ability_4">Cancel orders</string>
+    <string name="mcp_didi_example">Get my mom a ride from home to the train station; estimate the fare first</string>
+    <string name="mcp_didi_note">The sandbox uses simulated data and books no real rides; production dispatches real rides and charges for them.</string>
+
+    <!-- The catalog: Tencent Docs -->
+    <string name="mcp_app_tencent_docs">Tencent Docs</string>
+    <string name="mcp_mark_tencent_docs">T</string>
+    <string name="mcp_tencent_docs_summary">Find, read and edit your online documents.</string>
+    <string name="mcp_tencent_docs_step_1">Scan with your phone to open the Tencent Docs Open Platform and sign in</string>
+    <string name="mcp_tencent_docs_step_2">Request a personal MCP access token and copy it</string>
+    <string name="mcp_tencent_docs_ability_1">Search and read documents</string>
+    <string name="mcp_tencent_docs_ability_2">Create and edit documents</string>
+    <string name="mcp_tencent_docs_ability_3">Manage knowledge bases</string>
+    <string name="mcp_tencent_docs_example">Read me the key points of my weekly report</string>
+
+    <!-- The catalog: Bothy Playground's Virtual cabin and Virtual home -->
+    <string name="mcp_playground_note">Bothy Playground is the other demo app in the repository (workspace/apps/android/bothy-playground); install and open it on this device to connect. The car and the home are made up, shown only in Playground, and control no real device.</string>
+    <string name="mcp_app_cabin">Virtual cabin</string>
+    <string name="mcp_mark_cabin">C</string>
+    <string name="mcp_cabin_summary">A made-up car: climate, seats, windows and doors, trunk, screen and volume, ambient lights. Changes show up in Bothy Playground.</string>
+    <string name="mcp_cabin_ability_1">Air conditioning, temperature, fan speed</string>
+    <string name="mcp_cabin_ability_2">Heating and ventilation for all four seats; knows who sits where and who is speaking</string>
+    <string name="mcp_cabin_ability_3">Windows, doors, trunk and door locks</string>
+    <string name="mcp_cabin_ability_4">Center screen brightness, volume, ambient lights</string>
+    <string name="mcp_cabin_ability_5">Music and navigation (both made up)</string>
+    <string name="mcp_cabin_ability_6">Readings such as cabin temperature, battery and doors can be watched with a plan</string>
+    <string name="mcp_cabin_example">I\'m a bit cold. Set the driver\'s seat heating to level 2</string>
+    <string name="mcp_app_home">Virtual home</string>
+    <string name="mcp_mark_home">H</string>
+    <string name="mcp_home_summary">A made-up home: lights, curtains, air conditioning, door lock, robot vacuum and scenes. Changes show up in Bothy Playground.</string>
+    <string name="mcp_home_ability_1">Lights in four rooms: on and off, brightness, color</string>
+    <string name="mcp_home_ability_2">Curtains, air conditioning</string>
+    <string name="mcp_home_ability_3">Front door lock (unlocking asks first)</string>
+    <string name="mcp_home_ability_4">Robot vacuum</string>
+    <string name="mcp_home_ability_5">Scenes: home, away, sleep, movie, wake up</string>
+    <string name="mcp_home_ability_6">Room temperatures can be watched with a plan</string>
+    <string name="mcp_home_example">I\'m going to bed</string>
+
+    <!-- The catalog: open services -->
+    <string name="mcp_app_kiwi">Kiwi.com flights</string>
+    <string name="mcp_kiwi_summary">Search and compare flights worldwide, no sign-up needed.</string>
+    <string name="mcp_kiwi_ability_1">Search flights by origin, destination and date (give or take a few days)</string>
+    <string name="mcp_kiwi_ability_2">Compare prices, stops, duration and baggage allowance</string>
+    <string name="mcp_kiwi_ability_3">Get a booking link and book on the Kiwi.com website</string>
+    <string name="mcp_kiwi_example">What\'s the cheapest flight from Shenzhen to Chengdu next Friday?</string>
+    <string name="mcp_kiwi_note">A public service, no key needed. Prices on the Kiwi.com website are what count; set a plan to be reminded when the lowest fare drops below a price.</string>
+    <string name="mcp_app_deepwiki">DeepWiki</string>
+    <string name="mcp_deepwiki_summary">Understand open-source GitHub repositories: doc structure, contents and Q&amp;A.</string>
+    <string name="mcp_deepwiki_ability_1">List a repository\'s documentation topics</string>
+    <string name="mcp_deepwiki_ability_2">Read a documentation page</string>
+    <string name="mcp_deepwiki_ability_3">Ask about a repository\'s code and design</string>
+    <string name="mcp_deepwiki_example">Use DeepWiki to see how k2-fsa/sherpa-onnx does keyword spotting</string>
+    <string name="mcp_deepwiki_note">A public service, no key needed; public repositories only.</string>
+    <string name="mcp_app_huggingface">Hugging Face</string>
+    <string name="mcp_huggingface_summary">Search models, datasets and Spaces; see downloads and licenses.</string>
+    <string name="mcp_huggingface_ability_1">Search models, datasets and Spaces</string>
+    <string name="mcp_huggingface_ability_2">Repository details: downloads, likes, license and files</string>
+    <string name="mcp_huggingface_example">Which Chinese speech recognition models on Hugging Face have the most downloads?</string>
+    <string name="mcp_huggingface_note">Works anonymously, no key needed; for your own private repositories, add an access token in Settings → Connections → MCP.</string>
+    <string name="mcp_app_context7">Context7</string>
+    <string name="mcp_context7_summary">Look up the latest docs and code examples for libraries and frameworks.</string>
+    <string name="mcp_context7_ability_1">Find a library by name</string>
+    <string name="mcp_context7_ability_2">Look up its latest docs and examples for a question</string>
+    <string name="mcp_context7_example">Use Context7 to look up sticky headers in Jetpack Compose\'s LazyColumn</string>
+    <string name="mcp_context7_note">A public service, no key needed; for heavier use, add a Context7 API key in Settings → Connections → MCP to raise the limit.</string>
+
+    <!-- The catalog: Grok Bot -->
+    <string name="mcp_app_grok_bot">Grok Bot</string>
+    <string name="mcp_grok_bot_summary">Hand tasks that need your personal accounts, like sending email, research or reminders, to your own Grok Bot; the result is announced here when it\'s done.</string>
+
+    <!-- Settings → Connections → MCP -->
+    <string name="mcp_providers_title">MCP providers</string>
+    <string name="mcp_add_server_title">Add MCP server</string>
+    <string name="mcp_edit_server_title">Edit %1$s</string>
+    <string name="mcp_breadcrumb">Settings › MCP</string>
+    <string name="mcp_breadcrumb_add">Settings › MCP › Add</string>
+    <string name="mcp_breadcrumb_edit">Settings › MCP › Edit</string>
+    <string name="mcp_providers_hint">Toggles apply immediately · tap a row to preview tools.</string>
+    <string name="mcp_add_server">+ Add MCP server</string>
+    <string name="mcp_loaded_count">%1$d of %2$d loaded</string>
+    <string name="mcp_media_access_on">Notification access on: sees what\'s playing and can control a specific app</string>
+    <string name="mcp_media_access_off">Notification access off: only play, pause, skip and volume; can\'t see what\'s playing</string>
+    <string name="mcp_turn_on">Turn on</string>
+    <string name="mcp_loaded_in_runtime">Loaded in runtime</string>
+    <string name="mcp_not_loaded">Not loaded</string>
+    <string name="mcp_token_set">Token set</string>
+    <string name="mcp_key_set">Key set</string>
+    <plurals name="mcp_header_count">
+        <item quantity="one">%1$d header</item>
+        <item quantity="other">%1$d headers</item>
+    </plurals>
+    <string name="mcp_not_loaded_hint">Not loaded — enable to use these tools.</string>
+    <string name="mcp_loading_tools">Loading tools…</string>
+    <string name="mcp_no_tools_reported">No tools reported.</string>
+    <string name="mcp_tools_shown">%1$d / %2$d tools</string>
+    <string name="mcp_filter_tools">Filter tools…</string>
+    <string name="mcp_provider_tools_json">Tools JSON</string>
+    <string name="mcp_provider_device_calendar">Device Calendar</string>
+    <string name="mcp_provider_device_notifications">Device Notifications</string>
+    <string name="mcp_provider_device_media">Device Media</string>
+    <string name="mcp_tools_json_missing">mcp/tools.json not found in assets</string>
+    <string name="mcp_unknown_provider">Unknown provider: %1$s</string>
+    <string name="mcp_server_unreachable">Can\'t reach %1$s</string>
+    <string name="mcp_server_tools_timeout">%1$s tools/list timed out</string>
+
+    <!-- Settings → Connections → MCP: the add and edit form -->
+    <string name="mcp_form_name">Name</string>
+    <string name="mcp_form_type">Type</string>
+    <string name="mcp_kind_http">Standard MCP (Streamable HTTP)</string>
+    <string name="mcp_form_kind_http_subtitle">Server address, optionally with a token and headers</string>
+    <string name="mcp_form_url">Address (Streamable HTTP)</string>
+    <string name="mcp_form_token">Token (optional, sent as Authorization: Bearer, stored on this device only)</string>
+    <string name="mcp_form_token_kept">Set; leave blank to keep it</string>
+    <string name="mcp_form_headers">Other headers (optional, one \"Name: value\" per line, stored on this device only)</string>
+    <plurals name="mcp_form_headers_kept">
+        <item quantity="one">%1$d set; leave blank to keep it</item>
+        <item quantity="other">%1$d set; leave blank to keep them</item>
+    </plurals>
+    <string name="mcp_form_clear_secrets">Clear the stored token and headers</string>
+    <string name="mcp_server_deleted">This MCP server has been deleted</string>
+    <string name="mcp_name_required">Enter a name</string>
+    <string name="mcp_name_too_long">The name can be at most %1$d characters</string>
+    <string name="mcp_url_invalid">Invalid address, e.g. https://example.com/mcp</string>
+    <string name="mcp_url_scheme">The address must start with https:// or http://</string>
+    <string name="mcp_url_no_host">The address has no host name</string>
+    <string name="mcp_url_http_loopback_only">http:// only works for this device (127.0.0.1 or localhost, with adb reverse); use https:// for other addresses</string>
+    <string name="mcp_header_format">Write headers as \"Name: value\", one per line: %1$s</string>
+    <string name="mcp_header_reserved">The app sets the %1$s header itself; it can\'t be entered</string>
+    <string name="mcp_token_spaces">The token can\'t contain spaces</string>
+    <string name="mcp_key_spaces">The key can\'t contain spaces</string>
+    <string name="mcp_token_save_failed">Couldn\'t save the token</string>
+</resources>

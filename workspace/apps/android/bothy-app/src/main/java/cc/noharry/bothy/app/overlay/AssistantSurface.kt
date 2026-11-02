@@ -2,6 +2,7 @@ package cc.noharry.bothy.app.overlay
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
 import cc.noharry.bothy.voice.VoiceSessionState
@@ -143,7 +144,7 @@ internal object AssistantSurface {
 
     private fun send(context: Context) {
         val pkg = surface.value ?: return
-        val payload = assistantPayload(hud, voice, VoiceController.listening, timeline, request) +
+        val payload = assistantPayload(context.resources, hud, voice, VoiceController.listening, timeline, request) +
             mapOf("speaking" to (voice.assistantSpeaking || TtsActivity.active.value), "dismissedAt" to dismissedAt)
         if (payload == sent) return
         sent = payload
@@ -168,6 +169,7 @@ internal object AssistantSurface {
  * card would say it (the words being heard, or a prompt) with its tone; the turn's [timeline] ([surfaceTimeline]).
  */
 internal fun assistantPayload(
+    resources: Resources,
     hud: OverlayHud?,
     voice: VoiceSessionState,
     listening: Boolean,
@@ -176,15 +178,16 @@ internal fun assistantPayload(
 ): Map<String, Any> = mapOf(
     "listening" to listening,
     "heard" to voice.liveText,
-    "voiceLine" to (if (listening) overlayVoiceLine(voice, null, System.currentTimeMillis()).text else ""),
-    "voiceTone" to (if (listening) overlayVoiceLine(voice, null, System.currentTimeMillis()).tone.name else ""),
+    "voiceLine" to (if (listening) overlayVoiceLine(resources, voice, null, System.currentTimeMillis()).text else ""),
+    "voiceTone" to (if (listening) overlayVoiceLine(resources, voice, null, System.currentTimeMillis()).tone.name else ""),
     "speaking" to voice.assistantSpeaking,
     "timeline" to timeline,
     "request" to (request?.trim()?.takeIf { it.isNotEmpty() && hud?.requestPreview != null } ?: hud?.requestPreview.orEmpty()),
     "phase" to hud?.phaseLabel.orEmpty(),
     "running" to (hud?.isRunning == true),
     "step" to hud?.currentStep.orEmpty(),
-    "reply" to hud?.resultText.orEmpty(),
+    // The fixed English of the projection (the idle prompt, a run summary) in the card's language, as the card shows it.
+    "reply" to resources.overlayShownText(hud?.resultText.orEmpty()),
     SURFACE_A2UI to (hud?.takeUnless { it.isRunning }?.surfaceA2ui() ?: ""),
     "tools" to hud?.toolLines.orEmpty().takeLast(MAX_TOOLS).map { "${it.name}|${if (it.running) "running" else if (it.isError) "error" else "done"}" },
 )

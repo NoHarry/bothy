@@ -31,7 +31,7 @@ internal object BothySessionJson {
             val obj = Json.parseToJsonElement(text).jsonObject
             SessionSummary(
                 sessionId = obj.string("sessionId"),
-                title = obj.string("title").ifBlank { "Debug session" },
+                title = obj.string("title").ifBlank { UNTITLED_SESSION_TITLE },
                 updatedAtEpochMillis = obj.long("updatedAtEpochMillis"),
                 turnCount = obj.int("turnCount"),
                 compactedSummary = obj.string("compactedSummary"),

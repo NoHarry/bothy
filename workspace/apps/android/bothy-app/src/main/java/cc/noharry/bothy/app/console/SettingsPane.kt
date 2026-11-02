@@ -44,12 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.endpointLabel
 import cc.noharry.bothy.app.console.ui.SectionLabel
 import cc.noharry.bothy.app.model.FetchFallback
@@ -135,13 +138,20 @@ internal fun SettingsFeaturePages(onOpenSkills: () -> Unit, onOpenJev: () -> Uni
 
 @Composable
 internal fun SettingsRuntimeGroup(state: UiState, actions: ConsoleActions) {
-    SettingsGroup(title = "Runtime", subtitle = "Applies immediately.") {
+    SettingsGroup(
+        title = stringResource(R.string.settings_runtime),
+        subtitle = stringResource(R.string.settings_applies_immediately),
+    ) {
         Box(Modifier.padding(Dimens.spaceXs)) {
             Column {
-                SettingsStateRow(title = "Stream", value = state.streamLabel, onClick = actions.toggleStream)
                 SettingsStateRow(
-                    title = "Backend",
-                    value = state.backendLabel,
+                    title = stringResource(R.string.settings_stream),
+                    value = streamLabelText(state.streamLabel),
+                    onClick = actions.toggleStream,
+                )
+                SettingsStateRow(
+                    title = stringResource(R.string.settings_backend),
+                    value = backendLabelText(state.backendLabel),
                     onClick = { actions.selectBackend(false) },
                 )
                 ShowThinkingRow()
@@ -154,19 +164,25 @@ internal fun SettingsRuntimeGroup(state: UiState, actions: ConsoleActions) {
 
 @Composable
 internal fun SettingsWorkspaceGroup(state: UiState, actions: ConsoleActions) {
-    SettingsGroup(title = "Workspace", subtitle = state.workspaceSelection.label) {
+    val selection = state.workspaceSelection
+    val workspace = if (selection.safEnabled) selection.label else stringResource(R.string.console_workspace_app_private)
+    SettingsGroup(title = stringResource(R.string.console_workspace), subtitle = workspace) {
         SettingsActionRow(
-            title = "SAF workspace",
-            value = if (state.workspaceSelection.safEnabled) "Linked" else "Not linked",
-            actionLabel = "Pick workspace",
+            title = stringResource(R.string.settings_saf_workspace),
+            value = if (state.workspaceSelection.safEnabled) {
+                stringResource(R.string.settings_saf_linked)
+            } else {
+                stringResource(R.string.settings_saf_not_linked)
+            },
+            actionLabel = stringResource(R.string.settings_pick_workspace),
             onClick = actions.pickSafWorkspace,
         )
         if (state.workspaceSelection.safEnabled) {
             SettingsRowDivider()
             SettingsActionRow(
-                title = "Unlink SAF workspace",
+                title = stringResource(R.string.settings_unlink_saf),
                 value = null,
-                actionLabel = "Clear",
+                actionLabel = stringResource(R.string.console_clear_saf),
                 actionDanger = true,
                 onClick = actions.clearSafWorkspace,
             )
@@ -190,14 +206,13 @@ internal fun SettingsAdvancedGroup(state: UiState, actions: ConsoleActions) {
 internal fun SettingsRuntimeDataGroup(actions: ConsoleActions) {
     var confirmClear by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
-        title = "Runtime data",
-        subtitle = "Sessions, generated images, workspace memory, run evidence, and debug logs. " +
-            "Does not delete provider or image model API keys, or MCP settings.",
+        title = stringResource(R.string.settings_runtime_data),
+        subtitle = stringResource(R.string.settings_runtime_data_note),
     ) {
         SettingsActionRow(
-            title = "Clear runtime data",
+            title = stringResource(R.string.settings_clear_runtime_data),
             value = null,
-            actionLabel = "Clear all",
+            actionLabel = stringResource(R.string.settings_clear_all),
             actionDanger = true,
             onClick = { confirmClear = true },
         )
@@ -339,11 +354,11 @@ private fun ProviderListPane(
     val colors = ConsoleColors
     Column(modifier) {
         SettingsSectionHeader(
-            title = "服务商",
-            subtitle = "选择服务后编辑连接和模型。",
+            title = stringResource(R.string.settings_providers),
+            subtitle = stringResource(R.string.settings_providers_note),
         )
         Spacer(Modifier.height(Dimens.spaceSm))
-        SettingsGroup(title = "Profile mode", subtitle = null) {
+        SettingsGroup(title = stringResource(R.string.settings_profile_mode), subtitle = null) {
             Box(Modifier.padding(Dimens.spaceMd)) {
                 ProfileModeSelector(editor, actions)
             }
@@ -351,13 +366,17 @@ private fun ProviderListPane(
         Spacer(Modifier.height(Dimens.spaceMd))
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "${editor.profileOptions.size} profiles",
+                pluralStringResource(
+                    R.plurals.settings_profile_count,
+                    editor.profileOptions.size,
+                    editor.profileOptions.size,
+                ),
                 style = ConsoleType.meta,
                 color = colors.muted,
             )
             Spacer(Modifier.weight(1f))
-            TextButton(onClick = actions.reloadConfig) { Text("Reload") }
-            TextButton(onClick = onAdd) { Text("+ 添加服务") }
+            TextButton(onClick = actions.reloadConfig) { Text(stringResource(R.string.settings_reload)) }
+            TextButton(onClick = onAdd) { Text(stringResource(R.string.settings_add_service)) }
         }
         Spacer(Modifier.height(Dimens.spaceXsMd))
         LazyColumn(
@@ -396,7 +415,7 @@ private fun ProviderDetailPane(
                     ProviderDraft.new(), actions, isNew = true, onDone = onDone, modifier = Modifier.weight(1f), onCreated = onCreated,
                 )
                 navigation.requestedProfileId != null && navigation.requestedProfileId != editor.profileId -> {
-                    Text("Loading provider…", style = ConsoleType.meta, color = colors.muted)
+                    Text(stringResource(R.string.settings_loading_provider), style = ConsoleType.meta, color = colors.muted)
                 }
                 editor.profileId == ON_DEVICE_PROFILE_ID -> OnDeviceModelDetail(
                     chosenModel = editor.model,
@@ -607,10 +626,9 @@ private fun ShowThinkingRow() {
     val show by DisplaySettings.showThinking.collectAsState()
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("显示思考过程", style = ConsoleType.body, color = ConsoleColors.text)
+            Text(stringResource(R.string.settings_show_thinking), style = ConsoleType.body, color = ConsoleColors.text)
             Text(
-                if (show) "开：卡片上显示模型的中间想法、计划和当前步骤，控制台显示 Thinking"
-                else "关：卡片只显示说给用户的进度和结果，控制台不显示 Thinking",
+                stringResource(if (show) R.string.settings_show_thinking_on else R.string.settings_show_thinking_off),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
@@ -629,14 +647,14 @@ private fun SearchBackendRow() {
     val api = usesApi[profile.id] == true
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("联网搜索用 DeepSeek Search 接口", style = ConsoleType.body, color = ConsoleColors.text)
+            Text(stringResource(R.string.settings_search_api), style = ConsoleType.body, color = ConsoleColors.text)
             Text(
                 when {
-                    api -> "开：搜索词和结果都看得到，按次计费（5 元/千次），需要一个 DeepSeek 的 key"
+                    api -> stringResource(R.string.settings_search_api_on)
                     // The on-device model and the No web_search profile have no search of their own.
                     !profile.serverSideSearch || profile.searchCapability == "none" ->
-                        "关：「${profile.displayLabel}」没有服务端搜索，这时不能联网搜索"
-                    else -> "关：用「${profile.displayLabel}」自带的服务端搜索，看不到搜了什么"
+                        stringResource(R.string.settings_search_api_off_no_search, profile.displayLabel)
+                    else -> stringResource(R.string.settings_search_api_off, profile.displayLabel)
                 },
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
@@ -654,12 +672,12 @@ private fun FetchFallbackRow() {
     val keyed = remember { ProviderConfig.load(context.applicationContext).hasDeepSeekKey(context) }
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("网页打不开时用 DeepSeek Fetch", style = ConsoleType.body, color = ConsoleColors.text)
+            Text(stringResource(R.string.settings_fetch_fallback), style = ConsoleType.body, color = ConsoleColors.text)
             Text(
                 when {
-                    on && !keyed -> "开，但没有 DeepSeek 的 key，暂不生效"
-                    on -> "开：网站拦住设备的请求或打不开时，改由 Fetch 接口读取（每次 ¥0.005，只在被拦时花）；主 agent 和子 agent 都用，服务端搜索时主 agent 也能打开网页"
-                    else -> "关：打不开就是打不开；服务端搜索时主 agent 不能打开网页"
+                    on && !keyed -> stringResource(R.string.settings_fetch_fallback_no_key)
+                    on -> stringResource(R.string.settings_fetch_fallback_on)
+                    else -> stringResource(R.string.settings_fetch_fallback_off)
                 },
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
@@ -677,12 +695,12 @@ private fun ProfileModeSelector(editor: ProviderEditState, actions: ConsoleActio
     val colors = ConsoleColors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("Manual profile switching", style = ConsoleType.body, color = colors.text)
+            Text(stringResource(R.string.settings_manual_profile), style = ConsoleType.body, color = colors.text)
             Text(
                 if (editor.manualProfileEnabled) {
-                    "On — use the selected profile below instead of config default"
+                    stringResource(R.string.settings_manual_profile_on)
                 } else {
-                    "Off — follow the default profile from configuration"
+                    stringResource(R.string.settings_manual_profile_off)
                 },
                 style = ConsoleType.meta,
                 color = colors.muted,
@@ -731,7 +749,9 @@ private fun ProviderProfileRow(option: ProviderProfileOption, onClick: () -> Uni
             ) {
                 ProviderProfileMain(option = option, onClick = onClick, modifier = Modifier.weight(1f))
                 if (option.canDelete) {
-                    TextButton(onClick = onDelete) { Text("Delete", color = colors.danger) }
+                    TextButton(onClick = onDelete) {
+                        Text(stringResource(R.string.common_delete), color = colors.danger)
+                    }
                 }
             }
         }
@@ -759,7 +779,8 @@ private fun ProviderProfileMain(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) {
             ProviderProfileTitle(option)
             Text(
-                "${option.providerLabel} · ${option.endpointLabel} · ${option.model.ifBlank { "no model" }}",
+                "${option.providerLabel} · ${option.endpointLabel} · " +
+                    option.model.ifBlank { stringResource(R.string.settings_no_model) },
                 style = ConsoleType.meta,
                 color = colors.muted,
                 maxLines = 1,
@@ -769,7 +790,7 @@ private fun ProviderProfileMain(
         Spacer(Modifier.width(Dimens.spaceSm))
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "Edit",
+            contentDescription = stringResource(R.string.common_edit),
             tint = colors.muted,
             modifier = Modifier.size(MANAGE_CHEVRON_SIZE),
         )
@@ -791,7 +812,12 @@ private fun ProviderProfileTitle(option: ProviderProfileOption) {
         )
         if (option.selected) {
             Spacer(Modifier.width(Dimens.spaceSm))
-            Text("Active", style = ConsoleType.label, color = colors.accent, fontWeight = FontWeight.SemiBold)
+            Text(
+                stringResource(R.string.settings_profile_active),
+                style = ConsoleType.label,
+                color = colors.accent,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }

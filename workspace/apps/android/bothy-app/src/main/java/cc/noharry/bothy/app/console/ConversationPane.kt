@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.console
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -45,7 +47,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -65,7 +69,6 @@ import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.overlay.pickableReply
 import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
-import cc.noharry.bothy.app.runtime.formatWorkedDuration
 import cc.noharry.bothy.app.runtime.variantChoices
 import cc.noharry.bothy.app.session.ConfirmationMode
 import cc.noharry.bothy.app.session.UiState
@@ -121,7 +124,7 @@ private fun RegularConversationPane(
     short: Boolean,
     modifier: Modifier,
 ) {
-    PanelBox("Conversation", modifier) {
+    PanelBox(stringResource(R.string.console_conversation), modifier) {
         ConversationStatus(state)
         Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()
@@ -221,10 +224,10 @@ private fun ConversationEmptyState(modifier: Modifier = Modifier) {
                 .clip(RoundedCornerShape(Dimens.radiusLg)),
         )
         Spacer(Modifier.height(Dimens.spaceLg))
-        Text(text = "小博在小屋里等你", style = ConsoleType.hero, color = colors.text)
+        Text(text = stringResource(R.string.console_empty_title), style = ConsoleType.hero, color = colors.text)
         Spacer(Modifier.height(Dimens.spaceXs))
         Text(
-            text = "问点什么，或者先到「连接应用」接一个免 key 的公开 MCP。每一步用了什么工具、拿回了什么，都会列在这里。",
+            text = stringResource(R.string.console_empty_body),
             style = ConsoleType.body,
             color = colors.muted,
             textAlign = TextAlign.Center,
@@ -274,10 +277,10 @@ private fun ConversationStatus(state: UiState) {
     // Keep a single quiet meta line; live Working / Worked-for live in the bar above the composer.
     val run = when {
         state.isRunning -> statusHeader(state)
-        !state.lastRunSummary.isNullOrBlank() -> state.lastRunSummary
-        else -> "Ready"
+        !state.lastRunSummary.isNullOrBlank() -> runSummaryText(state.lastRunSummary)
+        else -> stringResource(R.string.console_ready)
     }
-    val text = "$run · ${state.providerLabel} · ${state.streamLabel}"
+    val text = "$run · ${state.providerLabel} · ${streamLabelText(state.streamLabel)}"
     Text(
         text = text,
         style = ConsoleType.meta,
@@ -294,7 +297,7 @@ private fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifi
     val selected = editor.model
     Box(modifier.widthIn(max = MODEL_BUTTON_MAX_WIDTH), contentAlignment = Alignment.BottomEnd) {
         SelectorChip(
-            label = selected.ifBlank { "选择模型" },
+            label = selected.ifBlank { stringResource(R.string.console_choose_model) },
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
             placeholder = selected.isBlank(),
@@ -305,10 +308,10 @@ private fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifi
             minWidth = MODEL_MENU_MIN_WIDTH,
             maxWidth = MODEL_MENU_MAX_WIDTH,
         ) {
-            PopupSectionLabel("Model")
+            PopupSectionLabel(stringResource(R.string.console_model))
             if (options.isEmpty()) {
                 PopupMenuItem(
-                    label = "请在设置中拉取或添加模型",
+                    label = stringResource(R.string.console_no_models),
                     selected = false,
                     onClick = { expanded = false },
                 )
@@ -345,7 +348,7 @@ private fun VariantMenu(editor: ProviderEditState, actions: ConsoleActions, modi
             minWidth = VARIANT_MENU_MIN_WIDTH,
             maxWidth = VARIANT_MENU_MAX_WIDTH,
         ) {
-            PopupSectionLabel("Variant")
+            PopupSectionLabel(stringResource(R.string.console_variant))
             options.forEach { variant ->
                 PopupMenuItem(
                     label = variant.variantLabel(),
@@ -407,7 +410,7 @@ internal fun MessageField(
     onTextChange: (String) -> Unit,
     singleLine: Boolean,
     modifier: Modifier,
-    placeholder: String = "Message the agent…",
+    placeholder: String = stringResource(R.string.console_message_placeholder),
 ) {
     val colors = ConsoleColors
     // Borderless field fused into the composer dock; the dock Surface owns the outline.
@@ -447,7 +450,9 @@ private fun CondensedComposerActions(
                 showLabel = false,
                 compactMenuItems = true,
             )
-            if (showSecondaryActions) TextButton(onClick = actions.openOverlay) { Text("Float") }
+            if (showSecondaryActions) {
+                TextButton(onClick = actions.openOverlay) { Text(stringResource(R.string.console_float)) }
+            }
             ContextUsageIndicator(state)
             ModelMenu(state.configEditor, actions, Modifier.weight(1f))
             if (showSecondaryActions) VariantMenu(state.configEditor, actions)
@@ -478,7 +483,7 @@ private fun CompactComposerActions(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             ComposerOverflowMenu(actions)
             Spacer(Modifier.weight(1f))
-            if (state.isRunning) TextButton(onClick = actions.stop) { Text("Stop") }
+            if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
             VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
             SubmitButton(text, onSubmit, state.isRunning)
         }
@@ -502,7 +507,7 @@ private fun WideComposerActions(
         ContextUsageIndicator(state)
         ModelMenu(state.configEditor, actions)
         VariantMenu(state.configEditor, actions)
-        if (state.isRunning) TextButton(onClick = actions.stop) { Text("Stop") }
+        if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
         VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
         SubmitButton(text, onSubmit, state.isRunning)
     }
@@ -512,16 +517,16 @@ private fun WideComposerActions(
 private fun ComposerOverflowMenu(actions: ConsoleActions) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        SelectorChip(label = "More", onClick = { expanded = true })
+        SelectorChip(label = stringResource(R.string.console_more), onClick = { expanded = true })
         PopupMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             minWidth = 180.dp,
             maxWidth = 240.dp,
         ) {
-            PopupSectionLabel("Actions")
+            PopupSectionLabel(stringResource(R.string.console_actions))
             PopupMenuItem(
-                label = "Float window",
+                label = stringResource(R.string.console_floating_card),
                 selected = false,
                 onClick = {
                     expanded = false
@@ -529,7 +534,7 @@ private fun ComposerOverflowMenu(actions: ConsoleActions) {
                 },
             )
             PopupMenuItem(
-                label = "Toggle stream",
+                label = stringResource(R.string.console_toggle_stream),
                 selected = false,
                 onClick = {
                     expanded = false
@@ -573,11 +578,11 @@ private fun ConfirmationModeSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val colors = ConsoleColors
-    val modeLabel = if (compactMenuItems) selected.shortLabel else selected.label
+    val modeLabel = stringResource(if (compactMenuItems) selected.shortLabelRes() else selected.labelRes())
     Box(modifier.fillMaxWidth()) {
         // Warning modes keep the amber fill/border/dot; others read as a quiet chip.
         SelectorChip(
-            label = if (showLabel) "Approval · $modeLabel" else modeLabel,
+            label = if (showLabel) stringResource(R.string.console_approval_chip, modeLabel) else modeLabel,
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
             leadingDot = if (selected.warning) colors.warning else colors.accent,
@@ -589,13 +594,13 @@ private fun ConfirmationModeSelector(
             minWidth = APPROVAL_MENU_MIN_WIDTH,
             maxWidth = APPROVAL_MENU_MAX_WIDTH,
         ) {
-            PopupSectionLabel("Approval")
+            PopupSectionLabel(stringResource(R.string.console_approval))
             ConfirmationMode.entries.forEach { mode ->
                 val modeAccent = if (mode.warning) colors.warning else colors.ink
                 PopupMenuItem(
-                    label = mode.label,
+                    label = stringResource(mode.labelRes()),
                     selected = mode == selected,
-                    hint = mode.menuHint(),
+                    hint = stringResource(mode.menuHint()),
                     accent = modeAccent,
                     compact = compactMenuItems,
                     onClick = {
@@ -611,12 +616,32 @@ private fun ConfirmationModeSelector(
     }
 }
 
-private fun ConfirmationMode.menuHint(): String =
+@StringRes
+private fun ConfirmationMode.menuHint(): Int =
     when (this) {
-        ConfirmationMode.ASK_EVERY_TIME -> "Prompt for each network tool"
-        ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> "Auto-allow previously approved hosts"
-        ConfirmationMode.ALLOW_ALL_SESSION -> "Skip prompts for this session"
-        ConfirmationMode.DENY_ALL -> "Block network tools"
+        ConfirmationMode.ASK_EVERY_TIME -> R.string.console_approval_ask_hint
+        ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> R.string.console_approval_domains_hint
+        ConfirmationMode.ALLOW_ALL_SESSION -> R.string.console_approval_allow_all_hint
+        ConfirmationMode.DENY_ALL -> R.string.console_approval_deny_all_hint
+    }
+
+/** The screen's name for a mode; the runtime's status and transcript lines keep [ConfirmationMode.label]. */
+@StringRes
+internal fun ConfirmationMode.labelRes(): Int =
+    when (this) {
+        ConfirmationMode.ASK_EVERY_TIME -> R.string.console_approval_ask
+        ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> R.string.console_approval_domains
+        ConfirmationMode.ALLOW_ALL_SESSION -> R.string.console_approval_allow_all
+        ConfirmationMode.DENY_ALL -> R.string.console_approval_deny_all
+    }
+
+@StringRes
+private fun ConfirmationMode.shortLabelRes(): Int =
+    when (this) {
+        ConfirmationMode.ASK_EVERY_TIME -> R.string.console_approval_ask_short
+        ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> R.string.console_approval_domains_short
+        ConfirmationMode.ALLOW_ALL_SESSION -> R.string.console_approval_allow_all_short
+        ConfirmationMode.DENY_ALL -> R.string.console_approval_deny_all_short
     }
 
 private val MODEL_BUTTON_MAX_WIDTH = 180.dp
@@ -638,9 +663,11 @@ private val SUBMIT_BUTTON_SIZE = 36.dp
 private val SUBMIT_ICON_SIZE = 20.dp
 private const val SUBMIT_DISABLED_ALPHA = 0.35f
 
+@Composable
 private fun String.variantLabel(): String =
     when {
-        isBlank() || equals(DEFAULT_DEBUG_VARIANT_ID, ignoreCase = true) -> "Default"
+        isBlank() || equals(DEFAULT_DEBUG_VARIANT_ID, ignoreCase = true) ->
+            stringResource(R.string.console_variant_default)
         else -> replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
     }
 
@@ -661,13 +688,14 @@ private fun ActiveStatusBar(state: UiState) {
         ActiveStatusBarContent(
             header = statusHeader(state),
             detail = statusDetail(state),
-            elapsedLabel = formatElapsedCompact(elapsedSec),
+            elapsedLabel = durationText(elapsedSec.coerceAtLeast(0L) * 1000L),
         )
     }
 }
 
 @Composable
 private fun CompletedStatusBar(summary: String) {
+    val summaryText = runSummaryText(summary)
     val colors = ConsoleColors
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -684,7 +712,7 @@ private fun CompletedStatusBar(summary: String) {
             StatusDot(color = colors.success.copy(alpha = 0.85f))
             Spacer(Modifier.width(10.dp))
             Text(
-                text = summary,
+                text = summaryText,
                 style = ConsoleType.body,
                 fontWeight = FontWeight.Medium,
                 color = colors.text,
@@ -742,28 +770,57 @@ private fun ActiveStatusBarContent(header: String, detail: String?, elapsedLabel
     }
 }
 
+@Composable
 private fun statusDetail(state: UiState): String? {
     val status = state.status.trim()
     return when {
         status.startsWith("Tool running:", ignoreCase = true) -> null
         status.startsWith("Thinking", ignoreCase = true) -> state.providerLabel.takeIf { it.isNotBlank() }
-        status.contains("confirmation", ignoreCase = true) -> "Respond in the timeline card"
+        status.contains("confirmation", ignoreCase = true) -> stringResource(R.string.console_status_respond_in_card)
         status.isBlank() || status.equals("Running", ignoreCase = true) -> null
-        status.equals(statusHeader(state), ignoreCase = true) -> null
+        status.equals(statusHeaderWords(status), ignoreCase = true) -> null
+        // The runner's start line, "Running <profile> <stream>"; other raw statuses are runtime event names.
+        status.startsWith(RUNNING_TOOL_PREFIX) && status.trimEnd().count { it == ' ' } >= 2 && status.length <= 72 -> {
+            val rest = status.removePrefix(RUNNING_TOOL_PREFIX)
+            stringResource(
+                R.string.console_status_running_profile,
+                rest.substringBeforeLast(' '),
+                streamLabelText(rest.substringAfterLast(' ')),
+            )
+        }
         else -> status.takeIf { it.length <= 72 }
     }
 }
 
-private fun formatElapsedCompact(seconds: Long): String =
-    formatWorkedDuration(seconds.coerceAtLeast(0L) * 1000L)
+/** The run's status header in the screen's language. */
+@Composable
+internal fun statusHeader(state: UiState): String = LocalContext.current.resources.statusHeaderText(state.status)
 
-internal fun statusHeader(state: UiState): String {
-    val status = state.status
-    return when {
+/** [statusHeaderWords] in the screen's language, for code that shows it outside Compose. */
+internal fun Resources.statusHeaderText(status: String): String {
+    val words = statusHeaderWords(status)
+    return when (words) {
+        "Working" -> getString(R.string.console_status_working)
+        "Thinking" -> getString(R.string.console_status_thinking)
+        "Failed" -> getString(R.string.console_status_failed)
+        "Stopped" -> getString(R.string.console_status_stopped)
+        "Waiting for approval" -> getString(R.string.console_status_waiting_for_approval)
+        "Blocked" -> getString(R.string.console_status_blocked)
+        else -> if (words.startsWith(RUNNING_TOOL_PREFIX)) {
+            getString(R.string.console_status_running_tool, words.removePrefix(RUNNING_TOOL_PREFIX))
+        } else {
+            runSummaryText(words)
+        }
+    }
+}
+
+/** The runtime's status reduced to a short English header; the code compares it with the raw status. */
+internal fun statusHeaderWords(status: String): String =
+    when {
         status.startsWith("Tool running:", ignoreCase = true) -> {
             // Codex uses the verb "Running" + tool name
             val toolName = status.substringAfter(":").trim()
-            "Running $toolName"
+            "$RUNNING_TOOL_PREFIX$toolName"
         }
         status.startsWith("Tool finished:", ignoreCase = true) -> "Working"
         status.startsWith("Thinking", ignoreCase = true) -> "Thinking"
@@ -778,4 +835,5 @@ internal fun statusHeader(state: UiState): String {
         status.contains("blocked", ignoreCase = true) -> "Blocked"
         else -> "Working"
     }
-}
+
+private const val RUNNING_TOOL_PREFIX = "Running "

@@ -19,6 +19,7 @@ import cc.noharry.bothy.app.a2ui.DisplayChoice
 import cc.noharry.bothy.app.a2ui.WidgetCard
 import cc.noharry.bothy.app.a2ui.a2uiCardMessages
 import cc.noharry.bothy.app.a2ui.a2uiChoiceMessages
+import cc.noharry.bothy.app.a2ui.a2uiLabels
 import cc.noharry.bothy.app.a2ui.a2uiPanelMessages
 import cc.noharry.bothy.app.a2ui.controlValues
 import cc.noharry.bothy.app.a2ui.offerKey
@@ -73,7 +74,8 @@ internal fun OverlayA2uiChoices(
 /** The reply's information card (weather and the like), car look; it shows and asks nothing. */
 @Composable
 internal fun OverlayA2uiCard(card: WidgetCard, modifier: Modifier = Modifier, carLook: Boolean = true) {
-    val messages = remember(card) { a2uiCardMessages("card-${card.hashCode().toUInt()}", card) }
+    val labels = a2uiLabels()
+    val messages = remember(card, labels) { a2uiCardMessages("card-${card.hashCode().toUInt()}", card, labels) }
     BothyA2uiSurface(messages, onEvent = {}, modifier = modifier, carLook = carLook)
 }
 
@@ -88,7 +90,10 @@ internal fun OverlayA2uiPanel(
     modifier: Modifier = Modifier,
     carLook: Boolean = true,
 ) {
-    val messages = remember(controls) { a2uiPanelMessages("panel-${controls.hashCode().toUInt()}", controls) }
+    val labels = a2uiLabels()
+    val messages = remember(controls, labels) {
+        a2uiPanelMessages("panel-${controls.hashCode().toUInt()}", controls, labels)
+    }
     BothyA2uiSurface(
         messages,
         onEvent = { event ->

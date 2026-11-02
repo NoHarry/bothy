@@ -76,11 +76,23 @@ fun vocabularyEntries(words: List<String>, weight: Int = DEFAULT_HOTWORD_WEIGHT)
 }
 
 /** Why [word] cannot be a hotword, or null: at most 15 characters with any non-ASCII, 7 words for plain ASCII. */
-fun hotwordProblem(word: String): String? = when {
-    word.isBlank() -> "热词不能为空。"
-    word.any { it.code >= 128 } && word.length > MAX_HOTWORD_CHARS -> "「$word」超过 $MAX_HOTWORD_CHARS 个字。"
-    word.all { it.code < 128 } && word.trim().split(Regex("\\s+")).size > MAX_HOTWORD_ASCII_WORDS -> "「$word」超过 $MAX_HOTWORD_ASCII_WORDS 个单词。"
+fun hotwordProblem(word: String): HotwordProblem? = when {
+    word.isBlank() -> HotwordProblem.Blank
+    word.any { it.code >= 128 } && word.length > MAX_HOTWORD_CHARS -> HotwordProblem.TooManyChars(word, MAX_HOTWORD_CHARS)
+    word.all { it.code < 128 } && word.trim().split(Regex("\\s+")).size > MAX_HOTWORD_ASCII_WORDS ->
+        HotwordProblem.TooManyWords(word, MAX_HOTWORD_ASCII_WORDS)
     else -> null
+}
+
+/** Why a word cannot be a hotword, for the host to word. */
+sealed interface HotwordProblem {
+    data object Blank : HotwordProblem
+
+    /** [word] has non-ASCII and is longer than [max] characters. */
+    data class TooManyChars(val word: String, val max: Int) : HotwordProblem
+
+    /** [word] is plain ASCII of more than [max] words. */
+    data class TooManyWords(val word: String, val max: Int) : HotwordProblem
 }
 
 const val DASHSCOPE_CUSTOMIZATION_URL = "https://dashscope.aliyuncs.com/api/v1/services/audio/asr/customization"

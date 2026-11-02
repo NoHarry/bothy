@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.a2ui
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.plans.number
 import cc.noharry.bothy.app.plans.valueText
@@ -291,10 +294,33 @@ internal enum class CardLayout(val wire: String, val items: IntRange) {
 }
 
 /**
+ * The host's own words on a card or panel, around what the model wrote: the panel's confirm, the day of a trip's stops
+ * that name none, and the heading over its hotels. The screen passes them in its language ([a2uiLabels]).
+ */
+internal data class A2uiLabels(val confirm: String, val tripDay: String, val stays: String) {
+    companion object {
+        /** What the surfaces showed before their callers passed the screen's words. */
+        val CHINESE = A2uiLabels(confirm = "确定", tripDay = "行程", stays = "住宿")
+    }
+}
+
+/** [A2uiLabels] in the screen's language. */
+@Composable
+internal fun a2uiLabels(): A2uiLabels = A2uiLabels(
+    confirm = stringResource(R.string.common_ok),
+    tripDay = stringResource(R.string.a2ui_trip_day),
+    stays = stringResource(R.string.a2ui_trip_stays),
+)
+
+/**
  * The controls as one A2UI surface: control i binds `/v{i}`, and one confirm Button sends every value in its event,
  * so setting the second does not end the first.
  */
-internal fun a2uiPanelMessages(surfaceId: String, controls: List<Control>): List<String> {
+internal fun a2uiPanelMessages(
+    surfaceId: String,
+    controls: List<Control>,
+    labels: A2uiLabels = A2uiLabels.CHINESE,
+): List<String> {
     val components = buildJsonArray {
         add(a2uiComponent("root", "Column") {
             put("align", "stretch")
@@ -313,7 +339,7 @@ internal fun a2uiPanelMessages(surfaceId: String, controls: List<Control>): List
                 is ChoiceOffer -> addChoice(index, control)
             }
         }
-        add(a2uiComponent("confirm_label", "Text") { put("text", "确定") })
+        add(a2uiComponent("confirm_label", "Text") { put("text", labels.confirm) })
         // Not "primary": the device look marks a primary Button as the recommended pick.
         add(a2uiComponent("confirm", "Button") {
             put("child", "confirm_label")
@@ -396,7 +422,11 @@ private fun controlId(index: Int) = "control_$index"
 internal fun controlKey(index: Int): String = "v$index"
 
 /** The card as an A2UI surface: header (icon, value, subtitle), a row of fields, progress bars, then the items. */
-internal fun a2uiCardMessages(surfaceId: String, card: WidgetCard): List<String> {
+internal fun a2uiCardMessages(
+    surfaceId: String,
+    card: WidgetCard,
+    labels: A2uiLabels = A2uiLabels.CHINESE,
+): List<String> {
     val components = buildJsonArray {
         add(a2uiComponent("root", "Column") {
             put("align", "stretch")
@@ -425,7 +455,7 @@ internal fun a2uiCardMessages(surfaceId: String, card: WidgetCard): List<String>
                 CardLayout.GRID -> addItemTiles(card.items, columns = 2, centered = false)
                 CardLayout.STRIP -> addItemTiles(card.items, columns = card.items.size, centered = true)
                 CardLayout.COMPARE -> addComparison(card.items)
-                CardLayout.TRIP -> addTrip(card.items)
+                CardLayout.TRIP -> addTrip(card.items, labels)
             }
         }
     }
@@ -602,13 +632,13 @@ private fun JsonArrayBuilder.addComparison(items: List<CardItem>) {
  * direction (other flights of it as options), a column per day with its name, its first photo and a [STOP_COMPONENT]
  * per place, and the hotels as pictures over a [STAY_COMPONENT].
  */
-private fun JsonArrayBuilder.addTrip(items: List<CardItem>) {
+private fun JsonArrayBuilder.addTrip(items: List<CardItem>, labels: A2uiLabels) {
     val indexed = items.withIndex().toList()
     val legs = indexed.filter { it.value.kind == CardItemKind.TRANSPORT }.groupBy { it.value.legName() }
     val stays = indexed.filter { it.value.kind == CardItemKind.STAY }
     // A day is its places and its weather, in the order the days first come.
     val days = indexed.filter { it.value.kind == CardItemKind.PLACE || it.value.kind == CardItemKind.WEATHER }
-        .groupBy { it.value.group ?: TRIP_DAY_FALLBACK }
+        .groupBy { it.value.group ?: labels.tripDay }
     add(a2uiComponent("items", "Column") {
         put("align", "stretch")
         putJsonArray("children") {
@@ -622,7 +652,7 @@ private fun JsonArrayBuilder.addTrip(items: List<CardItem>) {
     })
     if (legs.isNotEmpty()) addTripTickets(legs)
     if (days.isNotEmpty()) addTripDays(days)
-    if (stays.isNotEmpty()) addTripStays(stays)
+    if (stays.isNotEmpty()) addTripStays(stays, labels.stays)
 }
 
 /** 「去程 · 9C8819 春秋航空」: the direction before the dot, the flight after it. */
@@ -640,14 +670,14 @@ private fun JsonArrayBuilder.addTripTickets(legs: Map<String, List<IndexedValue<
         val main = options.first().value
         val route = main.detail?.substringBefore(" · ")
         val alternatives = options.drop(1).joinToString("；") { listOf(it.value.service(), it.value.value.orEmpty()).joinToString(" ").trim() }
-        val note = listOfNotNull(main.detail?.substringAfter(" · ", "")?.ifBlank { null }, alternatives.ifBlank { null }?.let { "备选 $it" })
-            .joinToString(" · ")
+        val note = main.detail?.substringAfter(" · ", "").orEmpty()
         add(a2uiComponent("trip_ticket_$index", TICKET_COMPONENT) {
             put("leg", if (leg == main.title) "" else leg)
             put("service", main.service().ifEmpty { main.title })
             main.value?.let { put("times", it) }
             route?.let { put("route", it) }
-            if (note.isNotEmpty()) put("note", note)
+            if (note.isNotBlank()) put("note", note)
+            if (alternatives.isNotBlank()) put("alternatives", alternatives)
             put("mode", main.tripMode(all).wire)
         })
     }
@@ -699,8 +729,8 @@ private fun JsonArrayBuilder.addDayWeather(id: String, weather: CardItem) {
 }
 
 /** Hotels in a row, each a [STAY_COMPONENT] with its picture as a thumbnail, so they fit under the days. */
-private fun JsonArrayBuilder.addTripStays(stays: List<IndexedValue<CardItem>>) {
-    add(a2uiText("trip_stays_title", TRIP_STAYS_TITLE, "h4"))
+private fun JsonArrayBuilder.addTripStays(stays: List<IndexedValue<CardItem>>, title: String) {
+    add(a2uiText("trip_stays_title", title, "h4"))
     add(a2uiComponent("trip_stays", GRID_COMPONENT) {
         put("columns", stays.size.coerceIn(1, TRIP_MAX_COLUMNS))
         putJsonArray("children") { stays.forEach { add("trip_item_${it.index}") } }
@@ -815,8 +845,6 @@ private const val EPSILON = 1e-6
 private const val TRIP_MAX_COLUMNS = 3
 /** There and back side by side. */
 private const val TRIP_TICKET_COLUMNS = 2
-private const val TRIP_DAY_FALLBACK = "行程"
-private const val TRIP_STAYS_TITLE = "住宿"
 /** "设为30%", "调到 30", "30" as a tap, a keyboard or the user says it. */
 private val SLIDER_VALUE = Regex("""^(?:设为|设到|设成|调到|调成|调为|改成|改为|到)?(-?\d+(?:\.\d+)?)(?:%|％|度|档|级|格|℃|°C|°)?$""")
 private val SLIDER_NOISE = Regex("""[\s。！!？?~～，,]""")

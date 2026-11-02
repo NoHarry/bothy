@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The playground's own screen around the scenes, and its service's notification. -->
+<resources>
+    <string name="playground_scene_cabin">Virtual cabin</string>
+    <string name="playground_scene_home">Virtual home</string>
+    <string name="playground_server_starting">MCP server starting…</string>
+    <string name="playground_server_running">MCP server running · %1$s/cabin/mcp · %1$s/home/mcp</string>
+    <string name="playground_server_failed">MCP server didn\'t start: %1$s</string>
+    <string name="playground_port_taken">Port %1$d is in use: %2$s</string>
+    <string name="playground_simulated_drive">Simulated drive</string>
+    <string name="playground_reset">Reset</string>
+    <string name="playground_you_are">You\'re</string>
+    <string name="playground_log_now_in_car">You\'re in the car now</string>
+    <string name="playground_log_now_at_home">You\'re at home now</string>
+    <string name="playground_channel">Playground service</string>
+    <string name="playground_notification_title">Bothy Playground is running</string>
+    <string name="playground_notification_text">MCP servers for the virtual cabin and home: 127.0.0.1:%1$d</string>
+</resources>

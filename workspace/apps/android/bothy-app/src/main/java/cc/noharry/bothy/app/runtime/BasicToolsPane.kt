@@ -18,9 +18,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.androiduse.androidUseStatus
 import cc.noharry.bothy.app.androiduse.loadAndroidUseEnabled
 import cc.noharry.bothy.app.androiduse.saveAndroidUseEnabled
@@ -39,7 +41,7 @@ internal fun BasicToolsPane() {
         Modifier.widthIn(max = 880.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
-        Text("独立于 MCP 和 skill · 自动保存，下次请求生效 · 当前任务不受影响", color = ConsoleColors.muted)
+        Text(stringResource(R.string.runtime_basic_tools_note), color = ConsoleColors.muted)
         AndroidUseRow()
         HorizontalDivider(color = ConsoleColors.borderSubtle)
         tools.forEach { tool ->
@@ -59,7 +61,7 @@ private fun AndroidUseRow() {
     var enabled by remember { mutableStateOf(loadAndroidUseEnabled(context)) }
     var status by remember { mutableStateOf(androidUseStatus(context)) }
     BasicToolRow(
-        BasicTool("操作屏幕", "android_observe / android_action：查看屏幕、点击、滑动、输入；没有专用接口时才用（打开应用、回主页也先找接口）。", enabled),
+        BasicTool(stringResource(R.string.runtime_android_use), R.string.runtime_android_use_description, enabled),
         stateText = status,
     ) { checked ->
         saveAndroidUseEnabled(context, checked)
@@ -70,17 +72,23 @@ private fun AndroidUseRow() {
 
 @Composable
 private fun BasicToolRow(tool: BasicTool, stateText: String? = null, onToggle: (Boolean) -> Unit) {
+    val switchLabel = stringResource(R.string.runtime_tool_switch, tool.name)
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceMd), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(tool.name, style = ConsoleType.body, color = ConsoleColors.text)
-            Text(tool.description, style = ConsoleType.meta, color = ConsoleColors.muted)
-            Text(stateText ?: if (tool.required) "固定启用" else if (tool.enabled) "已启用" else "已关闭", color = ConsoleColors.muted)
+            Text(stringResource(tool.description), style = ConsoleType.meta, color = ConsoleColors.muted)
+            val state = when {
+                tool.required -> R.string.runtime_tool_always_on
+                tool.enabled -> R.string.runtime_tool_enabled
+                else -> R.string.runtime_tool_disabled
+            }
+            Text(stateText ?: stringResource(state), color = ConsoleColors.muted)
         }
         Switch(
             checked = tool.enabled,
             onCheckedChange = onToggle,
             enabled = !tool.required,
-            modifier = Modifier.semantics { contentDescription = "${tool.name} 开关" },
+            modifier = Modifier.semantics { contentDescription = switchLabel },
             colors = switchColors(),
         )
     }

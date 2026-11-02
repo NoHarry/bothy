@@ -40,10 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -69,6 +74,13 @@ internal fun ColumnScope.McpConnectorDetail(
     onBack: () -> Unit,
 ) {
     val spec = connector.mcp ?: return
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val title = stringResource(connector.title)
+    val checking = stringResource(R.string.mcp_checking)
+    val enabling = stringResource(R.string.mcp_enabling)
+    val connecting = stringResource(R.string.mcp_connecting_app, title)
+    val disconnecting = stringResource(R.string.mcp_disconnecting)
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -88,7 +100,7 @@ internal fun ColumnScope.McpConnectorDetail(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                error = "出错了：${failure.message ?: failure.javaClass.simpleName}"
+                error = resources.getString(R.string.mcp_error_generic, failure.message ?: failure.javaClass.simpleName)
             } finally {
                 busy = null
                 events = controller.events(connector)
@@ -97,7 +109,9 @@ internal fun ColumnScope.McpConnectorDetail(
     }
     // Opening a connected app's page checks it quietly, so an expired key shows here and not mid-drive.
     LaunchedEffect(connector.id, status is ConnectorStatus.Connected) {
-        if (status is ConnectorStatus.Connected) act("正在检查…") { tools = controller.checkApp(connector, record = false) }
+        if (status is ConnectorStatus.Connected) {
+            act(checking) { tools = controller.checkApp(connector, record = false) }
+        }
     }
     AppHeader(connector, onBack)
     Spacer(Modifier.height(Dimens.spaceXl))
@@ -108,17 +122,17 @@ internal fun ColumnScope.McpConnectorDetail(
                 sandbox = controller.usesSandbox(connector),
                 tools = tools,
                 busy = busy != null,
-                onCheck = { act("正在检查…") { tools = controller.checkApp(connector) } },
+                onCheck = { act(checking) { tools = controller.checkApp(connector) } },
                 onReplace = { replacing = true },
                 onDisconnect = { confirmDisconnect = true },
             )
             status == ConnectorStatus.Paused && !replacing -> PausedPanel(
                 busy = busy != null,
-                onResume = { act("正在启用…") { onStatus(controller.resumeApp(connector)) } },
+                onResume = { act(enabling) { onStatus(controller.resumeApp(connector)) } },
                 onDisconnect = { confirmDisconnect = true },
             )
             else -> ConnectForm(spec, busy != null, replacing, onCancel = { replacing = false }) { credential, sandbox ->
-                act("正在连接${connector.name}…") {
+                act(connecting) {
                     tools = controller.connectApp(connector, credential, sandbox)
                     replacing = false
                     onStatus(ConnectorStatus.Connected(verified = true))
@@ -132,7 +146,7 @@ internal fun ColumnScope.McpConnectorDetail(
     if (confirmDisconnect) {
         DisconnectDialog(connector, onDismiss = { confirmDisconnect = false }) {
             confirmDisconnect = false
-            act("正在断开…") {
+            act(disconnecting) {
                 controller.disconnect(connector)
                 tools = null
                 onStatus(ConnectorStatus.Disconnected)
@@ -145,13 +159,19 @@ internal fun ColumnScope.McpConnectorDetail(
 private fun AppHeader(connector: Connector, onBack: () -> Unit) {
     val colors = ConsoleColors
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = colors.muted) }
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.common_back),
+                tint = colors.muted,
+            )
+        }
         ConnectorAvatar(connector, HEADER_AVATAR_SIZE)
         Spacer(Modifier.width(Dimens.spaceMd))
         Column(Modifier.weight(1f)) {
-            Text(connector.name, style = ConsoleType.hero, color = colors.text)
-            Text(connector.summary, style = ConsoleType.bodySmall, color = colors.muted)
-            Text(connector.category, style = ConsoleType.meta, color = colors.tertiary)
+            Text(stringResource(connector.title), style = ConsoleType.hero, color = colors.text)
+            Text(stringResource(connector.summary), style = ConsoleType.bodySmall, color = colors.muted)
+            Text(stringResource(connector.category), style = ConsoleType.meta, color = colors.tertiary)
         }
     }
 }
@@ -167,37 +187,61 @@ private fun ConnectedPanel(
     onDisconnect: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val label = spec.credentialLabel?.let { stringResource(it) }.orEmpty()
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success)
         Spacer(Modifier.width(Dimens.spaceSm))
-        Text(if (sandbox) "已连接 · 沙箱" else "已连接", style = ConsoleType.panelTitle, color = colors.text)
+        Text(
+            stringResource(if (sandbox) R.string.mcp_connected_sandbox else R.string.mcp_status_connected),
+            style = ConsoleType.panelTitle,
+            color = colors.text,
+        )
     }
     Spacer(Modifier.height(Dimens.spaceSm))
     tools?.let { names ->
-        val shown = names.take(SHOWN_TOOLS).joinToString("、") + if (names.size > SHOWN_TOOLS) " 等" else ""
-        Text("可以用 ${names.size} 个功能：$shown", style = ConsoleType.body, color = colors.muted)
+        val listed = names.take(SHOWN_TOOLS).joinToString(stringResource(R.string.mcp_list_separator))
+        val shown = if (names.size > SHOWN_TOOLS) stringResource(R.string.mcp_tools_more, listed) else listed
+        Text(
+            pluralStringResource(R.plurals.mcp_tools_available, names.size, names.size, shown),
+            style = ConsoleType.body,
+            color = colors.muted,
+        )
     }
-    Text("直接对小博说「${spec.example}」就行。", style = ConsoleType.body, color = colors.text)
+    Text(
+        stringResource(R.string.mcp_say_example, stringResource(spec.example)),
+        style = ConsoleType.body,
+        color = colors.text,
+    )
     if (sandbox) {
-        Text("现在连的是沙箱，数据是模拟的。要真用，点「更换${spec.credentialLabel}」选正式环境。", style = ConsoleType.bodySmall, color = colors.muted)
+        Text(stringResource(R.string.mcp_sandbox_hint, label), style = ConsoleType.bodySmall, color = colors.muted)
     }
-    if (spec.note.isNotEmpty() && !spec.needsCredential) Text(spec.note, style = ConsoleType.bodySmall, color = colors.muted)
+    if (spec.note != null && !spec.needsCredential) {
+        Text(stringResource(spec.note), style = ConsoleType.bodySmall, color = colors.muted)
+    }
     Spacer(Modifier.height(Dimens.spaceLg))
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Button(onClick = onCheck, enabled = !busy) { Text("检查连接") }
-        if (spec.needsCredential) OutlinedButton(onClick = onReplace, enabled = !busy) { Text("更换${spec.credentialLabel}") }
-        OutlinedButton(onClick = onDisconnect, enabled = !busy) { Text("断开", color = colors.danger) }
+        Button(onClick = onCheck, enabled = !busy) { Text(stringResource(R.string.mcp_check_connection)) }
+        if (spec.needsCredential) {
+            OutlinedButton(onClick = onReplace, enabled = !busy) {
+                Text(stringResource(R.string.mcp_replace_credential, label))
+            }
+        }
+        OutlinedButton(onClick = onDisconnect, enabled = !busy) {
+            Text(stringResource(R.string.common_disconnect), color = colors.danger)
+        }
     }
 }
 
 @Composable
 private fun PausedPanel(busy: Boolean, onResume: () -> Unit, onDisconnect: () -> Unit) {
     val colors = ConsoleColors
-    Text("已在 设置 → 连接 → MCP 里停用，小博暂时不会用它。", style = ConsoleType.body, color = colors.text)
+    Text(stringResource(R.string.mcp_paused_hint), style = ConsoleType.body, color = colors.text)
     Spacer(Modifier.height(Dimens.spaceLg))
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Button(onClick = onResume, enabled = !busy) { Text("重新启用") }
-        OutlinedButton(onClick = onDisconnect, enabled = !busy) { Text("断开", color = colors.danger) }
+        Button(onClick = onResume, enabled = !busy) { Text(stringResource(R.string.mcp_turn_back_on)) }
+        OutlinedButton(onClick = onDisconnect, enabled = !busy) {
+            Text(stringResource(R.string.common_disconnect), color = colors.danger)
+        }
     }
 }
 
@@ -214,10 +258,10 @@ private fun ConnectForm(
     var sandbox by remember { mutableStateOf(true) }
     if (!spec.needsCredential) {
         val local = spec.url.startsWith("http://127.0.0.1:")
-        val hint = if (local) "本机的演示服务，不需要 key：先打开 Bothy Playground，再点「连接」。" else "公开服务，不需要 key：点「连接」测一下，就能直接用。"
+        val hint = stringResource(if (local) R.string.mcp_open_local_hint else R.string.mcp_open_public_hint)
         Text(hint, style = ConsoleType.body, color = ConsoleColors.text)
         Spacer(Modifier.height(Dimens.spaceMd))
-        Button(onClick = { onConnect("", false) }, enabled = !busy) { Text("连接") }
+        Button(onClick = { onConnect("", false) }, enabled = !busy) { Text(stringResource(R.string.common_connect)) }
         return
     }
     Row(verticalAlignment = Alignment.Top) {
@@ -226,26 +270,28 @@ private fun ConnectForm(
         Column(Modifier.weight(1f)) { HowToSteps(spec) }
     }
     Spacer(Modifier.height(Dimens.spaceLg))
-    CredentialField(spec.credentialLabel, credential) { credential = it }
+    CredentialField(spec.credentialLabel?.let { stringResource(it) }.orEmpty(), credential) { credential = it }
     if (spec.sandboxUrl != null) SandboxChoice(sandbox) { sandbox = it }
     Spacer(Modifier.height(Dimens.spaceMd))
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Button(onClick = { onConnect(credential, sandbox) }, enabled = !busy && credential.isNotBlank()) {
-            Text(if (replacing) "保存并连接" else "连接")
+            Text(stringResource(if (replacing) R.string.mcp_save_and_connect else R.string.common_connect))
         }
-        if (replacing) TextButton(onClick = onCancel, enabled = !busy) { Text("取消") }
+        if (replacing) TextButton(onClick = onCancel, enabled = !busy) { Text(stringResource(R.string.common_cancel)) }
     }
 }
 
 @Composable
 private fun HowToSteps(spec: McpConnectorSpec) {
     val colors = ConsoleColors
-    Text("怎么获取${spec.credentialLabel}", style = ConsoleType.panelTitle, color = colors.text)
-    (spec.steps + "把${spec.credentialLabel}粘贴到下面，点「连接」").forEachIndexed { index, step ->
+    val label = spec.credentialLabel?.let { stringResource(it) }.orEmpty()
+    Text(stringResource(R.string.mcp_how_to_get, label), style = ConsoleType.panelTitle, color = colors.text)
+    val steps = spec.steps.map { stringResource(it) } + stringResource(R.string.mcp_paste_step, label)
+    steps.forEachIndexed { index, step ->
         Text("${index + 1}. $step", style = ConsoleType.body, color = colors.text, modifier = Modifier.padding(top = Dimens.spaceXs))
     }
     Spacer(Modifier.height(Dimens.spaceSm))
-    Text("扫不了码时，用手机浏览器打开 ${spec.portal}", style = ConsoleType.bodySmall, color = colors.muted)
+    Text(stringResource(R.string.mcp_portal_manual, spec.portal), style = ConsoleType.bodySmall, color = colors.muted)
 }
 
 @Composable
@@ -269,10 +315,15 @@ private fun CredentialField(label: String, value: String, onValue: (String) -> U
     OutlinedTextField(
         value = value,
         onValueChange = onValue,
-        label = { Text(label) },
+        // English labels are written for the middle of a sentence ("access token"); a label starts with a capital.
+        label = { Text(label.replaceFirstChar { it.uppercase() }) },
         singleLine = true,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = { TextButton(onClick = { visible = !visible }) { Text(if (visible) "隐藏" else "显示") } },
+        trailingIcon = {
+            TextButton(onClick = { visible = !visible }) {
+                Text(stringResource(if (visible) R.string.mcp_hide else R.string.mcp_show))
+            }
+        },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         modifier = Modifier.fillMaxWidth(),
         colors = outlinedTextFieldColors(),
@@ -282,8 +333,8 @@ private fun CredentialField(label: String, value: String, onValue: (String) -> U
 @Composable
 private fun SandboxChoice(sandbox: Boolean, onChoose: (Boolean) -> Unit) {
     Spacer(Modifier.height(Dimens.spaceSm))
-    ChoiceRow("沙箱：模拟数据，不会真的叫车（先用它试）", sandbox) { onChoose(true) }
-    ChoiceRow("正式：会真实派单、扣费", !sandbox) { onChoose(false) }
+    ChoiceRow(stringResource(R.string.mcp_sandbox_choice), sandbox) { onChoose(true) }
+    ChoiceRow(stringResource(R.string.mcp_production_choice), !sandbox) { onChoose(false) }
 }
 
 @Composable
@@ -316,11 +367,18 @@ private fun BusyAndError(busy: String?, error: String?) {
 @Composable
 private fun Abilities(spec: McpConnectorSpec) {
     val colors = ConsoleColors
-    ConnectorSectionTitle("能做什么")
-    spec.abilities.forEach { Text("• $it", style = ConsoleType.body, color = colors.text, modifier = Modifier.padding(top = Dimens.spaceXs)) }
-    if (spec.note.isNotEmpty()) {
+    ConnectorSectionTitle(stringResource(R.string.mcp_abilities))
+    spec.abilities.forEach {
+        Text(
+            "• ${stringResource(it)}",
+            style = ConsoleType.body,
+            color = colors.text,
+            modifier = Modifier.padding(top = Dimens.spaceXs),
+        )
+    }
+    spec.note?.let {
         Spacer(Modifier.height(Dimens.spaceSm))
-        Text(spec.note, style = ConsoleType.bodySmall, color = colors.muted)
+        Text(stringResource(it), style = ConsoleType.bodySmall, color = colors.muted)
     }
 }
 
@@ -328,13 +386,25 @@ private fun Abilities(spec: McpConnectorSpec) {
 private fun DisconnectDialog(connector: Connector, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     BothyAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("断开${connector.name}？") },
+        title = { Text(stringResource(R.string.mcp_disconnect_title, stringResource(connector.title))) },
         text = {
             val spec = connector.mcp
-            Text(if (spec?.needsCredential == false) "断开后小博不能再用${connector.name}。" else "断开后小博不能再用${connector.name}，这台设备上保存的${spec?.credentialLabel ?: "令牌"}也会删掉。")
+            val title = stringResource(connector.title)
+            Text(
+                if (spec?.needsCredential == false) {
+                    stringResource(R.string.mcp_disconnect_open, title)
+                } else {
+                    val label = stringResource(spec?.credentialLabel ?: R.string.mcp_token)
+                    stringResource(R.string.mcp_disconnect_keyed, title, label)
+                },
+            )
         },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("断开", color = ConsoleColors.danger) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.common_disconnect), color = ConsoleColors.danger)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 

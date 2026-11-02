@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -49,7 +51,7 @@ internal fun Markdown(source: String, modifier: Modifier = Modifier) {
                 is MarkdownBlock.Code -> CodeBlock(
                     code = block.content.trimEnd('\n'),
                     language = when {
-                        !block.closed -> "code · streaming"
+                        !block.closed -> stringResource(R.string.console_code_streaming)
                         block.language.isNotBlank() -> block.language
                         else -> null
                     },

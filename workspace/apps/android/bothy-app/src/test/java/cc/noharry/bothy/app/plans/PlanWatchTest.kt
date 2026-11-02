@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.plans
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.agent.kernel.api.ToolDescriptor
@@ -24,10 +27,16 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Watches on any server's resources or read-only tools, the trackers that fire them, and the actions an automation runs. */
 @OptIn(ExperimentalAgentRuntimeApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class PlanWatchTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val policy = AutomationPolicy.parse(File("src/main/assets/automation-policy.json").readText())
 
     @Test
@@ -161,7 +170,7 @@ class PlanWatchTest {
         val notify = PlanAction("tools_json", "send_notification", args("""{"text":"该带伞了"}"""), "发通知")
         val music = PlanAction("tools_json", "play_media", args("""{"keyword":"雨天"}"""), "放雨天的歌")
         val called = mutableListOf<String>()
-        val lines = runPlanActions(listOf(notify, music), policy) { action ->
+        val lines = runPlanActions(context, listOf(notify, music), policy) { action ->
             called += action.label
             if (action == music) "服务拒绝了" else null
         }
@@ -169,16 +178,17 @@ class PlanWatchTest {
         assertEquals(listOf("发通知", "放雨天的歌"), called)
         // A rule saved before the policy denied its tool does not run it.
         val stricter = policy.tightenedBy(AutomationPolicy.parse("""{"deny":[{"tool":"send_*"}]}"""))
-        assertEquals(listOf("发通知没执行（现在的策略不允许自动执行）"), runPlanActions(listOf(notify), stricter) { error("must not run") })
+        assertEquals(listOf("发通知没执行（现在的策略不允许自动执行）"), runPlanActions(context, listOf(notify), stricter) { error("must not run") })
     }
 
     @Test
     fun aToolCallsOutcomeIsReadFromItsAnswer() {
-        fun outcome(body: String) = planActionProblem(McpRpcResponse(McpStatus.OK, "", data(body), null))
+        fun outcome(body: String) = planActionProblem(context, McpRpcResponse(McpStatus.OK, "", data(body), null))
         assertNull(outcome("""{"result":{"isError":false,"structuredContent":{"status":{"code":0,"message":"OK"}}}}"""))
         assertEquals("参数无效", outcome("""{"result":{"isError":true,"structuredContent":{"status":{"code":1001,"message":"参数无效"}}}}"""))
         assertEquals("resource_unavailable", outcome("""{"error":{"code":-32006,"message":"resource_unavailable"}}"""))
-        assertEquals("连不上", planActionProblem(McpRpcResponse(McpStatus.CONNECT_ERROR, "", null, "连不上")))
+        assertEquals("连不上", planActionProblem(context, McpRpcResponse(McpStatus.CONNECT_ERROR, "", null, "连不上")))
+        assertEquals("被拒绝了", outcome("""{"result":{"isError":true}}"""))
     }
 
     @Test
@@ -207,7 +217,7 @@ class PlanWatchTest {
         assertEquals(listOf("深圳下雨时，每次", "发带伞通知"), listOf(rain["when"]!!.jsonPrimitive.content, rain["actions"]!!.jsonPrimitive.content))
         val saved = book.plans().single()
         assertTrue(saved.trigger.repeats())
-        assertEquals("触发时自动：发带伞通知", planDoes(saved))
+        assertEquals("触发时自动：发带伞通知", planDoes(context, saved))
         val refused = call("""{"action":"create","title":"下雨发短信","watch":{"server":"weather","uri":"$WEATHER_URI","field":"condition","op":"contains","value":"雨"},"actions":[{"tool":"mcp__tools_json__send_sms"}]}""")
         assertEquals("计划里不能自动执行 send_sms（发短信）", refused["message"]!!.jsonPrimitive.content)
         // An update can change the actions alone.

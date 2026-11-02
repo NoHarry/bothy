@@ -42,10 +42,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.SAVED_PICTURE
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -78,22 +80,26 @@ internal fun GeneratedImageRow(picture: OverlayPicture) {
             reference == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusDot(color = colors.activity, pulsing = true, modifier = Modifier.size(7.dp))
                 Spacer(Modifier.width(Dimens.spaceSm))
-                Text("正在生成图片…", style = ConsoleType.meta, color = colors.muted)
+                Text(stringResource(R.string.image_generating_picture), style = ConsoleType.meta, color = colors.muted)
             }
-            present == false -> Text("图片文件已清理", style = ConsoleType.meta, color = colors.tertiary)
+            present == false -> {
+                Text(stringResource(R.string.image_file_cleared), style = ConsoleType.meta, color = colors.tertiary)
+            }
             else -> {
                 val bitmap by rememberPicture(reference, CONSOLE_IMAGE_PX)
                 var viewing by remember(reference) { mutableStateOf(false) }
                 if (viewing) GeneratedImageViewer(reference, picture.prompt) { viewing = false }
+                val viewLarger = stringResource(R.string.image_view_larger)
+                val description = picture.prompt.ifBlank { stringResource(R.string.image_generated) }
                 Box(
                     Modifier
                         .size(CONSOLE_IMAGE_SIZE)
                         .clip(RoundedCornerShape(Dimens.radiusMd))
                         .background(colors.panel)
-                        .clickable(onClickLabel = "放大查看") { viewing = true },
+                        .clickable(onClickLabel = viewLarger) { viewing = true },
                 ) {
                     bitmap?.let {
-                        Image(it, contentDescription = picture.prompt.ifBlank { "生成的图片" }, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        Image(it, description, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
                 }
             }
@@ -111,6 +117,8 @@ internal fun GeneratedImageRow(picture: OverlayPicture) {
 @Composable
 internal fun GeneratedImageViewer(reference: String, caption: String, onDismiss: () -> Unit) {
     val bitmap by rememberPicture(reference, VIEWER_IMAGE_PX)
+    val description = caption.ifBlank { stringResource(R.string.image_generated) }
+    val close = stringResource(R.string.common_close)
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Box(
             Modifier
@@ -118,7 +126,7 @@ internal fun GeneratedImageViewer(reference: String, caption: String, onDismiss:
                 .background(Color.Black.copy(alpha = 0.94f))
                 .pointerInput(reference) { detectTapGestures(onTap = { onDismiss() }) },
         ) {
-            bitmap?.let { ZoomableImage(it, caption.ifBlank { "生成的图片" }, onDismiss) }
+            bitmap?.let { ZoomableImage(it, description, onDismiss) }
             if (caption.isNotBlank()) {
                 Text(
                     caption,
@@ -129,7 +137,7 @@ internal fun GeneratedImageViewer(reference: String, caption: String, onDismiss:
                 )
             }
             IconButton(onClick = onDismiss, modifier = Modifier.align(Alignment.TopEnd).padding(Dimens.spaceMd)) {
-                Icon(Icons.Filled.Close, contentDescription = "关闭", tint = Color.White)
+                Icon(Icons.Filled.Close, contentDescription = close, tint = Color.White)
             }
         }
     }

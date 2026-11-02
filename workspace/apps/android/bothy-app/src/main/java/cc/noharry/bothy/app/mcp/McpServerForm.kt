@@ -25,9 +25,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -71,7 +74,7 @@ internal fun McpServerForm(
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             if (McpServerKind.entries.size > 1 && existing?.deletable != false) McpKindPicker(fields.kind) { fields.kind = it }
-            McpFormField("名称", fields.label) { fields.label = it }
+            McpFormField(stringResource(R.string.mcp_form_name), fields.label) { fields.label = it }
             HttpFields(fields, stored)
             saveError?.let { Text(it, style = ConsoleType.meta, color = ConsoleColors.danger) }
         }
@@ -79,12 +82,12 @@ internal fun McpServerForm(
         HorizontalDivider(color = ConsoleColors.border)
         Spacer(Modifier.height(Dimens.spaceXs))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onDone) { Text("取消") }
+            TextButton(onClick = onDone) { Text(stringResource(R.string.common_cancel)) }
             Spacer(Modifier.width(Dimens.spaceSm))
             Button(
                 onClick = { actions.saveMcpServer(fields.draft(existing?.id)).let { error -> if (error == null) onDone() else saveError = error } },
                 shape = RoundedCornerShape(Dimens.radiusMd),
-            ) { Text("保存") }
+            ) { Text(stringResource(R.string.common_save)) }
         }
     }
 }
@@ -92,13 +95,13 @@ internal fun McpServerForm(
 @Composable
 private fun McpKindPicker(selected: McpServerKind, onSelect: (McpServerKind) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        Text("类型", style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(stringResource(R.string.mcp_form_type), style = ConsoleType.meta, color = ConsoleColors.muted)
         McpServerKind.entries.forEach { kind ->
             SelectableOptionRow(
-                label = kind.label,
+                label = stringResource(kind.label),
                 selected = kind == selected,
                 onClick = { onSelect(kind) },
-                subtitle = "服务器地址，可带令牌和请求头",
+                subtitle = stringResource(R.string.mcp_form_kind_http_subtitle),
             )
         }
     }
@@ -106,22 +109,33 @@ private fun McpKindPicker(selected: McpServerKind, onSelect: (McpServerKind) -> 
 
 @Composable
 private fun HttpFields(fields: McpServerFields, stored: McpSecrets.Stored) {
-    McpFormField("地址（Streamable HTTP）", fields.url, placeholder = "https://example.com/mcp") { fields.url = it }
+    McpFormField(stringResource(R.string.mcp_form_url), fields.url, placeholder = "https://example.com/mcp") {
+        fields.url = it
+    }
     McpFormField(
-        "令牌（可不填，作为 Authorization: Bearer 发送，只存在本机）",
+        stringResource(R.string.mcp_form_token),
         fields.token,
         secret = true,
-        placeholder = if (stored.token.isNotEmpty()) "已设置，留空不变" else "",
+        placeholder = if (stored.token.isNotEmpty()) stringResource(R.string.mcp_form_token_kept) else "",
     ) { fields.token = it }
     McpFormField(
-        "其他请求头（可不填，一行一个「名称: 值」，只存在本机）",
+        stringResource(R.string.mcp_form_headers),
         fields.headers,
         singleLine = false,
-        placeholder = if (stored.headers.isNotEmpty()) "已设置 ${stored.headers.size} 个，留空不变" else "X-Api-Key: …",
+        placeholder = if (stored.headers.isNotEmpty()) {
+            pluralStringResource(R.plurals.mcp_form_headers_kept, stored.headers.size, stored.headers.size)
+        } else {
+            "X-Api-Key: …"
+        },
     ) { fields.headers = it }
     if (!stored.isEmpty) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("清除已存的令牌和请求头", style = ConsoleType.body, color = ConsoleColors.text, modifier = Modifier.weight(1f))
+            Text(
+                stringResource(R.string.mcp_form_clear_secrets),
+                style = ConsoleType.body,
+                color = ConsoleColors.text,
+                modifier = Modifier.weight(1f),
+            )
             Switch(checked = fields.clearSecrets, onCheckedChange = { fields.clearSecrets = it }, colors = switchColors())
         }
     }

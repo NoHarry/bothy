@@ -27,7 +27,19 @@ class ModelDownloader(
         data class Downloading(val bytes: Long, val total: Long, val source: String) : Progress
         data object Verifying : Progress
         data class Done(val file: File) : Progress
-        data class Failed(val reason: String) : Progress
+        /** Why it ended, for the app to say in its own words; [detail] is what [failure] says it is. */
+        data class Failed(val failure: Failure, val detail: String = "") : Progress
+    }
+
+    enum class Failure {
+        /** The spec lists no URL to fetch from. */
+        NO_SOURCE,
+        /** Every source failed; the detail is the last one's host and error. */
+        DOWNLOAD,
+        /** The finished file is not the published SHA-256; it was deleted. */
+        CHECKSUM,
+        /** The finished file could not be renamed; the detail is the file name it should have. */
+        RENAME,
     }
 
     fun file(spec: LocalModelSpec): File = File(dir, spec.fileName)
@@ -52,11 +64,11 @@ class ModelDownloader(
         val whole = if (file(spec).length() == spec.sizeBytes) file(spec) else partial(spec)
         if (sha256(whole) != spec.sha256) {
             delete(spec)
-            emit(Progress.Failed("校验失败：文件内容和发布的 SHA-256 不一致，已删除，请重新下载"))
+            emit(Progress.Failed(Failure.CHECKSUM))
             return@flow
         }
         if (whole != file(spec) && !whole.renameTo(file(spec))) {
-            emit(Progress.Failed("保存失败：没能把下载好的文件改名为 ${spec.fileName}，请重试"))
+            emit(Progress.Failed(Failure.RENAME, spec.fileName))
             return@flow
         }
         marker(spec).writeText(spec.sha256)
@@ -65,7 +77,7 @@ class ModelDownloader(
 
     /** Fetches until the partial file is whole; false (after a [Progress.Failed]) when every source failed. */
     private suspend fun FlowCollector<Progress>.fetch(spec: LocalModelSpec): Boolean {
-        var reason = "没有下载地址"
+        var reason: String? = null
         repeat(ROUNDS) {
             for (url in spec.urls) {
                 if (partial(spec).length() >= spec.sizeBytes) return true
@@ -77,7 +89,7 @@ class ModelDownloader(
             }
         }
         if (partial(spec).length() >= spec.sizeBytes) return true
-        emit(Progress.Failed("下载失败：$reason"))
+        emit(Progress.Failed(if (reason == null) Failure.NO_SOURCE else Failure.DOWNLOAD, reason.orEmpty()))
         return false
     }
 

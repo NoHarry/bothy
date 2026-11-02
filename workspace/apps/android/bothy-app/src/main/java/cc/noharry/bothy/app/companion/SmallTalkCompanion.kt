@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.util.Log
 import cc.noharry.bothy.voice.VoiceHandOver
 import cc.noharry.bothy.voice.VoiceHandOverMode
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.evidence.BenchHttpTransport
 import cc.noharry.bothy.app.evidence.CheckResult
 import cc.noharry.bothy.app.evidence.CheckState
@@ -37,13 +38,13 @@ internal object SmallTalkCompanion {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var job: Job? = null
     private var lastReply: String? = null
-    private val decisions = ArrayDeque<String>()
+    private val decisions = ArrayDeque<RecentDecision>()
 
     /** Whether Jev should score small talk: the companion is on (either mode). Read for each turn. */
     fun scoring(context: Context): Boolean = loadCompanionConfig(context).scoring
 
     /** The last routing decisions, newest first, for 设置 → 陪聊. */
-    fun recentDecisions(): List<String> = synchronized(decisions) { decisions.toList().asReversed() }
+    fun recentDecisions(): List<RecentDecision> = synchronized(decisions) { decisions.toList().asReversed() }
 
     /** A pending reply is dropped: the next turn went to the agent, or the session ended. */
     fun cancel() {
@@ -70,7 +71,7 @@ internal object SmallTalkCompanion {
 
     private suspend fun chat(context: Context, config: CompanionConfig, handOver: VoiceHandOver, onReply: (String) -> Unit) {
         val started = SystemClock.elapsedRealtime()
-        val label = "${config.service.label} · ${config.endpoint().model}"
+        val label = "${context.getString(config.service.label)} · ${config.endpoint().model}"
         val reply = try {
             ask(context, config, handOver.text, RuntimeSession.recentExchanges(context))
         } catch (cancelled: CancellationException) {
@@ -92,8 +93,11 @@ internal object SmallTalkCompanion {
 
     /** One chat with the configured service; the settings page's 试一试 and the health check use it too. */
     suspend fun ask(context: Context, config: CompanionConfig, words: String, recent: List<Pair<String, String>> = emptyList()): String {
-        (config.validationError() ?: config.readinessError())?.let { throw IllegalStateException(it) }
-        val key = CompanionKeys.read(context, config.service).ifEmpty { throw IllegalStateException("${config.service.label} 没有 API key") }
+        (config.validationError(context) ?: config.readinessError(context))?.let { throw IllegalStateException(it) }
+        val key = CompanionKeys.read(context, config.service).ifEmpty {
+            val name = context.getString(config.service.label)
+            throw IllegalStateException(context.getString(R.string.companion_error_no_key, name))
+        }
         return withContext(Dispatchers.IO) {
             val profile = memoryProfileText(UserMemoryStore.inUse(context))
             CompanionChat(transport(context)).reply(config.endpoint(), key, companionMessages(config.persona, recent, words, profile))
@@ -108,7 +112,7 @@ internal object SmallTalkCompanion {
         VoiceLog.i(COMPANION_TAG, "route ${if (decision.toCompanion) "companion" else "agent"} (${decision.reason}): ${handOver.text.take(LOG_CHARS)}")
         val stamp = SimpleDateFormat("HH:mm:ss", Locale.ROOT).format(Date())
         synchronized(decisions) {
-            decisions.addLast("$stamp ${if (decision.toCompanion) "陪聊" else "小博"} · ${decision.reason} · 「${handOver.text.take(LOG_CHARS)}」")
+            decisions.addLast(RecentDecision(stamp, decision, handOver.text.take(LOG_CHARS)))
             while (decisions.size > MAX_DECISIONS) decisions.removeFirst()
         }
     }
@@ -117,22 +121,46 @@ internal object SmallTalkCompanion {
     private const val MAX_DECISIONS = 30
 }
 
+/** One routing decision for 设置 → 陪聊: when, where the turn went and why, and the start of the words. */
+internal data class RecentDecision(val time: String, val decision: CompanionDecision, val words: String)
+
+/** Why asking the service failed, in the screen's language: 设置 → 陪聊's 试一试 and 检查 → 陪聊. */
+internal fun companionFailureText(context: Context, error: Throwable): String = when (error) {
+    is CompanionHttpException -> {
+        val head = error.serviceMessage
+            ?.let { context.getString(R.string.companion_http_with_message, error.status, it) }
+            ?: "HTTP ${error.status}"
+        val hint = when (error.status) {
+            401, 403 -> R.string.companion_http_hint_key
+            404 -> R.string.companion_http_hint_address
+            else -> null
+        }
+        hint?.let { context.getString(R.string.companion_http_with_hint, head, context.getString(it)) } ?: head
+    }
+    is CompanionTimeoutException ->
+        context.resources.getQuantityString(R.plurals.companion_error_timeout, error.seconds, error.seconds)
+    else -> error.message ?: error.javaClass.simpleName
+}
+
 /** 检查 → 陪聊: off, or one short chat with the configured service and how long it took. */
 internal suspend fun checkCompanion(context: Context): CheckResult {
     val config = loadCompanionConfig(context)
-    if (!config.enabled) return CheckResult(CheckState.OFF, "没打开")
+    if (!config.enabled) return CheckResult(CheckState.OFF, context.getString(R.string.companion_check_off))
     // 端到端 has 豆包 chat itself and never hands a turn to 陪聊 (owner 2026-10-14: 「陪聊只在非端到端模式下用」).
-    if (loadRealtimeConfig(context).enabled) return CheckResult(CheckState.OFF, "端到端模式下不用陪聊：闲聊由豆包自己回答")
-    val name = "${config.service.label} · ${config.endpoint().model} · ${config.mode.label.substringBefore("（")}"
+    if (loadRealtimeConfig(context).enabled) {
+        return CheckResult(CheckState.OFF, context.getString(R.string.companion_check_realtime))
+    }
+    val service = context.getString(config.service.label)
+    val name = "$service · ${config.endpoint().model} · ${context.getString(config.mode.shortLabel)}"
     val started = SystemClock.elapsedRealtime()
     return try {
         val reply = SmallTalkCompanion.ask(context, config, "你好")
         val elapsed = SystemClock.elapsedRealtime() - started
-        if (reply.isBlank()) CheckResult(CheckState.WARN, "$name · 服务回了空内容")
-        else CheckResult(CheckState.OK, "$name · 回复用了 ${elapsed} ms")
+        if (reply.isBlank()) CheckResult(CheckState.WARN, context.getString(R.string.companion_check_empty, name))
+        else CheckResult(CheckState.OK, context.getString(R.string.companion_check_ok, name, elapsed))
     } catch (cancelled: CancellationException) {
         throw cancelled
     } catch (error: Exception) {
-        CheckResult(CheckState.FAIL, "$name · ${error.message ?: error.javaClass.simpleName}")
+        CheckResult(CheckState.FAIL, "$name · ${companionFailureText(context, error)}")
     }
 }

@@ -20,7 +20,7 @@ internal class SessionStore(private val root: File) {
         refreshQueryFiles()
     }
 
-    fun ensureSession(sessionId: String = newSessionId(), title: String = "New session"): SessionSummary {
+    fun ensureSession(sessionId: String = newSessionId(), title: String = NEW_SESSION_TITLE): SessionSummary {
         readSummary(root, sessionId)?.let { return it }
         return ensureSessionDir(root, sessionId, title).also { refreshQueryFiles() }
     }
@@ -72,7 +72,7 @@ private fun appendSessionTurn(
     File(dir, TURNS_FILE).appendText(BothySessionJson.encodeTurn(turn) + "\n", Charsets.UTF_8)
     val turns = turnsBeforeAppend + turn
     val previous = readSummary(root, turn.sessionId)
-    val title = previous?.title?.takeIf { it != "New session" } ?: turn.userText.titleFromUserText()
+    val title = previous?.title?.takeIf { it != NEW_SESSION_TITLE } ?: turn.userText.titleFromUserText()
     val summary = SessionSummary(turn.sessionId, title, turn.completedAtEpochMillis, turns.size, compactTurns(turns))
     writeSummary(root, summary)
     return summary
@@ -261,7 +261,7 @@ private fun String.toToolStatus(): ToolCallStatus =
     }
 
 private fun String.titleFromUserText(): String =
-    oneLine().take(SESSION_TITLE_CHARS).ifBlank { "Debug session" }
+    oneLine().take(SESSION_TITLE_CHARS).ifBlank { UNTITLED_SESSION_TITLE }
 
 private fun String.oneLine(): String =
     replace("\n", " ").replace(Regex("""\s+"""), " ").trim()
@@ -283,6 +283,9 @@ private const val MAX_CONTEXT_ASSISTANT_CHARS = 360
 private const val MAX_CONTEXT_ACTION_EVIDENCE_CHARS = 480
 private const val CONTEXT_ELLIPSIS = " … "
 private const val SESSION_TITLE_CHARS = 32
+/** Stored titles that stand for "no title yet"; the screens show them in their own language ([sessionTitleText]). */
+internal const val NEW_SESSION_TITLE = "New session"
+internal const val UNTITLED_SESSION_TITLE = "Debug session"
 private const val TURN_PREVIEW_CHARS = 60
 private const val PERSISTED_ITEM_ID_BLOCK = 1000
 private const val PERSISTED_FINAL_RESPONSE_OFFSET = 899

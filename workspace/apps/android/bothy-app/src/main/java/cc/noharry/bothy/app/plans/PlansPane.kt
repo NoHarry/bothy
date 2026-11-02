@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.plans
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,9 +33,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -46,6 +50,8 @@ import cc.noharry.bothy.app.model.describe
 import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.usage.UsageCard
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
@@ -82,49 +88,60 @@ internal fun PlansLayout(tabs: (@Composable () -> Unit)?, modifier: Modifier) {
         if (plans.isEmpty()) PlansEmpty()
         val (ended, rest) = plans.partition { it.end != null }
         val (going, paused) = rest.partition { it.enabled }
-        PlanSection("进行中", going.sortedBy { it.nextDueMillis(now, PlanRunner.zone()) ?: Long.MAX_VALUE }, now, feeds, onDelete = { deleting = it })
-        PlanSection("已暂停", paused, now, feeds, onDelete = { deleting = it })
-        PlanSection("已结束", ended.sortedByDescending { it.lastFiredAtMillis ?: it.lastDueAtMillis ?: it.createdAtMillis }, now, feeds, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_active), going.sortedBy { it.nextDueMillis(now, PlanRunner.zone()) ?: Long.MAX_VALUE }, now, feeds, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_paused), paused, now, feeds, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_ended), ended.sortedByDescending { it.lastFiredAtMillis ?: it.lastDueAtMillis ?: it.createdAtMillis }, now, feeds, onDelete = { deleting = it })
         PlanHistory(history)
-        Text(PLANS_FOOTER, style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+        Text(stringResource(R.string.plans_footer), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
     }
     deleting?.let { plan ->
         BothyAlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("删除这个计划？") },
-            text = { Text("「${plan.title}」 · ${plan.trigger.describe(now, PlanRunner.zone())}") },
+            title = { Text(stringResource(R.string.plans_delete_title)) },
+            text = {
+                val time = plan.trigger.describeOnScreen(context, now, PlanRunner.zone())
+                Text(stringResource(R.string.plans_delete_text, plan.title, time))
+            },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
                     onPlans(context) { PlanRunner.delete(it, plan.id) }
-                }) { Text("删除", color = ConsoleColors.danger) }
+                }) { Text(stringResource(R.string.common_delete), color = ConsoleColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("取消") } },
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_cancel)) } },
         )
     }
 }
 
 @Composable
 private fun PlansHeader(plans: List<Plan>, now: Long) {
+    val context = LocalContext.current
     val going = plans.filter { it.active }
     val next = going.mapNotNull { plan -> plan.nextDueMillis(now, PlanRunner.zone())?.let { plan to it } }.minByOrNull { it.second }
     val watching = going.count { it.trigger is PlanTrigger.Watch }
     val summary = listOfNotNull(
-        if (going.isEmpty()) "没有进行中的计划" else "${going.size} 个进行中",
-        next?.let { (plan, at) -> "下一个：${describeMoment(at, now, PlanRunner.zone())} ${plan.title}" },
-        watching.takeIf { it > 0 }?.let { "$it 个在看状态" },
+        if (going.isEmpty()) {
+            stringResource(R.string.plans_none_active)
+        } else {
+            pluralStringResource(R.plurals.plans_active_count, going.size, going.size)
+        },
+        next?.let { (plan, at) ->
+            val time = describeMomentOnScreen(context, at, now, PlanRunner.zone())
+            stringResource(R.string.plans_next_plan, time, plan.title)
+        },
+        watching.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.plans_watching_count, it, it) },
     ).joinToString(" · ")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-        Text("计划", style = ConsoleType.hero.copy(fontSize = PLANS_TITLE_SIZE), color = ConsoleColors.text)
+        Text(stringResource(R.string.plans_title), style = ConsoleType.hero.copy(fontSize = PLANS_TITLE_SIZE), color = ConsoleColors.text)
         Text(summary, style = ConsoleType.bodySmall, color = ConsoleColors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun PlansEmpty() {
-    UsageCard("还没有计划") {
-        Text("对小博说一句就能安排，到点时小博会弹出卡片并念给你听：", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-        PLAN_EXAMPLES.forEach { Text("「$it」", style = ConsoleType.body, color = ConsoleColors.text) }
+    UsageCard(stringResource(R.string.plans_empty_title)) {
+        Text(stringResource(R.string.plans_empty_hint), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+        PLAN_EXAMPLES.forEach { Text(stringResource(it), style = ConsoleType.body, color = ConsoleColors.text) }
     }
 }
 
@@ -157,7 +174,7 @@ private fun PlanCard(plan: Plan, now: Long, feed: SubscriptionState?, onDelete: 
             Spacer(Modifier.width(Dimens.spaceSm))
             Column(Modifier.weight(1f)) {
                 Text(plan.title, style = ConsoleType.panelTitle, color = if (plan.active) ConsoleColors.text else ConsoleColors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(plan.trigger.describe(now, zone), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+                Text(plan.trigger.describeOnScreen(context, now, zone), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
             }
             Switch(
                 checked = plan.active,
@@ -165,22 +182,28 @@ private fun PlanCard(plan: Plan, now: Long, feed: SubscriptionState?, onDelete: 
                 enabled = plan.end == null,
                 colors = switchColors(),
             )
-            IconButton(onClick = { onDelete(plan) }) { Icon(Icons.Default.Delete, contentDescription = "删除计划", tint = ConsoleColors.muted) }
+            IconButton(onClick = { onDelete(plan) }) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.plans_delete_plan),
+                    tint = ConsoleColors.muted,
+                )
+            }
         }
-        Text(planDoes(plan), style = ConsoleType.body, color = ConsoleColors.text, maxLines = 3, overflow = TextOverflow.Ellipsis)
-        Text(planStateLine(plan, now, feed), style = ConsoleType.meta, color = if (plan.end == PlanEnd.MISSED) ConsoleColors.warning else ConsoleColors.tertiary)
+        Text(planDoes(context, plan), style = ConsoleType.body, color = ConsoleColors.text, maxLines = 3, overflow = TextOverflow.Ellipsis)
+        Text(planStateLine(context, plan, now, feed), style = ConsoleType.meta, color = if (plan.end == PlanEnd.MISSED) ConsoleColors.warning else ConsoleColors.tertiary)
     }
 }
 
 @Composable
 private fun KindPill(plan: Plan) {
-    val label = if (plan.actions.isNotEmpty()) "自动" else when (val trigger = plan.trigger) {
-        is PlanTrigger.Once -> "一次"
-        is PlanTrigger.Repeat -> "重复"
-        is PlanTrigger.Watch -> "状态"
+    val label = if (plan.actions.isNotEmpty()) R.string.plans_kind_auto else when (val trigger = plan.trigger) {
+        is PlanTrigger.Once -> R.string.plans_kind_once
+        is PlanTrigger.Repeat -> R.string.plans_kind_repeat
+        is PlanTrigger.Watch -> R.string.plans_kind_watch
     }
     Text(
-        label,
+        stringResource(label),
         style = ConsoleType.meta,
         color = ConsoleColors.accent,
         modifier = Modifier.background(ConsoleColors.accentSoft, RoundedCornerShape(Dimens.radiusFull))
@@ -191,7 +214,7 @@ private fun KindPill(plan: Plan) {
 @Composable
 private fun PlanHistory(history: List<PlanFiring>) {
     if (history.isEmpty()) return
-    UsageCard("最近触发") {
+    UsageCard(stringResource(R.string.plans_history_title)) {
         history.take(MAX_SHOWN_FIRINGS).forEachIndexed { index, firing ->
             if (index > 0) HorizontalDivider(color = ConsoleColors.borderSubtle)
             Row {
@@ -204,49 +227,120 @@ private fun PlanHistory(history: List<PlanFiring>) {
 }
 
 /** What a plan does: its car controls, 小博's task, the words it says; 「到点」 for a time, 「触发时」 for a watch. */
-internal fun planDoes(plan: Plan): String {
-    val at = if (plan.trigger is PlanTrigger.Watch) "触发时" else "到点"
+internal fun planDoes(context: Context, plan: Plan): String {
+    val watch = plan.trigger is PlanTrigger.Watch
+    fun line(@StringRes due: Int, @StringRes triggered: Int, what: String) =
+        context.getString(if (watch) triggered else due, what)
+    val separator = context.getString(R.string.plans_list_separator)
     return listOfNotNull(
-        plan.actions.takeIf { it.isNotEmpty() }?.joinToString("、", prefix = "${at}自动：") { it.label },
-        plan.instruction?.let { "${at}让小博去办：$it" },
+        plan.actions.takeIf { it.isNotEmpty() }?.let { actions ->
+            val labels = actions.joinToString(separator) { it.label }
+            line(R.string.plans_does_auto_due, R.string.plans_does_auto_triggered, labels)
+        },
+        plan.instruction?.let { line(R.string.plans_does_task_due, R.string.plans_does_task_triggered, it) },
         // A task's words are 小博's to say; only a reminder says its message.
-        plan.message.takeIf { it.isNotBlank() && plan.instruction == null }?.let { "${at}提醒：$it" },
-    ).joinToString("；")
+        plan.message.takeIf { it.isNotBlank() && plan.instruction == null }
+            ?.let { line(R.string.plans_does_remind_due, R.string.plans_does_remind_triggered, it) },
+    ).joinToString(context.getString(R.string.plans_clause_separator))
 }
 
 /**
  * Where a plan stands, in a line: 「下次：今天 16:30 · 1 小时 20 分钟后」「已暂停」「已完成 · 10/15 16:30」, or for a
  * watch how it is fed ([feed]: 实时 by push, 定时读取 on its pace, 未连接) and how often it fired.
  */
-internal fun planStateLine(plan: Plan, now: Long, feed: SubscriptionState? = null): String {
+internal fun planStateLine(context: Context, plan: Plan, now: Long, feed: SubscriptionState? = null): String {
     val zone = PlanRunner.zone()
-    val fired = plan.lastFiredAtMillis?.let { " · 上次 ${stamp(it)}" }.orEmpty()
+    val res = context.resources
+    val fired = plan.lastFiredAtMillis?.let { context.getString(R.string.plans_state_last, stamp(it)) }
     return when {
-        plan.end == PlanEnd.DONE -> "已完成$fired"
-        plan.end == PlanEnd.MISSED -> "已错过 · 本该在 ${plan.lastDueAtMillis?.let(::stamp) ?: "—"}"
-        !plan.enabled -> "已暂停$fired"
+        plan.end == PlanEnd.DONE ->
+            listOfNotNull(context.getString(R.string.plans_state_done), fired).joinToString(" · ")
+        plan.end == PlanEnd.MISSED ->
+            context.getString(R.string.plans_state_missed, plan.lastDueAtMillis?.let(::stamp) ?: "—")
+        !plan.enabled -> listOfNotNull(context.getString(R.string.plans_paused), fired).joinToString(" · ")
         plan.trigger is PlanTrigger.Watch -> {
             val watch = plan.trigger.watch
             val how = when (feed) {
-                null, SubscriptionState.NO_PUSH, SubscriptionState.REFUSED -> "每 ${watch.pollMillis / MILLIS_PER_SECOND} 秒读一次"
-                else -> feed.label
+                null, SubscriptionState.NO_PUSH, SubscriptionState.REFUSED -> {
+                    val seconds = (watch.pollMillis / MILLIS_PER_SECOND).toInt()
+                    res.getQuantityString(R.plurals.plans_state_poll, seconds, seconds)
+                }
+                else -> context.getString(feed.label)
             }
-            "${watch.server} · $how · 已触发 ${plan.firedCount} 次$fired"
+            val count = res.getQuantityString(R.plurals.plans_state_fired, plan.firedCount, plan.firedCount)
+            listOfNotNull(watch.server, how, count, fired).joinToString(" · ")
         }
-        else -> plan.nextDueMillis(now, zone)?.let { "下次：${describeMoment(it, now, zone)} · ${untilText(it - now)}" } ?: "进行中"
+        else -> plan.nextDueMillis(now, zone)
+            ?.let { next ->
+                val moment = describeMomentOnScreen(context, next, now, zone)
+                context.getString(R.string.plans_state_next, moment, untilText(context, next - now))
+            }
+            ?: context.getString(R.string.plans_active)
     }
 }
 
 /** 「3 分钟后」「1 小时 20 分钟后」「2 天后」; 「马上」 under a minute. */
-internal fun untilText(millis: Long): String {
-    val minutes = (millis + MILLIS_PER_MINUTE - 1) / MILLIS_PER_MINUTE
+internal fun untilText(context: Context, millis: Long): String {
+    val minutes = ((millis + MILLIS_PER_MINUTE - 1) / MILLIS_PER_MINUTE).toInt()
+    val res = context.resources
     return when {
-        millis <= 0 -> "马上"
-        minutes < MINUTES_PER_HOUR -> "$minutes 分钟后"
-        minutes < MINUTES_PER_DAY -> "${minutes / MINUTES_PER_HOUR} 小时${(minutes % MINUTES_PER_HOUR).takeIf { it > 0 }?.let { " $it 分钟" }.orEmpty()}后"
-        else -> "${minutes / MINUTES_PER_DAY} 天后"
+        millis <= 0 -> context.getString(R.string.plans_until_now)
+        minutes < MINUTES_PER_HOUR -> res.getQuantityString(R.plurals.plans_until_minutes, minutes, minutes)
+        minutes < MINUTES_PER_DAY -> {
+            val hours = minutes / MINUTES_PER_HOUR
+            val rest = minutes % MINUTES_PER_HOUR
+            if (rest > 0) context.getString(R.string.plans_until_hours_minutes, hours, rest)
+            else res.getQuantityString(R.plurals.plans_until_hours, hours, hours)
+        }
+        else -> (minutes / MINUTES_PER_DAY).let { res.getQuantityString(R.plurals.plans_until_days, it, it) }
     }
 }
+
+/** [PlanTrigger.describe] for the page, in the app's language; the model keeps reading the Chinese one. */
+internal fun PlanTrigger.describeOnScreen(context: Context, now: Long, zone: ZoneId): String = when (this) {
+    is PlanTrigger.Once -> describeMomentOnScreen(context, atMillis, now, zone)
+    is PlanTrigger.Repeat ->
+        context.getString(R.string.plans_repeat_at, describeDaysOnScreen(context, days), screenClock(minuteOfDay))
+    is PlanTrigger.Watch -> {
+        val held = if (holdSeconds > 0) {
+            context.resources.getQuantityString(R.plurals.plans_watch_hold, holdSeconds, watch.text, holdSeconds)
+        } else {
+            watch.text
+        }
+        context.getString(if (repeat) R.string.plans_watch_every_time else R.string.plans_watch_once, held)
+    }
+}
+
+/** [describeMoment] for the page: 「今天 16:30」「明天 08:00」「10月20日 周二 08:00」, "Today 16:30", "Tue 10/20 08:00". */
+internal fun describeMomentOnScreen(context: Context, atMillis: Long, now: Long, zone: ZoneId): String {
+    val at = Instant.ofEpochMilli(atMillis).atZone(zone)
+    val days = at.toLocalDate().toEpochDay() - Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toEpochDay()
+    val time = screenClock(at.hour * MINUTES_PER_HOUR + at.minute)
+    return when (days) {
+        0L -> context.getString(R.string.plans_moment_today, time)
+        1L -> context.getString(R.string.plans_moment_tomorrow, time)
+        2L -> context.getString(R.string.plans_moment_day_after, time)
+        -1L -> context.getString(R.string.plans_moment_yesterday, time)
+        else -> {
+            val weekday = context.getString(SCREEN_WEEKDAYS[at.dayOfWeek.value - 1])
+            context.getString(R.string.plans_moment_date, at.monthValue, at.dayOfMonth, weekday, time)
+        }
+    }
+}
+
+private fun describeDaysOnScreen(context: Context, days: Set<Int>): String = when (days) {
+    (1..SCREEN_WEEKDAYS.size).toSet() -> context.getString(R.string.plans_days_daily)
+    (1..5).toSet() -> context.getString(R.string.plans_days_weekdays)
+    setOf(6, 7) -> context.getString(R.string.plans_days_weekends)
+    else -> {
+        val separator = context.getString(R.string.plans_list_separator)
+        val names = days.sorted().joinToString(separator) { context.getString(SCREEN_WEEKDAYS[it - 1]) }
+        context.getString(R.string.plans_days_some, names)
+    }
+}
+
+private fun screenClock(minuteOfDay: Int): String =
+    String.format(Locale.ROOT, "%02d:%02d", minuteOfDay / MINUTES_PER_HOUR, minuteOfDay % MINUTES_PER_HOUR)
 
 /** Plan writes go to disk and the alarm: off the main thread. */
 private fun onPlans(context: Context, action: (Context) -> Unit) {
@@ -257,13 +351,13 @@ private fun onPlans(context: Context, action: (Context) -> Unit) {
 private fun stamp(millis: Long): String = SimpleDateFormat("M/d HH:mm", Locale.ROOT).format(Date(millis))
 
 private val PLAN_EXAMPLES = listOf(
-    "两小时后提醒我拿快递", "每个工作日早上 8 点提醒我带工牌", "深圳飞成都的机票低于 800 元提醒我", "每天早上 8 点给我播报天气",
-    "下雨的时候提醒我带伞", "空气质量变好的时候提醒我开窗",
+    R.string.plans_example_parcel, R.string.plans_example_badge, R.string.plans_example_fare,
+    R.string.plans_example_weather, R.string.plans_example_umbrella, R.string.plans_example_air,
 )
-private const val PLANS_FOOTER =
-    "到点时小博会弹出卡片并念出提醒；「去办」的计划由小博执行一轮；「自动」的计划直接执行操作，不经过模型。" +
-        "状态类计划能看什么，取决于当前已加载的 MCP 服务（设置 → 连接 → MCP 或 连接应用）：资源按设定的间隔读取，只有查询工具的服务按间隔调用（最快 5 分钟一次）；" +
-        "只在小博运行时检查。设备关着时错过的一次性提醒，2 小时内开机会补上，更久就记为已错过。"
+private val SCREEN_WEEKDAYS = listOf(
+    R.string.plans_weekday_mon, R.string.plans_weekday_tue, R.string.plans_weekday_wed, R.string.plans_weekday_thu,
+    R.string.plans_weekday_fri, R.string.plans_weekday_sat, R.string.plans_weekday_sun,
+)
 private val PLANS_TITLE_SIZE = 24.sp
 private val PLAN_TWO_COLUMNS = 900.dp
 private val HISTORY_TIME_WIDTH = 96.dp
@@ -271,5 +365,5 @@ private const val MAX_SHOWN_FIRINGS = 10
 private const val CLOCK_TICK_MS = 30_000L
 private const val MILLIS_PER_SECOND = 1_000L
 private const val MILLIS_PER_MINUTE = 60_000L
-private const val MINUTES_PER_HOUR = 60L
-private const val MINUTES_PER_DAY = 24 * 60L
+private const val MINUTES_PER_HOUR = 60
+private const val MINUTES_PER_DAY = 24 * 60

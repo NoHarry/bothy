@@ -131,6 +131,7 @@ internal object A2aClientConsole {
             ),
         )
         val created = A2aClientSession(
+            texts = app.resources,
             client = client,
             remote = RemoteAgentRef(id = REMOTE_ID, endpoint = URI(DEBUG_A2A_CLIENT_DEFAULT_ENDPOINT)),
             scope = scope,

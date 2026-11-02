@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 计划页、计划弹窗和最近触发的文字。模型读的文字留在代码里。 -->
+<resources>
+    <string name="plans_title">计划</string>
+    <string name="plans_none_active">没有进行中的计划</string>
+    <plurals name="plans_active_count">
+        <item quantity="other">%1$d 个进行中</item>
+    </plurals>
+    <string name="plans_next_plan">下一个：%1$s %2$s</string>
+    <plurals name="plans_watching_count">
+        <item quantity="other">%1$d 个在看状态</item>
+    </plurals>
+    <string name="plans_active">进行中</string>
+    <string name="plans_paused">已暂停</string>
+    <string name="plans_ended">已结束</string>
+    <string name="plans_delete_title">删除这个计划？</string>
+    <string name="plans_delete_text">「%1$s」 · %2$s</string>
+    <string name="plans_delete_plan">删除计划</string>
+    <string name="plans_empty_title">还没有计划</string>
+    <string name="plans_empty_hint">对小博说一句就能安排，到点时小博会弹出卡片并念给你听：</string>
+    <string name="plans_example_parcel">「两小时后提醒我拿快递」</string>
+    <string name="plans_example_badge">「每个工作日早上 8 点提醒我带工牌」</string>
+    <string name="plans_example_fare">「深圳飞成都的机票低于 800 元提醒我」</string>
+    <string name="plans_example_weather">「每天早上 8 点给我播报天气」</string>
+    <string name="plans_example_umbrella">「下雨的时候提醒我带伞」</string>
+    <string name="plans_example_air">「空气质量变好的时候提醒我开窗」</string>
+    <string name="plans_footer">到点时小博会弹出卡片并念出提醒；「去办」的计划由小博执行一轮；「自动」的计划直接执行操作，不经过模型。状态类计划能看什么，取决于当前已加载的 MCP 服务（设置 → 连接 → MCP 或 连接应用）：资源按设定的间隔读取，只有查询工具的服务按间隔调用（最快 5 分钟一次）；只在小博运行时检查。设备关着时错过的一次性提醒，2 小时内开机会补上，更久就记为已错过。</string>
+
+    <string name="plans_kind_auto">自动</string>
+    <string name="plans_kind_once">一次</string>
+    <string name="plans_kind_repeat">重复</string>
+    <string name="plans_kind_watch">状态</string>
+    <string name="plans_kind_task">去办</string>
+    <string name="plans_kind_reminder">提醒</string>
+
+    <string name="plans_history_title">最近触发</string>
+    <string name="plans_does_auto_due">到点自动：%1$s</string>
+    <string name="plans_does_auto_triggered">触发时自动：%1$s</string>
+    <string name="plans_does_task_due">到点让小博去办：%1$s</string>
+    <string name="plans_does_task_triggered">触发时让小博去办：%1$s</string>
+    <string name="plans_does_remind_due">到点提醒：%1$s</string>
+    <string name="plans_does_remind_triggered">触发时提醒：%1$s</string>
+    <string name="plans_list_separator">、</string>
+    <string name="plans_clause_separator">；</string>
+
+    <string name="plans_state_last">上次 %1$s</string>
+    <string name="plans_state_done">已完成</string>
+    <string name="plans_state_missed">已错过 · 本该在 %1$s</string>
+    <plurals name="plans_state_poll">
+        <item quantity="other">每 %1$d 秒读一次</item>
+    </plurals>
+    <plurals name="plans_state_fired">
+        <item quantity="other">已触发 %1$d 次</item>
+    </plurals>
+    <string name="plans_state_next">下次：%1$s · %2$s</string>
+    <string name="plans_until_now">马上</string>
+    <plurals name="plans_until_minutes">
+        <item quantity="other">%1$d 分钟后</item>
+    </plurals>
+    <plurals name="plans_until_hours">
+        <item quantity="other">%1$d 小时后</item>
+    </plurals>
+    <string name="plans_until_hours_minutes">%1$d 小时 %2$d 分钟后</string>
+    <plurals name="plans_until_days">
+        <item quantity="other">%1$d 天后</item>
+    </plurals>
+
+    <string name="plans_feed_offline">未连接</string>
+    <string name="plans_feed_pending">订阅中</string>
+    <string name="plans_feed_live">实时</string>
+    <string name="plans_feed_refused">不支持推送</string>
+    <string name="plans_feed_polled">定时读取</string>
+
+    <string name="plans_moment_today">今天 %1$s</string>
+    <string name="plans_moment_tomorrow">明天 %1$s</string>
+    <string name="plans_moment_day_after">后天 %1$s</string>
+    <string name="plans_moment_yesterday">昨天 %1$s</string>
+    <!-- 月、日、星期、时间。 -->
+    <string name="plans_moment_date">%1$d月%2$d日 %3$s %4$s</string>
+    <string name="plans_weekday_mon">周一</string>
+    <string name="plans_weekday_tue">周二</string>
+    <string name="plans_weekday_wed">周三</string>
+    <string name="plans_weekday_thu">周四</string>
+    <string name="plans_weekday_fri">周五</string>
+    <string name="plans_weekday_sat">周六</string>
+    <string name="plans_weekday_sun">周日</string>
+    <string name="plans_days_daily">每天</string>
+    <string name="plans_days_weekdays">工作日</string>
+    <string name="plans_days_weekends">周末</string>
+    <string name="plans_days_some">每%1$s</string>
+    <string name="plans_repeat_at">%1$s %2$s</string>
+    <plurals name="plans_watch_hold">
+        <item quantity="other">%1$s 持续 %2$d 秒</item>
+    </plurals>
+    <string name="plans_watch_every_time">%1$s，每次</string>
+    <string name="plans_watch_once">%1$s，一次</string>
+
+    <string name="plans_notice_handed">交给小博：%1$s</string>
+    <string name="plans_notice_running">执行：%1$s</string>
+    <string name="plans_notice_sample_title">示例计划</string>
+    <string name="plans_notice_sample_said">提醒你：计划到点时就是这样</string>
+
+    <string name="plans_note_handed">交给小博去办</string>
+    <plurals name="plans_note_late">
+        <item quantity="other">晚了 %1$d 分钟提醒（设备当时没开）</item>
+    </plurals>
+    <string name="plans_note_reminded">已提醒</string>
+    <string name="plans_note_paused_due">暂停期间到点，没有提醒</string>
+    <string name="plans_note_missed">设备没开，错过了</string>
+    <string name="plans_note_runaway">触发太频繁，已暂停：看看是不是它的动作又触发了它自己</string>
+    <string name="plans_action_done">已%1$s</string>
+    <string name="plans_action_failed">%1$s没成功（%2$s）</string>
+    <string name="plans_action_denied">%1$s没执行（现在的策略不允许自动执行）</string>
+    <string name="plans_problem_offline">%1$s 没有开或连不上</string>
+    <string name="plans_problem_no_answer">服务没回应</string>
+    <string name="plans_problem_no_result">没有结果</string>
+    <string name="plans_problem_error">出错</string>
+    <string name="plans_problem_refused">被拒绝了</string>
+</resources>

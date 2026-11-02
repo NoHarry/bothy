@@ -24,6 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Settings → 语音 (密钥, 判断与打断, 播报): keys seeded from local.properties, the Jev connection split and the saved TTS settings. */
 @RunWith(RobolectricTestRunner::class)
@@ -159,6 +160,7 @@ class VoiceServicesTest {
     }
 
     @Test
+    @Config(qualifiers = "zh")
     fun toolSearchCannotBeTurnedOnWithoutTheSharedKey() {
         markSeeded()
         val error = saveJevToolSearch(context, loadJevConfig(context).copy(enabled = true))
@@ -216,11 +218,12 @@ class VoiceServicesTest {
     }
 
     @Test
+    @Config(qualifiers = "zh")
     fun ttsStatusSaysWhatIsMissing() {
         // MiMo chosen by hand, before its key.
         val base = TtsConfig.from(mapOf(TTS_PROVIDER to "mimo"))
-        assertTrue(ttsStatusLine(base).contains("密钥"))
-        assertTrue(ttsStatusLine(base.copy(enabled = true, apiKey = "k")).startsWith("可用"))
-        assertEquals("已关闭", ttsStatusLine(base.copy(enabled = false, apiKey = "k")))
+        assertTrue(ttsStatusLine(context, base).contains("密钥"))
+        assertTrue(ttsStatusLine(context, base.copy(enabled = true, apiKey = "k")).startsWith("可用"))
+        assertEquals("已关闭", ttsStatusLine(context, base.copy(enabled = false, apiKey = "k")))
     }
 }

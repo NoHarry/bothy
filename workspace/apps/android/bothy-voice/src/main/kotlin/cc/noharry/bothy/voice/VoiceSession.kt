@@ -66,6 +66,9 @@ data class VoiceSessionState(
     val judgeCount: Int = 0,
     val judgeFailures: Int = 0,
     val lastJudgeLatencyMillis: Long? = null,
+    /** What went wrong, for the host to word; cleared once listening (re)starts. */
+    val problem: VoiceProblem? = null,
+    /** Text a host shows for [problem] in its own language, or a host's own note; the session never sets it. */
     val message: String? = null,
     /** Listening on while the agent works and speaks; off means half duplex. */
     val fullDuplex: Boolean = false,
@@ -194,11 +197,11 @@ class VoiceSession(
                     events.trySend(Event.Mic(mic.update(frame), MicActivity.levels(frame), nearGate?.stats(), levelDb))
                     engine.accept(if (muted) silence else frame)
                 }
-                events.trySend(Event.Failed("麦克风已停止"))
+                events.trySend(Event.Failed(VoiceProblem.MicrophoneStopped))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
-                events.trySend(Event.Failed(error.message ?: error.javaClass.simpleName))
+                events.trySend(Event.Failed(VoiceProblem.Other(error.message ?: error.javaClass.simpleName)))
             } finally {
                 runCatching { engine.stop() }
             }
@@ -258,8 +261,8 @@ class VoiceSession(
             events.trySend(Event.Final(text))
         }
 
-        override fun onError(message: String) {
-            events.trySend(Event.Failed(message))
+        override fun onError(problem: VoiceProblem) {
+            events.trySend(Event.Failed(problem))
         }
     }
 
@@ -268,7 +271,7 @@ class VoiceSession(
         when (event) {
             Event.Started -> {
                 if (calledAtStart) tracker.onCalled(now)
-                mutableState.update { it.copy(status = VoiceSessionStatus.LISTENING, message = null) }
+                mutableState.update { it.copy(status = VoiceSessionStatus.LISTENING, problem = null) }
             }
             is Event.Partial -> tracker.onPartial(event.text, now)
             is Event.Final -> tracker.onFinal(event.text, now)
@@ -289,12 +292,14 @@ class VoiceSession(
             is Event.JudgeDone -> judged(event)
             is Event.JudgeFailed -> {
                 tracker.onJudgmentFailed(event.version)
-                mutableState.update { it.copy(judgeFailures = it.judgeFailures + 1, message = "Jev：${event.message}") }
+                mutableState.update {
+                    it.copy(judgeFailures = it.judgeFailures + 1, problem = VoiceProblem.JudgeFailed(event.message))
+                }
             }
             is Event.HostState -> hostChanged(event, now)
             is Event.History -> remember(event.message)
             is Event.Failed -> {
-                mutableState.update { it.copy(status = VoiceSessionStatus.ERROR, message = event.message) }
+                mutableState.update { it.copy(status = VoiceSessionStatus.ERROR, problem = event.problem) }
                 stop()
                 return
             }
@@ -493,7 +498,7 @@ class VoiceSession(
             val progress: String = "",
         ) : Event
         data class History(val message: VoiceHistoryMessage) : Event
-        data class Failed(val message: String) : Event
+        data class Failed(val problem: VoiceProblem) : Event
     }
 }
 

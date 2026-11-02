@@ -2,10 +2,13 @@
 
 package cc.noharry.bothy.app
 import android.app.Application
+import android.content.Context
+import android.content.res.Configuration
 import cc.noharry.bothy.app.a2a.A2aDelegations
 import cc.noharry.bothy.app.a2a.A2aServerManager
 import cc.noharry.bothy.app.androiduse.applyAndroidUseSwitch
 import cc.noharry.bothy.app.androiduse.scheduleAndroidUseRepair
+import cc.noharry.bothy.app.console.AppLanguages
 import cc.noharry.bothy.app.console.DisplaySettings
 import cc.noharry.bothy.app.evidence.benchTrustedClient
 import cc.noharry.bothy.app.mcp.McpToolCatalogs
@@ -20,10 +23,26 @@ import cc.noharry.bothy.app.usage.UsageStore
 import cc.noharry.bothy.app.voice.AsrTextServerManager
 import cc.noharry.bothy.app.voice.SpeechFocus
 import cc.noharry.bothy.app.voice.tts.SystemTts
+import java.util.Locale
 
 class BothyApplication : Application() {
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLanguages.wrap(base))
+    }
+
+    private var shownLocale: Locale? = null
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // A change of the screens' language (Settings → General, or the system's) rewords what the loaded config names.
+        val locale = newConfig.locales.get(0)
+        if (shownLocale != null && locale != shownLocale) RuntimeSession.languageChanged(this)
+        shownLocale = locale
+    }
+
     override fun onCreate() {
         super.onCreate()
+        shownLocale = resources.configuration.locales.get(0)
         DisplaySettings.init(this)
         SessionSettings.init(this)
         PlaygroundMode.init(this)

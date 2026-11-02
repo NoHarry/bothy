@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.image
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.evidence.BenchHttpTransport
 import cc.noharry.bothy.app.model.ModelCatalogClient
 import cc.noharry.bothy.app.model.buildConfigValues
@@ -28,24 +30,45 @@ internal data class ImageModelConfig(
     /** Whether the assistant may call the image tool on the next run. */
     val ready: Boolean get() = enabled && hasApiKey && validationError() == null
 
-    fun validationError(): String? {
+    /** What is wrong, in English, for the model, the checks and logs; Settings shows [validationProblem]. */
+    fun validationError(): String? = validationProblem()?.message
+
+    fun validationProblem(): ImageModelProblem? {
         val uri = runCatching { URI(baseUrl.trim()) }.getOrNull()
         val loopbackHttp = uri != null && uri.scheme == "http" && uri.host in LOOPBACK_HOSTS
         return when {
             baseUrl.isBlank() && !enabled -> null
             uri == null || uri.host.isNullOrBlank() || (uri.scheme != "https" && !loopbackHttp) ->
-                "Base URL must be https://, or http:// on 127.0.0.1 (adb reverse)."
+                ImageModelProblem.BASE_URL_SCHEME
             uri.userInfo != null || uri.query != null || uri.fragment != null ->
-                "Base URL cannot contain credentials, query or fragment."
-            model.any(Char::isWhitespace) -> "Model ID cannot contain whitespace."
+                ImageModelProblem.BASE_URL_PARTS
+            model.any(Char::isWhitespace) -> ImageModelProblem.MODEL_WHITESPACE
             // Base URL and key are saved first; the model is then picked from the provider's list.
-            enabled && model.isBlank() -> "Pick a model before enabling image generation."
-            size.isNotBlank() && !IMAGE_SIZE.matches(size.trim()) -> "Size must look like 1024x1024, or stay blank."
-            timeoutMillis !in MIN_IMAGE_TIMEOUT_MS..MAX_IMAGE_TIMEOUT_MS -> "Timeout must be 10–300 s."
-            enabled && !hasApiKey -> "Add an API key before enabling image generation."
+            enabled && model.isBlank() -> ImageModelProblem.NO_MODEL
+            size.isNotBlank() && !IMAGE_SIZE.matches(size.trim()) -> ImageModelProblem.SIZE
+            timeoutMillis !in MIN_IMAGE_TIMEOUT_MS..MAX_IMAGE_TIMEOUT_MS -> ImageModelProblem.TIMEOUT
+            enabled && !hasApiKey -> ImageModelProblem.NO_KEY
             else -> null
         }
     }
+}
+
+/** Why image model settings were not saved: [message] for the model, the checks and logs, [shown] for Settings. */
+internal enum class ImageModelProblem(val message: String, @StringRes val shown: Int) {
+    BASE_URL_SCHEME(
+        "Base URL must be https://, or http:// on 127.0.0.1 (adb reverse).",
+        R.string.image_problem_base_url_scheme,
+    ),
+    BASE_URL_PARTS("Base URL cannot contain credentials, query or fragment.", R.string.image_problem_base_url_parts),
+    MODEL_WHITESPACE("Model ID cannot contain whitespace.", R.string.image_problem_model_whitespace),
+    NO_MODEL("Pick a model before enabling image generation.", R.string.image_problem_no_model),
+    SIZE("Size must look like 1024x1024, or stay blank.", R.string.image_problem_size),
+    TIMEOUT("Timeout must be 10–300 s.", R.string.image_problem_timeout),
+    NO_KEY("Add an API key before enabling image generation.", R.string.image_problem_no_key),
+    KEY_WHITESPACE("API key cannot contain whitespace.", R.string.image_problem_key_whitespace),
+    KEY_NOT_REMOVED("Could not remove the stored key.", R.string.image_problem_key_not_removed),
+    NOT_SAVED("Could not save image model settings.", R.string.image_problem_not_saved),
+    KEY_NOT_SAVED("Could not save the API key.", R.string.image_problem_key_not_saved),
 }
 
 internal fun loadImageModelConfig(context: Context): ImageModelConfig {
@@ -62,26 +85,26 @@ internal fun loadImageModelConfig(context: Context): ImageModelConfig {
     )
 }
 
-/** Persists [config]; returns a validation error and leaves storage unchanged when invalid. */
+/** Persists [config]; returns what is wrong and leaves storage unchanged when invalid. */
 internal fun saveImageModelConfig(
     context: Context,
     config: ImageModelConfig,
     replacementKey: String = "",
     clearKey: Boolean = false,
-): String? {
+): ImageModelProblem? {
     val key = if (clearKey) "" else replacementKey.trim().ifEmpty { loadImageModelKey(context) }
-    if (key.any(Char::isWhitespace)) return "API key cannot contain whitespace."
+    if (key.any(Char::isWhitespace)) return ImageModelProblem.KEY_WHITESPACE
     val saved = config.copy(
         baseUrl = config.baseUrl.trim().trimEnd('/'),
         model = config.model.trim(),
         size = config.size.trim(),
         hasApiKey = key.isNotEmpty(),
     )
-    saved.validationError()?.let { return it }
+    saved.validationProblem()?.let { return it }
     return try {
         val keyFile = File(context.noBackupFilesDir, IMAGE_MODEL_KEY_FILE)
         if (clearKey) {
-            if (keyFile.exists() && !keyFile.delete()) return "Could not remove the stored key."
+            if (keyFile.exists() && !keyFile.delete()) return ImageModelProblem.KEY_NOT_REMOVED
         } else if (replacementKey.isNotBlank()) {
             context.noBackupFilesDir.mkdirs()
             keyFile.writeText(key, Charsets.UTF_8)
@@ -90,9 +113,9 @@ internal fun saveImageModelConfig(
             .putBoolean("enabled", saved.enabled).putString("base_url", saved.baseUrl)
             .putString("model", saved.model).putString("size", saved.size)
             .putLong("timeout_ms", saved.timeoutMillis).commit()
-        if (committed) null else "Could not save image model settings."
+        if (committed) null else ImageModelProblem.NOT_SAVED
     } catch (_: java.io.IOException) {
-        "Could not save the API key."
+        ImageModelProblem.KEY_NOT_SAVED
     }
 }
 
@@ -115,7 +138,7 @@ internal fun seedEmbeddedImageModel(context: Context, embedded: () -> Map<String
         val enabled = values[EMBEDDED_ENABLED]?.trim()?.lowercase() != "false"
         val seeded = ImageModelConfig(enabled, baseUrl, model, values[EMBEDDED_SIZE].orEmpty())
         saveImageModelConfig(context, seeded, replacementKey = key)?.let { error ->
-            android.util.Log.w("DebugImageModel", "Embedded image model not applied: $error")
+            android.util.Log.w("DebugImageModel", "Embedded image model not applied: ${error.message}")
         }
     }
     prefs.edit().putBoolean(KEY_SEEDED, true).apply()

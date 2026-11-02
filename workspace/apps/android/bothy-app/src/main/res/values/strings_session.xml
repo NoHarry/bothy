@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="session_sessions">Sessions</string>
+    <string name="session_files">Files</string>
+    <string name="session_new">New session</string>
+    <string name="session_new_title">New session</string>
+    <string name="session_untitled">Untitled session</string>
+    <string name="session_clear_runtime_data">Clear runtime data</string>
+    <string name="session_clear_runtime_data_title">Clear runtime data?</string>
+    <string name="session_clear_runtime_data_message">Deletes all sessions, workspace memory/todo/artifacts, run evidence, and debug logs. Provider API keys and MCP toggles are kept. Active runs are stopped.</string>
+    <string name="session_clear_all">Clear all</string>
+    <string name="session_delete">Delete session</string>
+    <string name="session_settings_title">Sessions</string>
+    <string name="session_settings_subtitle">When a wake starts a new session, and how many are kept</string>
+    <string name="session_every_wake">New session on every wake</string>
+    <string name="session_every_wake_on">On: every wake starts a new session instead of continuing the last one (except sessions whose background tasks haven\'t reported back)</string>
+    <string name="session_every_wake_off">Off: a wake starts a new session only after a quiet spell; before that the conversation goes on, so \"a bit higher\" still follows on</string>
+    <string name="session_idle_title">New session after a quiet spell of</string>
+    <string name="session_idle_unused">Not used while every wake starts a new session</string>
+    <string name="session_idle_note">A wake this long after the last turn starts a new session</string>
+    <plurals name="session_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <string name="session_max_title">Sessions kept at most</string>
+    <string name="session_max_note">Beyond this, starting a new session deletes the least recently used ones with their records and generated pictures; sessions running or waiting on background tasks are kept</string>
+    <plurals name="session_count">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
+</resources>

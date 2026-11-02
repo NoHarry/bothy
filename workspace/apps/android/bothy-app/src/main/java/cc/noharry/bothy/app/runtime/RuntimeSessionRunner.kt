@@ -2,8 +2,10 @@
 
 package cc.noharry.bothy.app.runtime
 import android.content.Context
+import android.content.res.Resources
 import cc.noharry.agent.kernel.api.*
 import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.*
 import cc.noharry.bothy.app.a2ui.UserQuestion
 import cc.noharry.bothy.app.console.*
@@ -172,7 +174,7 @@ internal class RuntimeSessionRunner(
             notifyChanged()
             return
         }
-        val requestId = nextSteeringRequestId()
+        val requestId = RequestIds.next("steer")
         scope.launch {
             val result = postRuntimeSteering(runtime, runId, requestId, text, title, shown.trim())
             if (result.runEnded && notLanded != null) return@launch notLanded(text)
@@ -186,18 +188,22 @@ internal class RuntimeSessionRunner(
         postRunInput(registry, sessionId, runId, requestId, text, questionId)
 
     /** Answers into the exact run; a reply to an ended run becomes a new selected-session turn via [lateAnswer]. */
-    fun answerQuestion(question: UserQuestion, text: String, lateAnswer: (String) -> Unit = {}) {
+    fun answerQuestion(question: UserQuestion, text: String, resources: Resources, lateAnswer: (String) -> Unit = {}) {
         if (text.isBlank()) return
         scope.launch {
             val result = try {
-                postInput(question.sessionId, question.runId, nextSteeringRequestId(), text, question.id)
+                postInput(question.sessionId, question.runId, RequestIds.next("steer"), text, question.id)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 cc.noharry.agent.kernel.api.PostUserInputResult.Rejected("INPUT_RECORD_FAILED")
             }
             val route = answerRoute(result, isSelected(question.sessionId), isRunning, stillOwnsSelected(question.sessionId, question.runId))
-            if (route is AnswerRoute.Failed) transcript.appendError("回答未发送", route.reason)
+            if (route is AnswerRoute.Failed) {
+                val busy = route.reason == SESSION_BUSY_REASON
+                val reason = if (busy) resources.getString(R.string.runtime_answer_session_busy) else route.reason
+                transcript.appendError(resources.getString(R.string.runtime_answer_not_sent), reason)
+            }
             if (route == AnswerRoute.Late) lateAnswer(lateAnswerText(question, text)) else notifyChanged()
         }
     }
@@ -216,7 +222,7 @@ internal class RuntimeSessionRunner(
             return
         }
         scope.launch {
-            val result = postRuntimeConfirmation(runtime, id, nextConfirmationRequestId(), approve, runId)
+            val result = postRuntimeConfirmation(runtime, id, RequestIds.next("confirm"), approve, runId)
             if (!stillOwnsSelected(sessionId, runId)) return@launch
             recordConfirmationResolution(id, approve, result, automatic = false)
             handleConfirmationPostResult(result)
@@ -272,12 +278,12 @@ internal class RuntimeSessionRunner(
             stopSessionRunUnlocked(sessionId, publishStopped = false)
             val activeConfig = currentConfig() ?: loadConfig(context)
             val profile = activeConfig.activeProfile
-            if (!prepareRunConfiguration(activeConfig, profile, sessionId, intake)) return@withAdmission
+            if (!prepareRunConfiguration(context, activeConfig, profile, sessionId, intake)) return@withAdmission
             val workspaceRoot = appWorkspaceRoot(context)
             val store = sessionCoordinator.ensure(context)
             val (modelInput, previousExchange) = withContext(Dispatchers.IO) { store.prepareRunInput(sessionId, modelText ?: text) }
             val request = agentRequest(
-                intake?.requestId ?: nextRequestId(), sessionId, modelInput, activeConfig, profile,
+                intake?.requestId ?: RequestIds.next("debug"), sessionId, modelInput, activeConfig, profile,
             )
             val runScope = RuntimeRunScope(request.requestId, request.sessionId)
             if (intake?.external == true) externalRuns.add(request.requestId)
@@ -313,6 +319,7 @@ internal class RuntimeSessionRunner(
     }
 
     private fun prepareRunConfiguration(
+        context: Context,
         config: ProviderConfig,
         profile: ProviderProfile,
         sessionId: String,
@@ -322,7 +329,7 @@ internal class RuntimeSessionRunner(
             intake?.let { failExternalIntake(it.requestId, "Provider configuration incomplete") }
             if (isSelected(sessionId)) {
                 setStatus("Provider configuration incomplete")
-                transcript.appendMessage(TranscriptRole.ERROR, config.missingMessage(profile), collapsed = false)
+                transcript.appendMessage(TranscriptRole.ERROR, config.missingMessage(context, profile), collapsed = false)
                 notifyChanged()
             }
             return false
@@ -509,7 +516,7 @@ internal class RuntimeSessionRunner(
         val context = record.context
         val handleRuntimeEvent = if (context != null) runtimeEventHandler(runScope) else null
         return scope.launchRuntime(
-            record.runtime, requestFrom(record), record.recorders.evidenceRecorder,
+            record.runtime, record.request, record.recorders.evidenceRecorder,
             record.recorders.runEvidenceRecorder, record.recorders.turnRecorder,
             onEvent = { event ->
                 if (event is AgentEvent.TokenUsageDelta) {
@@ -575,9 +582,6 @@ internal class RuntimeSessionRunner(
             },
         )
     }
-
-    private fun requestFrom(record: ActiveRunRecord): AgentRequest =
-        record.request
 
     /** Speaks [text] before anything the run has queued (a voice append's acknowledgement); false when TTS is off. */
     fun announceFirst(context: Context, text: String): Boolean =
@@ -756,12 +760,6 @@ internal class RuntimeSessionRunner(
         return record != null && sessionCoordinator.activeSessionId == runScope.sessionId
     }
 
-    private fun nextRequestId(): String = RequestIds.next("debug")
-
-    private fun nextSteeringRequestId(): String = RequestIds.next("steer")
-
-    private fun nextConfirmationRequestId(): String = RequestIds.next("confirm")
-
     private fun handleSteeringPostResult(result: SteeringPostUiResult) {
         setStatus(result.status)
         transcript.append(result.transcript)
@@ -806,7 +804,7 @@ internal class RuntimeSessionRunner(
         val record = registry.getExact(sessionId, runId) ?: return
         val runtime = record.runtime
         scope.launch {
-            val result = postRuntimeConfirmation(runtime, pendingId, nextConfirmationRequestId(), approve, runId)
+            val result = postRuntimeConfirmation(runtime, pendingId, RequestIds.next("confirm"), approve, runId)
             if (!stillOwnsSelected(sessionId, runId)) return@launch
             recordConfirmationResolution(pendingId, approve, result, automatic = true)
             handleConfirmationPostResult(result)

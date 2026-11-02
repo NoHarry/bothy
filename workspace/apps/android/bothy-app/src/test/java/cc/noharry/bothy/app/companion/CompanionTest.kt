@@ -21,9 +21,11 @@ import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 陪聊: where a voice turn goes, the OpenAI-compatible stream, and the settings. */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class CompanionTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val routing = CompanionConfig(enabled = true, mode = CompanionMode.ROUTE)
@@ -90,6 +92,10 @@ class CompanionTest {
             fail("a 401 is an error")
         } catch (error: IOException) {
             assertTrue(error.message!!, error.message!!.contains("Incorrect API key") && error.message!!.contains("sk-ws-"))
+            assertEquals(
+                "HTTP 401：Incorrect API key，检查 API key（千问的 sk-ws- 工作空间 key 要用工作空间地址）",
+                companionFailureText(context, error),
+            )
         }
         val whole = """{"choices":[{"message":{"role":"assistant","content":"在呢"}}]}""".toByteArray()
         assertEquals("在呢", CompanionChat(FakeStream(200, listOf(whole))).reply(endpoint, "k", emptyList()))
@@ -118,7 +124,7 @@ class CompanionTest {
 
         assertNull("picking 豆包 before its model is filled in is allowed", saveCompanionConfig(context, on))
         assertEquals(CompanionService.DOUBAO, loadCompanionConfig(context).service)
-        assertEquals("豆包还没填模型", loadCompanionConfig(context).readinessError())
+        assertEquals("豆包还没填模型", loadCompanionConfig(context).readinessError(context))
         try {
             SmallTalkCompanion.ask(context, loadCompanionConfig(context), "你好")
             fail("an incomplete service is not asked")

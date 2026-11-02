@@ -9,7 +9,28 @@ interface AsrListener {
     fun onFinal(text: String)
 
     /** The engine stopped working; the session ends. */
-    fun onError(message: String)
+    fun onError(problem: VoiceProblem)
+}
+
+/**
+ * What went wrong in a voice session, for the host to word in its own language ([VoiceSessionState.problem]). Each
+ * [detail] is the service's or the system's own message, shown as it came.
+ */
+sealed interface VoiceProblem {
+    /** The microphone's recording ended. */
+    data object MicrophoneStopped : VoiceProblem
+
+    /** Jev could not judge the latest words. */
+    data class JudgeFailed(val detail: String) : VoiceProblem
+
+    /** The cloud recognizer failed the task with [code]. */
+    data class RecognitionFailed(val code: String, val detail: String) : VoiceProblem
+
+    /** The cloud recognizer's connection failed, with the HTTP [status] when there was a response. */
+    data class ConnectionFailed(val status: Int?, val detail: String) : VoiceProblem
+
+    /** Anything else, in the words of whatever failed. */
+    data class Other(val detail: String) : VoiceProblem
 }
 
 /**

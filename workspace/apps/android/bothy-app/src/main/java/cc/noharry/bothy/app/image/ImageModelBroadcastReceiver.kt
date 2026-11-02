@@ -46,7 +46,7 @@ class ImageModelBroadcastReceiver : BroadcastReceiver() {
         if (next != stored || intent.hasExtra(EXTRA_API_KEY)) {
             val error = saveImageModelConfig(context, next, intent.getStringExtra(EXTRA_API_KEY).orEmpty())
             val saved = loadImageModelConfig(context)
-            Log.i(TAG, "IMAGE_MODEL saved=${error == null} error=${error.orEmpty()} ${saved.describe()}")
+            Log.i(TAG, "IMAGE_MODEL saved=${error == null} error=${error?.message.orEmpty()} ${saved.describe()}")
             return error == null
         }
         return true

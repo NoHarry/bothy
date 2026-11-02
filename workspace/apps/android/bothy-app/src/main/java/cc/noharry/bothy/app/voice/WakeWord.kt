@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.voice.LeasedAudioSource
 import cc.noharry.bothy.voice.NearSpeechGate
 import cc.noharry.bothy.voice.VoiceAudioSource
@@ -21,8 +22,8 @@ import kotlinx.coroutines.sync.Mutex
 /** What woke 小博: [ENGLISH_WORD] is OK Bothy, answered in English; [ADB] is the debug broadcast's `wake`. */
 internal enum class WakeSource { WORD, ENGLISH_WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
-/** The wake word's state for Settings → 语音: whether it is listening, else why not. */
-internal data class WakeStatus(val listening: Boolean = false, val message: String = "已关闭")
+/** The wake word's state for Settings → 语音: whether it is listening, else why not (empty until first checked). */
+internal data class WakeStatus(val listening: Boolean = false, val message: String = "")
 
 /**
  * The wake words 你好，小博 and OK Bothy (Settings → 语音 → 语音唤醒, off by default). While the switch is on the on-device keyword
@@ -162,21 +163,24 @@ internal object WakeWord {
             )
             val started = runCatching { created.start() }
             started.exceptionOrNull()?.let { error ->
-                mutableStatus.value = WakeStatus(false, error.message ?: "唤醒词无法启动")
+                val why = error.message ?: context.getString(R.string.voice_wake_start_failed)
+                mutableStatus.value = WakeStatus(false, why)
                 return
             }
             listener = created
             listenerWithin = within
         }
-        mutableStatus.value = WakeStatus(true, if (within != null) "对话中也在听「你好，小博」和「OK Bothy」，再叫一次就打断重听" else "正在听「你好，小博」和「OK Bothy」")
+        val listening = if (within != null) R.string.voice_wake_listening_in_session else R.string.voice_wake_listening
+        mutableStatus.value = WakeStatus(true, context.getString(listening))
     }
 
     private fun blocker(context: Context): String? = when {
-        !mutableEnabled.value -> "已关闭"
-        pausedFor != null -> "暂停：$pausedFor"
-        pendingWake != null -> "正在唤醒小博"
-        context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED -> "需要麦克风权限"
-        else -> WakeWordListener.availabilityError(context.assets)
+        !mutableEnabled.value -> context.getString(R.string.voice_off)
+        pausedFor != null -> context.getString(R.string.voice_wake_paused, pausedFor)
+        pendingWake != null -> context.getString(R.string.voice_wake_waking)
+        context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED ->
+            context.getString(R.string.voice_mic_permission_needed)
+        else -> wakeModelUnavailable(context)
     }
 
     /** A hit from [within] (the session recording it heard, or null for the microphone itself). */
@@ -234,7 +238,8 @@ internal object WakeWord {
         VoiceLog.w(TAG, "wake word stopped: ${error.javaClass.simpleName} ${error.message}")
         listener = null
         listenerWithin = null
-        mutableStatus.value = WakeStatus(false, "麦克风或模型出错：${error.message}")
+        val why = appContext?.getString(R.string.voice_wake_error, "${error.message}").orEmpty()
+        mutableStatus.value = WakeStatus(false, why)
     }
 
     private fun stopListener() {

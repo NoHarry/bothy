@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.console
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -32,7 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aProfilesPane
 import cc.noharry.bothy.app.companion.CompanionPane
 import cc.noharry.bothy.app.console.ui.SelectableOptionRow
@@ -50,8 +53,20 @@ import cc.noharry.bothy.app.usage.UsagePane
 import cc.noharry.bothy.app.voice.VoiceSettingsPane
 import cc.noharry.bothy.app.voice.realtime.RealtimePane
 
-internal enum class SettingsSection(val label: String) {
-    GENERAL("通用"), MODELS("模型与服务"), IMAGE_MODEL("生图模型"), VOICE("语音"), COMPANION("陪聊"), REALTIME("端到端语音"), USAGE("用量与费用"), MEMORY("记忆"), CAPABILITIES("工具与技能"), SUBAGENTS("子 agent"), CONNECTIONS("连接"), DATA("工作区与数据"), CHECKS("检查"),
+internal enum class SettingsSection(@StringRes val label: Int) {
+    GENERAL(R.string.settings_section_general),
+    MODELS(R.string.settings_section_models),
+    IMAGE_MODEL(R.string.settings_section_image_model),
+    VOICE(R.string.settings_section_voice),
+    COMPANION(R.string.settings_section_companion),
+    REALTIME(R.string.settings_section_realtime),
+    USAGE(R.string.settings_section_usage),
+    MEMORY(R.string.settings_section_memory),
+    CAPABILITIES(R.string.settings_section_capabilities),
+    SUBAGENTS(R.string.settings_section_subagents),
+    CONNECTIONS(R.string.settings_section_connections),
+    DATA(R.string.settings_section_data),
+    CHECKS(R.string.settings_section_checks),
 }
 
 @Composable
@@ -59,7 +74,7 @@ internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -
     var sectionName by rememberSaveable { mutableStateOf(SettingsSection.GENERAL.name) }
     val section = SettingsSection.valueOf(sectionName)
     Column(modifier.fillMaxSize().padding(Dimens.spaceMd)) {
-        SettingsNavBar("设置", null, "Exit settings", onBack)
+        SettingsNavBar(stringResource(R.string.common_settings), null, stringResource(R.string.settings_exit), onBack)
         Spacer(Modifier.height(Dimens.spaceMd))
         HorizontalDivider(color = ConsoleColors.borderSubtle)
         Spacer(Modifier.height(Dimens.spaceMd))
@@ -68,7 +83,8 @@ internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
                     Column(Modifier.width(SETTINGS_RAIL_WIDTH), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
                         SettingsSection.entries.forEach { item ->
-                            SelectableOptionRow(item.label, section == item, { sectionName = item.name })
+                            val label = stringResource(item.label)
+                            SelectableOptionRow(label, section == item, { sectionName = item.name })
                         }
                     }
                     Box(Modifier.weight(1f)) { SettingsSectionContent(section, state, actions) { sectionName = it.name } }
@@ -78,7 +94,10 @@ internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -
                     Row(Modifier.horizontalScroll(rememberScrollState())) {
                         SettingsSection.entries.forEach { item ->
                             TextButton(onClick = { sectionName = item.name }) {
-                                Text(item.label, color = if (item == section) ConsoleColors.accent else ConsoleColors.muted)
+                                Text(
+                                    stringResource(item.label),
+                                    color = if (item == section) ConsoleColors.accent else ConsoleColors.muted,
+                                )
                             }
                         }
                     }
@@ -98,6 +117,7 @@ private fun SettingsSectionContent(
 ) {
     when (section) {
         SettingsSection.GENERAL -> SettingsScrollableContent {
+            SettingsLanguageGroup()
             SettingsRuntimeGroup(state, actions)
             SettingsSessionGroup()
         }
@@ -128,7 +148,9 @@ private fun SettingsModelsContent(state: UiState, actions: ConsoleActions) {
         val twoPane = maxWidth >= MODEL_PANES_BREAKPOINT
         Column {
             if (!twoPane && navigation.page != SettingsPage.PROVIDERS) {
-                TextButton(onClick = { pageName = SettingsPage.PROVIDERS.name; profileId = null }) { Text("‹ 服务列表") }
+                TextButton(onClick = { pageName = SettingsPage.PROVIDERS.name; profileId = null }) {
+                    Text(stringResource(R.string.settings_back_to_services))
+                }
             }
             ProviderSettingsContent(state, actions, navigation, twoPane) { next ->
                 pageName = next.page.name
@@ -140,13 +162,18 @@ private fun SettingsModelsContent(state: UiState, actions: ConsoleActions) {
 
 @Composable
 private fun SettingsCapabilitiesContent() {
-    var tab by rememberSaveable { mutableStateOf("基础工具") }
+    var tab by rememberSaveable { mutableStateOf(0) }
+    val labels = listOf(
+        stringResource(R.string.settings_tab_basic_tools),
+        stringResource(R.string.settings_tab_runtime_skills),
+        stringResource(R.string.settings_tab_tool_search),
+    )
     Column(Modifier.fillMaxSize()) {
-        SettingsTabs(listOf("基础工具", "运行时技能", "工具检索"), tab) { tab = it }
+        SettingsTabs(labels, labels[tab]) { tab = labels.indexOf(it) }
         Box(Modifier.weight(1f)) {
             when (tab) {
-                "基础工具" -> BasicToolsPane()
-                "运行时技能" -> RuntimeSkillsPane()
+                0 -> BasicToolsPane()
+                1 -> RuntimeSkillsPane()
                 else -> JevToolSearchPane()
             }
         }
@@ -192,7 +219,9 @@ internal fun SettingsSaveBar(unsaved: Boolean, note: SettingsNote, onSave: () ->
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
-            if (unsaved) Text("有未保存的修改", style = ConsoleType.panelTitle, color = colors.warning)
+            if (unsaved) {
+                Text(stringResource(R.string.settings_unsaved), style = ConsoleType.panelTitle, color = colors.warning)
+            }
             // While edits wait, an older success note would read as if they were saved.
             val shown = note.text.takeIf { !unsaved || note.error }.orEmpty()
             Text(shown, Modifier.weight(1f), style = ConsoleType.bodySmall, color = if (note.error) colors.danger else colors.muted)
@@ -202,12 +231,12 @@ internal fun SettingsSaveBar(unsaved: Boolean, note: SettingsNote, onSave: () ->
                     shape = RoundedCornerShape(Dimens.radiusMd),
                     border = BorderStroke(1.dp, colors.border),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.text),
-                ) { Text("放弃修改") }
+                ) { Text(stringResource(R.string.settings_discard)) }
                 Button(
                     onClick = onSave,
                     shape = RoundedCornerShape(Dimens.radiusMd),
                     colors = ButtonDefaults.buttonColors(containerColor = colors.accent, contentColor = if (colors.isDark) colors.bg else Color.White),
-                ) { Text("保存") }
+                ) { Text(stringResource(R.string.common_save)) }
             }
         }
     }
@@ -220,7 +249,11 @@ private fun SettingsScrollableContent(content: @Composable ColumnScope.() -> Uni
 
 @Composable
 internal fun SettingsChildPanel(modifier: Modifier, embedded: Boolean, content: @Composable ColumnScope.() -> Unit) {
-    if (embedded) Column(modifier, content = content) else PanelBox("Settings", modifier, content)
+    if (embedded) {
+        Column(modifier, content = content)
+    } else {
+        PanelBox(stringResource(R.string.common_settings), modifier, content)
+    }
 }
 
 private val SETTINGS_RAIL_BREAKPOINT = 760.dp

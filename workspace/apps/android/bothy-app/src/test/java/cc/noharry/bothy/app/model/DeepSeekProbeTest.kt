@@ -25,8 +25,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@Config(sdk = [28], qualifiers = "zh")
 class DeepSeekProbeTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val seen = Collections.synchronizedList(mutableListOf<Request>())
     private val bodies = Collections.synchronizedList(mutableListOf<String>())
 
@@ -58,7 +59,7 @@ class DeepSeekProbeTest {
             }
         }
 
-        val probe = probeDeepSeek(ProviderEndpoint.MESSAGES, "http://127.0.0.1:18080/v1", " local ", "deepseek-v4-flash", relay)
+        val probe = probeDeepSeek(context, ProviderEndpoint.MESSAGES, "http://127.0.0.1:18080/v1", " local ", "deepseek-v4-flash", relay)
 
         assertEquals("http://127.0.0.1:18080/v1/user/balance", probe.balance.url)
         assertEquals("余额：¥110.00（充值 100.00，赠送 10.00）", probe.balance.note)
@@ -89,7 +90,7 @@ class DeepSeekProbeTest {
             }
         }
 
-        val probe = probeDeepSeek(ProviderEndpoint.MESSAGES, "https://newapi.example.com/v1", "sk-gw", "deepseek-v4-flash", gateway)
+        val probe = probeDeepSeek(context, ProviderEndpoint.MESSAGES, "https://newapi.example.com/v1", "sk-gw", "deepseek-v4-flash", gateway)
 
         assertFalse(probe.balance.passed)
         assertEquals("HTTP 200 但不是 DeepSeek 的余额", probe.balance.note)
@@ -105,7 +106,7 @@ class DeepSeekProbeTest {
             if (body.contains("tool_addition")) 200 to """{"type":"message","content":[{"type":"text","text":"Hi"}]}""" else deepSeeksRefusal(body)
         }
 
-        val probe = probeDeepSeek(ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "m", halfway)
+        val probe = probeDeepSeek(context, ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "m", halfway)
 
         assertFalse(probe.passthrough!!.passed)
         assertEquals("模型照常回答，中转丢掉了 tool_addition", probe.passthrough!!.note)
@@ -117,9 +118,9 @@ class DeepSeekProbeTest {
             if (path.endsWith("/messages")) 400 to """{"error":{"message":"unsupported content type tool_addition"}}""" else 404 to ""
         }
 
-        val probe = probeDeepSeek(ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "m", strict)
-        val chat = probeDeepSeek(ProviderEndpoint.CHAT_COMPLETIONS, "https://gw.example.com/v1", "k", "m", strict)
-        val noModel = probeDeepSeek(ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "", strict)
+        val probe = probeDeepSeek(context, ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "m", strict)
+        val chat = probeDeepSeek(context, ProviderEndpoint.CHAT_COMPLETIONS, "https://gw.example.com/v1", "k", "m", strict)
+        val noModel = probeDeepSeek(context, ProviderEndpoint.MESSAGES, "https://gw.example.com/anthropic", "k", "", strict)
 
         assertFalse(probe.passthrough!!.passed)
         assertEquals("HTTP 400：unsupported content type tool_addition", probe.passthrough!!.note)

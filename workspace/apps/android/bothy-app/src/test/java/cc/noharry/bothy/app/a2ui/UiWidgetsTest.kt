@@ -370,6 +370,28 @@ class UiWidgetsTest {
     }
 
     @Test
+    fun theHostsOwnWordsComeFromTheScreenAndATicketsOtherFlightsStayItsOwn() {
+        val trip = parseCard(parseJsonObject("""{"title":"上海⇄成都","layout":"trip","items":[
+            {"kind":"transport","title":"去程 · 3U6992 川航","value":"11:55 → 14:50","detail":"浦东T2 → 天府T2 · 约 800 元"},
+            {"kind":"transport","title":"去程 · CA4512 国航","value":"13:00 → 16:00"},
+            {"title":"熊猫基地","value":"16:00–18:00"},
+            {"kind":"stay","title":"亚朵S酒店","value":"约 800 元/晚"}]}""")!!)
+        val labels = A2uiLabels(confirm = "OK", tripDay = "Trip", stays = "Where to stay")
+        val messages = a2uiCardMessages("card", trip, labels)
+
+        assertEquals(listOf("card"), accepted(messages))
+        val components = messages.joinToString()
+        // The other flight is its own property; the ticket words it in the screen's language.
+        assertTrue(components, components.contains("\"note\":\"约 800 元\""))
+        assertTrue(components, components.contains("\"alternatives\":\"CA4512 国航 13:00 → 16:00\""))
+        assertTrue(components, components.contains("\"text\":\"Trip\""))
+        assertTrue(components, components.contains("\"text\":\"Where to stay\""))
+        val call = BoundCall("screen", "x", "mcp__screen__x", "{}")
+        val panel = a2uiPanelMessages("panel", listOf(SwitchOffer("座椅加热", call, call, true)), labels)
+        assertTrue(panel.joinToString().contains("\"text\":\"OK\""))
+    }
+
+    @Test
     fun theEngineAcceptsThePanelAndEveryCardLayout() {
         val call = BoundCall("screen", "x", "mcp__screen__x", "{}")
         val panel = listOf(

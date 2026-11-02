@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.console
+import android.app.Application
+import android.content.res.Resources
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.session.ToolCallStatus
 import cc.noharry.bothy.app.session.TranscriptRole
@@ -7,8 +10,16 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+/** Labels are checked in the default (English) resources. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], application = Application::class)
 class ConversationRenderItemsTest {
+    private val resources: Resources = ApplicationProvider.getApplicationContext<Application>().resources
+
     @Test
     fun contextToolGroupRetainsPerToolDetailsForNestedDisclosure() {
         val first = contextTool(
@@ -28,9 +39,9 @@ class ConversationRenderItemsTest {
             .toRenderItems()
             .single() as ConversationRenderItem.ContextToolGroup
 
-        assertEquals("Read 2 files", group.summaryLabel())
-        assertEquals("Read index.json", group.tools[0].contextLookupLabel())
-        assertEquals("Read tools.json", group.tools[1].contextLookupLabel())
+        assertEquals("Read 2 files", group.summaryLabel(resources))
+        assertEquals("Read index.json", group.tools[0].contextLookupLabel(resources))
+        assertEquals("Read tools.json", group.tools[1].contextLookupLabel(resources))
         assertTrue(group.tools[0].argumentsJson.orEmpty().contains("index.json"))
         assertTrue(group.tools[0].resultJson.orEmpty().contains("one"))
         assertTrue(group.tools[1].argumentsJson.orEmpty().contains("tools.json"))
@@ -48,7 +59,7 @@ class ConversationRenderItemsTest {
         assertEquals(1, items.size)
         val group = items.single() as ConversationRenderItem.BusinessToolGroup
         assertEquals(3, group.tools.size)
-        assertEquals("Used 3 tools", group.summaryLabel())
+        assertEquals("Used 3 tools", group.summaryLabel(resources))
     }
 
     @Test
@@ -74,7 +85,7 @@ class ConversationRenderItemsTest {
         assertEquals(1, items.size)
         val group = items.single() as ConversationRenderItem.RuntimePhaseGroup
         assertEquals(3, group.phases.size)
-        assertTrue(group.summaryLabel().startsWith("Runtime · 3 steps"))
+        assertTrue(group.summaryLabel(resources).startsWith("Runtime · 3 steps"))
     }
 
     @Test
@@ -163,12 +174,12 @@ class ConversationRenderItemsTest {
     @Test
     fun thinkingDisplayLineUsesTailWhileStreaming() {
         val long = "a".repeat(20) + "TAIL_MARKER"
-        val streaming = thinkingDisplayLine(long, streaming = true, collapsed = true, maxChars = 12)
+        val streaming = thinkingDisplayLine(resources, long, streaming = true, collapsed = true, maxChars = 12)
         assertTrue(streaming.startsWith("Thinking · "))
         assertTrue(streaming.endsWith("TAIL_MARKER") || streaming.contains("TAIL_MARKER"))
         assertTrue(streaming.contains("…") || long.length <= 12)
 
-        val done = thinkingDisplayLine(long, streaming = false, collapsed = true, maxChars = 12)
+        val done = thinkingDisplayLine(resources, long, streaming = false, collapsed = true, maxChars = 12)
         assertTrue(done.startsWith("Thinking · "))
         assertTrue(done.endsWith("…"))
         assertFalse(done.contains("TAIL_MARKER"))

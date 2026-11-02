@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The host's own words around the cards, panels and picks the model draws, and the question cards. -->
+<resources>
+    <string name="a2ui_pick_one">Pick one</string>
+    <string name="a2ui_pick_by_voice">Or say “the second one”</string>
+    <string name="a2ui_trip_day">Trip</string>
+    <string name="a2ui_trip_stays">Where to stay</string>
+    <string name="a2ui_trip_alternatives">Alternatives: %1$s</string>
+    <string name="a2ui_question_running">The task is still running; you can add an answer at any time</string>
+    <string name="a2ui_question_ended">The task has ended; your answer will be sent as a new message</string>
+    <string name="a2ui_question_type_answer">Or type an answer</string>
+    <string name="a2ui_question_submit">Submit answer</string>
+    <string name="a2ui_question_answer_received">Answer submitted, waiting to be handled</string>
+    <string name="a2ui_question_answered">Answer used for the next steps</string>
+    <string name="a2ui_question_closed">Can\'t be answered now</string>
+</resources>

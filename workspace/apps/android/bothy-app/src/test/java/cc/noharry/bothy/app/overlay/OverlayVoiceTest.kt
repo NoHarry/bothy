@@ -1,4 +1,8 @@
 package cc.noharry.bothy.app.overlay
+import android.app.Application
+import android.content.Context
+import android.content.res.Resources
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.voice.VoiceEndReason
 import cc.noharry.bothy.voice.VoiceHandOverMode
 import cc.noharry.bothy.voice.VoiceSegment
@@ -12,18 +16,24 @@ import cc.noharry.bothy.app.voice.tts.levelOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class OverlayVoiceTest {
+    private val resources: Resources = ApplicationProvider.getApplicationContext<Context>().resources
     private val listening = VoiceSessionState(status = VoiceSessionStatus.LISTENING)
     private fun segment(label: VoiceSegmentLabel, handOver: VoiceHandOverMode? = null, endedAt: Long = NOW - 1_000) =
         VoiceSegment(1, "空调调到22度", label, null, VoiceEndReason.JUDGED, endedAt, submitted = handOver != null, handOver = handOver)
 
     @Test
     fun theSlotShowsWordsAsTheyAreRecognizedThenWhatBecameOfThem() {
-        assertEquals(OverlayVoiceLine("空调调到", OverlayVoiceTone.LIVE), overlayVoiceLine(listening.copy(liveText = "空调调到"), null, NOW))
+        assertEquals(OverlayVoiceLine("空调调到", OverlayVoiceTone.LIVE), overlayVoiceLine(resources, listening.copy(liveText = "空调调到"), null, NOW))
         assertEquals(
             OverlayVoiceLine("空调调到22度", OverlayVoiceTone.SENT),
-            overlayVoiceLine(listening.copy(segments = listOf(segment(VoiceSegmentLabel.AGENT, VoiceHandOverMode.NEW_TURN))), null, NOW),
+            overlayVoiceLine(resources, listening.copy(segments = listOf(segment(VoiceSegmentLabel.AGENT, VoiceHandOverMode.NEW_TURN))), null, NOW),
         )
         assertEquals("已追加：空调调到22度", line(segment(VoiceSegmentLabel.AGENT, VoiceHandOverMode.APPEND)).text)
         assertEquals("换成：空调调到22度", line(segment(VoiceSegmentLabel.AGENT, VoiceHandOverMode.REPLACE)).text)
@@ -34,28 +44,28 @@ class OverlayVoiceTest {
     @Test
     fun afterAFewSecondsOrWithNothingHeardItPromptsForSpeech() {
         assertEquals("我在听，请说", line(segment(VoiceSegmentLabel.AGENT, VoiceHandOverMode.NEW_TURN, endedAt = NOW - 5_000)).text)
-        assertEquals("我在听，请说", overlayVoiceLine(listening, null, NOW).text)
-        assertEquals("在听，可以补充或换个要求", overlayVoiceLine(listening.copy(agentWorking = true), null, NOW).text)
-        assertEquals("我说完再听你说", overlayVoiceLine(listening.copy(assistantSpeaking = true), null, NOW).text)
-        assertEquals("正在打开麦克风…", overlayVoiceLine(VoiceSessionState(status = VoiceSessionStatus.STARTING), null, NOW).text)
+        assertEquals("我在听，请说", overlayVoiceLine(resources, listening, null, NOW).text)
+        assertEquals("在听，可以补充或换个要求", overlayVoiceLine(resources, listening.copy(agentWorking = true), null, NOW).text)
+        assertEquals("我说完再听你说", overlayVoiceLine(resources, listening.copy(assistantSpeaking = true), null, NOW).text)
+        assertEquals("正在打开麦克风…", overlayVoiceLine(resources, VoiceSessionState(status = VoiceSessionStatus.STARTING), null, NOW).text)
     }
 
     @Test
     fun aWakeThatCouldNotListenSaysWhy() {
         val idle = VoiceSessionState()
-        assertEquals(OverlayVoiceLine("需要麦克风权限", OverlayVoiceTone.WARN), overlayVoiceLine(idle, "需要麦克风权限", NOW))
-        assertEquals("语音已结束", overlayVoiceLine(idle, null, NOW).text)
-        assertEquals(OverlayVoiceTone.WARN, overlayVoiceLine(VoiceSessionState(status = VoiceSessionStatus.ERROR, message = "麦克风被占用"), null, NOW).tone)
+        assertEquals(OverlayVoiceLine("需要麦克风权限", OverlayVoiceTone.WARN), overlayVoiceLine(resources, idle, "需要麦克风权限", NOW))
+        assertEquals("语音已结束", overlayVoiceLine(resources, idle, null, NOW).text)
+        assertEquals(OverlayVoiceTone.WARN, overlayVoiceLine(resources, VoiceSessionState(status = VoiceSessionStatus.ERROR, message = "麦克风被占用"), null, NOW).tone)
     }
 
     @Test
     fun theRequestLineShowsWhatIsSaidThenTheRequest() {
-        assertEquals(OverlayVoiceLine("“空调调到”", OverlayVoiceTone.LIVE), voiceAskedLine(listening.copy(liveText = "空调调到"), null, "讲个笑话", NOW))
-        assertEquals(OverlayVoiceLine("“讲个笑话”", OverlayVoiceTone.SENT), voiceAskedLine(listening, null, "讲个笑话", NOW))
-        assertEquals("我在听，请说", voiceAskedLine(listening, null, null, NOW).text)
+        assertEquals(OverlayVoiceLine("“空调调到”", OverlayVoiceTone.LIVE), voiceAskedLine(resources, listening.copy(liveText = "空调调到"), null, "讲个笑话", NOW))
+        assertEquals(OverlayVoiceLine("“讲个笑话”", OverlayVoiceTone.SENT), voiceAskedLine(resources, listening, null, "讲个笑话", NOW))
+        assertEquals("我在听，请说", voiceAskedLine(resources, listening, null, null, NOW).text)
         val side = listening.copy(segments = listOf(segment(VoiceSegmentLabel.SIDE)))
-        assertEquals(OverlayVoiceLine("没当成指令：空调调到22度", OverlayVoiceTone.IGNORED), voiceAskedLine(side, null, "讲个笑话", NOW))
-        assertEquals(OverlayVoiceTone.WARN, voiceAskedLine(VoiceSessionState(), "需要麦克风权限", "讲个笑话", NOW).tone)
+        assertEquals(OverlayVoiceLine("没当成指令：空调调到22度", OverlayVoiceTone.IGNORED), voiceAskedLine(resources, side, null, "讲个笑话", NOW))
+        assertEquals(OverlayVoiceTone.WARN, voiceAskedLine(resources, VoiceSessionState(), "需要麦克风权限", "讲个笑话", NOW).tone)
     }
 
     @Test
@@ -205,7 +215,7 @@ class OverlayVoiceTest {
         assertTrue("a corner fades, as beyond the edge is clear", opaque[0] ushr 24 < 128)
     }
 
-    private fun line(segment: VoiceSegment) = overlayVoiceLine(listening.copy(segments = listOf(segment)), null, NOW)
+    private fun line(segment: VoiceSegment) = overlayVoiceLine(resources, listening.copy(segments = listOf(segment)), null, NOW)
 
     private companion object { const val NOW = 1_000_000L }
 }

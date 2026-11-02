@@ -22,6 +22,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.headunit.PlaygroundColors
 import cc.noharry.bothy.playground.headunit.UnitColors
 import cc.noharry.bothy.playground.headunit.on
@@ -226,8 +227,9 @@ internal class NaviMapHandle {
         val map = view.map
         if (places.isEmpty()) return
         centred(view)
+        val end = view.context.getString(R.string.nav_end_badge)
         places.forEach { place ->
-            val pin = if (ending) numberPin("终", PlaygroundColors.ember.toArgb(), density) else numberPin("${stops + 1}", UnitColors.teal.toArgb(), density)
+            val pin = if (ending) numberPin(end, PlaygroundColors.ember.toArgb(), density) else numberPin("${stops + 1}", UnitColors.teal.toArgb(), density)
             if (!ending) stops++
             pins += map.addMarker(
                 MarkerOptions().position(LatLng(place.point.lat, place.point.lng)).title(place.name)
@@ -323,6 +325,9 @@ private fun numberPin(label: String, color: Int, density: Float): Bitmap {
     paint.textSize = r * 1.05f
     paint.textAlign = Paint.Align.CENTER
     paint.isFakeBoldText = true
+    // A word wider than the ring (the destination's 「End」 in English) is set smaller to fit in it.
+    val room = r * PIN_TEXT_ROOM
+    paint.measureText(label).takeIf { it > room }?.let { paint.textSize *= room / it }
     canvas.drawText(label, r, r - (paint.descent() + paint.ascent()) / 2f, paint)
     return bitmap
 }
@@ -345,6 +350,8 @@ private fun carArrow(density: Float): Bitmap {
 
 private const val CAR_DP = 34
 private const val PIN_DP = 30
+/** How wide the pin's label may run, in pin radii. */
+private const val PIN_TEXT_ROOM = 1.4f
 private const val PIN_Z = 50f
 private const val FIT_PADDING_DP = 90
 /** Around a single place, about a kilometre each way: close enough to see the streets. */

@@ -15,8 +15,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import cc.noharry.bothy.playground.Playground
+import cc.noharry.bothy.playground.R
 
 /**
  * Before the car's navigation can start: the user agrees to AMap's privacy terms (the SDK may not run before that), then
@@ -36,21 +38,18 @@ internal fun AMapConsent() {
     if (agreed) return
     AlertDialog(
         onDismissRequest = {},
-        title = { Text("使用高德地图导航") },
-        text = {
-            Text(
-                "Playground 的车载导航用高德地图 SDK 规划路线、导航和搜索地点。使用前需要你同意《高德地图开放平台隐私权政策》，" +
-                    "高德会处理定位和网络信息来提供这些服务。不同意的话，导航不可用，其他功能照常。",
-            )
-        },
+        title = { Text(stringResource(R.string.nav_consent_title)) },
+        text = { Text(stringResource(R.string.nav_consent_text)) },
         confirmButton = {
             TextButton(onClick = {
                 AMapPrivacy.agree(context)
                 agreed = true
-            }) { Text("同意") }
+            }) { Text(stringResource(R.string.nav_consent_agree)) }
         },
         dismissButton = {
-            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AMapPrivacy.POLICY_URL))) }) { Text("查看隐私政策") }
+            TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(AMapPrivacy.POLICY_URL))) }) {
+                Text(stringResource(R.string.nav_consent_view_policy))
+            }
         },
     )
 }

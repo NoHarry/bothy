@@ -21,12 +21,14 @@ import org.junit.Assert.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * 连接应用 as an app market (owner 2026-10-14): an MCP app is tried with the typed key, saved as a configured server
  * only when it lists its tools, and its key never sits in the stored address.
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class McpConnectorsTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val probed = mutableListOf<McpEndpoint>()
@@ -159,8 +161,8 @@ class McpConnectorsTest {
                 assertTrue(url, (url.startsWith("https://") || url.startsWith("http://127.0.0.1:")) && !url.contains("key="))
             }
             assertTrue(spec.serverId, spec.serverId.all { it in 'a'..'z' || it in '0'..'9' })
-            assertTrue(spec.serverId, spec.needsCredential == spec.steps.isNotEmpty() && spec.abilities.isNotEmpty() && spec.example.isNotEmpty())
-            assertEquals(spec.serverId, spec.needsCredential, spec.credentialLabel.isNotEmpty())
+            assertTrue(spec.serverId, spec.needsCredential == spec.steps.isNotEmpty() && spec.abilities.isNotEmpty() && spec.example != 0)
+            assertEquals(spec.serverId, spec.needsCredential, spec.credentialLabel != null)
         }
         assertTrue(GROK_BOT_CONNECTOR.mcp == null && GROK_BOT_CONNECTOR in DEBUG_CONNECTORS)
     }

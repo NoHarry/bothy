@@ -18,13 +18,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
+import cc.noharry.bothy.llm.GEMMA_4_E4B
 import cc.noharry.bothy.llm.LlamaServer
 import cc.noharry.bothy.llm.LocalModelSpec
+import cc.noharry.bothy.llm.MINICPM5_2B
 import cc.noharry.bothy.llm.ModelDownloader
+import cc.noharry.bothy.llm.QWEN3_4B_2507
 
 /**
  * Settings → 模型与服务 → 本机模型: each offered model (download, resume, delete, use) and the server that runs the
@@ -41,10 +46,9 @@ internal fun OnDeviceModelDetail(
     val server by OnDeviceModel.server.state.collectAsState()
     val chosen = OnDeviceModel.spec(chosenModel)
     Column(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-        Text("本机模型", style = ConsoleType.panelTitle, color = ConsoleColors.text)
+        Text(stringResource(R.string.model_on_device), style = ConsoleType.panelTitle, color = ConsoleColors.text)
         Text(
-            "在这台设备上运行，对话不出设备：用 llama.cpp 跑在 NPU 上，NPU 用不了时退回 CPU。模型不随 App 安装，" +
-                "下载哪个用哪个；在输入框旁或这里选用。选中「本机模型」时自动启动，换到别的服务时停下，释放内存。",
+            stringResource(R.string.model_on_device_intro),
             style = ConsoleType.meta,
             color = ConsoleColors.muted,
         )
@@ -75,66 +79,101 @@ private fun OnDeviceModelRow(spec: LocalModelSpec, download: ModelDownloader.Pro
         Column(Modifier.weight(1f)) {
             Text(spec.label, style = ConsoleType.body, color = ConsoleColors.text)
             Text(
-                listOf(spec.publisher, spec.quantization, "${gigabytes(spec.sizeBytes)} GB", spec.license)
+                listOf(publisherLabel(spec), spec.quantization, "${gigabytes(spec.sizeBytes)} GB", spec.license)
                     .filter(String::isNotBlank).joinToString(" · "),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
-            Text(spec.note, style = ConsoleType.meta, color = ConsoleColors.muted)
+            Text(noteLabel(spec), style = ConsoleType.meta, color = ConsoleColors.muted)
             Text(fileStatus(spec, download, downloaded, onDisk), style = ConsoleType.meta, color = ConsoleColors.accent)
         }
         when {
-            inUse -> Text("使用中", style = ConsoleType.meta, color = ConsoleColors.accent)
-            downloaded -> OutlinedButton(onClick = onUse) { Text("使用") }
+            inUse -> Text(stringResource(R.string.model_in_use), style = ConsoleType.meta, color = ConsoleColors.accent)
+            downloaded -> OutlinedButton(onClick = onUse) { Text(stringResource(R.string.model_use)) }
         }
         when {
-            running -> OutlinedButton(onClick = { OnDeviceModel.cancelDownload(spec) }) { Text("取消") }
+            running -> OutlinedButton(onClick = { OnDeviceModel.cancelDownload(spec) }) {
+                Text(stringResource(R.string.common_cancel))
+            }
             !downloaded -> Button(onClick = { OnDeviceModel.startDownload(spec) }, shape = RoundedCornerShape(Dimens.radiusMd)) {
-                Text(if (onDisk > 0) "继续下载" else "下载")
+                Text(stringResource(if (onDisk > 0) R.string.model_resume_download else R.string.model_download))
             }
         }
         if (!running && (downloaded || onDisk > 0)) {
-            TextButton(onClick = { OnDeviceModel.deleteModel(spec) }) { Text("删除", color = ConsoleColors.danger) }
+            TextButton(onClick = { OnDeviceModel.deleteModel(spec) }) {
+                Text(stringResource(R.string.common_delete), color = ConsoleColors.danger)
+            }
         }
     }
 }
 
+@Composable
 private fun fileStatus(spec: LocalModelSpec, download: ModelDownloader.Progress?, downloaded: Boolean, onDisk: Long): String {
     val total = spec.sizeBytes
     return when {
-        download is ModelDownloader.Progress.Downloading ->
-            "下载中 ${gigabytes(download.bytes)} / ${gigabytes(total)} GB（${percent(download.bytes, total)}，${download.source}）"
-        download is ModelDownloader.Progress.Verifying -> "校验中…（核对 SHA-256，约半分钟）"
-        download is ModelDownloader.Progress.Failed -> download.reason
-        downloaded -> "已就绪"
-        onDisk > 0 -> "已下载 ${gigabytes(onDisk)} / ${gigabytes(total)} GB，可以继续"
-        else -> "未下载"
+        download is ModelDownloader.Progress.Downloading -> stringResource(
+            R.string.model_downloading,
+            gigabytes(download.bytes), gigabytes(total), percent(download.bytes, total), download.source,
+        )
+        download is ModelDownloader.Progress.Verifying -> stringResource(R.string.model_verifying)
+        download is ModelDownloader.Progress.Failed -> downloadFailure(download)
+        downloaded -> stringResource(R.string.model_ready)
+        onDisk > 0 -> stringResource(R.string.model_partly_downloaded, gigabytes(onDisk), gigabytes(total))
+        else -> stringResource(R.string.model_not_downloaded)
     }
+}
+
+@Composable
+private fun downloadFailure(failed: ModelDownloader.Progress.Failed): String = when (failed.failure) {
+    ModelDownloader.Failure.NO_SOURCE -> stringResource(R.string.model_download_no_source)
+    ModelDownloader.Failure.DOWNLOAD -> stringResource(R.string.model_download_failed, failed.detail)
+    ModelDownloader.Failure.CHECKSUM -> stringResource(R.string.model_download_checksum_failed)
+    ModelDownloader.Failure.RENAME -> stringResource(R.string.model_download_rename_failed, failed.detail)
+}
+
+/** The publisher in the screen's language; the spec's own for a model this list does not know. */
+@Composable
+private fun publisherLabel(spec: LocalModelSpec): String = when (spec.id) {
+    QWEN3_4B_2507.id -> stringResource(R.string.model_publisher_qwen)
+    MINICPM5_2B.id -> stringResource(R.string.model_publisher_minicpm)
+    else -> spec.publisher
+}
+
+/** What the tests found about the model, in the screen's language; the spec's own note for one not listed here. */
+@Composable
+private fun noteLabel(spec: LocalModelSpec): String = when (spec.id) {
+    GEMMA_4_E4B.id -> stringResource(R.string.model_note_gemma_4_e4b)
+    QWEN3_4B_2507.id -> stringResource(R.string.model_note_qwen3_4b)
+    MINICPM5_2B.id -> stringResource(R.string.model_note_minicpm5_2b)
+    else -> spec.note
 }
 
 @Composable
 private fun OnDeviceModelServer(server: LlamaServer.State, chosen: LocalModelSpec) {
     val loaded = { id: String -> OnDeviceModel.spec(id).label }
     val status = when (server) {
-        LlamaServer.State.Stopped -> "未启动"
-        is LlamaServer.State.Starting -> "启动中（${loaded(server.modelId)}，${server.device.label}），加载模型约需十几秒…"
-        is LlamaServer.State.Ready ->
-            "运行中（${loaded(server.modelId)}，${server.device.label}，${server.baseUrl.removeSuffix("/v1")}）"
-        is LlamaServer.State.Failed -> "启动失败：${server.reason}"
+        LlamaServer.State.Stopped -> stringResource(R.string.model_server_stopped)
+        is LlamaServer.State.Starting ->
+            stringResource(R.string.model_server_starting, loaded(server.modelId), server.device.label)
+        is LlamaServer.State.Ready -> stringResource(
+            R.string.model_server_running,
+            loaded(server.modelId), server.device.label, server.baseUrl.removeSuffix("/v1"),
+        )
+        is LlamaServer.State.Failed -> stringResource(R.string.model_server_failed, server.reason)
     }
     val active = server is LlamaServer.State.Starting || server is LlamaServer.State.Ready
     val files by OnDeviceModel.fileChanges.collectAsState()
     val downloaded = remember(server, chosen, files) { OnDeviceModel.isDownloaded(chosen) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Column(Modifier.weight(1f)) {
-            Text("推理服务", style = ConsoleType.body, color = ConsoleColors.text)
+            Text(stringResource(R.string.model_inference_server), style = ConsoleType.body, color = ConsoleColors.text)
             Text(status, style = ConsoleType.meta, color = ConsoleColors.muted)
         }
         if (active) {
-            OutlinedButton(onClick = OnDeviceModel::stop) { Text("停止") }
+            OutlinedButton(onClick = OnDeviceModel::stop) { Text(stringResource(R.string.model_stop)) }
         } else {
             Button(onClick = { OnDeviceModel.warmUp(chosen) }, enabled = downloaded, shape = RoundedCornerShape(Dimens.radiusMd)) {
-                Text("启动 ${chosen.label}")
+                Text(stringResource(R.string.model_start, chosen.label))
             }
         }
     }

@@ -1,9 +1,10 @@
 package cc.noharry.bothy.app.voice.tts
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.orDefault
 import cc.noharry.bothy.app.model.toStreamOverride
-import cc.noharry.bothy.app.skills.chinese
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -28,13 +29,13 @@ internal data class TtsConfig(
         TtsProvider.SYSTEM -> true
     }
 
-    /** The voice now speaking, as one line: provider, model and voice. */
-    val label: String
-        get() = when (provider) {
-            TtsProvider.MIMO -> "$model · $voice"
-            TtsProvider.DOUBAO -> "豆包 · ${doubao.resourceId} · ${doubao.voiceLabel}"
-            TtsProvider.SYSTEM -> "系统语音（设备自带）"
-        }
+    /** The voice now speaking, as one line in [context]'s language: provider, model and voice. */
+    fun label(context: Context): String = when (provider) {
+        TtsProvider.MIMO -> "$model · $voice"
+        TtsProvider.DOUBAO ->
+            "${context.getString(R.string.tts_provider_doubao)} · ${doubao.resourceId} · ${doubao.voiceLabel(context)}"
+        TtsProvider.SYSTEM -> context.getString(R.string.tts_system_voice_label)
+    }
 
     /** What a cached clip (the wake answer) was synthesized with; a change means synthesizing it again. */
     val voiceIdentity: String
@@ -82,15 +83,19 @@ internal data class TtsConfig(
 internal fun ProviderConfig.ttsConfig(): TtsConfig =
     TtsConfig.from(values)
 
-/** Null when the address, model and voice can be used; the key is checked when replies are spoken. */
-internal fun TtsConfig.validationError(): String? {
+/**
+ * Null when the address, model and voice can be used, else the message saying what is wrong (for `getString`); the
+ * key is checked when replies are spoken.
+ */
+@StringRes
+internal fun TtsConfig.validationError(): Int? {
     val uri = runCatching { URI(baseUrl.trim()) }.getOrNull()
     val loopback = uri?.scheme == "http" && uri.host in TTS_LOOPBACK_HOSTS
     return when {
-        uri == null || (uri.scheme != "https" && !loopback) || uri.host.isNullOrBlank() -> "播报地址需为 https:// 地址。"
-        uri.userInfo != null || uri.query != null || uri.fragment != null -> "播报地址不能包含凭据、查询参数或片段。"
-        model.isBlank() || model.trim().any(Char::isWhitespace) -> "请填写播报模型 ID（不含空白）。"
-        voice.isBlank() -> "请填写音色。"
+        uri == null || (uri.scheme != "https" && !loopback) || uri.host.isNullOrBlank() -> R.string.tts_endpoint_https
+        uri.userInfo != null || uri.query != null || uri.fragment != null -> R.string.tts_endpoint_parts
+        model.isBlank() || model.trim().any(Char::isWhitespace) -> R.string.tts_model_required
+        voice.isBlank() -> R.string.tts_voice_required
         else -> null
     }
 }
@@ -124,7 +129,7 @@ internal fun saveTtsSettings(context: Context, config: TtsConfig): String? {
         TtsProvider.DOUBAO -> config.doubao.validationError()
         TtsProvider.MIMO -> config.validationError()
         TtsProvider.SYSTEM -> null
-    }?.let { return it }
+    }?.let { return context.getString(it) }
     val committed = context.getSharedPreferences(TTS_PREFS, Context.MODE_PRIVATE).edit()
         .putString(MIMO_TTS_BASE_URL, config.baseUrl.trim())
         .putString(MIMO_TTS_MODEL, config.model.trim())
@@ -132,19 +137,19 @@ internal fun saveTtsSettings(context: Context, config: TtsConfig): String? {
         .putString(DOUBAO_TTS_APP_ID, config.doubao.appId.trim())
         .putString(DOUBAO_TTS_RESOURCE_ID, config.doubao.resourceId.trim())
         .commit()
-    return if (committed) null else "无法保存播报设置。"
+    return if (committed) null else context.getString(R.string.tts_save_failed)
 }
 
 /** Settings → 语音 → 密钥 → MiMo: the key on its own; null when saved, else why not. */
 internal fun saveTtsKey(context: Context, key: String): String? {
     val trimmed = key.trim()
-    if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return "API key 不能为空或包含空白字符。"
+    if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return context.getString(R.string.tts_key_invalid)
     return try {
         context.noBackupFilesDir.mkdirs()
         File(context.noBackupFilesDir, TTS_KEY_FILE).writeText(trimmed, Charsets.UTF_8)
         null
     } catch (_: IOException) {
-        "无法保存播报 API key。"
+        context.getString(R.string.tts_key_save_failed)
     }
 }
 
@@ -183,17 +188,21 @@ internal val MIMO_TTS_CONFIG_KEYS = setOf(
 
 /**
  * The preset voices of `mimo-v2.5-tts` (MiMo speech synthesis v2.5 guide), Chinese then English. The voice design and
- * voice clone models take none of these.
+ * voice clone models take none of these. [id] is MiMo's name for the voice; [description] says what it sounds like.
  */
-internal enum class MimoTtsVoice(val id: String, val label: String, val chinese: Boolean) {
-    BING_TANG("冰糖", "冰糖 · 活泼女声", true),
-    MO_LI("茉莉", "茉莉 · 知性女声", true),
-    SU_DA("苏打", "苏打 · 阳光男声", true),
-    BAI_HUA("白桦", "白桦 · 成熟男声", true),
-    MIA("Mia", "Mia · 英文女声", false),
-    CHLOE("Chloe", "Chloe · 英文女声", false),
-    MILO("Milo", "Milo · 英文男声", false),
-    DEAN("Dean", "Dean · 英文男声", false),
+internal enum class MimoTtsVoice(val id: String, @StringRes val description: Int, val chinese: Boolean) {
+    BING_TANG("冰糖", R.string.tts_voice_lively_female, true),
+    MO_LI("茉莉", R.string.tts_voice_refined_female, true),
+    SU_DA("苏打", R.string.tts_voice_sunny_male, true),
+    BAI_HUA("白桦", R.string.tts_voice_mature_male, true),
+    MIA("Mia", R.string.tts_voice_english_female, false),
+    CHLOE("Chloe", R.string.tts_voice_english_female, false),
+    MILO("Milo", R.string.tts_voice_english_male, false),
+    DEAN("Dean", R.string.tts_voice_english_male, false),
+    ;
+
+    /** The chip's label: the voice's name, then what it sounds like. */
+    fun label(context: Context): String = "$id · ${context.getString(description)}"
 }
 
 internal const val TTS_PREFS = "debug_tts"

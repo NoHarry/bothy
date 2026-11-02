@@ -33,12 +33,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -65,10 +67,12 @@ internal fun SessionPane(
 ) {
     var confirmClear by remember { mutableStateOf(false) }
     var showFiles by rememberSaveable { mutableStateOf(false) }
-    PanelBox(if (showFiles) "Files" else "Sessions", modifier) {
+    val sessionsLabel = stringResource(R.string.session_sessions)
+    val filesLabel = stringResource(R.string.session_files)
+    PanelBox(if (showFiles) filesLabel else sessionsLabel, modifier) {
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-            PaneModeChip("Sessions", selected = !showFiles) { showFiles = false }
-            PaneModeChip("Files", selected = showFiles) { showFiles = true }
+            PaneModeChip(sessionsLabel, selected = !showFiles) { showFiles = false }
+            PaneModeChip(filesLabel, selected = showFiles) { showFiles = true }
         }
         Spacer(Modifier.height(Dimens.spaceSm))
         if (showFiles) {
@@ -82,7 +86,7 @@ internal fun SessionPane(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(Dimens.radiusMd),
             ) {
-                Text("New session")
+                Text(stringResource(R.string.session_new))
             }
             Spacer(Modifier.height(Dimens.spaceSm))
             OutlinedButton(
@@ -91,7 +95,7 @@ internal fun SessionPane(
                 shape = RoundedCornerShape(Dimens.radiusMd),
             ) {
                 // Single line on narrow rails — meta size keeps the label from wrapping.
-                Text("Clear runtime data", style = ConsoleType.meta, maxLines = 1)
+                Text(stringResource(R.string.session_clear_runtime_data), style = ConsoleType.meta, maxLines = 1)
             }
             Spacer(Modifier.height(Dimens.spaceSm))
             LazyColumn(
@@ -150,22 +154,21 @@ internal fun ClearRuntimeDataDialog(
     val colors = ConsoleColors
     BothyAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Clear runtime data?") },
+        title = { Text(stringResource(R.string.session_clear_runtime_data_title)) },
         text = {
             Text(
-                "Deletes all sessions, workspace memory/todo/artifacts, run evidence, and debug logs. " +
-                    "Provider API keys and MCP toggles are kept. Active runs are stopped.",
+                stringResource(R.string.session_clear_runtime_data_message),
                 color = colors.muted,
             )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Clear all", color = colors.danger)
+                Text(stringResource(R.string.session_clear_all), color = colors.danger)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         },
     )
@@ -211,7 +214,7 @@ private fun SessionRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = session.title,
+                    text = session.displayTitle(),
                     style = ConsoleType.body,
                     color = colors.text,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
@@ -236,13 +239,25 @@ private fun SessionRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete session",
+                    contentDescription = stringResource(R.string.session_delete),
                     tint = colors.muted,
                     modifier = Modifier.size(DELETE_ICON_SIZE),
                 )
             }
         }
     }
+}
+
+/** The title shown for [this] session: the stored placeholder titles in the screen's language, others as they are. */
+@Composable
+internal fun SessionSummary.displayTitle(): String = sessionTitleText(title)
+
+/** [title] as a session list or card shows it; see [SessionSummary.displayTitle]. */
+@Composable
+internal fun sessionTitleText(title: String): String = when (title) {
+    NEW_SESSION_TITLE -> stringResource(R.string.session_new_title)
+    UNTITLED_SESSION_TITLE -> stringResource(R.string.session_untitled)
+    else -> title
 }
 
 private fun shortTime(epochMillis: Long): String =

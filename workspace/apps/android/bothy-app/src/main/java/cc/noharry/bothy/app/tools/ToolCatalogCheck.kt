@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.tools
 import android.content.Context
+import android.content.res.Resources
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
@@ -15,6 +16,7 @@ import cc.noharry.agent.kernel.core.tools.MaterializerContext
 import cc.noharry.agent.kernel.core.tools.McpToolRef
 import cc.noharry.agent.kernel.core.tools.ToolDomainIndexer
 import cc.noharry.agent.kernel.core.tools.ToolProviderRegistry
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.evidence.CheckResult
 import cc.noharry.bothy.app.evidence.CheckState
@@ -47,11 +49,16 @@ internal suspend fun checkToolCatalog(context: Context): CheckResult {
     val sources = loadMcpProviders(context).filter { it.enabled }.map { it.label to catalogSource(context, it) }
     val refs = ToolProviderRegistry(sources.mapNotNull { it.second.provider }).allTools(MaterializerContext())
     val groups = ToolDomainIndexer.index(refs).domains
-    val listed = groups.take(MAX_LISTED_GROUPS).joinToString("、") { "${it.id} ${it.toolCount}" }
+    val res = context.resources
+    val separator = res.getString(R.string.tools_list_separator)
+    val listed = groups.take(MAX_LISTED_GROUPS).joinToString(separator) { "${it.id} ${it.toolCount}" }
+        .let { if (groups.size > MAX_LISTED_GROUPS) res.getString(R.string.tools_groups_more, it) else it }
     val detail = listOfNotNull(
-        sources.joinToString("、") { (label, source) -> "$label ${source.describe(refs)}" }.ifEmpty { "没有打开的工具来源" },
-        groups.takeIf { it.isNotEmpty() }?.let { "分 ${it.size} 组：$listed${if (it.size > MAX_LISTED_GROUPS) " 等" else ""}" },
-        LastPrompt.stats?.describe() ?: "还没有对话过，固定提示大小未知",
+        sources.joinToString(separator) { (label, source) -> "$label ${source.describe(res, refs)}" }
+            .ifEmpty { res.getString(R.string.tools_no_sources) },
+        groups.takeIf { it.isNotEmpty() }
+            ?.let { res.getQuantityString(R.plurals.tools_groups, it.size, it.size, listed) },
+        LastPrompt.stats?.describe(res) ?: res.getString(R.string.tools_no_prompt_yet),
     ).joinToString(" · ")
     val state = when {
         sources.any { it.second.failed } -> CheckState.WARN
@@ -64,21 +71,25 @@ internal suspend fun checkToolCatalog(context: Context): CheckResult {
 
 /** One MCP source as the check sees it: the tools to count, or why there are none. */
 private class CatalogSource(val provider: ToolProvider? = null, val note: String? = null, val failed: Boolean = false) {
-    fun describe(refs: List<McpToolRef>): String =
-        note ?: "${refs.count { it.provider === provider }} 个"
+    fun describe(res: Resources, refs: List<McpToolRef>): String =
+        note ?: refs.count { it.provider === provider }.let { res.getQuantityString(R.plurals.tools_count, it, it) }
 }
 
 private suspend fun catalogSource(context: Context, provider: McpProviderState): CatalogSource {
     provider.server?.let { server ->
         val tools = McpToolCatalogs.tools(context, server)
-        return if (tools.isEmpty()) CatalogSource(note = "连不上或没有工具", failed = true) else CatalogSource(CatalogSnapshot(server.id, tools))
+        return if (tools.isEmpty()) {
+            CatalogSource(note = context.getString(R.string.tools_source_unreachable), failed = true)
+        } else {
+            CatalogSource(CatalogSnapshot(server.id, tools))
+        }
     }
     return when (provider.id) {
         DEBUG_MCP_PROVIDER_TOOLS_JSON -> CatalogSource(ToolsJsonMcpProvider.fromAssets(context))
         DEBUG_MCP_PROVIDER_DEVICE_CALENDAR -> CatalogSource(DeviceCalendarMcpProvider(context))
         DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION -> CatalogSource(DeviceNotificationMcpProvider(context))
         DEBUG_MCP_PROVIDER_DEVICE_MEDIA -> CatalogSource(DeviceMediaMcpProvider(context))
-        else -> CatalogSource(note = "未知来源", failed = true)
+        else -> CatalogSource(note = context.getString(R.string.tools_source_unknown), failed = true)
     }
 }
 
@@ -111,9 +122,11 @@ internal object LastPrompt {
 internal data class PromptStats(val staticBytes: Int, val toolBytes: Int, val toolGroups: Int, val shortened: Boolean) {
     val overBudget: Boolean get() = staticBytes > STATIC_PROMPT_SOFT_BUDGET_BYTES
 
-    fun describe(): String =
-        "上次对话固定提示 $staticBytes/$STATIC_PROMPT_SOFT_BUDGET_BYTES 字节（工具 $toolBytes 字节、$toolGroups 组" +
-            "${if (shortened) "，已自动缩短" else ""}）"
+    /** For 检查 → 工具目录, in the screen's language. */
+    fun describe(res: Resources): String = res.getQuantityString(
+        if (shortened) R.plurals.tools_prompt_stats_shortened else R.plurals.tools_prompt_stats,
+        toolGroups, staticBytes, STATIC_PROMPT_SOFT_BUDGET_BYTES, toolBytes, toolGroups,
+    )
 
     companion object {
         fun of(system: String): PromptStats? {

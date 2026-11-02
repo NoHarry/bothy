@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.overlay
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
 import android.os.*
@@ -14,6 +15,7 @@ import cc.noharry.bothy.app.a2a.*
 import cc.noharry.bothy.app.a2ui.*
 import cc.noharry.bothy.app.androiduse.*
 import cc.noharry.bothy.app.console.*
+import cc.noharry.bothy.app.console.AppLanguages
 import cc.noharry.bothy.app.console.ui.UiScale
 import cc.noharry.bothy.app.runtime.RuntimeSession
 import cc.noharry.bothy.app.session.UiState
@@ -34,6 +36,10 @@ import kotlinx.coroutines.*
  * window drives the pose at a time (the old one stops, the new one starts a frame later).
  */
 class OverlayService : Service(), OverlayBubble.Listener {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
+    }
+
     private val composeOwner = OverlayComposeOwner()
     private lateinit var windowManager: WindowManager
     private lateinit var root: ComposeView
@@ -170,7 +176,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
         bubble = OverlayBubble(this, windowManager, mascot, overlayWindowType(), stageScale(), this)
         val capsule = OverlayTaskCapsule(this, windowManager, overlayWindowType(), stageScale(), ::openFromCapsule)
         glance = OverlayTaskGlance(bubble, capsule, root) {
-            (if (useMode == UseMode.OFF && !sleeping && !AssistantSurface.active) overlayFoldedSignal(delegations) else null) to
+            (if (useMode == UseMode.OFF && !sleeping && !AssistantSurface.active) overlayFoldedSignal(resources, delegations) else null) to
                 (presence == Presence.BUBBLE)
         }
         flight = OverlayFlight(this, windowManager, mascot, overlayWindowType(), stageScale())
@@ -276,7 +282,8 @@ class OverlayService : Service(), OverlayBubble.Listener {
 
     /** The capsule tapped: the card opens; a waiting result is spoken now instead of waiting for the device. */
     private fun openFromCapsule() {
-        if (overlayTaskSignal(delegations, System.currentTimeMillis())?.tone == OverlayTaskTone.RESULT) OverlayControl.releaseReports()
+        val signal = overlayTaskSignal(resources, delegations, System.currentTimeMillis())
+        if (signal?.tone == OverlayTaskTone.RESULT) OverlayControl.releaseReports()
         expand()
     }
 
@@ -342,7 +349,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
         updateExternalFocus(state)
         val clientMode = clientView()
         val now = System.currentTimeMillis()
-        val next = if (clientMode) A2aClientConsole.state.overlayHud(now) else state.overlayHud(now, DisplaySettings.showThinking.value)
+        val next = if (clientMode) A2aClientConsole.state.overlayHud(now, resources) else state.overlayHud(now, DisplaySettings.showThinking.value)
         AssistantSurface.runChanged(this, next, state.takeUnless { clientMode })
         val cardOpen = presence == Presence.CARD
         results.phaseChanged(lastPhase, next.phase)

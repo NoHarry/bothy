@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.mcp
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 
 /** One row of 设置 → 连接 → MCP: a fixed provider (Tools JSON, calendar, notifications) or a configured [server]. */
 internal data class McpProviderState(
@@ -34,6 +36,10 @@ internal fun List<McpProviderState>.enabledProviderLabels(): List<String> =
 internal fun List<McpProviderState>.isProviderEnabled(id: String): Boolean =
     firstOrNull { it.id == id }?.enabled == true
 
+/** The name the screen shows for a fixed provider, in the app's language; null for a configured server. */
+@StringRes
+internal fun fixedMcpProviderTitle(id: String): Int? = MCP_PROVIDER_DEFINITIONS.firstOrNull { it.id == id }?.title
+
 private fun providerRows(
     servers: List<McpServer>,
     enabled: (McpProviderDefinition) -> Boolean,
@@ -48,6 +54,7 @@ private data class McpProviderDefinition(
     val label: String,
     val prefKey: String,
     val defaultEnabled: Boolean,
+    @StringRes val title: Int,
 )
 
 internal const val DEBUG_MCP_PROVIDER_TOOLS_JSON = "tools_json"
@@ -57,16 +64,35 @@ internal const val DEBUG_MCP_PROVIDER_DEVICE_MEDIA = "device_media"
 
 /** Tools JSON first; the device providers follow the configured servers. */
 private val MCP_PROVIDER_DEFINITIONS = listOf(
-    McpProviderDefinition(DEBUG_MCP_PROVIDER_TOOLS_JSON, "Tools JSON", "mcp_provider_tools_json", false),
-    McpProviderDefinition(DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, "Device Calendar", "mcp_provider_device_calendar", false),
+    McpProviderDefinition(
+        DEBUG_MCP_PROVIDER_TOOLS_JSON,
+        "Tools JSON",
+        "mcp_provider_tools_json",
+        false,
+        R.string.mcp_provider_tools_json,
+    ),
+    McpProviderDefinition(
+        DEBUG_MCP_PROVIDER_DEVICE_CALENDAR,
+        "Device Calendar",
+        "mcp_provider_device_calendar",
+        false,
+        R.string.mcp_provider_device_calendar,
+    ),
     McpProviderDefinition(
         DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION,
         "Device Notifications",
         "mcp_provider_device_notification",
         false,
+        R.string.mcp_provider_device_notifications,
     ),
     // On from the start: media keys and the volume need no permission; notification access adds what plays and which app.
-    McpProviderDefinition(DEBUG_MCP_PROVIDER_DEVICE_MEDIA, "Device Media", "mcp_provider_device_media", true),
+    McpProviderDefinition(
+        DEBUG_MCP_PROVIDER_DEVICE_MEDIA,
+        "Device Media",
+        "mcp_provider_device_media",
+        true,
+        R.string.mcp_provider_device_media,
+    ),
 )
 
 internal const val MCP_PREFS_NAME = "debug_mcp_provider_config"

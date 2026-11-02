@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.pm.ServiceInfo
+import android.content.res.Resources
 import android.os.Build
 import android.os.SystemClock
 import android.util.Log
@@ -38,6 +39,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +50,7 @@ import cc.noharry.bothy.voice.VoiceHandOverMode
 import cc.noharry.bothy.voice.VoiceSegmentLabel
 import cc.noharry.bothy.voice.VoiceSessionState
 import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.voice.VoiceController
@@ -110,7 +114,8 @@ internal class OverlayVoice(
     fun tap(): Boolean {
         if (VoiceController.listening) return false
         VoiceController.cannotListen(service)?.let { why ->
-            Toast.makeText(service, "语音用不了：${why.trimEnd('。')}，先打字吧", Toast.LENGTH_SHORT).show()
+            val text = service.getString(R.string.overlay_voice_unavailable, why.trimEnd('。', '.'))
+            Toast.makeText(service, text, Toast.LENGTH_SHORT).show()
             return false
         }
         wake(WakeSource.TAP)
@@ -170,11 +175,14 @@ internal fun startWokenVoice(context: Context, source: WakeSource): String? {
 internal fun Service.startOverlayForeground(): Boolean = try {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(NotificationChannel(OVERLAY_CHANNEL, "小博悬浮窗", NotificationManager.IMPORTANCE_MIN))
+        val title = getString(R.string.overlay_notification_title)
+        manager.createNotificationChannel(
+            NotificationChannel(OVERLAY_CHANNEL, title, NotificationManager.IMPORTANCE_MIN),
+        )
         val notification = Notification.Builder(this, OVERLAY_CHANNEL)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("小博悬浮窗")
-            .setContentText("响应 A2A 请求")
+            .setContentTitle(title)
+            .setContentText(getString(R.string.overlay_notification_text))
             .build()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(OVERLAY_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -197,30 +205,42 @@ internal data class OverlayVoiceLine(val text: String, val tone: OverlayVoiceTon
  * One line for the voice slot: the words being recognized as they come; for a few seconds after a stretch ends,
  * what became of it (sent, appended, replaced, or not taken as an instruction); otherwise a prompt to speak.
  */
-internal fun overlayVoiceLine(state: VoiceSessionState, failure: String?, nowMillis: Long): OverlayVoiceLine {
+internal fun overlayVoiceLine(
+    resources: Resources,
+    state: VoiceSessionState,
+    failure: String?,
+    nowMillis: Long,
+): OverlayVoiceLine {
     if (state.status == VoiceSessionStatus.IDLE || state.status == VoiceSessionStatus.ERROR) {
         return failure?.let { OverlayVoiceLine(it, OverlayVoiceTone.WARN) }
             ?: state.message?.takeIf { state.status == VoiceSessionStatus.ERROR }?.let { OverlayVoiceLine(it, OverlayVoiceTone.WARN) }
-            ?: OverlayVoiceLine("语音已结束", OverlayVoiceTone.HINT)
+            ?: OverlayVoiceLine(resources.getString(R.string.overlay_voice_ended), OverlayVoiceTone.HINT)
     }
     if (state.liveText.isNotBlank()) return OverlayVoiceLine(state.liveText.takeLast(MAX_LIVE_CHARS), OverlayVoiceTone.LIVE)
     val recent = state.segments.lastOrNull()?.takeIf { nowMillis - it.endedAtEpochMillis < RECENT_SEGMENT_MILLIS }
     if (recent != null) {
         val text = recent.text.takeLast(MAX_LIVE_CHARS)
         return when {
-            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.APPEND -> OverlayVoiceLine("已追加：$text", OverlayVoiceTone.SENT)
-            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.REPLACE -> OverlayVoiceLine("换成：$text", OverlayVoiceTone.SENT)
+            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.APPEND ->
+                OverlayVoiceLine(resources.getString(R.string.overlay_voice_appended, text), OverlayVoiceTone.SENT)
+            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.REPLACE ->
+                OverlayVoiceLine(resources.getString(R.string.overlay_voice_replaced, text), OverlayVoiceTone.SENT)
             recent.label == VoiceSegmentLabel.AGENT -> OverlayVoiceLine(text, OverlayVoiceTone.SENT)
-            recent.label == VoiceSegmentLabel.SIDE -> OverlayVoiceLine("没当成指令：$text", OverlayVoiceTone.IGNORED)
-            else -> OverlayVoiceLine("没听出是对我说的：$text", OverlayVoiceTone.IGNORED)
+            recent.label == VoiceSegmentLabel.SIDE -> OverlayVoiceLine(
+                resources.getString(R.string.overlay_voice_not_a_request, text),
+                OverlayVoiceTone.IGNORED,
+            )
+            else ->
+                OverlayVoiceLine(resources.getString(R.string.overlay_voice_not_for_me, text), OverlayVoiceTone.IGNORED)
         }
     }
-    return when {
-        state.status == VoiceSessionStatus.STARTING -> OverlayVoiceLine("正在打开麦克风…", OverlayVoiceTone.HINT)
-        state.assistantSpeaking && !state.fullDuplex -> OverlayVoiceLine("我说完再听你说", OverlayVoiceTone.HINT)
-        state.agentWorking -> OverlayVoiceLine("在听，可以补充或换个要求", OverlayVoiceTone.HINT)
-        else -> OverlayVoiceLine("我在听，请说", OverlayVoiceTone.HINT)
+    val hint = when {
+        state.status == VoiceSessionStatus.STARTING -> R.string.overlay_voice_opening_mic
+        state.assistantSpeaking && !state.fullDuplex -> R.string.overlay_voice_after_speaking
+        state.agentWorking -> R.string.overlay_voice_add_or_change
+        else -> R.string.overlay_voice_listening
     }
+    return OverlayVoiceLine(resources.getString(hint), OverlayVoiceTone.HINT)
 }
 
 /**
@@ -233,7 +253,9 @@ internal fun OverlayVoiceAsked(request: String?, failure: String?) {
     val state by VoiceController.state.collectAsState()
     // 端到端演示模式: a turn 豆包 answered itself has no run behind it, so its words and reply show here.
     val exchange by RealtimeShown.exchange.collectAsState()
-    val line = voiceAskedLine(state, failure, request ?: exchange?.heard?.takeIf(String::isNotBlank), System.currentTimeMillis())
+    val resources = LocalContext.current.resources
+    val heard = request ?: exchange?.heard?.takeIf(String::isNotBlank)
+    val line = voiceAskedLine(resources, state, failure, heard, System.currentTimeMillis())
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             line.text,
@@ -241,7 +263,9 @@ internal fun OverlayVoiceAsked(request: String?, failure: String?) {
             fontSize = 16.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.semantics { contentDescription = "语音：${line.text}" },
+            modifier = Modifier.semantics {
+                contentDescription = resources.getString(R.string.overlay_voice_description, line.text)
+            },
         )
     }
     val reply = exchange?.reply?.takeIf { it.isNotBlank() && state.liveText.isBlank() } ?: return
@@ -251,21 +275,32 @@ internal fun OverlayVoiceAsked(request: String?, failure: String?) {
         fontSize = 18.sp,
         maxLines = MAX_REPLY_LINES,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.semantics { contentDescription = "回复：$reply" },
+        modifier = Modifier.semantics {
+            contentDescription = resources.getString(R.string.overlay_reply_description, reply)
+        },
     )
 }
 
 /** What the request line says while voice is on (see [OverlayVoiceAsked]); quoted like a request. */
-internal fun voiceAskedLine(state: VoiceSessionState, failure: String?, request: String?, nowMillis: Long): OverlayVoiceLine {
+internal fun voiceAskedLine(
+    resources: Resources,
+    state: VoiceSessionState,
+    failure: String?,
+    request: String?,
+    nowMillis: Long,
+): OverlayVoiceLine {
     val listening = state.status == VoiceSessionStatus.LISTENING || state.status == VoiceSessionStatus.BUSY
     val recent = state.segments.lastOrNull()?.takeIf { nowMillis - it.endedAtEpochMillis < RECENT_SEGMENT_MILLIS }
     return when {
         !listening && failure != null -> OverlayVoiceLine(failure, OverlayVoiceTone.WARN)
         state.liveText.isNotBlank() -> OverlayVoiceLine("“${state.liveText.takeLast(MAX_LIVE_CHARS)}”", OverlayVoiceTone.LIVE)
         recent != null && recent.label != VoiceSegmentLabel.AGENT ->
-            OverlayVoiceLine("没当成指令：${recent.text.takeLast(MAX_LIVE_CHARS)}", OverlayVoiceTone.IGNORED)
+            OverlayVoiceLine(
+                resources.getString(R.string.overlay_voice_not_a_request, recent.text.takeLast(MAX_LIVE_CHARS)),
+                OverlayVoiceTone.IGNORED,
+            )
         !request.isNullOrBlank() -> OverlayVoiceLine("“$request”", OverlayVoiceTone.SENT)
-        else -> OverlayVoiceLine("我在听，请说", OverlayVoiceTone.HINT)
+        else -> OverlayVoiceLine(resources.getString(R.string.overlay_voice_listening), OverlayVoiceTone.HINT)
     }
 }
 
@@ -277,7 +312,7 @@ internal fun voiceAskedLine(state: VoiceSessionState, failure: String?, request:
 @Composable
 internal fun OverlayVoiceCaption(modifier: Modifier) {
     val state by VoiceController.state.collectAsState()
-    val line = overlayVoiceLine(state, null, System.currentTimeMillis())
+    val line = overlayVoiceLine(LocalContext.current.resources, state, null, System.currentTimeMillis())
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

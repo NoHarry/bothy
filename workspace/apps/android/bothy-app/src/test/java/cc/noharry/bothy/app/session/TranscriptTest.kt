@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.session
+import android.app.Application
+import android.content.res.Resources
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.bothy.app.console.ConversationRenderItem
 import cc.noharry.bothy.app.console.businessToolLineLabel
@@ -10,8 +13,16 @@ import cc.noharry.bothy.app.runtime.handleAgentEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+/** Runs under Robolectric for the console's labels; the default (English) resources give the strings asserted here. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], application = Application::class)
 class TranscriptTest {
+    private val resources: Resources = ApplicationProvider.getApplicationContext<Application>().resources
+
     @Test
     fun trimForDisplayBoundsLargeTranscriptBodies() {
         val output = "x".repeat(LONG_BODY_CHARS).trimForDisplay()
@@ -399,9 +410,9 @@ class TranscriptTest {
 
         assertEquals(2, renderItems.size)
         val group = renderItems.first() as ConversationRenderItem.ContextToolGroup
-        assertEquals("Read 1 file and searched code", group.summaryLabel())
-        assertEquals("Read harness.yaml", group.tools[0].contextLookupLabel())
-        assertEquals("Searched for debug in trace", group.tools[1].contextLookupLabel())
+        assertEquals("Read 1 file and searched code", group.summaryLabel(resources))
+        assertEquals("Read harness.yaml", group.tools[0].contextLookupLabel(resources))
+        assertEquals("Searched for debug in trace", group.tools[1].contextLookupLabel(resources))
         // Single business tool stays ungrouped.
         assertTrue(renderItems.last() is ConversationRenderItem.Single)
     }
@@ -417,8 +428,8 @@ class TranscriptTest {
             .filterIsInstance<ConversationRenderItem.ContextToolGroup>()
 
         assertEquals(2, groups.size)
-        assertEquals("Read one.md", groups[0].tools.single().contextLookupLabel())
-        assertEquals("Read two.md", groups[1].tools.single().contextLookupLabel())
+        assertEquals("Read one.md", groups[0].tools.single().contextLookupLabel(resources))
+        assertEquals("Read two.md", groups[1].tools.single().contextLookupLabel(resources))
     }
 
     @Test
@@ -429,7 +440,7 @@ class TranscriptTest {
             .toRenderItems()
             .single() as ConversationRenderItem.BusinessToolGroup
         assertEquals(2, group.tools.size)
-        assertEquals("Used 2 tools", group.summaryLabel())
+        assertEquals("Used 2 tools", group.summaryLabel(resources))
     }
 
     private fun contextTool(id: Long, toolName: String, arguments: String): ConversationItem.ToolCallItem =

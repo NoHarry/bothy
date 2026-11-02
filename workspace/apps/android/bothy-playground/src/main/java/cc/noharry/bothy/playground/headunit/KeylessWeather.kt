@@ -51,7 +51,8 @@ internal object KeylessWeather {
             weather = weatherName(now["weather_code"]?.jsonPrimitive?.intOrNull),
             temperature = now["temperature_2m"]?.jsonPrimitive?.doubleOrNull?.roundToInt()?.toString().orEmpty(),
             humidity = now["relative_humidity_2m"]?.jsonPrimitive?.doubleOrNull?.roundToInt()?.toString().orEmpty(),
-            wind = now["wind_speed_10m"]?.jsonPrimitive?.doubleOrNull?.let { "风力 ${beaufort(it)}级" }.orEmpty(),
+            windDirection = "",
+            windForce = now["wind_speed_10m"]?.jsonPrimitive?.doubleOrNull?.let { "${beaufort(it)}" }.orEmpty(),
             days = codes.indices.map { i ->
                 DayWeather(
                     week = amapWeekday(today, i),

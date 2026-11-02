@@ -1,30 +1,43 @@
 package cc.noharry.bothy.app.usage
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.reduce
 import cc.noharry.bothy.app.runtime.reduce
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
 /** What each Token 活动 square shows: that day, its whole week, or everything up to that day. */
-internal enum class HeatMode(val label: String) { DAILY("每日"), WEEKLY("每周"), CUMULATIVE("累计") }
+internal enum class HeatMode(@StringRes val label: Int) {
+    DAILY(R.string.usage_heat_daily),
+    WEEKLY(R.string.usage_heat_weekly),
+    CUMULATIVE(R.string.usage_heat_cumulative),
+}
 
 /** What the trend chart's bars measure. */
-internal enum class TrendMetric(val label: String, val title: String) {
-    TOKENS("Token", "每日 Token 趋势图"),
-    COST("费用", "每日费用趋势图"),
+internal enum class TrendMetric(@StringRes val label: Int, @StringRes val title: Int) {
+    TOKENS(R.string.usage_metric_tokens, R.string.usage_trend_tokens),
+    COST(R.string.usage_metric_cost, R.string.usage_trend_cost),
     ;
 
-    fun format(value: Double): String = if (this == TOKENS) tokens(value.roundToLong()) else yuanShort(value)
+    /** An axis or bar value, token counts in [locale]'s units. */
+    fun format(value: Double, locale: Locale): String =
+        if (this == TOKENS) tokens(value.roundToLong(), locale) else yuanShort(value)
 }
 
 /** 时间范围 of the trend chart and the model table: the last [days] days, today included. */
-internal enum class UsageRange(val label: String, val days: Int) { WEEK("近 7 日", 7), MONTH("近 30 日", 30) }
+internal enum class UsageRange(@StringRes val label: Int, val days: Int) {
+    WEEK(R.string.usage_range_week, 7),
+    MONTH(R.string.usage_range_month, 30),
+}
 
 /** The five numbers at the top of 用量统计. */
 internal data class UsageSummary(
@@ -87,13 +100,13 @@ internal fun heatmapColumns(daily: Map<LocalDate, Long>, today: LocalDate, mode:
     }
 }
 
-/** Month labels as (column, "10月") at the column holding each month's 1st. */
-internal fun heatmapMonths(today: LocalDate, weeks: Int): List<Pair<Int, String>> {
+/** Month labels as (column, "10月" or "Oct", by [locale]) at the column holding each month's 1st. */
+internal fun heatmapMonths(today: LocalDate, weeks: Int, locale: Locale): List<Pair<Int, String>> {
     val start = heatmapStart(today, weeks)
     return (0 until weeks).mapNotNull { week ->
         val first = (0 until DAYS_PER_WEEK).map { start.plusWeeks(week.toLong()).plusDays(it.toLong()) }
             .firstOrNull { it.dayOfMonth == 1 } ?: return@mapNotNull null
-        week to "${first.monthValue}月"
+        week to first.month.getDisplayName(TextStyle.SHORT, locale)
     }
 }
 
@@ -126,18 +139,30 @@ internal fun niceCeiling(max: Double): Double {
     return listOf(1.0, 2.0, 5.0, 10.0).map { it * step }.first { it >= max - step * ROUNDING_SLACK }
 }
 
-/** Token counts in Chinese units: 8532, 1.5 万, 3.3 亿. */
-internal fun tokens(count: Long): String = when {
+/** Token counts in the screen's units ([locale]): in Chinese 8532, 1.5 万, 3.3 亿; otherwise 8.5K, 15K, 3.4M, 1.2B. */
+internal fun tokens(count: Long, locale: Locale): String =
+    if (locale.language == CHINESE_LANGUAGE) chineseTokens(count) else englishTokens(count)
+
+private fun chineseTokens(count: Long): String = when {
     count >= YI -> "${oneDecimal(count / YI.toDouble())} 亿"
     count >= WAN -> "${oneDecimal(count / WAN.toDouble())} 万"
     else -> count.toString()
+}
+
+/** Thousands, millions and billions; a count that rounds to 1000 of a unit is 1 of the next (1M, not 1000K). */
+private fun englishTokens(count: Long): String {
+    val (size, suffix) = ENGLISH_UNITS.firstOrNull { (size, _) -> count >= size - size / ROUNDS_UP_SHARE }
+        ?: return count.toString()
+    return "${oneDecimal(count / size.toDouble())}$suffix"
 }
 
 /** Yuan for an axis or a bar: as few decimals as the amount needs, at most four. */
 internal fun yuanShort(amount: Double): String =
     if (amount == 0.0) "¥0" else "¥" + BigDecimal(amount).setScale(YUAN_DECIMALS, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
 
-internal fun weekdayName(date: LocalDate): String = "周" + "一二三四五六日"[date.dayOfWeek.value - 1]
+/** 「周日」 or "Sun", by [locale]. */
+internal fun weekdayName(date: LocalDate, locale: Locale): String =
+    date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
 
 private fun oneDecimal(value: Double): String = "%.1f".format(java.util.Locale.ROOT, value).removeSuffix(".0")
 
@@ -147,3 +172,7 @@ private const val YUAN_DECIMALS = 4
 private const val ROUNDING_SLACK = 1e-9
 private const val WAN = 10_000L
 private const val YI = 100_000_000L
+private const val CHINESE_LANGUAGE = "zh"
+private val ENGLISH_UNITS = listOf(1_000_000_000L to "B", 1_000_000L to "M", 1_000L to "K")
+/** Within 1/20000 of a unit, one decimal rounds up to it: 999,950 is 1M. */
+private const val ROUNDS_UP_SHARE = 20_000L

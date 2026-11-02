@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.companion
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.buildConfigValues
 import cc.noharry.bothy.app.voice.loadDashscopeKey
 import cc.noharry.bothy.app.voice.tts.validationError
@@ -19,29 +21,35 @@ import kotlinx.serialization.json.JsonObject
  * key and extra request fields, so switching between them keeps what was filled in.
  */
 internal enum class CompanionService(
-    val label: String,
+    @StringRes val label: Int,
     val defaultBaseUrl: String,
     val defaultModel: String,
     /** Merged into each request: Qwen's omni model thinks by default, far too slow for a chat line. */
     val defaultExtraBody: String,
-    val hint: String,
+    @StringRes val hint: Int,
 ) {
     QWEN(
-        "千问",
+        R.string.companion_service_qwen,
         "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "qwen3.8-omni-flash",
         """{"enable_thinking": false}""",
-        "百炼 API key（不填就用语音识别的百炼 key）。sk-ws- 开头的工作空间 key 要把地址换成 https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+        R.string.companion_service_qwen_hint,
     ),
     DOUBAO(
-        "豆包",
+        R.string.companion_service_doubao,
         "https://ark.cn-beijing.volces.com/api/v3",
         "",
         "",
-        "火山方舟 API key；模型填方舟里开通的模型名或接入点 ID（角色对话可选 doubao-seed-character 系列）",
+        R.string.companion_service_doubao_hint,
     ),
-    HUNYUAN("混元", "https://api.hunyuan.cloud.tencent.com/v1", "hunyuan-turbos-latest", "", "腾讯混元 API key"),
-    CUSTOM("自定义（OpenAI 兼容）", "", "", "", "任何 OpenAI 兼容的 /chat/completions 服务"),
+    HUNYUAN(
+        R.string.companion_service_hunyuan,
+        "https://api.hunyuan.cloud.tencent.com/v1",
+        "hunyuan-turbos-latest",
+        "",
+        R.string.companion_service_hunyuan_hint,
+    ),
+    CUSTOM(R.string.companion_service_custom, "", "", "", R.string.companion_service_custom_hint),
     ;
 
     val wireName: String get() = name.lowercase()
@@ -51,10 +59,13 @@ internal enum class CompanionService(
     }
 }
 
-/** Observe first (owner's rollout): score and log where each turn would go, while everything still reaches the agent. */
-internal enum class CompanionMode(val wireName: String, val label: String) {
-    OBSERVE("observe", "只记录，不分流（先看判断准不准）"),
-    ROUTE("route", "闲聊交给陪聊服务"),
+/**
+ * Observe first (owner's rollout): score and log where each turn would go, while everything still reaches the agent.
+ * [shortLabel] names the mode in 检查 → 陪聊.
+ */
+internal enum class CompanionMode(val wireName: String, @StringRes val label: Int, @StringRes val shortLabel: Int) {
+    OBSERVE("observe", R.string.companion_mode_observe, R.string.companion_mode_observe_short),
+    ROUTE("route", R.string.companion_mode_route, R.string.companion_mode_route),
     ;
 
     companion object {
@@ -88,21 +99,23 @@ internal data class CompanionConfig(
      * What is filled in must be well formed. Whether the service is complete is [readinessError], checked when a turn is
      * sent: refusing to save an incomplete one kept 豆包 (no model yet) from being picked at all while 陪聊 was on.
      */
-    fun validationError(): String? {
+    fun validationError(context: Context): String? {
         val endpoint = endpoint()
         return when {
-            !threshold.isFinite() || threshold !in 0.5..1.0 -> "灵敏度要在 0.5 到 1 之间"
-            endpoint.baseUrl.isNotBlank() -> validateCompanionUrl(endpoint.baseUrl) ?: validateExtraBody(endpoint.extraBody)
-            else -> validateExtraBody(endpoint.extraBody)
+            !threshold.isFinite() || threshold !in 0.5..1.0 -> context.getString(R.string.companion_error_threshold)
+            endpoint.baseUrl.isNotBlank() ->
+                validateCompanionUrl(context, endpoint.baseUrl) ?: validateExtraBody(context, endpoint.extraBody)
+            else -> validateExtraBody(context, endpoint.extraBody)
         }
     }
 
     /** Why the chosen service cannot be asked yet; until then its turns go to the agent. */
-    fun readinessError(): String? {
+    fun readinessError(context: Context): String? {
         val endpoint = endpoint()
+        val name = context.getString(service.label)
         return when {
-            endpoint.baseUrl.isBlank() -> "${service.label}还没填地址"
-            endpoint.model.isBlank() -> "${service.label}还没填模型"
+            endpoint.baseUrl.isBlank() -> context.getString(R.string.companion_error_no_address, name)
+            endpoint.model.isBlank() -> context.getString(R.string.companion_error_no_model, name)
             else -> null
         }
     }
@@ -130,8 +143,8 @@ internal fun loadCompanionConfig(context: Context): CompanionConfig {
 
 /** Returns why it was refused, or null once saved. A blank [key] keeps the stored one. */
 internal fun saveCompanionConfig(context: Context, config: CompanionConfig, key: String = ""): String? {
-    config.validationError()?.let { return it }
-    if (key.any(Char::isWhitespace)) return "API key 不能包含空白字符"
+    config.validationError(context)?.let { return it }
+    if (key.any(Char::isWhitespace)) return context.getString(R.string.companion_error_key_whitespace)
     val prefs = context.getSharedPreferences(COMPANION_PREFS, Context.MODE_PRIVATE).edit()
         .putBoolean(KEY_ENABLED, config.enabled)
         .putString(KEY_MODE, config.mode.wireName)
@@ -161,7 +174,7 @@ internal object CompanionKeys {
         file(context, service).apply { parentFile?.mkdirs() }.writeText(key, Charsets.UTF_8)
         null
     } catch (_: IOException) {
-        "API key 没能保存"
+        context.getString(R.string.companion_error_key_not_saved)
     }
 
     private fun file(context: Context, service: CompanionService): File =
@@ -191,25 +204,26 @@ internal fun seedEmbeddedCompanion(context: Context, embedded: () -> Map<String,
     edit.putBoolean(KEY_SEEDED, true).apply()
 }
 
-private fun validateCompanionUrl(url: String): String? {
+private fun validateCompanionUrl(context: Context, url: String): String? {
     val uri = try {
         URI(url.trim())
     } catch (_: URISyntaxException) {
-        return "地址格式不对"
+        return context.getString(R.string.companion_error_url_invalid)
     }
     return when {
         uri.scheme == "https" && !uri.host.isNullOrBlank() -> null
         uri.scheme == "http" && uri.host in setOf("127.0.0.1", "localhost") -> null
-        else -> "地址要以 https:// 开头（http:// 只能连本机）"
+        else -> context.getString(R.string.companion_error_url_https)
     }
 }
 
-private fun validateExtraBody(text: String): String? {
+private fun validateExtraBody(context: Context, text: String): String? {
     if (text.isBlank()) return null
     return try {
-        if (Json.parseToJsonElement(text) is JsonObject) null else "额外参数要是一个 JSON 对象"
+        if (Json.parseToJsonElement(text) is JsonObject) null
+        else context.getString(R.string.companion_error_extra_not_object)
     } catch (_: SerializationException) {
-        "额外参数不是合法的 JSON"
+        context.getString(R.string.companion_error_extra_invalid)
     }
 }
 

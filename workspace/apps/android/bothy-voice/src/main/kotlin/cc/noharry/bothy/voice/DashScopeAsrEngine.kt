@@ -107,7 +107,7 @@ class DashScopeAsrEngine(
                 DashScopeEvent.Finished -> finished?.countDown()
                 is DashScopeEvent.Failed -> {
                     finished?.countDown()
-                    listener?.onError("百炼识别失败：${event.code} ${event.message}")
+                    listener?.onError(VoiceProblem.RecognitionFailed(event.code, event.message))
                 }
                 null -> Unit
             }
@@ -115,7 +115,8 @@ class DashScopeAsrEngine(
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             finished?.countDown()
-            if (socket === webSocket) listener?.onError("百炼连接失败：${response?.code ?: ""} ${t.message.orEmpty()}".trim())
+            if (socket !== webSocket) return
+            listener?.onError(VoiceProblem.ConnectionFailed(response?.code, t.message.orEmpty()))
         }
     }
 }

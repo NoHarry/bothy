@@ -16,6 +16,7 @@ import cc.noharry.bothy.playground.link.open
 import cc.noharry.bothy.playground.nav.NavState
 import cc.noharry.bothy.playground.nav.NavStatus
 import cc.noharry.bothy.playground.tick
+import cc.noharry.bothy.playground.WorldNote
 import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -23,7 +24,7 @@ import org.junit.Test
 
 /** The world on its own: fast enough for a plan to fire in a demo, and settling where it should. */
 class SimulationTest {
-    private fun World.after(seconds: Int, notes: MutableList<String> = mutableListOf()): World {
+    private fun World.after(seconds: Int, notes: MutableList<WorldNote> = mutableListOf()): World {
         val random = Random(1)
         return (1..seconds).fold(this) { world, _ -> world.tick(1.0, random, notes) }
     }

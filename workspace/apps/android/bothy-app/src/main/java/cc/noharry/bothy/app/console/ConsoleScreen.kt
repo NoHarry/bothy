@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.console
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -313,9 +315,10 @@ internal fun ConsoleViewTabs(
 ) {
     val colors = ConsoleColors
     val shape = RoundedCornerShape(999.dp)
+    val tabsLabel = stringResource(R.string.console_view_tabs)
     Row(
         modifier = Modifier
-            .semantics { contentDescription = "Console view" }
+            .semantics { contentDescription = tabsLabel }
             .height(Dimens.toggleHeight)
             .border(1.dp, colors.border, shape)
             .background(colors.elevated, shape)
@@ -324,7 +327,7 @@ internal fun ConsoleViewTabs(
     ) {
         ConsoleView.entries.filter { showA2aTab || it != ConsoleView.A2A }.forEach { entry ->
             ConsoleViewSegment(
-                label = entry.label,
+                label = stringResource(entry.label),
                 selected = view == entry,
                 onClick = { onViewChange(entry) },
             )
@@ -376,13 +379,14 @@ private fun ConsoleViewSegment(
     }
 }
 
+@Composable
 internal fun appStatusLine(state: UiState): String {
     val run = when {
-        state.isRunning -> "Running"
-        !state.lastRunSummary.isNullOrBlank() -> state.lastRunSummary
-        else -> "Ready"
+        state.isRunning -> stringResource(R.string.console_status_running)
+        !state.lastRunSummary.isNullOrBlank() -> runSummaryText(state.lastRunSummary)
+        else -> stringResource(R.string.console_ready)
     }
-    return "$run · ${state.providerLabel} · ${state.streamLabel}"
+    return "$run · ${state.providerLabel} · ${streamLabelText(state.streamLabel)}"
 }
 
 /**
@@ -390,11 +394,11 @@ internal fun appStatusLine(state: UiState): String {
  * Debug keeps the full console, Trajectory is a read-only run projection, and
  * A2A is the opt-in client mode (see docs/design/a2a-client-console/).
  */
-internal enum class ConsoleView(val label: String) {
-    DEBUG("Debug"),
-    TRAJECTORY("Trajectory"),
-    A2A("A2A"),
-    PLANS("计划"),
+internal enum class ConsoleView(@StringRes val label: Int) {
+    DEBUG(R.string.console_view_debug),
+    TRAJECTORY(R.string.console_view_trajectory),
+    A2A(R.string.console_view_a2a),
+    PLANS(R.string.console_view_plans),
 }
 
 internal val DEFAULT_DEBUG_CONSOLE_VIEW: ConsoleView = ConsoleView.DEBUG
@@ -597,10 +601,14 @@ private fun MediumLayout(
     )
     Column(modifier.fillMaxSize()) {
         Row {
-            TextButton(onClick = { sessionsCollapsed = !sessionsCollapsed }) { Text("Sessions") }
-            TextButton(onClick = onShowConversation) { Text("Chat") }
-            TextButton(onClick = { onDestinationSelected(NavigationDestination.BOARD) }) { Text("Board") }
-            TextButton(onClick = onShowSettings) { Text("Settings") }
+            TextButton(onClick = { sessionsCollapsed = !sessionsCollapsed }) {
+                Text(stringResource(R.string.console_nav_sessions))
+            }
+            TextButton(onClick = onShowConversation) { Text(stringResource(R.string.console_nav_chat)) }
+            TextButton(onClick = { onDestinationSelected(NavigationDestination.BOARD) }) {
+                Text(stringResource(R.string.console_board))
+            }
+            TextButton(onClick = onShowSettings) { Text(stringResource(R.string.common_settings)) }
         }
         Row(Modifier.weight(1f).fillMaxWidth()) {
             if (sessionPaneWidth > 0.dp) {
@@ -672,9 +680,11 @@ private fun ExpandedLayout(
     )
     Column(modifier.fillMaxSize()) {
         Row {
-            TextButton(onClick = { sessionsCollapsed = !sessionsCollapsed }) { Text("Sessions") }
-            TextButton(onClick = { boardCollapsed = !boardCollapsed }) { Text("Board") }
-            TextButton(onClick = onShowSettings) { Text("Settings") }
+            TextButton(onClick = { sessionsCollapsed = !sessionsCollapsed }) {
+                Text(stringResource(R.string.console_nav_sessions))
+            }
+            TextButton(onClick = { boardCollapsed = !boardCollapsed }) { Text(stringResource(R.string.console_board)) }
+            TextButton(onClick = onShowSettings) { Text(stringResource(R.string.common_settings)) }
         }
         Row(Modifier.weight(1f).fillMaxWidth()) {
             if (sessionPaneWidth > 0.dp) {
@@ -730,6 +740,7 @@ private fun BoardCollapsedStrip(
     modifier: Modifier = Modifier,
 ) {
     val colors = ConsoleColors
+    val expandLabel = stringResource(R.string.console_expand_board)
     Column(
         modifier
             .background(colors.panel, RoundedCornerShape(Dimens.radiusMd))
@@ -743,7 +754,7 @@ private fun BoardCollapsedStrip(
                 .clip(RoundedCornerShape(Dimens.radiusSm))
                 .clickable(onClick = onExpand)
                 .semantics {
-                    contentDescription = "Expand board"
+                    contentDescription = expandLabel
                     role = Role.Button
                 },
             contentAlignment = Alignment.Center,

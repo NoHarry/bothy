@@ -8,6 +8,9 @@ import cc.noharry.bothy.app.a2ui.UserQuestion
 internal fun lateAnswerText(question: UserQuestion, text: String): String =
     "关于你之前的问题「${question.title}」，我的回答是：$text"
 
+/** Why a reply to an ended run could not become a new turn; the console shows it in the screen's language. */
+internal const val SESSION_BUSY_REASON = "任务已结束且当前会话正在执行其他任务"
+
 /** Where a question reply goes after the exact-run post: consumed by that run, a new turn, an error, or nothing to show. */
 internal sealed interface AnswerRoute {
     data object Delivered : AnswerRoute
@@ -25,7 +28,7 @@ internal fun answerRoute(result: PostUserInputResult, selected: Boolean, running
         PostUserInputResult.Accepted, PostUserInputResult.Duplicate -> AnswerRoute.Delivered
         PostUserInputResult.RunNotActive, PostUserInputResult.NotFound -> when {
             selected && !running -> AnswerRoute.Late
-            selected -> AnswerRoute.Failed("任务已结束且当前会话正在执行其他任务")
+            selected -> AnswerRoute.Failed(SESSION_BUSY_REASON)
             else -> AnswerRoute.Silent
         }
         is PostUserInputResult.Rejected -> if (ownsRun) AnswerRoute.Failed(result.code) else AnswerRoute.Silent

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The playground's own screen around the scenes, and its service's notification. -->
+<resources>
+    <string name="playground_scene_cabin">虚拟座舱</string>
+    <string name="playground_scene_home">虚拟小家</string>
+    <string name="playground_server_starting">MCP 服务启动中…</string>
+    <string name="playground_server_running">MCP 服务运行中 · %1$s/cabin/mcp · %1$s/home/mcp</string>
+    <string name="playground_server_failed">MCP 服务没能启动：%1$s</string>
+    <string name="playground_port_taken">端口 %1$d 被占用：%2$s</string>
+    <string name="playground_simulated_drive">模拟行驶</string>
+    <string name="playground_reset">重置</string>
+    <string name="playground_you_are">你在</string>
+    <string name="playground_log_now_in_car">你现在在车上</string>
+    <string name="playground_log_now_at_home">你现在在家里</string>
+    <string name="playground_channel">演示场服务</string>
+    <string name="playground_notification_title">Bothy Playground 在运行</string>
+    <string name="playground_notification_text">虚拟座舱和小家的 MCP 服务：127.0.0.1:%1$d</string>
+</resources>

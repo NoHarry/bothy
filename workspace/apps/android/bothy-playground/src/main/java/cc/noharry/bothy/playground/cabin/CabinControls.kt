@@ -1,14 +1,19 @@
 package cc.noharry.bothy.playground.cabin
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.playground.Highlight
 import cc.noharry.bothy.playground.PlaygroundStore
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.headunit.Choices
 import cc.noharry.bothy.playground.headunit.CommitSlider
 import cc.noharry.bothy.playground.headunit.ControlRow
@@ -47,49 +52,72 @@ internal fun CabinControls(cabin: Cabin, store: PlaygroundStore) {
 
 @Composable
 private fun PeopleControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("乘客")
-    ControlRow("有人") {
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_passengers))
+    ControlRow(stringResource(R.string.cabin_row_seated)) {
         Seat.entries.forEach { seat ->
             val aboard = seat in cabin.occupants
-            MiniPill(seat.label, aboard) {
-                store.cabin(if (aboard) "${seat.label}的人下车了" else "${seat.label}坐上一个人", Highlight.seat(seat)) { it.withOccupant(seat, !aboard) }
+            MiniPill(stringResource(seat.labelRes), aboard) {
+                val summary = if (aboard) R.string.cabin_log_got_out else R.string.cabin_log_got_in
+                store.cabin(resources.getString(summary, context.seatName(seat)), Highlight.seat(seat)) {
+                    it.withOccupant(seat, !aboard)
+                }
             }
         }
     }
-    ControlRow("说话") {
+    ControlRow(stringResource(R.string.cabin_row_speaker)) {
         Seat.entries.forEach { seat ->
-            MiniPill(seat.label, cabin.speaker == seat) { store.cabin("现在是${seat.label}在说话", Highlight.seat(seat)) { it.withSpeaker(seat) } }
+            MiniPill(stringResource(seat.labelRes), cabin.speaker == seat) {
+                val summary = resources.getString(R.string.cabin_log_speaker, context.seatName(seat))
+                store.cabin(summary, Highlight.seat(seat)) { it.withSpeaker(seat) }
+            }
         }
     }
 }
 
 @Composable
 private fun ClimateControls(climate: CabinClimate, store: PlaygroundStore) {
-    SubTitle("空调") {
-        SmallSwitch(climate.on) { on -> store.cabin(if (on) "空调打开" else "空调关闭", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = on)) } }
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_climate)) {
+        SmallSwitch(climate.on) { on ->
+            val summary = resources.getString(if (on) R.string.cabin_log_climate_on else R.string.cabin_log_climate_off)
+            store.cabin(summary, Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = on)) }
+        }
     }
-    ControlRow("温度") {
-        fun set(temp: Double) = store.cabin("空调设到 ${temp.deg()}", Highlight.CLIMATE) {
-            it.copy(climate = it.climate.copy(on = true, driverTemp = temp, passengerTemp = temp))
+    ControlRow(stringResource(R.string.cabin_row_temp)) {
+        fun set(temp: Double) {
+            store.cabin(resources.getString(R.string.cabin_log_climate_temp, temp.deg()), Highlight.CLIMATE) {
+                it.copy(climate = it.climate.copy(on = true, driverTemp = temp, passengerTemp = temp))
+            }
         }
         Stepper(climate.driverTemp.deg(), { set((climate.driverTemp - 1).coerceAtLeast(16.0)) }, { set((climate.driverTemp + 1).coerceAtMost(30.0)) })
-        fun fan(level: Int) = store.cabin("风量 $level", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = true, fan = level)) }
-        Stepper("风 ${climate.fan}", { fan((climate.fan - 1).coerceAtLeast(1)) }, { fan((climate.fan + 1).coerceAtMost(7)) })
+        fun fan(level: Int) = store.cabin(resources.getString(R.string.cabin_log_fan, level), Highlight.CLIMATE) {
+            it.copy(climate = it.climate.copy(on = true, fan = level))
+        }
+        val fanLevel = stringResource(R.string.cabin_fan_level, climate.fan)
+        Stepper(fanLevel, { fan((climate.fan - 1).coerceAtLeast(1)) }, { fan((climate.fan + 1).coerceAtMost(7)) })
     }
-    ControlRow("模式") {
-        Choices(ClimateMode.entries.map { it.label to it }, climate.mode) { mode ->
-            store.cabin("空调${mode.label}", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = true, mode = mode)) }
+    ControlRow(stringResource(R.string.cabin_row_mode)) {
+        Choices(ClimateMode.entries.map { stringResource(it.labelRes) to it }, climate.mode) { mode ->
+            val summary = resources.getString(R.string.cabin_log_climate_mode, resources.getString(mode.labelRes))
+            store.cabin(summary, Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = true, mode = mode)) }
         }
     }
 }
 
 @Composable
 private fun SeatControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("座椅")
+    val context = LocalContext.current
+    SubTitle(stringResource(R.string.cabin_seats))
+    val levels = seatLevels()
     Seat.entries.forEach { seat ->
-        ControlRow(seat.label) {
-            Choices(SEAT_LEVELS, cabin.seat(seat)) { comfort ->
-                store.cabin("${seat.label}座椅${comfort.comfortLine()}", Highlight.seat(seat)) { it.copy(seats = it.seats + (seat to comfort)) }
+        ControlRow(stringResource(seat.labelRes)) {
+            Choices(levels, cabin.seat(seat)) { comfort ->
+                store.cabin(context.seatComfortLog(seat, comfort), Highlight.seat(seat)) {
+                    it.copy(seats = it.seats + (seat to comfort))
+                }
             }
         }
     }
@@ -97,12 +125,19 @@ private fun SeatControls(cabin: Cabin, store: PlaygroundStore) {
 
 @Composable
 private fun WindowControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("车窗")
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_windows))
     Seat.entries.forEach { seat ->
-        ControlRow(seat.label) {
+        ControlRow(stringResource(seat.labelRes)) {
             CommitSlider(cabin.window(seat).toFloat(), 0f..100f, { "${it.roundToInt()}%" }) { value ->
                 val open = value.roundToInt()
-                store.cabin("${seat.label}车窗${if (open == 0) "关上" else "开到 $open%"}", Highlight.window(seat)) { it.copy(windows = it.windows + (seat to open)) }
+                val summary = if (open == 0) {
+                    resources.getString(R.string.cabin_log_window_closed, context.seatName(seat))
+                } else {
+                    resources.getString(R.string.cabin_log_window_open, context.seatName(seat), open)
+                }
+                store.cabin(summary, Highlight.window(seat)) { it.copy(windows = it.windows + (seat to open)) }
             }
         }
     }
@@ -110,94 +145,153 @@ private fun WindowControls(cabin: Cabin, store: PlaygroundStore) {
 
 @Composable
 private fun BodyControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("车门和后备箱") {
-        Text(if (cabin.doorsLocked) "已锁" else "没锁", color = PlaygroundColors.muted, fontSize = 13.sp)
-        SmallSwitch(cabin.doorsLocked) { locked -> store.cabin(if (locked) "车门上锁" else "车门解锁", Highlight.DOOR) { it.copy(doorsLocked = locked) } }
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_doors_and_trunk)) {
+        val lock = stringResource(if (cabin.doorsLocked) R.string.cabin_locked else R.string.cabin_unlocked)
+        Text(lock, color = PlaygroundColors.muted, fontSize = 13.sp)
+        SmallSwitch(cabin.doorsLocked) { locked ->
+            val summary = if (locked) R.string.cabin_log_doors_locked else R.string.cabin_log_doors_unlocked
+            store.cabin(resources.getString(summary), Highlight.DOOR) { it.copy(doorsLocked = locked) }
+        }
     }
-    ControlRow("开门") {
-        Seat.entries.forEach { seat -> MiniPill(seat.label, seat in cabin.doorsOpen) { store.toggleDoor(seat) } }
+    ControlRow(stringResource(R.string.cabin_row_open_doors)) {
+        Seat.entries.forEach { seat ->
+            MiniPill(stringResource(seat.labelRes), seat in cabin.doorsOpen) { store.toggleDoor(context, seat) }
+        }
     }
-    ControlRow("后备箱") {
-        MiniPill(if (cabin.trunkOpen) "开着" else "关着", cabin.trunkOpen) { store.toggleTrunk() }
+    ControlRow(stringResource(R.string.cabin_row_trunk)) {
+        val trunk = stringResource(if (cabin.trunkOpen) R.string.cabin_trunk_open else R.string.cabin_trunk_shut)
+        MiniPill(trunk, cabin.trunkOpen) { store.toggleTrunk(context) }
     }
 }
 
 @Composable
 private fun ScreenSoundControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("屏幕和声音")
-    ControlRow("亮度") {
-        CommitSlider(cabin.screenBrightness.toFloat(), 0f..100f, { if (it < 0.5f) "熄屏" else "${it.roundToInt()}%" }) { value ->
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_screen_and_sound))
+    ControlRow(stringResource(R.string.cabin_row_brightness)) {
+        val off = stringResource(R.string.cabin_slider_screen_off)
+        CommitSlider(cabin.screenBrightness.toFloat(), 0f..100f, { if (it < 0.5f) off else "${it.roundToInt()}%" }) { value ->
             val level = value.roundToInt()
-            store.cabin(if (level == 0) "中控屏熄屏" else "中控屏亮度 $level%", Highlight.SCREEN) { it.copy(screenBrightness = level) }
+            val summary = if (level == 0) {
+                resources.getString(R.string.cabin_log_screen_off)
+            } else {
+                resources.getString(R.string.cabin_log_screen_brightness, level)
+            }
+            store.cabin(summary, Highlight.SCREEN) { it.copy(screenBrightness = level) }
         }
     }
-    ControlRow("音量") {
-        CommitSlider(cabin.media.volume.toFloat(), 0f..30f, { if (it < 0.5f) "静音" else "${it.roundToInt()}" }) { value ->
+    ControlRow(stringResource(R.string.cabin_row_volume)) {
+        val muted = stringResource(R.string.cabin_muted)
+        CommitSlider(cabin.media.volume.toFloat(), 0f..30f, { if (it < 0.5f) muted else "${it.roundToInt()}" }) { value ->
             val level = value.roundToInt()
-            store.cabin(if (level == 0) "静音" else "音量 $level", Highlight.SCREEN) { it.copy(media = it.media.copy(volume = level)) }
+            val summary = if (level == 0) muted else resources.getString(R.string.cabin_log_volume, level)
+            store.cabin(summary, Highlight.SCREEN) { it.copy(media = it.media.copy(volume = level)) }
         }
     }
 }
 
 @Composable
 private fun AmbientControls(ambient: AmbientLight, store: PlaygroundStore) {
-    SubTitle("氛围灯") {
-        SmallSwitch(ambient.on) { on -> store.cabin(if (on) "氛围灯打开" else "氛围灯关闭", Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = on)) } }
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_ambient)) {
+        SmallSwitch(ambient.on) { on ->
+            val summary = resources.getString(if (on) R.string.cabin_log_ambient_on else R.string.cabin_log_ambient_off)
+            store.cabin(summary, Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = on)) }
+        }
     }
-    ControlRow("颜色") {
+    ControlRow(stringResource(R.string.cabin_row_color)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             AMBIENT_COLORS.forEach { (name, color, _) ->
                 Swatch(Color(color), ambient.on && ambient.colorName == name) {
-                    store.cabin("氛围灯换成$name", Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = true, colorName = name, color = color)) }
+                    val shown = AMBIENT_COLOR_LABELS[name]?.let { resources.getString(it) } ?: name
+                    store.cabin(resources.getString(R.string.cabin_log_ambient_color, shown), Highlight.AMBIENT) {
+                        it.copy(ambient = it.ambient.copy(on = true, colorName = name, color = color))
+                    }
                 }
             }
         }
     }
-    ControlRow("亮度") {
+    ControlRow(stringResource(R.string.cabin_row_brightness)) {
         CommitSlider(ambient.brightness.toFloat(), 1f..100f, { "${it.roundToInt()}%" }) { value ->
-            store.cabin("氛围灯亮度 ${value.roundToInt()}%", Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = true, brightness = value.roundToInt())) }
+            val level = value.roundToInt()
+            store.cabin(resources.getString(R.string.cabin_log_ambient_brightness, level), Highlight.AMBIENT) {
+                it.copy(ambient = it.ambient.copy(on = true, brightness = level))
+            }
         }
     }
 }
 
 @Composable
 private fun MediaControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("音乐")
-    ControlRow("音乐") {
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_music))
+    ControlRow(stringResource(R.string.cabin_music)) {
         val playing = cabin.media.playing
-        MiniPill(if (playing) "暂停" else "播放", playing) {
+        MiniPill(stringResource(if (playing) R.string.cabin_pause else R.string.cabin_play), playing) {
             val media = cabin.media.played(if (playing) "pause" else "resume", null)
-            store.cabin(if (playing) "音乐暂停" else "播放《${media.title}》", Highlight.SCREEN) { it.copy(media = media) }
+            val summary = if (playing) {
+                resources.getString(R.string.cabin_log_music_paused)
+            } else {
+                resources.getString(R.string.cabin_log_playing, media.title)
+            }
+            store.cabin(summary, Highlight.SCREEN) { it.copy(media = media) }
         }
-        MiniPill("下一首", false) {
+        MiniPill(stringResource(R.string.cabin_next_track), false) {
             val media = cabin.media.played("next", null)
-            store.cabin("播放《${media.title}》", Highlight.SCREEN) { it.copy(media = media) }
+            store.cabin(resources.getString(R.string.cabin_log_playing, media.title), Highlight.SCREEN) {
+                it.copy(media = media)
+            }
         }
     }
 }
 
 @Composable
 private fun VehicleControls(cabin: Cabin, store: PlaygroundStore) {
-    SubTitle("车辆读数")
-    ControlRow("电量") {
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    SubTitle(stringResource(R.string.cabin_readings))
+    ControlRow(stringResource(R.string.cabin_row_battery)) {
         CommitSlider(cabin.drive.batteryPct.toFloat(), 0f..100f, { "${it.roundToInt()}%" }) { value ->
-            store.cabin("电量设为 ${value.roundToInt()}%") { it.copy(drive = it.drive.copy(batteryPct = value.roundToInt().toDouble())) }
+            store.cabin(resources.getString(R.string.cabin_log_battery, value.roundToInt())) {
+                it.copy(drive = it.drive.copy(batteryPct = value.roundToInt().toDouble()))
+            }
         }
     }
-    ControlRow("车内") {
+    ControlRow(stringResource(R.string.cabin_row_inside)) {
         CommitSlider(cabin.insideTempC.toFloat(), 10f..40f, { it.toDouble().deg() }) { value ->
-            store.cabin("车内温度设为 ${value.roundOne().deg()}", Highlight.CLIMATE) { it.copy(insideTempC = value.roundOne()) }
+            store.cabin(resources.getString(R.string.cabin_log_inside_temp, value.roundOne().deg()), Highlight.CLIMATE) {
+                it.copy(insideTempC = value.roundOne())
+            }
         }
     }
-    ControlRow("车外") {
+    ControlRow(stringResource(R.string.cabin_row_outside)) {
         CommitSlider(cabin.drive.outsideTempC.toFloat(), -10f..45f, { it.toDouble().deg() }) { value ->
-            store.cabin("车外温度设为 ${value.roundOne().deg()}") { it.copy(drive = it.drive.copy(outsideTempC = value.roundOne())) }
+            store.cabin(resources.getString(R.string.cabin_log_outside_temp, value.roundOne().deg())) {
+                it.copy(drive = it.drive.copy(outsideTempC = value.roundOne()))
+            }
         }
     }
 }
 
 internal fun Float.roundOne(): Double = (this * 10).roundToInt() / 10.0
 
-private val SEAT_LEVELS: List<Pair<String, SeatComfort>> =
-    listOf("关" to SeatComfort()) + (1..3).map { "热$it" to SeatComfort(heat = it) } + (1..3).map { "风$it" to SeatComfort(ventilation = it) }
+@Composable
+private fun seatLevels(): List<Pair<String, SeatComfort>> =
+    listOf(stringResource(R.string.common_off) to SeatComfort()) +
+        (1..3).map { stringResource(R.string.cabin_level_heat, it) to SeatComfort(heat = it) } +
+        (1..3).map { stringResource(R.string.cabin_level_vent, it) to SeatComfort(ventilation = it) }
+
+private fun Context.seatName(seat: Seat): String = getString(seat.labelRes)
+
+/** The log line for [seat]'s heating or ventilation set by hand to [comfort], in this context's language. */
+internal fun Context.seatComfortLog(seat: Seat, comfort: SeatComfort): String = when {
+    comfort.heat > 0 -> getString(R.string.cabin_log_seat_heat, seatName(seat), comfort.heat)
+    comfort.ventilation > 0 -> getString(R.string.cabin_log_seat_vent, seatName(seat), comfort.ventilation)
+    else -> getString(R.string.cabin_log_seat_off, seatName(seat))
+}
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_note">Follows the system unless you choose one here. What Xiao Bo says is not affected.</string>
+    <string name="settings_language_system">System default</string>
+</resources>

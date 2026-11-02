@@ -3,6 +3,7 @@ import android.content.Context
 import android.util.Log
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.mcp.McpRpcResponse
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.mcp.mcpResourceClient
@@ -116,27 +117,32 @@ internal fun resolvePlanAction(
 
 /**
  * Runs a plan's [actions] in order through [call] (an MCP `tools/call`), each once. The policy is asked again (one
- * tightened after the rule was made still holds). Returns a line per action for 最近触发.
+ * tightened after the rule was made still holds). Returns a line per action for 最近触发, in the app's language.
  */
 internal suspend fun runPlanActions(
+    context: Context,
     actions: List<PlanAction>,
     policy: AutomationPolicy,
     call: suspend (PlanAction) -> String?,
 ): List<String> = actions.map { action ->
-    if (policy.denied(action.tool) != null) return@map "${action.label}没执行（现在的策略不允许自动执行）"
-    call(action)?.let { problem -> "${action.label}没成功（$problem）" } ?: "已${action.label}"
+    if (policy.denied(action.tool) != null) return@map context.getString(R.string.plans_action_denied, action.label)
+    call(action)?.let { problem -> context.getString(R.string.plans_action_failed, action.label, problem) }
+        ?: context.getString(R.string.plans_action_done, action.label)
 }
 
-/** The failure in a `tools/call` answer, or null when it went through (no error, no isError, status code 0 if any). */
-internal fun planActionProblem(response: McpRpcResponse): String? {
-    if (!response.ok) return response.errorMessage ?: "服务没回应"
-    val data = response.dataJson ?: return "没有结果"
-    (data["error"] as? JsonObject)?.let { return it.text("message") ?: "出错" }
-    val result = data["result"] as? JsonObject ?: return "没有结果"
+/**
+ * The failure in a `tools/call` answer, or null when it went through (no error, no isError, status code 0 if any); the
+ * server's own message when it gives one.
+ */
+internal fun planActionProblem(context: Context, response: McpRpcResponse): String? {
+    if (!response.ok) return response.errorMessage ?: context.getString(R.string.plans_problem_no_answer)
+    val data = response.dataJson ?: return context.getString(R.string.plans_problem_no_result)
+    (data["error"] as? JsonObject)?.let { return it.text("message") ?: context.getString(R.string.plans_problem_error) }
+    val result = data["result"] as? JsonObject ?: return context.getString(R.string.plans_problem_no_result)
     val status = (result["structuredContent"] as? JsonObject)?.get("status") as? JsonObject
     val code = (status?.get("code") as? JsonPrimitive)?.intOrNull
     val failed = (result["isError"] as? JsonPrimitive)?.booleanOrNull == true || (code != null && code != 0)
-    return if (failed) status?.text("message") ?: "被拒绝了" else null
+    return if (failed) status?.text("message") ?: context.getString(R.string.plans_problem_refused) else null
 }
 
 /** Runs plans' actions on their servers, off the alarm's and the watcher's threads. */
@@ -149,11 +155,13 @@ internal object PlanActionRunner {
         scope.launch {
             val policy = AutomationPolicy.load(app)
             val lines = runPlanActions(
+                app,
                 plan.actions,
                 policy,
                 call = call@{ action ->
-                    val client = mcpResourceClient(app, action.server) ?: return@call "${action.server} 没有开或连不上"
-                    planActionProblem(client.sendRequest(TOOLS_CALL, buildJsonObject { put("name", action.tool); put("arguments", action.arguments) }))
+                    val client = mcpResourceClient(app, action.server)
+                        ?: return@call app.getString(R.string.plans_problem_offline, action.server)
+                    planActionProblem(app, client.sendRequest(TOOLS_CALL, buildJsonObject { put("name", action.tool); put("arguments", action.arguments) }))
                 },
             )
             Log.i(PLAN_LOG_TAG, "ran ${plan.actions.size} actions for ${plan.id}")

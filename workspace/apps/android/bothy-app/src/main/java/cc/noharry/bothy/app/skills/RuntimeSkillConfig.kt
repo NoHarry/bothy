@@ -1,6 +1,7 @@
 package cc.noharry.bothy.app.skills
 import android.content.Context
 import cc.noharry.agent.vfs.VfsMemorySource
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aModuleConfig
 import cc.noharry.bothy.app.androiduse.androidUseReady
 
@@ -25,15 +26,17 @@ internal data class RuntimeSkill(
 /** The built-in skills, then those added on the device, each switched as last saved. */
 internal fun loadRuntimeSkills(context: Context): List<RuntimeSkill> {
     val preferences = context.getSharedPreferences(SKILL_PREFS, Context.MODE_PRIVATE)
-    return (RUNTIME_SKILLS + CustomSkills.load(context)).map { it.copy(enabled = preferences.getBoolean(it.id, it.enabled)) }
+    return (builtinRuntimeSkills(context) + CustomSkills.load(context))
+        .map { it.copy(enabled = preferences.getBoolean(it.id, it.enabled)) }
 }
 
 internal fun saveRuntimeSkill(context: Context, id: String, enabled: Boolean) {
-    require(RUNTIME_SKILLS.any { it.id == id } || CustomSkills.load(context).any { it.id == id }) { "Unknown runtime skill." }
+    val known = id in builtinRuntimeSkillIds(context) || CustomSkills.load(context).any { it.id == id }
+    require(known) { "Unknown runtime skill." }
     context.getSharedPreferences(SKILL_PREFS, Context.MODE_PRIVATE).edit().putBoolean(id, enabled).apply()
 }
 
-internal fun builtinRuntimeSkillIds(): Set<String> = RUNTIME_SKILLS.map { it.id }.toSet()
+internal fun builtinRuntimeSkillIds(context: Context): Set<String> = builtinRuntimeSkills(context).map { it.id }.toSet()
 
 /** A custom skill renamed keeps its switch. */
 internal fun renameRuntimeSkillChoice(context: Context, from: String, to: String) {
@@ -109,34 +112,41 @@ private const val SKILL_PREFS = "debug_runtime_skills"
 /**
  * Workflow skills default on: a matched skill pre-activates its tools before the first model request, which
  * removes pure discovery rounds and keeps the tool list stable for the prompt cache. Saved choices still win.
+ * Their names and summaries, shown in Settings, are in [context]'s language.
  */
-private val RUNTIME_SKILLS = listOf(
+private fun builtinRuntimeSkills(context: Context): List<RuntimeSkill> = listOf(
     RuntimeSkill(
-        "debug_voice_progress", "Voice progress", "UI、ASR、A2A 共用的中文播报进度；启用后随请求加载。",
+        "debug_voice_progress", context.getString(R.string.skills_voice_progress),
+        context.getString(R.string.skills_voice_progress_about),
         "runtime-workspace/skills/debug_voice_progress/SKILL.md", enabled = true, preload = true,
     ),
     RuntimeSkill(
-        "mcp-task-orchestration", "MCP task orchestration", "根据当前工具能力发现、编排依赖并核对用户约束，适用于不同业务领域。",
+        "mcp-task-orchestration", context.getString(R.string.skills_task_orchestration),
+        context.getString(R.string.skills_task_orchestration_about),
         "runtime-workspace/skills/mcp-task-orchestration/SKILL.md", enabled = false, preload = true,
     ),
     RuntimeSkill(
-        "travel-planning", "Travel planning", "要规划几天的旅行时加载：三路子 agent 查交通、住宿和每天的去处，汇总成按天分组、带照片的行程卡片，再问要不要设提醒。",
+        "travel-planning", context.getString(R.string.skills_travel_planning),
+        context.getString(R.string.skills_travel_planning_about),
         "runtime-workspace/skills/travel-planning/SKILL.md", enabled = true, preload = true,
         manifestPath = "runtime-workspace/skills/travel-planning/runtime.json", mainAgentOnly = true,
     ),
     RuntimeSkill(
-        "personal-agent-delegation", "Personal agent delegation", "启用了 A2A 委托目标时随请求加载：哪些事交给用户自己的 agent、做了收不回的事先确认、转告后台的【委托回报】。",
+        "personal-agent-delegation", context.getString(R.string.skills_delegation),
+        context.getString(R.string.skills_delegation_about),
         "runtime-workspace/skills/personal-agent-delegation/SKILL.md", enabled = true, preload = true, requiresA2aDelegate = true,
         mainAgentOnly = true,
     ),
     RuntimeSkill(
-        "android-use", "Android Use", "操作屏幕已连接时随请求加载：领域工具优先、一步一个动作、核对结果、不可撤销操作先确认。",
+        "android-use", context.getString(R.string.skills_android_use),
+        context.getString(R.string.skills_android_use_about),
         "runtime-workspace/skills/android-use/SKILL.md", enabled = true, preload = true, requiresAndroidUse = true,
     ),
     // In the catalog, read when the model needs it: playground_open's own description covers the common asks; the
     // skill adds what to do when a system dialog keeps it from the front or the Playground is not installed.
     RuntimeSkill(
-        "playground", "Playground", "回到车机、虚拟小家或导航界面：playground_open 怎么用，弹框挡住或没装 Playground 时怎么办。",
+        "playground", context.getString(R.string.skills_playground),
+        context.getString(R.string.skills_playground_about),
         "runtime-workspace/skills/playground/SKILL.md", enabled = true,
     ),
 )

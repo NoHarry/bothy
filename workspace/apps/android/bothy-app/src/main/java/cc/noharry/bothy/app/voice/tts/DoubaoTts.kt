@@ -1,8 +1,10 @@
 package cc.noharry.bothy.app.voice.tts
 import android.content.Context
+import androidx.annotation.StringRes
 import cc.noharry.agent.transport.HttpEvent
 import cc.noharry.agent.transport.HttpRequest
 import cc.noharry.agent.transport.HttpTransport
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.model.orDefault
 import java.io.ByteArrayOutputStream
@@ -27,10 +29,10 @@ import kotlinx.serialization.json.putJsonObject
  * Who speaks the replies (owner 2026-10-13: 「TTS播报的部分也要能支持其他家」, then 「先加上豆包的tts支持」); [SYSTEM] is the
  * device's own speech synthesis, which needs no key (owner 2026-10-25: a model key alone should be enough to try 小博).
  */
-internal enum class TtsProvider(val wireName: String, val label: String) {
-    MIMO("mimo", "MiMo"),
-    DOUBAO("doubao", "豆包"),
-    SYSTEM("system", "系统语音"),
+internal enum class TtsProvider(val wireName: String, @StringRes val label: Int) {
+    MIMO("mimo", R.string.tts_provider_mimo),
+    DOUBAO("doubao", R.string.tts_provider_doubao),
+    SYSTEM("system", R.string.tts_provider_system),
     ;
 
     companion object {
@@ -55,12 +57,15 @@ internal data class DoubaoTtsSettings(
 ) {
     val ready: Boolean get() = key.isNotBlank() && voice.isNotBlank() && resourceId.isNotBlank()
 
-    val voiceLabel: String get() = DoubaoTtsVoice.entries.firstOrNull { it.id == voice }?.label ?: voice
+    fun voiceLabel(context: Context): String =
+        DoubaoTtsVoice.entries.firstOrNull { it.id == voice }?.label(context) ?: voice
 
-    fun validationError(): String? = when {
-        resourceId.isBlank() || resourceId.any(Char::isWhitespace) -> "请填写豆包资源 ID（如 seed-tts-2.0）。"
-        speechRate !in -50..100 -> "语速要在 -50 到 100 之间。"
-        appId.any(Char::isWhitespace) -> "App ID 不能包含空白字符。"
+    /** Null when usable, else the message saying what is wrong, for `getString`. */
+    @StringRes
+    fun validationError(): Int? = when {
+        resourceId.isBlank() || resourceId.any(Char::isWhitespace) -> R.string.tts_doubao_resource_required
+        speechRate !in -50..100 -> R.string.tts_doubao_rate_range
+        appId.any(Char::isWhitespace) -> R.string.tts_app_id_whitespace
         else -> null
     }
 
@@ -75,18 +80,25 @@ internal data class DoubaoTtsSettings(
     }
 }
 
-/** Some 豆包语音合成 2.0 voices (`seed-tts-2.0`); any other voice id can be typed in. */
-internal enum class DoubaoTtsVoice(val id: String, val label: String) {
-    XIAOHE("zh_female_xiaohe_uranus_bigtts", "小何 · 通用女声"),
-    VIVI("zh_female_vv_uranus_bigtts", "Vivi · 多语种女声"),
+/**
+ * Some 豆包语音合成 2.0 voices (`seed-tts-2.0`); any other voice id can be typed in. [title] is 豆包's name for the
+ * voice, [description] (when the name does not say it) what it sounds like.
+ */
+internal enum class DoubaoTtsVoice(val id: String, val title: String, @StringRes val description: Int? = null) {
+    XIAOHE("zh_female_xiaohe_uranus_bigtts", "小何", R.string.tts_voice_general_female),
+    VIVI("zh_female_vv_uranus_bigtts", "Vivi", R.string.tts_voice_multilingual_female),
     MEILINVYOU("zh_female_meilinvyou_uranus_bigtts", "魅力女友"),
     SAJIAOXUEMEI("zh_female_sajiaoxuemei_uranus_bigtts", "撒娇学妹"),
     QINGXIN("zh_female_qingxinnvsheng_uranus_bigtts", "清新女声"),
     TIANMEIXIAOYUAN("zh_female_tianmeixiaoyuan_uranus_bigtts", "甜美小源"),
     CANCAN("zh_female_cancan_uranus_bigtts", "知性灿灿"),
-    YUNZHOU("zh_male_m191_uranus_bigtts", "云舟 · 通用男声"),
-    XIAOTIAN("zh_male_taocheng_uranus_bigtts", "小天 · 男声"),
-    RUYAYICHEN("zh_male_ruyayichen_uranus_bigtts", "儒雅逸辰 · 男声"),
+    YUNZHOU("zh_male_m191_uranus_bigtts", "云舟", R.string.tts_voice_general_male),
+    XIAOTIAN("zh_male_taocheng_uranus_bigtts", "小天", R.string.tts_voice_male),
+    RUYAYICHEN("zh_male_ruyayichen_uranus_bigtts", "儒雅逸辰", R.string.tts_voice_male),
+    ;
+
+    /** The chip's label: the voice's name, then what it sounds like. */
+    fun label(context: Context): String = description?.let { "$title · ${context.getString(it)}" } ?: title
 }
 
 internal fun loadDoubaoTtsKey(context: Context): String =
@@ -95,13 +107,13 @@ internal fun loadDoubaoTtsKey(context: Context): String =
 /** Settings → 语音 → 密钥 → 豆包语音: null when saved, else why not. */
 internal fun saveDoubaoTtsKey(context: Context, key: String): String? {
     val trimmed = key.trim()
-    if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return "API key 不能为空或包含空白字符。"
+    if (trimmed.isEmpty() || trimmed.any(Char::isWhitespace)) return context.getString(R.string.tts_key_invalid)
     return try {
         context.noBackupFilesDir.mkdirs()
         File(context.noBackupFilesDir, DOUBAO_TTS_KEY_FILE).writeText(trimmed, Charsets.UTF_8)
         null
     } catch (_: IOException) {
-        "无法保存豆包语音 key。"
+        context.getString(R.string.tts_doubao_key_save_failed)
     }
 }
 

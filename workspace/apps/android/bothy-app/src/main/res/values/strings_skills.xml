@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Subagents and a subagent type's page, adding a skill, the built-in skills, and background task lines. -->
+<resources>
+    <string name="skills_list_separator">", "</string>
+
+    <string name="skills_subagents">Subagents</string>
+    <string name="skills_subagents_subtitle">Applies the next time a subagent is started.</string>
+    <string name="skills_auto_spawn">Let the AI start subagents</string>
+    <string name="skills_auto_spawn_on">On: the AI decides which long tasks that can run in parallel go to background subagents; the card shows their progress</string>
+    <string name="skills_auto_spawn_off">Off: the AI works step by step without subagents; ones already running finish and report as usual</string>
+    <string name="skills_search_api">Search with the DeepSeek Search API</string>
+    <string name="skills_search_api_on">On: subagents use the Search API (¥0.005 per search) for short results and fewer input tokens; the main agent is unchanged</string>
+    <string name="skills_search_api_off">Off: subagents search the same way as the main agent</string>
+    <string name="skills_device_control">Let subagents control the device</string>
+    <string name="skills_device_control_on">On: subagents can carry out the device actions their task asks for</string>
+    <string name="skills_device_control_off">Off: subagents can only query; actions go into their result for the main agent to decide</string>
+    <plurals name="skills_subagent_model">
+        <item quantity="one">Model: %1$s · each subagent opens pages and searches at most %2$d time</item>
+        <item quantity="other">Model: %1$s · each subagent opens pages and searches at most %2$d times</item>
+    </plurals>
+    <string name="skills_same_as_main">Same as the main agent</string>
+    <string name="skills_kinds">Subagent types</string>
+    <string name="skills_kinds_subtitle">Types that are on appear in spawn_agent: the main agent assigns work by type and writes only the specifics. When a type is off, skills spell out the whole task for a general subagent. Tap a type to change the tools it can use.</string>
+    <string name="skills_kind_not_loaded">Not loaded</string>
+    <string name="skills_kind_needs_deepseek">Needs a DeepSeek key (the official API, or a relay that passed the check); not started for now</string>
+    <string name="skills_kind_loaded">Loaded</string>
+    <plurals name="skills_kind_status">
+        <item quantity="one">Up to %1$d lookup · %2$s</item>
+        <item quantity="other">Up to %1$d lookups · %2$s</item>
+    </plurals>
+    <string name="skills_no_tools">Can\'t use any tools</string>
+
+    <string name="skills_back_to_subagents">‹ Subagents</string>
+    <string name="skills_prompt">Prompt</string>
+    <string name="skills_prompt_subtitle">runtime-workspace/agents/%1$s/AGENT.md, packaged in the APK; read-only here.</string>
+    <plurals name="skills_reset_tools">
+        <item quantity="one">Restore the default tools and lookups (%1$s · up to %2$d)</item>
+        <item quantity="other">Restore the default tools and lookups (%1$s · up to %2$d)</item>
+    </plurals>
+    <string name="skills_kind_load">Load this type</string>
+    <string name="skills_kind_on">On: the main agent can write agent: %1$s in spawn_agent</string>
+    <string name="skills_kind_off">Off: not in spawn_agent; skills spell out the whole task for a general subagent</string>
+    <string name="skills_kind_description">What the main agent reads</string>
+    <string name="skills_kind_model">Model</string>
+    <string name="skills_kind_model_value">%1$s (set under Subagents)</string>
+    <string name="skills_kind_search">Search</string>
+    <string name="skills_kind_no_search">No search: “Web search” isn\'t checked</string>
+    <string name="skills_kind_search_api">DeepSeek Search API (set under Subagents)</string>
+    <string name="skills_kind_search_same">Same as the main agent (set under Subagents)</string>
+    <string name="skills_kind_tools">Tools it can use</string>
+    <string name="skills_kind_tools_subtitle">It can call only the checked ones; other calls are refused. The tool list stays the same and shares the main agent\'s cache. A red dot marks tools that change something.</string>
+    <string name="skills_device_control_off_note">“Let subagents control the device” is off, so this has no effect for now</string>
+    <string name="skills_main_agent_only">Only the main agent can use</string>
+    <string name="skills_lookups">Opening pages and searching</string>
+    <string name="skills_lookups_subtitle">How many lookups this type may make each time; at the limit it hands back what it has.</string>
+    <plurals name="skills_lookups_max">
+        <item quantity="one">At most %1$d time</item>
+        <item quantity="other">At most %1$d times</item>
+    </plurals>
+    <string name="skills_lookups_unused">“Web search” and “Open web pages” aren\'t checked, so this has no effect</string>
+
+    <string name="skills_kind_trip_transport">Trip · Transport</string>
+    <string name="skills_kind_trip_stay">Trip · Stay</string>
+    <string name="skills_kind_trip_days">Trip · Daily plan</string>
+    <string name="skills_kind_web_verify">Online check</string>
+
+    <string name="skills_tool_search">Web search</string>
+    <string name="skills_tool_search_detail">web_search, or the model service\'s own search</string>
+    <string name="skills_tool_fetch">Open web pages</string>
+    <string name="skills_tool_fetch_detail">web_fetch</string>
+    <string name="skills_tool_read">Read files</string>
+    <string name="skills_tool_read_detail">list_dir, read_file, grep: the workspace and skills</string>
+    <string name="skills_tool_write">Write files</string>
+    <string name="skills_tool_write_detail">write_file, edit_file</string>
+    <string name="skills_tool_todo">To-dos</string>
+    <string name="skills_tool_todo_detail">update_todo</string>
+    <string name="skills_tool_device_query">Check device status</string>
+    <string name="skills_tool_device_query_detail">The query tools of the device service</string>
+    <string name="skills_tool_device_control">Control the device</string>
+    <string name="skills_tool_device_control_detail">Actions of the device service; “Let subagents control the device” must be on too</string>
+    <string name="skills_tool_services">Other services</string>
+    <string name="skills_tool_services_detail">Connected tools such as maps, calendar, food delivery, ride hailing and phone control</string>
+    <string name="skills_tool_ask">Ask the user</string>
+    <string name="skills_tool_ask_detail">ask, ask_async</string>
+    <string name="skills_tool_cards">Cards and options</string>
+    <string name="skills_tool_cards_detail">show_card, offer_*</string>
+    <string name="skills_tool_plans">Plans</string>
+    <string name="skills_tool_plans_detail">plan_manage</string>
+    <string name="skills_tool_delegate">Delegate to a personal assistant</string>
+    <string name="skills_tool_delegate_detail">a2a_message_send</string>
+
+    <string name="skills_custom_hint">Paste or type a SKILL.md: start with a YAML header between --- lines that gives name (lowercase letters, digits and -) and description (one line: what it does and when to use it), followed by the instructions for Xiao Bo. A saved skill is on and applies from the next request: its description goes into the skill catalog, and the full text is read when needed.</string>
+    <string name="skills_custom_check">Check format</string>
+    <string name="skills_custom_ok">The format is fine: %1$s</string>
+    <plurals name="skills_custom_errors">
+        <item quantity="one">%1$d thing to fix before it can be saved:</item>
+        <item quantity="other">%1$d things to fix before it can be saved:</item>
+    </plurals>
+    <string name="skills_custom_save_failed">Couldn\'t save: %1$s</string>
+    <string name="skills_check_empty">The content is empty.</string>
+    <string name="skills_check_too_big">Over 64 KB: the runtime reads only the first 64 KB.</string>
+    <string name="skills_check_first_line">The first line must be ---: start with a YAML header that gives name and description, and end it with a --- line.</string>
+    <string name="skills_check_unclosed">The YAML header doesn\'t end with a --- line.</string>
+    <string name="skills_check_no_name">name is missing.</string>
+    <string name="skills_check_metadata">Under metadata, write “key: value” entries on new, indented lines.</string>
+    <string name="skills_check_scenes">scenes must be written as [\"scene one\", \"scene two\"].</string>
+    <string name="skills_check_empty_body">The body under --- is empty: write how the model should do it.</string>
+    <string name="skills_check_long_body">The body has %1$d lines, more than %2$d; consider trimming it or splitting it into several skills.</string>
+    <string name="skills_check_indent">Line %1$d: indented lines belong only under a field with an empty value, such as metadata.</string>
+    <string name="skills_check_not_field">Line %1$d isn\'t in the form “field: value”.</string>
+    <string name="skills_check_duplicate">The field %1$s is written twice.</string>
+    <string name="skills_check_unknown_field">Line %1$d: unknown field “%2$s”; use only %3$s.</string>
+    <string name="skills_check_single_quotes">%1$s: use double quotes or none; the runtime doesn\'t read single quotes.</string>
+    <string name="skills_check_name_empty">name is empty.</string>
+    <string name="skills_check_name_format">name “%1$s” may use only lowercase letters, digits and -, may not start or end with - or contain --, and has at most %2$d characters.</string>
+    <string name="skills_check_name_taken">There is already a skill named “%1$s”. Pick another name (to change a skill you added, tap Edit in the list).</string>
+    <string name="skills_check_no_description">description is missing: one sentence on what it does and when to use it; the model decides from it whether to read the skill.</string>
+    <string name="skills_check_description_line">Write description on the same line as “description:”: the runtime reads line by line.</string>
+    <string name="skills_check_description_long">description is longer than %1$d characters.</string>
+    <string name="skills_check_description_brackets">description can\'t contain angle brackets &lt; &gt;.</string>
+    <string name="skills_check_description_short">description is too short: say what it does and when to use it, so the model knows when to read it.</string>
+    <string name="skills_check_sections">“&lt;!-- %1$s --&gt;” and “&lt;!-- /%1$s --&gt;” don\'t come in pairs.</string>
+
+    <string name="skills_voice_progress">Voice progress</string>
+    <string name="skills_voice_progress_about">Spoken progress in Chinese, shared by the UI, ASR and A2A; loaded with each request when on.</string>
+    <string name="skills_task_orchestration">MCP task orchestration</string>
+    <string name="skills_task_orchestration_about">Finds and orchestrates tools by what they can do now, orders their dependencies and checks the user\'s constraints; works in any domain.</string>
+    <string name="skills_travel_planning">Travel planning</string>
+    <string name="skills_travel_planning_about">Loaded to plan a trip of several days: three subagents look up transport, stays and each day\'s places, summed up in a trip card grouped by day with photos, then it asks whether to set reminders.</string>
+    <string name="skills_delegation">Personal agent delegation</string>
+    <string name="skills_delegation_about">Loaded with each request while an A2A delegate is on: what to hand to the user\'s own agent, confirming first what can\'t be undone, and passing on delegation reports from the background.</string>
+    <string name="skills_android_use">Android Use</string>
+    <string name="skills_android_use_about">Loaded with each request while screen control is connected: domain tools first, one action per step, check the result, confirm irreversible actions first.</string>
+    <string name="skills_playground">Playground</string>
+    <string name="skills_playground_about">Back to the head unit, the Virtual home or the navigation screen: how to use playground_open, and what to do when a dialog is in the way or the Playground isn\'t installed.</string>
+
+    <string name="skills_subagent_started">Background task “%1$s” started (%2$s)</string>
+    <string name="skills_subagent_stalled">Background task “%1$s” has made no progress for %2$d s</string>
+    <string name="skills_subagent_stalled_latest">Background task “%1$s” has made no progress for %2$d s; latest: %3$s</string>
+    <string name="skills_subagent_resumed">Background task “%1$s” is making progress again</string>
+    <string name="skills_subagent_finished">Background task “%1$s”: %2$s · %3$s</string>
+    <string name="skills_subagent_report_done">Background task “%1$s” is done</string>
+    <string name="skills_subagent_report_stalled">Background task “%1$s” is making no progress</string>
+    <string name="skills_subagent_report_failed">Background task “%1$s” didn\'t finish</string>
+    <string name="skills_subagent_report_all_done">Background tasks %1$s are all done</string>
+    <string name="skills_subagent_report_news">News from background tasks %1$s</string>
+    <string name="skills_subagent_quoted">“%1$s”</string>
+    <string name="skills_subagent_quoted_separator">", "</string>
+</resources>

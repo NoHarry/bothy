@@ -1,5 +1,5 @@
 package cc.noharry.bothy.app.overlay
-import androidx.compose.animation.AnimatedContent
+import android.content.res.Resources
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
@@ -15,9 +15,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,8 +22,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,7 +45,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,7 +53,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,19 +71,18 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -106,12 +98,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.a2ui.A2uiChoice
 import cc.noharry.bothy.app.a2ui.DisplayChoice
 import cc.noharry.bothy.app.a2ui.WidgetCard
 import cc.noharry.bothy.app.a2ui.titleAndDetail
 import cc.noharry.bothy.app.console.color
+import cc.noharry.bothy.app.console.durationLabelText
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.image.rememberPicture
@@ -313,57 +307,6 @@ private fun Modifier.reveal(shown: Boolean, onSettled: (Boolean) -> Unit): Modif
 }
 
 @Composable
-private fun Header(hud: OverlayHud, ui: OverlayUi, mood: Mood, actions: OverlayActions, mascot: MascotPose) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectDragGestures { change, drag ->
-                    change.consume()
-                    actions.onDrag(drag.x, drag.y)
-                }
-            },
-    ) {
-        // 小博's seat stays laid out (and reported) even while 小博 itself is drawn by another window.
-        Box(
-            Modifier
-                .size(MASCOT_BOX)
-                .onGloballyPositioned { placed ->
-                    actions.onMascotPlaced(placed.localToWindow(Offset(placed.size.width / 2f, placed.size.height / 2f)))
-                }
-                // A tap, not a press: a drag that starts on 小博 still moves the card.
-                .pointerInput(mascot) { detectTapGestures { mascot.react(MascotReaction.GIGGLE) } },
-        ) {
-            if (ui.cardDrawn) Mascot(mascot, mood.action, driving = ui.mascotDriving)
-        }
-        // The status line opens the plan and tool calls below (owner 2026-10-25: fewer header buttons, 详情 among them).
-        Column(
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.pointerInput(Unit) { detectTapGestures { actions.onToggleDetails() } }.semantics { contentDescription = "详情" },
-        ) {
-            Text("小博", color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.sp)
-            // State changes roll in from below rather than snapping.
-            AnimatedContent(
-                targetState = hud.statusLine(ui),
-                transitionSpec = {
-                    (fadeIn(tween(240)) + slideInVertically(tween(240)) { it / 2 }) togetherWith
-                        (fadeOut(tween(160)) + slideOutVertically(tween(160)) { -it / 2 })
-                },
-                label = "status",
-            ) { status ->
-                Text(status, color = OverlayPalette.text, fontSize = 19.sp, fontWeight = FontWeight.Medium)
-            }
-        }
-        Spacer(Modifier.weight(1f))
-        if (ui.stopVisible) StopButton(actions.onStop)
-        GlassIcon(Icons.Filled.Edit, "输入", tint = if (ui.pendingQuestion || ui.showInput) OverlayPalette.glow else OverlayPalette.secondary, onClick = actions.onToggleInput)
-        OverlayCloseButton(ui.collapseAt, ui.collapseMillis, actions.onClose)
-    }
-}
-
-@Composable
 private fun Asked(request: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -384,15 +327,17 @@ private fun Body(hud: OverlayHud, ui: OverlayUi, actions: OverlayActions, modifi
     val picking = hud.choices.isNotEmpty() && !ui.choicesAnswered
     // A pending panel, like picks, comes before the summary: its shared confirm must not drop below the dock.
     val widgets = picking || (hud.controls.isNotEmpty() && !ui.panelAnswered)
-    val step = if (live) hud.currentStep?.stepPhrase() else null
+    val resources = LocalContext.current.resources
+    val step = if (live) hud.currentStep?.stepPhrase(resources) else null
+    val resultText = resources.overlayShownText(hud.resultText)
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
     ) {
         val picture = hud.picture
         if (picture != null) {
-            Picture(picture, hud.resultText, if (ui.pictureExpanded) ui.expandedPictureSide() else PICTURE_SIZE, actions.onTogglePicture)
-        } else if (hud.resultText.isNotBlank()) {
+            Picture(picture, resultText, if (ui.pictureExpanded) ui.expandedPictureSide() else PICTURE_SIZE, actions.onTogglePicture)
+        } else if (resultText.isNotBlank()) {
             // With a card the reply was spoken and the card holds the detail (owner 2026-10-17: the full reply left the
             // card too little room): a caption of a few lines, the rest a tap away.
             val captioned = widgets || hud.cards.isNotEmpty()
@@ -400,7 +345,7 @@ private fun Body(hud: OverlayHud, ui: OverlayUi, actions: OverlayActions, modifi
             // One call site for the hero across phases, so streamed text keeps revealing where it left off.
             Hero(
                 // Three capped lines would spend one on a paragraph gap and show a lone "…".
-                if (captioned && !opened) hud.resultText.replace(PARAGRAPH_GAP, "\n") else hud.resultText,
+                if (captioned && !opened) resultText.replace(PARAGRAPH_GAP, "\n") else resultText,
                 OverlayPalette.text,
                 // While picking or sliding, the controls matter most and the summary was already spoken.
                 maxLines = when { widgets -> 3; captioned && !opened -> CARD_CAPTION_LINES; else -> Int.MAX_VALUE },
@@ -410,7 +355,8 @@ private fun Body(hud: OverlayHud, ui: OverlayUi, actions: OverlayActions, modifi
             step?.let { Shimmer(it, 15.sp) }
         } else if (live) {
             // The header already says it is working; the fallback only fills a body that would otherwise be empty.
-            (step ?: "正在处理".takeIf { ui.chosen == null })?.let { Shimmer(it, 22.sp) }
+            val working = stringResource(R.string.overlay_step_working)
+            (step ?: working.takeIf { ui.chosen == null })?.let { Shimmer(it, 22.sp) }
         }
         Cards(hud.cards)
         hud.controls.takeIf { it.isNotEmpty() && !ui.panelAnswered }?.let { OverlayA2uiPanel(it, actions.onPanel) }
@@ -458,6 +404,7 @@ private fun Picture(picture: OverlayPicture, caption: String, side: Dp, onToggle
 @Composable
 private fun PictureFrame(picture: OverlayPicture, side: Dp, onToggle: (() -> Unit)?) {
     val last = remember { SideMemo(side) }
+    val toggleLabel = stringResource(R.string.overlay_toggle_picture)
     val zoom = remember(side) { Animatable(last.side / side) }
     SideEffect { last.side = side }
     LaunchedEffect(side) { zoom.animateTo(1f, spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow)) }
@@ -472,7 +419,7 @@ private fun PictureFrame(picture: OverlayPicture, side: Dp, onToggle: (() -> Uni
             .clip(PictureShape)
             .drawBehind { drawRect(PICTURE_BASE) }
             .border(1.dp, OverlayPalette.hairline, PictureShape)
-            .then(if (onToggle != null) Modifier.clickable(onClickLabel = "放大或收起图片", onClick = onToggle) else Modifier),
+            .then(if (onToggle != null) Modifier.clickable(onClickLabel = toggleLabel, onClick = onToggle) else Modifier),
     ) {
         val reference = picture.reference
         if (reference == null) DrawingLight(Modifier.matchParentSize()) else Developing(reference)
@@ -493,16 +440,16 @@ private fun OverlayUi.expandedPictureSide(): Dp {
 private fun PictureWords(picture: OverlayPicture, caption: String, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (picture.reference == null) {
-            Shimmer("正在作画", 22.sp)
+            Shimmer(stringResource(R.string.overlay_step_drawing), 22.sp)
             // The prompt arrives with the raw tool transcript; until then the wait is described instead.
-            if (picture.prompt.isBlank()) Text("通常需要 15–30 秒", color = OverlayPalette.faint, fontSize = 15.sp)
+            if (picture.prompt.isBlank()) Text(stringResource(R.string.overlay_drawing_wait), color = OverlayPalette.faint, fontSize = 15.sp)
         }
         if (picture.reference != null && caption.isNotBlank()) {
             Hero(caption, OverlayPalette.text, maxLines = 6, compact = true)
         } else if (picture.prompt.isNotBlank()) {
             Text("“${picture.prompt}”", color = OverlayPalette.secondary, fontSize = 16.sp, lineHeight = 24.sp, maxLines = 5, overflow = TextOverflow.Ellipsis)
         }
-        if (picture.reference != null) Text("点图片放大", color = OverlayPalette.faint, fontSize = 13.sp)
+        if (picture.reference != null) Text(stringResource(R.string.overlay_tap_to_enlarge), color = OverlayPalette.faint, fontSize = 13.sp)
     }
 }
 
@@ -545,7 +492,7 @@ private fun Developing(reference: String) {
     bitmap?.let { image ->
         Image(
             image,
-            contentDescription = "生成的图片",
+            contentDescription = stringResource(R.string.overlay_generated_picture),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().graphicsLayer {
                 alpha = develop.value
@@ -635,7 +582,7 @@ private fun Chosen(choice: DisplayChoice) {
             Icon(Icons.Filled.Check, contentDescription = null, tint = OverlayPalette.onSignature, modifier = Modifier.size(22.dp))
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text("已选 · 第${choice.ordinal}个", color = OverlayPalette.glow, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
+            Text(stringResource(R.string.overlay_chosen, choice.ordinal), color = OverlayPalette.glow, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp)
             Text(title, color = OverlayPalette.text, fontSize = 18.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             detail?.let { Text(it, color = OverlayPalette.secondary, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
@@ -646,9 +593,9 @@ private fun Chosen(choice: DisplayChoice) {
 private fun Picks(choices: List<DisplayChoice>, icons: Map<String, String>, wide: Boolean, onPick: (DisplayChoice) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("选一个", color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.sp)
+            Text(stringResource(R.string.overlay_pick_one), color = OverlayPalette.faint, fontSize = 13.sp, fontWeight = FontWeight.Medium, letterSpacing = 2.sp)
             Spacer(Modifier.weight(1f))
-            Text("说「第二个」也可以", color = OverlayPalette.faint, fontSize = 13.sp)
+            Text(stringResource(R.string.overlay_pick_by_voice), color = OverlayPalette.faint, fontSize = 13.sp)
         }
         if (wide && choices.size >= OVERLAY_GRID_MIN_CHOICES) {
             // Column-major, like a numbered list read top to bottom: 1–4 left, 5–8 right.
@@ -673,19 +620,25 @@ private fun Details(hud: OverlayHud, ui: OverlayUi, actions: OverlayActions) {
             .border(1.dp, OverlayPalette.hairline, InsetShape)
             .padding(18.dp),
     ) {
+        val resources = LocalContext.current.resources
         val meta = listOf(
-            if (ui.clientMode) "A2A 客户端" else "本地运行",
-            hud.elapsedLabel.takeIf { it != "—" },
+            stringResource(if (ui.clientMode) R.string.overlay_mode_a2a_client else R.string.overlay_mode_local),
+            hud.elapsedLabel.takeIf { it != "—" }?.let(resources::durationLabelText),
             hud.providerLabel.takeIf { it.isNotBlank() },
         ).filterNotNull().joinToString("  ·  ")
         Text(meta, color = OverlayPalette.faint, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            Panel(if (hud.planTitle == "Speech") "播报" else "计划", Modifier.weight(1f)) {
-                if (hud.planRows.isEmpty()) Text(hud.planEmptyText ?: "暂无", color = OverlayPalette.faint, fontSize = 14.sp)
+            val planTitle = if (hud.planTitle == "Speech") R.string.overlay_panel_speech else R.string.overlay_panel_plan
+            Panel(stringResource(planTitle), Modifier.weight(1f)) {
+                val empty = when {
+                    hud.thinkingHidden -> stringResource(R.string.overlay_thinking_hidden)
+                    else -> hud.planEmptyText ?: stringResource(R.string.overlay_none_yet)
+                }
+                if (hud.planRows.isEmpty()) Text(empty, color = OverlayPalette.faint, fontSize = 14.sp)
                 hud.planRows.forEach { row -> PlanLine(row) }
             }
-            Panel("工具调用", Modifier.weight(1f)) {
-                if (hud.toolLines.isEmpty()) Text("暂无", color = OverlayPalette.faint, fontSize = 14.sp)
+            Panel(stringResource(R.string.overlay_panel_tools), Modifier.weight(1f)) {
+                if (hud.toolLines.isEmpty()) Text(stringResource(R.string.overlay_none_yet), color = OverlayPalette.faint, fontSize = 14.sp)
                 hud.toolLines.asReversed().forEach { line ->
                     ToolLine(line, expanded = line.id in ui.expandedToolIds) { actions.onToggleTool(line.id) }
                 }
@@ -715,7 +668,7 @@ private fun InputBar(onSubmit: (String) -> Unit) {
             .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
     ) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-            if (text.isEmpty()) Text("想让我做什么？", color = OverlayPalette.faint, fontSize = 18.sp)
+            if (text.isEmpty()) Text(stringResource(R.string.overlay_input_hint), color = OverlayPalette.faint, fontSize = 18.sp)
             BasicTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -744,7 +697,7 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
     ) {
         Icon(
             Icons.AutoMirrored.Filled.Send,
-            contentDescription = "发送",
+            contentDescription = stringResource(R.string.overlay_send),
             tint = if (enabled) OverlayPalette.onSignature else OverlayPalette.faint,
             modifier = Modifier.size(22.dp),
         )
@@ -787,7 +740,7 @@ private fun Shimmer(text: String, fontSize: TextUnit) {
 }
 
 @Composable
-private fun GlassIcon(icon: ImageVector, description: String, tint: Color = OverlayPalette.secondary, onClick: () -> Unit) {
+internal fun GlassIcon(icon: ImageVector, description: String, tint: Color = OverlayPalette.secondary, onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(44.dp).clip(CircleShape).background(OverlayPalette.tile).clickable(onClick = onClick),
@@ -797,7 +750,7 @@ private fun GlassIcon(icon: ImageVector, description: String, tint: Color = Over
 }
 
 @Composable
-private fun StopButton(onClick: () -> Unit) {
+internal fun StopButton(onClick: () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -856,7 +809,9 @@ private fun ToolLine(line: OverlayToolLine, expanded: Boolean, onToggle: () -> U
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            line.durationLabel?.let { Text(it, color = OverlayPalette.faint, fontSize = 12.sp) }
+            line.durationLabel?.let {
+                Text(LocalContext.current.resources.durationLabelText(it), color = OverlayPalette.faint, fontSize = 12.sp)
+            }
         }
         if (expanded) {
             line.argumentsJson?.takeIf { it.isNotBlank() }?.let { Payload(it) }
@@ -879,53 +834,42 @@ private fun Payload(raw: String) {
 }
 
 /** How the assistant looks for a state: 小博's act, whose colour also tints the glass. */
-private class Mood(val action: MascotAction)
+internal class Mood(val action: MascotAction)
 
 private fun OverlayHud.mood(ui: OverlayUi): Mood = Mood(ui.mascotPreview ?: mascotAction(ui))
-
-private fun OverlayHud.statusLine(ui: OverlayUi): String = when {
-    choices.isNotEmpty() && ui.choicesAnswered -> "收到，正在处理"
-    choices.isNotEmpty() -> "请选择"
-    controls.isNotEmpty() && ui.panelAnswered -> "收到，正在处理"
-    controls.isNotEmpty() -> "调好点确定"
-    phase == OverlayPhase.LIVE && headline.startsWith("等待回答") -> "等你回答"
-    phase == OverlayPhase.LIVE -> "正在处理"
-    phase == OverlayPhase.DONE && headline == "等待你的回复" -> "等你回复"
-    phase == OverlayPhase.DONE && headline == PARTLY_DONE_HEADLINE -> "部分完成"
-    phase == OverlayPhase.DONE -> "已完成"
-    phase == OverlayPhase.FAIL -> "没有完成"
-    phase == OverlayPhase.STOP -> "已停止"
-    ui.voiceShown -> "我在听"
-    else -> "随时为你服务"
-}
 
 /**
  * A step in words a user would use. Tool identifiers ("Running navigation_poi_search") become the kind of
  * work being done; natural text (a plan item, a client status) stays as written; a bare "Working" says nothing new.
  */
-internal fun String.stepPhrase(): String? {
+internal fun String.stepPhrase(resources: Resources): String? {
     val step = removePrefix("Running ").trim()
     if (step.isEmpty() || step.equals("Working", ignoreCase = true)) return null
-    if (step.equals("Thinking", ignoreCase = true)) return "正在思考"
+    if (step.equals("Thinking", ignoreCase = true)) return resources.getString(R.string.overlay_step_thinking)
+    // The status header's other English words, and the step the projection writes while thinking is hidden.
+    if (step == HIDDEN_THINKING_STEP) return resources.getString(R.string.overlay_step_working)
+    if (step == "Waiting for approval") return resources.getString(R.string.overlay_step_waiting_approval)
+    if (step.startsWith("Worked for")) return resources.overlayShownText(step)
     if (!TOOL_IDENTIFIER.matches(step)) return step
     val tool = step.lowercase()
-    return STEP_PHRASES.firstOrNull { (keys, _) -> keys.any { it in tool } }?.second ?: "正在处理"
+    val phrase = STEP_PHRASES.firstOrNull { (keys, _) -> keys.any { it in tool } }?.second ?: R.string.overlay_step_working
+    return resources.getString(phrase)
 }
 
 private val TOOL_IDENTIFIER = Regex("""[A-Za-z0-9_.:\-]+""")
 private val STEP_PHRASES = listOf(
-    listOf("search_tools") to "正在准备",
-    listOf("user_memory") to "正在记下来",
-    listOf("plan_manage") to "正在安排计划",
-    listOf("image_gen", "draw") to "正在作画",
-    listOf("navigation", "poi", "route", "map") to "正在查询导航",
-    listOf("media", "music", "video", "radio", "audio") to "正在查找音乐",
-    listOf("hvac", "light", "volume", "brightness", "setting") to "正在调整设置",
-    listOf("system", "setting", "brightness", "volume", "display") to "正在调整设置",
-    listOf("read_file", "list_dir", "grep") to "正在查阅资料",
-    listOf("update_todo") to "正在规划步骤",
-    listOf("web") to "正在联网查询",
-    listOf("a2a") to "正在联系其他助手",
+    listOf("search_tools") to R.string.overlay_step_preparing,
+    listOf("user_memory") to R.string.overlay_step_noting,
+    listOf("plan_manage") to R.string.overlay_step_planning,
+    listOf("image_gen", "draw") to R.string.overlay_step_drawing,
+    listOf("navigation", "poi", "route", "map") to R.string.overlay_step_navigation,
+    listOf("media", "music", "video", "radio", "audio") to R.string.overlay_step_music,
+    listOf("hvac", "light", "volume", "brightness", "setting") to R.string.overlay_step_settings,
+    listOf("system", "setting", "brightness", "volume", "display") to R.string.overlay_step_settings,
+    listOf("read_file", "list_dir", "grep") to R.string.overlay_step_reading,
+    listOf("update_todo") to R.string.overlay_step_steps,
+    listOf("web") to R.string.overlay_step_web,
+    listOf("a2a") to R.string.overlay_step_a2a,
 )
 
 private val CardShape = RoundedCornerShape(32.dp)

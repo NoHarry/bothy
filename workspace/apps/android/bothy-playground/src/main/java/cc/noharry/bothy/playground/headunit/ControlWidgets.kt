@@ -5,12 +5,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,12 +35,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** One line of the controls: a short label, then whatever changes it. */
+/**
+ * One line of the controls: a short label, then whatever changes it. A longer label (English) takes more room or a
+ * second line, and what does not fit beside it (four seats' names) goes on to a next line.
+ */
 @Composable
 internal fun ControlRow(label: String, content: @Composable RowScope.() -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, color = PlaygroundColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.width(LABEL_WIDTH))
-        content()
+        Text(
+            label,
+            color = PlaygroundColors.muted,
+            fontSize = 13.sp,
+            maxLines = 2,
+            modifier = Modifier.widthIn(min = LABEL_WIDTH, max = LABEL_MAX_WIDTH),
+        )
+        FlowRow(
+            Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) { content() }
     }
 }
 
@@ -136,5 +152,6 @@ internal fun SubTitle(text: String, trailing: @Composable RowScope.() -> Unit = 
 }
 
 private val LABEL_WIDTH = 48.dp
+private val LABEL_MAX_WIDTH = 80.dp
 private val VALUE_WIDTH = 50.dp
 private const val SWITCH_SCALE = 0.75f

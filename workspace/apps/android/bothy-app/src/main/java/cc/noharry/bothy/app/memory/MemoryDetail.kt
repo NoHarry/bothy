@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.memory
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -26,8 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -53,34 +57,43 @@ internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var confirmDelete by remember { mutableStateOf(false) }
-    TextButton(onClick = onBack) { Text("‹ 记忆") }
+    TextButton(onClick = onBack) { Text(stringResource(R.string.memory_back)) }
     UsageCard(null) {
         CategoryPill(memory.category)
         Text(memory.content, style = ConsoleType.hero, color = ConsoleColors.text)
         HorizontalDivider(color = ConsoleColors.borderSubtle)
-        InfoRow("来源", memory.source.label)
-        memory.said?.let { InfoRow("原话", "「$it」") }
-        InfoRow("记下时间", fullTime(memory.createdAtMillis))
-        if (memory.updatedAtMillis != memory.createdAtMillis) InfoRow("最后修改", fullTime(memory.updatedAtMillis))
+        InfoRow(stringResource(R.string.memory_info_source), stringResource(memory.source.label))
+        memory.said?.let { said ->
+            InfoRow(stringResource(R.string.memory_info_said), stringResource(R.string.memory_quoted, said))
+        }
+        InfoRow(stringResource(R.string.memory_info_created), fullTime(memory.createdAtMillis))
+        if (memory.updatedAtMillis != memory.createdAtMillis) {
+            InfoRow(stringResource(R.string.memory_info_updated), fullTime(memory.updatedAtMillis))
+        }
     }
-    UsageCard("修改") {
-        MemoryEditor(memory.category, memory.content, saveLabel = "保存修改", resetOnSave = false) { category, content ->
+    UsageCard(stringResource(R.string.memory_edit_title)) {
+        val saveLabel = stringResource(R.string.memory_save_changes)
+        MemoryEditor(memory.category, memory.content, saveLabel = saveLabel, resetOnSave = false) { category, content ->
             UserMemoryStore.write(context) { it.update(memory.id, content, category, MemorySource.TYPED) }
         }
     }
-    TextButton(onClick = { confirmDelete = true }) { Text("删除这条记忆", color = ConsoleColors.danger) }
+    TextButton(onClick = { confirmDelete = true }) {
+        Text(stringResource(R.string.memory_delete), color = ConsoleColors.danger)
+    }
     if (confirmDelete) {
         BothyAlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("删除这条记忆？") },
-            text = { Text("「${memory.content}」\n小博会忘掉这件事。") },
+            title = { Text(stringResource(R.string.memory_delete_title)) },
+            text = { Text(stringResource(R.string.memory_delete_text, memory.content)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
                     scope.launch { withContext(Dispatchers.IO) { UserMemoryStore.write(context) { it.forget(memory.id) } } }
-                }) { Text("删除", color = ConsoleColors.danger) }
+                }) { Text(stringResource(R.string.common_delete), color = ConsoleColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("取消") } },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.common_cancel)) }
+            },
         )
     }
 }
@@ -89,11 +102,12 @@ internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
 @Composable
 internal fun MemoryAdd(category: MemoryCategory, onDone: () -> Unit) {
     val context = LocalContext.current
-    TextButton(onClick = onDone) { Text("‹ 记忆") }
-    Text("添加记忆", style = ConsoleType.hero, color = ConsoleColors.text)
-    Text("写一句完整的话，比如「家在望京花园 3 号楼」「开空调一般 22 度」。小博之后每次对话都会知道。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+    TextButton(onClick = onDone) { Text(stringResource(R.string.memory_back)) }
+    Text(stringResource(R.string.memory_add_title), style = ConsoleType.hero, color = ConsoleColors.text)
+    Text(stringResource(R.string.memory_add_note), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
     UsageCard(null) {
-        MemoryEditor(category, "", saveLabel = "添加", resetOnSave = true) { kind, content ->
+        val saveLabel = stringResource(R.string.common_add)
+        MemoryEditor(category, "", saveLabel = saveLabel, resetOnSave = true) { kind, content ->
             UserMemoryStore.write(context) { it.remember(kind, content, MemorySource.TYPED) }.also { result ->
                 if (result is MemoryWrite.Saved) withContext(Dispatchers.Main) { onDone() }
             }
@@ -110,17 +124,19 @@ private fun MemoryEditor(
     resetOnSave: Boolean,
     save: suspend (MemoryCategory, String) -> MemoryWrite,
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var category by remember(initialCategory) { mutableStateOf(initialCategory) }
     var content by remember(initialContent) { mutableStateOf(initialContent) }
     var note by remember { mutableStateOf(SettingsNote()) }
     Row(Modifier.horizontalScroll(rememberScrollState())) {
-        UsageSegmented(MemoryCategory.entries, category, MemoryCategory::label) { category = it }
+        val labels = MemoryCategory.entries.associateWith { stringResource(it.title) }
+        UsageSegmented(MemoryCategory.entries, category, { labels.getValue(it) }) { category = it }
     }
     OutlinedTextField(
         value = content,
         onValueChange = { content = it.take(MAX_MEMORY_CHARS) },
-        label = { Text("内容（${content.length}/$MAX_MEMORY_CHARS）") },
+        label = { Text(stringResource(R.string.memory_content_label, content.length, MAX_MEMORY_CHARS)) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 2,
         colors = outlinedTextFieldColors(),
@@ -130,7 +146,7 @@ private fun MemoryEditor(
             onClick = {
                 scope.launch {
                     val result = withContext(Dispatchers.IO) { save(category, content) }
-                    note = editorNote(result)
+                    note = editorNote(context, result)
                     if (result is MemoryWrite.Saved && resetOnSave) content = ""
                 }
             },
@@ -144,16 +160,33 @@ private fun MemoryEditor(
     }
 }
 
-private fun editorNote(result: MemoryWrite): SettingsNote = when (result) {
-    is MemoryWrite.Saved -> SettingsNote(if (result.created) "已添加" else "已保存")
-    is MemoryWrite.Removed -> SettingsNote("已删除")
-    is MemoryWrite.Refused -> SettingsNote(result.reason, error = true)
+private fun editorNote(context: Context, result: MemoryWrite): SettingsNote = when (result) {
+    is MemoryWrite.Saved ->
+        SettingsNote(context.getString(if (result.created) R.string.memory_note_added else R.string.memory_note_saved))
+    is MemoryWrite.Removed -> SettingsNote(context.getString(R.string.memory_note_deleted))
+    is MemoryWrite.Refused -> SettingsNote(refusalText(context, result), error = true)
+}
+
+/** A refused write in the page's language; [MemoryWrite.Refused.reason] is 小博's. */
+internal fun refusalText(context: Context, refused: MemoryWrite.Refused): String = when (val why = refused.why) {
+    MemoryRefusal.Empty -> context.getString(R.string.memory_refused_empty)
+    MemoryRefusal.TooLong -> context.getString(R.string.memory_refused_too_long, MAX_MEMORY_CHARS)
+    MemoryRefusal.Secret -> context.getString(R.string.memory_refused_secret)
+    MemoryRefusal.LongNumber -> context.getString(R.string.memory_refused_long_number)
+    MemoryRefusal.Full -> context.getString(R.string.memory_refused_full, MAX_MEMORIES)
+    is MemoryRefusal.CategoryFull -> {
+        val title = context.getString(why.category.title)
+        context.getString(R.string.memory_refused_category_full, title, MAX_PER_CATEGORY)
+    }
+    is MemoryRefusal.Missing -> context.getString(R.string.memory_refused_missing, why.id)
+    MemoryRefusal.NotSaved -> context.getString(R.string.memory_refused_not_saved)
+    MemoryRefusal.Arguments -> refused.reason
 }
 
 @Composable
 private fun CategoryPill(category: MemoryCategory) {
     Text(
-        category.label,
+        stringResource(category.title),
         style = ConsoleType.meta,
         color = ConsoleColors.accent,
         modifier = Modifier.background(ConsoleColors.accentSoft, RoundedCornerShape(Dimens.radiusFull))
@@ -179,18 +212,21 @@ internal fun MemoryLessonsTab() {
     var evidence by remember { mutableStateOf<RuntimeMemoryEvidence?>(null) }
     LaunchedEffect(Unit) { evidence = withContext(Dispatchers.IO) { runCatching { loadRuntimeMemoryEvidence(context) }.getOrNull() } }
     Text(
-        "小博办完事后总结的操作经验，比如某类请求用哪个接口最快、哪个接口一直失败。同一条经验在几次任务里都得到验证才会生效，" +
-            "只用来把事办得更快更稳，和你的个人信息无关。",
+        stringResource(R.string.memory_lessons_note),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
     val loaded = evidence
     when {
-        loaded == null -> Text("正在读取…", style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
-        loaded.active.isEmpty() && loaded.pending.isEmpty() -> Text("还没有操作经验", style = ConsoleType.body, color = ConsoleColors.muted)
+        loaded == null -> {
+            val loading = stringResource(R.string.memory_lessons_loading)
+            Text(loading, style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+        }
+        loaded.active.isEmpty() && loaded.pending.isEmpty() ->
+            Text(stringResource(R.string.memory_lessons_empty), style = ConsoleType.body, color = ConsoleColors.muted)
         else -> {
-            LessonCard("已生效 · ${loaded.activeCount}", loaded.active)
-            LessonCard("待验证 · ${loaded.pendingCount}", loaded.pending)
+            LessonCard(stringResource(R.string.memory_lessons_active, loaded.activeCount), loaded.active)
+            LessonCard(stringResource(R.string.memory_lessons_pending, loaded.pendingCount), loaded.pending)
         }
     }
 }
@@ -204,7 +240,13 @@ private fun LessonCard(title: String, lessons: List<LessonEntry>) {
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) {
                 Text(lesson.content, style = ConsoleType.bodySmall, color = ConsoleColors.text, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${lesson.scene} · 可信度 ${(lesson.confidence * PERCENT).toInt()}% · 验证 ${lesson.hitCount} 次",
+                    pluralStringResource(
+                        R.plurals.memory_lesson_meta,
+                        lesson.hitCount,
+                        lesson.scene,
+                        (lesson.confidence * PERCENT).toInt(),
+                        lesson.hitCount,
+                    ),
                     style = ConsoleType.meta,
                     color = ConsoleColors.tertiary,
                 )

@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.console
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.net.Uri
@@ -46,6 +47,10 @@ class ConsoleActivity : ComponentActivity() {
     private var detachA2aClient: (() -> Unit)? = null
     private val safWorkspacePicker = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let { RuntimeSession.selectSafWorkspace(this, it) }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
     }
 
     /** The overlay steps aside while this full-screen console is visible, and comes back when it leaves. */

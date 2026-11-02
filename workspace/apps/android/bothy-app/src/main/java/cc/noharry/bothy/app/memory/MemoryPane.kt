@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.memory
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -88,8 +93,18 @@ internal fun MemoryPane(onClearAll: (done: (Boolean) -> Unit) -> Unit) {
             adding != null -> MemoryAdd(adding, onDone = { addingTo = null })
             else -> {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-                    Text("记忆", style = ConsoleType.hero.copy(fontSize = MEMORY_TITLE_SIZE), color = ConsoleColors.text)
-                    UsageSegmented(MemoryTab.entries, MemoryTab.valueOf(tab), MemoryTab::label, framed = false) { tab = it.name }
+                    Text(
+                        stringResource(R.string.memory_title),
+                        style = ConsoleType.hero.copy(fontSize = MEMORY_TITLE_SIZE),
+                        color = ConsoleColors.text,
+                    )
+                    val tabLabels = MemoryTab.entries.associateWith { stringResource(it.label) }
+                    UsageSegmented(
+                        MemoryTab.entries,
+                        MemoryTab.valueOf(tab),
+                        { tabLabels.getValue(it) },
+                        framed = false,
+                    ) { tab = it.name }
                 }
                 when (MemoryTab.valueOf(tab)) {
                     MemoryTab.PROFILE -> ProfileTab(memories, { openId = it.id }, { addingTo = it.id }, onClearAll)
@@ -100,7 +115,10 @@ internal fun MemoryPane(onClearAll: (done: (Boolean) -> Unit) -> Unit) {
     }
 }
 
-private enum class MemoryTab(val label: String) { PROFILE("用户画像"), LESSONS("操作经验") }
+private enum class MemoryTab(@StringRes val label: Int) {
+    PROFILE(R.string.memory_tab_profile),
+    LESSONS(R.string.memory_tab_lessons),
+}
 
 @Composable
 private fun ProfileTab(
@@ -116,10 +134,10 @@ private fun ProfileTab(
         enabled = on
     }
     if (!enabled) {
-        Text("记忆已关闭：小博不会再记新的事，也不会用已经记住的；记下的内容都还在，打开后照常使用。", style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+        Text(stringResource(R.string.memory_off_note), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
     } else if (memories.isEmpty()) {
         Text(
-            "还没有记住什么。对小博说「记住我家在望京花园」「我开空调一般 22 度」「叫我老王」，或者在下面手动添加。",
+            stringResource(R.string.memory_empty),
             style = ConsoleType.bodySmall,
             color = ConsoleColors.muted,
         )
@@ -131,20 +149,35 @@ private fun ProfileTab(
 /** Who 小博 thinks it talks to: a letter avatar, the name if told, the counts, and the switch for the whole of 记忆. */
 @Composable
 private fun ProfileHeader(memories: List<UserMemory>, enabled: Boolean, onEnabled: (Boolean) -> Unit) {
-    val summary = memorySummary(memories, System.currentTimeMillis())
+    val summary = memorySummary(LocalContext.current, memories, System.currentTimeMillis())
     UsageCard(null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(AVATAR_SIZE).clip(CircleShape).background(ConsoleColors.ink), contentAlignment = Alignment.Center) {
-                Text(summary.name?.take(1) ?: "你", color = if (ConsoleColors.isDark) ConsoleColors.bg else Color.White, fontSize = AVATAR_FONT, fontWeight = FontWeight.Bold)
+                Text(
+                    summary.name?.take(1) ?: stringResource(R.string.memory_avatar_you),
+                    color = if (ConsoleColors.isDark) ConsoleColors.bg else Color.White,
+                    fontSize = AVATAR_FONT,
+                    fontWeight = FontWeight.Bold,
+                )
             }
             Spacer(Modifier.width(Dimens.spaceLg))
             Column(Modifier.weight(1f)) {
-                Text(summary.name ?: "小博记得的你", style = ConsoleType.hero, color = ConsoleColors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    summary.name ?: stringResource(R.string.memory_name_fallback),
+                    style = ConsoleType.hero,
+                    color = ConsoleColors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(summary.line, style = ConsoleType.bodySmall, color = ConsoleColors.muted)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Switch(enabled, onEnabled, colors = switchColors())
-                Text("让小博记住你说的事", style = ConsoleType.meta, color = ConsoleColors.muted)
+                Text(
+                    stringResource(R.string.memory_switch_label),
+                    style = ConsoleType.meta,
+                    color = ConsoleColors.muted,
+                )
             }
         }
         HorizontalDivider(color = ConsoleColors.borderSubtle)
@@ -186,10 +219,15 @@ private fun CategoryCard(
     onAdd: (MemoryCategory) -> Unit,
 ) {
     val add: @Composable () -> Unit = {
-        if (items.size < MAX_PER_CATEGORY) TextButton(onClick = { onAdd(category) }) { Text("+ 添加") }
+        if (items.size < MAX_PER_CATEGORY) {
+            TextButton(onClick = { onAdd(category) }) { Text(stringResource(R.string.memory_add_button)) }
+        }
     }
-    UsageCard("${category.label}${if (items.isEmpty()) "" else " · ${items.size}"}", add) {
-        if (items.isEmpty()) Text(category.hint, style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+    val title = stringResource(category.title)
+    UsageCard(if (items.isEmpty()) title else "$title · ${items.size}", add) {
+        if (items.isEmpty()) {
+            Text(stringResource(category.hint), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+        }
         items.sortedByDescending { it.updatedAtMillis }.forEach { memory -> MemoryRow(memory) { onOpen(memory) } }
     }
 }
@@ -204,12 +242,19 @@ private fun MemoryRow(memory: UserMemory, onClick: () -> Unit) {
             .padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceSm),
     ) {
         Text(memory.content, style = ConsoleType.body, color = ConsoleColors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text("${memory.source.label} · ${shortDay(memory.updatedAtMillis)}", style = ConsoleType.meta, color = ConsoleColors.tertiary)
+        Text(
+            "${stringResource(memory.source.label)} · ${shortDay(memory.updatedAtMillis)}",
+            style = ConsoleType.meta,
+            color = ConsoleColors.tertiary,
+        )
     }
 }
 
 /** The two ways to clear: the memories alone, or with every conversation too ([MemoryClear.ALL] is 清除运行数据). */
-private enum class MemoryClear(val label: String) { MEMORIES("只清除记忆"), ALL("清除记忆和对话记录") }
+private enum class MemoryClear(@StringRes val label: Int) {
+    MEMORIES(R.string.memory_clear_memories),
+    ALL(R.string.memory_clear_all),
+}
 
 @Composable
 private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolean) -> Unit) -> Unit) {
@@ -218,22 +263,28 @@ private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolea
     var confirm by remember { mutableStateOf<MemoryClear?>(null) }
     // The words and whether they report success.
     var note by remember { mutableStateOf("" to true) }
+    val clearing = stringResource(R.string.memory_clearing)
+    val clearedAll = stringResource(R.string.memory_cleared_all)
+    val clearAllFailed = stringResource(R.string.memory_clear_all_failed)
+    val cleared = stringResource(R.string.memory_cleared)
+    val clearFailed = stringResource(R.string.memory_clear_failed)
     Text(
-        "小博只记你亲口说过、关于你自己的事，不记密码、验证码、证件号和银行卡号；最多 $MAX_MEMORIES 件，每类 $MAX_PER_CATEGORY 件。" +
-            "记忆只存在这台设备上，记忆本身不写进日志（对话里说到的话和其他对话一样会记下），「清除运行数据」不会删掉它。" +
-            "「只清除记忆」保留以前的对话，小博翻看历史对话时仍可能看到你说过的话；设备换了人用，用「清除记忆和对话记录」。",
+        stringResource(R.string.memory_footer, MAX_MEMORIES, MAX_PER_CATEGORY),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.tertiary,
     )
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         OutlinedButton(onClick = { confirm = MemoryClear.MEMORIES }, enabled = memories.isNotEmpty(), shape = RoundedCornerShape(Dimens.radiusMd)) {
-            Text(MemoryClear.MEMORIES.label, color = if (memories.isNotEmpty()) ConsoleColors.danger else ConsoleColors.tertiary)
+            Text(
+                stringResource(MemoryClear.MEMORIES.label),
+                color = if (memories.isNotEmpty()) ConsoleColors.danger else ConsoleColors.tertiary,
+            )
         }
         Button(
             onClick = { confirm = MemoryClear.ALL },
             shape = RoundedCornerShape(Dimens.radiusMd),
             colors = ButtonDefaults.buttonColors(containerColor = ConsoleColors.danger, contentColor = Color.White),
-        ) { Text(MemoryClear.ALL.label) }
+        ) { Text(stringResource(MemoryClear.ALL.label)) }
         val (words, ok) = note
         if (words.isNotEmpty()) Text(words, style = ConsoleType.bodySmall, color = if (ok) ConsoleColors.success else ConsoleColors.danger)
     }
@@ -241,12 +292,12 @@ private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolea
         ClearDialog(kind, memories.size, onDismiss = { confirm = null }) {
             confirm = null
             if (kind == MemoryClear.ALL) {
-                note = "正在停止任务并清除…" to true
-                onClearAll { done -> note = if (done) "已清除记忆和对话记录" to true else "没清除完：有任务没停下来或存储出错，请再试一次" to false }
+                note = clearing to true
+                onClearAll { done -> note = if (done) clearedAll to true else clearAllFailed to false }
             } else {
                 scope.launch {
                     val done = withContext(Dispatchers.IO) { UserMemoryStore.clear(context.applicationContext) }
-                    note = if (done) "已清除记忆" to true else "没清除：设备存储出错了" to false
+                    note = if (done) cleared to true else clearFailed to false
                 }
             }
         }
@@ -256,37 +307,43 @@ private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolea
 @Composable
 private fun ClearDialog(kind: MemoryClear, count: Int, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val text = when (kind) {
-        MemoryClear.MEMORIES -> "小博会忘掉记住的 $count 件事，不能恢复。以前的对话记录保留，小博翻看历史对话时仍可能看到你说过的话。"
-        MemoryClear.ALL -> "会删除记住的 $count 件事和全部对话记录，连同操作经验、生成的图片和运行日志（和「清除运行数据」一样），" +
-            "正在进行的任务会停止。模型服务、密钥和各项设置保留。不能恢复。"
+        MemoryClear.MEMORIES -> pluralStringResource(R.plurals.memory_clear_memories_text, count, count)
+        MemoryClear.ALL -> pluralStringResource(R.plurals.memory_clear_all_text, count, count)
     }
+    val label = stringResource(kind.label)
     BothyAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${kind.label}？") },
+        title = { Text(stringResource(R.string.memory_clear_title, label)) },
         text = { Text(text) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(kind.label, color = ConsoleColors.danger) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(label, color = ConsoleColors.danger) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
     )
 }
 
 /** The header's words: the name the user asked to be called, a line, and four counts. */
 internal data class MemorySummary(val name: String?, val line: String, val metrics: List<Pair<String, String>>)
 
-internal fun memorySummary(memories: List<UserMemory>, now: Long): MemorySummary {
+internal fun memorySummary(context: Context, memories: List<UserMemory>, now: Long): MemorySummary {
     val name = memories.filter { it.category == MemoryCategory.IDENTITY }.sortedByDescending { it.updatedAtMillis }
         .firstNotNullOfOrNull { CALL_ME.find(it.content)?.groupValues?.get(1)?.replace(NAME_TAIL, "")?.trim()?.ifEmpty { null } }
     val first = memories.minOfOrNull { it.createdAtMillis }
-    val days = first?.let { TimeUnit.MILLISECONDS.toDays((now - it).coerceAtLeast(0)) + 1 }
-    val line = if (first == null) "还没有记住什么" else "小博记住了 ${memories.size} 件事 · 认识你 $days 天"
+    val days = first?.let { (TimeUnit.MILLISECONDS.toDays((now - it).coerceAtLeast(0)) + 1).toInt() }
+    val res = context.resources
+    val line = if (days == null) {
+        context.getString(R.string.memory_summary_empty)
+    } else {
+        res.getQuantityString(R.plurals.memory_summary_count, memories.size, memories.size) + " · " +
+            res.getQuantityString(R.plurals.memory_summary_days, days, days)
+    }
     val latest = memories.maxOfOrNull { it.updatedAtMillis }
     return MemorySummary(
         name = name?.takeIf(String::isNotEmpty),
         line = line,
         metrics = listOf(
-            "${memories.size}" to "记住的事",
-            "${memories.count { it.source == MemorySource.SAID }}" to "你说的",
-            "${memories.map { it.category }.distinct().size}" to "涉及方面",
-            (latest?.let(::shortDay) ?: "—") to "最近更新",
+            "${memories.size}" to context.getString(R.string.memory_metric_count),
+            "${memories.count { it.source == MemorySource.SAID }}" to context.getString(R.string.memory_metric_said),
+            "${memories.map { it.category }.distinct().size}" to context.getString(R.string.memory_metric_kinds),
+            (latest?.let(::shortDay) ?: "—") to context.getString(R.string.memory_metric_latest),
         ),
     )
 }

@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.plans
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.app.voice.PLAN_CHIME_NOTES
 import cc.noharry.bothy.app.voice.PLAN_CHIME_PEAK
 import cc.noharry.bothy.app.voice.PLAN_CHIME_TIMBRE
@@ -12,24 +15,44 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class PlanNoticeTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
     @Test
     fun eachKindOfPlanSaysWhatItDoes() {
         val reminder = plan("p1", "拿快递", message = "下楼拿快递")
-        assertEquals(PlanNoticeEntry("p1", "提醒", "拿快递", "提醒你：下楼拿快递", null), planNoticeEntry(reminder, "提醒你：下楼拿快递"))
+        assertEquals(PlanNoticeEntry("p1", "提醒", "拿快递", "提醒你：下楼拿快递", null), planNoticeEntry(context, reminder, "提醒你：下楼拿快递"))
 
         val task = plan("p2", "查路况", instruction = "看看去公司的路堵不堵")
-        assertEquals(PlanNoticeEntry("p2", "去办", "查路况", "交给小博：看看去公司的路堵不堵", null), planNoticeEntry(task, "到点了，我来办：看看去公司的路堵不堵"))
+        assertEquals(
+            PlanNoticeEntry("p2", "去办", "查路况", "交给小博：看看去公司的路堵不堵", null),
+            planNoticeEntry(context, task, "到点了，我来办：看看去公司的路堵不堵"),
+        )
 
         val dim = PlanAction("device", "system_screen_brightness_set", JsonObject(emptyMap()), "屏幕调暗")
         val open = PlanAction("device", "home_window_position_set", JsonObject(emptyMap()), "窗户全开")
         val rule = plan("p3", "到终点开窗", actions = listOf(open, dim))
-        assertEquals(PlanNoticeEntry("p3", "自动", "到终点开窗", null, "执行：窗户全开、屏幕调暗"), planNoticeEntry(rule, null))
+        assertEquals(PlanNoticeEntry("p3", "自动", "到终点开窗", null, "执行：窗户全开、屏幕调暗"), planNoticeEntry(context, rule, null))
         // A rule that also says something shows both.
-        assertEquals("到了", planNoticeEntry(rule.copy(message = "到了"), "到了").said)
+        assertEquals("到了", planNoticeEntry(context, rule.copy(message = "到了"), "到了").said)
         // Nothing to say shows no empty line.
-        assertNull(planNoticeEntry(plan("p", "空", message = ""), "").said)
+        assertNull(planNoticeEntry(context, plan("p", "空", message = ""), "").said)
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun thePopupsLabelsFollowTheAppLanguage() {
+        val dim = PlanAction("device", "system_screen_brightness_set", JsonObject(emptyMap()), "屏幕调暗")
+        val open = PlanAction("device", "home_window_position_set", JsonObject(emptyMap()), "窗户全开")
+        val entry = planNoticeEntry(context, plan("p3", "到终点开窗", actions = listOf(open, dim)), null)
+        assertEquals("Auto" to "Running: 窗户全开, 屏幕调暗", entry.kind to entry.doing)
+        assertEquals("Handed to Xiao Bo: 查路况", planNoticeEntry(context, plan("p2", "t", instruction = "查路况"), "").said)
     }
 
     @Test

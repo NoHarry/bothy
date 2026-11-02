@@ -1,4 +1,5 @@
 package cc.noharry.bothy.playground.home
+import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -13,7 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
@@ -58,6 +61,10 @@ private fun homeMotion(home: Home): HomeMotion = HomeMotion(
 @Composable
 internal fun HomeScene(home: Home, flash: Flash, modifier: Modifier = Modifier, onTap: (Offset) -> Unit = {}, onLongPress: (Offset) -> Unit = {}) {
     val measurer = rememberTextMeasurer()
+    // The chips' words, drawn outside composition.
+    val resources = LocalContext.current.resources
+    val sceneChip = home.scene?.let { stringResource(R.string.home_chip_scene, sceneName(it)) }
+    val door = stringResource(if (home.doorLocked) R.string.home_chip_door_locked else R.string.home_chip_door_unlocked)
     val motion = homeMotion(home)
     val robot = ImageBitmap.imageResource(R.drawable.home_vacuum)
     val people = passengerImages()
@@ -68,11 +75,16 @@ internal fun HomeScene(home: Home, flash: Flash, modifier: Modifier = Modifier, 
         Room.entries.filter { home.room(it).presence }.forEach {
             drawPerson(people[it.ordinal], HomeSpots.people.getValue(it).on(size), HomeSpots.PERSON_SIZE * size.width)
         }
-        Room.entries.forEach { drawRoomChips(it, home.room(it), measurer) }
-        drawDoor(home.doorLocked, flash.of(Highlight.DOOR), measurer)
-        home.scene?.let { drawChip(measurer, "场景：$it", Offset(size.width / 2, size.height * 0.44f), PlaygroundColors.glow) }
+        Room.entries.forEach { drawRoomChips(it, home.room(it), resources, measurer) }
+        drawDoor(home.doorLocked, door, flash.of(Highlight.DOOR), measurer)
+        sceneChip?.let { drawChip(measurer, it, Offset(size.width / 2, size.height * 0.44f), PlaygroundColors.glow) }
     }
 }
+
+/** What screens call the scene the model knows as [label] ([HomeScene.label]); an unknown one stays as it is. */
+@Composable
+private fun sceneName(label: String): String =
+    HomeScene.entries.firstOrNull { it.label == label }?.let { stringResource(it.labelRes) } ?: label
 
 private fun DrawScope.drawRoom(room: Room, state: RoomState, light: Float, flash: Float) {
     val rect = HomeSpots.rooms.getValue(room).on(size)
@@ -110,19 +122,22 @@ private fun DrawScope.drawCurtain(room: Room, shut: Float, flash: Float) {
     if (flash > 0f) drawLine(PlaygroundColors.glow.copy(alpha = flash), from, to, 14.dp.toPx(), StrokeCap.Round)
 }
 
-private fun DrawScope.drawRoomChips(room: Room, state: RoomState, measurer: TextMeasurer) {
+private fun DrawScope.drawRoomChips(room: Room, state: RoomState, res: Resources, measurer: TextMeasurer) {
     val rect = HomeSpots.rooms.getValue(room).on(size)
     val x = rect.left + 12.dp.toPx()
     val y = rect.top + rect.height * 0.16f
-    drawChip(measurer, "${room.label} ${state.tempC.deg()}", Offset(x, y), PlaygroundColors.text, ChipAlign.START)
+    val name = res.getString(room.labelRes)
+    drawChip(measurer, "$name ${state.tempC.deg()}", Offset(x, y), PlaygroundColors.text, ChipAlign.START)
     if (state.climate.on && room.hasClimate) {
-        drawChip(measurer, "空调 ${state.climate.targetTemp.deg()} ${state.climate.mode.label}", Offset(x, y + 24.dp.toPx()), PlaygroundColors.cool, ChipAlign.START)
+        val mode = res.getString(state.climate.mode.labelRes)
+        val text = res.getString(R.string.home_chip_ac, state.climate.targetTemp.deg(), mode)
+        drawChip(measurer, text, Offset(x, y + 24.dp.toPx()), PlaygroundColors.cool, ChipAlign.START)
     }
 }
 
-private fun DrawScope.drawDoor(locked: Boolean, flash: Float, measurer: TextMeasurer) {
+private fun DrawScope.drawDoor(locked: Boolean, label: String, flash: Float, measurer: TextMeasurer) {
     val rect = HomeSpots.door.on(size)
-    drawChip(measurer, if (locked) "门已上锁" else "门锁开着", rect.center, if (locked) PlaygroundColors.sage else PlaygroundColors.ember)
+    drawChip(measurer, label, rect.center, if (locked) PlaygroundColors.sage else PlaygroundColors.ember)
     drawFlashRing(rect.center, rect.width * 0.7f, flash)
 }
 

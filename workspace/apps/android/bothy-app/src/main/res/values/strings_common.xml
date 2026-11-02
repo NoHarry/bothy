@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Words used across the screens. English is the default; values-zh holds the Chinese. -->
+<resources>
+    <string name="common_save">Save</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_close">Close</string>
+    <string name="common_ok">OK</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_add">Add</string>
+    <string name="common_back">Back</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_on">On</string>
+    <string name="common_off">Off</string>
+    <string name="common_loading">Loading…</string>
+    <string name="common_refresh">Refresh</string>
+    <string name="common_connect">Connect</string>
+    <string name="common_disconnect">Disconnect</string>
+    <string name="common_settings">Settings</string>
+    <string name="common_none">None</string>
+</resources>

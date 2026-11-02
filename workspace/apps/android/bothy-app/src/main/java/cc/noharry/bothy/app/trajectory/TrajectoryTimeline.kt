@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.trajectory
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -21,11 +22,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -52,12 +56,15 @@ internal fun TrajectoryTimeline(
 ) {
     val colors = ConsoleColors
     if (projection.isEmpty) return
+    val resources = LocalContext.current.resources
+    val metrics = projection.headerMetricTexts(resources)
+    val description = projection.timelineDescription(resources, metrics)
     Column(
         modifier
             .fillMaxWidth()
             .background(colors.elevated, RoundedCornerShape(Dimens.radiusMd))
             .padding(Dimens.spaceSm)
-            .semantics { contentDescription = projection.timelineDescription() },
+            .semantics { contentDescription = description },
     ) {
         Row(
             Modifier
@@ -66,7 +73,7 @@ internal fun TrajectoryTimeline(
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXl),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            projection.headerMetricLabels().forEach { label ->
+            metrics.forEach { label ->
                 Text(text = label, style = ConsoleType.label, color = colors.muted, maxLines = 1)
             }
         }
@@ -108,9 +115,10 @@ private fun TimelineLaneRow(
     onSelectRange: ((TrajectoryTimeRange?) -> Unit)?,
 ) {
     val colors = ConsoleColors
+    val resources = LocalContext.current.resources
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-            text = lane.name.lowercase(),
+            text = stringResource(lane.labelRes()),
             style = ConsoleType.label,
             color = colors.tertiary,
             modifier = Modifier.width(LANE_LABEL_WIDTH),
@@ -133,6 +141,7 @@ private fun TimelineLaneRow(
                 )
             }
             items.forEach { item ->
+                val description = item.itemDescription(resources)
                 val selected = item.id == selectedRecordId
                 val inRange = selectedRange == null ||
                     selectedRange.intersects(item.startFraction, item.endFraction)
@@ -156,7 +165,7 @@ private fun TimelineLaneRow(
                             shape = RoundedCornerShape(Dimens.radiusSm),
                         )
                         .clickable { onSelect(item.id) }
-                        .semantics { contentDescription = item.itemDescription() },
+                        .semantics { contentDescription = description },
                 )
             }
         }
@@ -187,19 +196,22 @@ private fun Modifier.rangeDrag(onSelectRange: ((TrajectoryTimeRange?) -> Unit)?)
     }
 }
 
-private fun TrajectoryTimelineProjection.timelineDescription(): String =
-    "Trajectory timeline, ${items.size} lane items, ${markers.size} markers, " +
-        "${if (mode == TrajectoryTimelineMode.ACTUAL_TIME) "actual time" else "equal width"} mode, " +
-        headerMetricLabels().joinToString()
+private fun TrajectoryTimelineProjection.timelineDescription(resources: Resources, metrics: List<String>): String =
+    resources.getString(
+        R.string.trajectory_timeline_description,
+        items.size,
+        markers.size,
+        resources.getString(mode.labelRes()),
+        metrics.joinToString(),
+    )
 
-private fun TrajectoryTimelineItem.itemDescription(): String = buildString {
-    append(lane.name.lowercase())
-    append(' ')
-    append(label)
-    status?.let { append(", status $it") }
-    if (isSpan) append(", duration span") else append(", point in time")
-    if (isLive) append(", live")
-}
+private fun TrajectoryTimelineItem.itemDescription(resources: Resources): String = buildList {
+    val laneLabel = resources.getString(lane.labelRes())
+    add(resources.getString(R.string.trajectory_metric_lane, laneLabel, resources.trajectoryTitleText(kind, label)))
+    status?.let { add(resources.getString(R.string.trajectory_row_status, it)) }
+    add(resources.getString(if (isSpan) R.string.trajectory_item_span else R.string.trajectory_item_point))
+    if (isLive) add(resources.getString(R.string.trajectory_live))
+}.joinToString(", ")
 
 private val LANE_LABEL_WIDTH: Dp = 52.dp
 private val LANE_HEIGHT: Dp = 18.dp

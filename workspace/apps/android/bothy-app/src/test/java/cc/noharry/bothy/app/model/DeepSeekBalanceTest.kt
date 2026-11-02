@@ -1,4 +1,9 @@
 package cc.noharry.bothy.app.model
+import android.app.Application
+import android.content.Context
+import android.content.res.Configuration
+import androidx.test.core.app.ApplicationProvider
+import java.util.Locale
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -10,8 +15,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class DeepSeekBalanceTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
     @Test
     fun theBalanceReadsAsTotalWithToppedUpAndGrantedPerCurrency() = runBlocking {
         val asked = mutableListOf<String>()
@@ -19,18 +31,22 @@ class DeepSeekBalanceTest {
             asked += "${it.url} ${it.header("Authorization")}"
         }
 
-        val balance = fetchDeepSeekBalance(" sk-test ", client, "https://api.deepseek.com/user/balance").getOrThrow()
+        val balance = fetchDeepSeekBalance(context, " sk-test ", client, "https://api.deepseek.com/user/balance").getOrThrow()
 
         assertEquals(listOf("https://api.deepseek.com/user/balance Bearer sk-test"), asked)
-        assertEquals("¥110.00（充值 100.00，赠送 10.00）", balance.summary())
-        assertEquals("$1.00（充值 0.00，赠送 1.00） · 余额不足，暂不可用", DeepSeekBalance(false, listOf(DeepSeekAmount("USD", "1.00", "0.00", "1.00"))).summary())
-        assertEquals("余额不足，暂不可用", parseDeepSeekBalance("""{"is_available":false,"balance_infos":[]}""").summary())
+        assertEquals("¥110.00（充值 100.00，赠送 10.00）", balance.summary(context))
+        assertEquals("$1.00（充值 0.00，赠送 1.00） · 余额不足，暂不可用", DeepSeekBalance(false, listOf(DeepSeekAmount("USD", "1.00", "0.00", "1.00"))).summary(context))
+        assertEquals("余额不足，暂不可用", parseDeepSeekBalance("""{"is_available":false,"balance_infos":[]}""").summary(context))
+        val english = context.createConfigurationContext(
+            Configuration(context.resources.configuration).apply { setLocale(Locale.ENGLISH) },
+        )
+        assertEquals("¥110.00 (topped up 100.00, granted 10.00)", balance.summary(english))
     }
 
     @Test
     fun aRejectedKeySaysSoWithoutEchoingTheAnswer() = runBlocking {
-        val rejected = fetchDeepSeekBalance("sk-bad", answering(401, """{"error":{"message":"Authentication Fails, Your api key: ****-bad is invalid"}}"""), URL)
-        val busy = fetchDeepSeekBalance("sk-test", answering(503, """{"error":{"message":"Service busy"}}"""), URL)
+        val rejected = fetchDeepSeekBalance(context, "sk-bad", answering(401, """{"error":{"message":"Authentication Fails, Your api key: ****-bad is invalid"}}"""), URL)
+        val busy = fetchDeepSeekBalance(context, "sk-test", answering(503, """{"error":{"message":"Service busy"}}"""), URL)
 
         assertEquals("API key 无效或已停用", rejected.exceptionOrNull()?.message)
         assertFalse(rejected.exceptionOrNull()!!.message!!.contains("bad"))

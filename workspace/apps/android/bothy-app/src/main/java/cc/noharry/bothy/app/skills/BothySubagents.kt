@@ -19,8 +19,11 @@ import cc.noharry.agent.runtime.SubagentState
 import cc.noharry.agent.runtime.SubagentStatus
 import cc.noharry.agent.runtime.SubagentType
 import cc.noharry.agent.runtime.Subagents
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aReport
+import cc.noharry.bothy.app.console.labelRes
 import cc.noharry.bothy.app.console.status
+import cc.noharry.bothy.app.console.subagentLogText
 import cc.noharry.bothy.app.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.hasDeepSeekKey
@@ -63,6 +66,9 @@ internal object BothySubagents {
     private var types: List<SubagentType> = emptyList()
 
     val instance = Subagents(SubagentConfig(), SubagentLauncher(::launch))
+
+    /** The app's context, for the lines built here that the screen shows ([transcriptLine], a report's display). */
+    val displayContext: Context get() = checkNotNull(appContext) { "BothySubagents is not installed." }
 
     /** The Board's view: each conversation's latest children, finished ones included, oldest first. */
     val board: StateFlow<Map<String, List<SubagentStatus>>> = boardState.asStateFlow()
@@ -234,22 +240,25 @@ internal fun SubagentStatus.logLine(now: Long = System.currentTimeMillis()): Str
         (if (error.isNotEmpty()) " · $error" else "")
 }
 
-/** The transcript line for a change, in the conversation's own words. */
-internal fun SubagentStatus.transcriptLine(change: SubagentChange): String = when (change) {
-    SubagentChange.STARTED -> "后台任务「$label」开始（$id）"
-    SubagentChange.STALLED -> "后台任务「$label」${(System.currentTimeMillis() - lastActivityEpochMillis) / 1_000} 秒没有进展" +
-        (if (latest.isNotEmpty()) "，最近：${latest.take(60)}" else "")
-    SubagentChange.RESUMED -> "后台任务「$label」又有进展了"
-    SubagentChange.FINISHED -> "后台任务「$label」${state.chinese()}：${logLine()}"
-}
-
-internal fun SubagentState.chinese(): String = when (this) {
-    SubagentState.RUNNING -> "进行中"
-    SubagentState.STALLED -> "没有进展"
-    SubagentState.COMPLETED -> "完成"
-    SubagentState.FAILED -> "失败"
-    SubagentState.CANCELLED -> "已取消"
-    SubagentState.TIMED_OUT -> "超时停止"
+/** The transcript line for a change, in the screen's language. */
+internal fun SubagentStatus.transcriptLine(
+    change: SubagentChange,
+    context: Context = BothySubagents.displayContext,
+): String = when (change) {
+    SubagentChange.STARTED -> context.getString(R.string.skills_subagent_started, label, id)
+    SubagentChange.STALLED -> {
+        val seconds = (System.currentTimeMillis() - lastActivityEpochMillis) / 1_000
+        if (latest.isNotEmpty()) {
+            context.getString(R.string.skills_subagent_stalled_latest, label, seconds, latest.take(60))
+        } else {
+            context.getString(R.string.skills_subagent_stalled, label, seconds)
+        }
+    }
+    SubagentChange.RESUMED -> context.getString(R.string.skills_subagent_resumed, label)
+    SubagentChange.FINISHED -> {
+        val stats = context.resources.subagentLogText(this)
+        context.getString(R.string.skills_subagent_finished, label, context.getString(state.labelRes()), stats)
+    }
 }
 
 /**
@@ -327,16 +336,22 @@ internal fun subagentInput(spec: SubagentSpec, kind: SubagentKind? = null, instr
 }
 
 /**
- * A report as one turn: [A2aReport.display] for the transcript and card, [A2aReport.model] for the agent.
- * It carries every child of the batch (owner 2026-10-17: a turn per child made the agent repeat itself and say "还在查"
- * about results it had not been handed yet), and [stillWorking] names siblings that are not done.
+ * A report as one turn: [A2aReport.display] for the transcript and card, in the screen's language, [A2aReport.model]
+ * for the agent. It carries every child of the batch (owner 2026-10-17: a turn per child made the agent repeat itself
+ * and say "还在查" about results it had not been handed yet), and [stillWorking] names siblings that are not done.
  */
-internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyList(), now: Long = System.currentTimeMillis()): A2aReport {
-    val labels = statuses.joinToString("") { "「${it.label}」" }
+internal fun SubagentReport.toReport(
+    stillWorking: List<SubagentStatus> = emptyList(),
+    now: Long = System.currentTimeMillis(),
+    context: Context = BothySubagents.displayContext,
+): A2aReport {
+    val separator = context.getString(R.string.skills_subagent_quoted_separator)
+    val labels = statuses.joinToString(separator) { context.getString(R.string.skills_subagent_quoted, it.label) }
     val display = when {
-        statuses.size == 1 -> statuses.single().reportHeadline()
-        statuses.all { it.state == SubagentState.COMPLETED } -> "后台任务${labels}都完成了"
-        else -> "后台任务${labels}有消息了"
+        statuses.size == 1 -> statuses.single().reportHeadline(context)
+        statuses.all { it.state == SubagentState.COMPLETED } ->
+            context.getString(R.string.skills_subagent_report_all_done, labels)
+        else -> context.getString(R.string.skills_subagent_report_news, labels)
     }
     val model = buildString {
         appendLine("【后台子任务回报】你之前用 spawn_agent 委派的后台任务：")
@@ -359,10 +374,10 @@ private const val VERIFY_REPORT_CLOSING =
     "这是对你刚才那个回答的网上核实。把核实到的细节更新到卡片上（show_card），嘴上最多说两句短话：只说会改变选择的" +
         "（哪家关了或对不上号、现在最推荐哪家），其余留在卡片上；不要再列选项，不要逐家复述，也不要用「好的」「核实回来」之类的话开头。"
 
-private fun SubagentStatus.reportHeadline(): String = when (state) {
-    SubagentState.COMPLETED -> "后台任务「$label」完成了"
-    SubagentState.STALLED -> "后台任务「$label」没有进展"
-    else -> "后台任务「$label」没有完成"
+private fun SubagentStatus.reportHeadline(context: Context): String = when (state) {
+    SubagentState.COMPLETED -> context.getString(R.string.skills_subagent_report_done, label)
+    SubagentState.STALLED -> context.getString(R.string.skills_subagent_report_stalled, label)
+    else -> context.getString(R.string.skills_subagent_report_failed, label)
 }
 
 private fun SubagentStatus.reportSection(now: Long): String {

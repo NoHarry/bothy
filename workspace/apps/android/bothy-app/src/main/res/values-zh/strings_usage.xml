@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置 → 用量与费用，以及输入框旁的上下文占用环。 -->
+<resources>
+    <string name="usage_title">用量与费用</string>
+    <string name="usage_tab_stats">用量统计</string>
+    <string name="usage_tab_prices">模型价格</string>
+    <string name="usage_time_range">时间范围</string>
+    <string name="usage_range_week">近 7 日</string>
+    <string name="usage_range_month">近 30 日</string>
+    <string name="usage_tokens_note">Token 为输入（含缓存命中）+ 输出（含推理）。费用按「模型价格」里的单价和汇率折算，未定价的模型不计费。</string>
+
+    <!-- 概览 -->
+    <string name="usage_total_tokens">累计 Token 数</string>
+    <string name="usage_peak_day_tokens">单日峰值 Token 数</string>
+    <string name="usage_total_cost">累计费用</string>
+    <string name="usage_current_streak">当前连续天数</string>
+    <string name="usage_longest_streak">最长连续天数</string>
+    <plurals name="usage_days">
+        <item quantity="other">%1$d 天</item>
+    </plurals>
+
+    <!-- Token 活动 -->
+    <string name="usage_token_activity">Token 活动</string>
+    <string name="usage_heat_daily">每日</string>
+    <string name="usage_heat_weekly">每周</string>
+    <string name="usage_heat_cumulative">累计</string>
+    <string name="usage_heatmap_hint">点格子查看当天用量</string>
+    <string name="usage_week_detail">%1$s–%2$s 这周 · %3$s Token · %4$s</string>
+    <string name="usage_cumulative_detail">截至 %1$s 累计 %2$s Token</string>
+    <plurals name="usage_day_detail">
+        <item quantity="other">%1$s %2$s · %3$s Token（输入 %4$s / 输出 %5$s） · %6$s · %7$d 次</item>
+    </plurals>
+    <plurals name="usage_heatmap_description">
+        <item quantity="other">Token 活动，近 %1$d 周</item>
+    </plurals>
+    <string name="usage_less">少</string>
+    <string name="usage_more">多</string>
+
+    <!-- 每日趋势 -->
+    <string name="usage_metric_tokens">Token</string>
+    <string name="usage_metric_cost">费用</string>
+    <string name="usage_trend_tokens">每日 Token 趋势图</string>
+    <string name="usage_trend_cost">每日费用趋势图</string>
+    <plurals name="usage_cost_requests">
+        <item quantity="other">%1$s · %2$d 次请求</item>
+    </plurals>
+    <plurals name="usage_trend_description">
+        <item quantity="other">%1$s，%2$d 天，峰值 %3$s</item>
+    </plurals>
+    <string name="usage_empty_title">还没有可展示的数据</string>
+    <string name="usage_empty_unpriced">当前区间用到的模型还没有价格，到「模型价格」同步或手填。</string>
+    <string name="usage_empty_range">当前区间暂无可展示的用量数据。</string>
+    <string name="usage_bars_hint">点柱子查看当天用量；标注的是区间峰值</string>
+
+    <!-- 模型用量 -->
+    <string name="usage_model_usage">模型用量</string>
+    <string name="usage_no_calls_title">还没有模型调用</string>
+    <string name="usage_no_calls_body">当前区间没有记录到模型用量。</string>
+    <string name="usage_model">模型</string>
+    <string name="usage_requests">请求</string>
+    <string name="usage_input_with_cache_hits">输入（缓存命中）</string>
+    <string name="usage_input_and_cache">%1$s（%2$s）</string>
+    <string name="usage_output">输出</string>
+    <string name="usage_cost">费用</string>
+    <string name="usage_unpriced">未定价</string>
+    <string name="usage_unpriced_hint">到「模型价格」同步或手填</string>
+
+    <!-- 模型价格 -->
+    <string name="usage_sync_and_rate">同步与汇率</string>
+    <string name="usage_prices_note">价格从 models.dev 同步，单位是美元/百万 token，按汇率折算成人民币。DeepSeek 按官方价：flash 系列都按 deepseek-flash；缓存命中按缓存价计，没有缓存价的按输入价。手填的价格同步时不会被覆盖。</string>
+    <string name="usage_model_prices_title">模型价格（美元/百万 token）</string>
+    <string name="usage_no_models_title">还没有模型</string>
+    <string name="usage_no_models_body">用过的模型会出现在这里，同步后自动带上价格。</string>
+    <string name="usage_rate_label">美元兑人民币汇率</string>
+    <string name="usage_rate_invalid">汇率需为正数</string>
+    <string name="usage_rate_saved">汇率已保存</string>
+    <string name="usage_save_rate">保存汇率</string>
+    <string name="usage_syncing_message">正在从 models.dev 同步…</string>
+    <plurals name="usage_synced">
+        <item quantity="other">已同步：%1$d / %2$d 个模型匹配到价格</item>
+    </plurals>
+    <string name="usage_sync_failed">同步失败：%1$s</string>
+    <string name="usage_syncing">同步中…</string>
+    <string name="usage_sync_prices">同步价格（models.dev）</string>
+    <string name="usage_never">从未</string>
+    <string name="usage_last_synced">上次同步：%1$s</string>
+    <string name="usage_input">输入</string>
+    <string name="usage_cache_hits">缓存命中</string>
+    <string name="usage_restore_synced">恢复同步价</string>
+    <string name="usage_source_manual">手填</string>
+    <string name="usage_source_priced_as">%1$s（按 %2$s）</string>
+
+    <!-- 上下文占用 -->
+    <string name="usage_context_ring_description">上下文占用：%1$s，点击查看详情</string>
+    <string name="usage_context_not_yet">尚未获取</string>
+    <string name="usage_context_window">上下文窗口</string>
+    <string name="usage_context_used">已用 %1$s</string>
+    <string name="usage_context_used_unknown">尚未获取占用比例</string>
+    <string name="usage_context_tokens">%1$s / %2$s tokens</string>
+    <string name="usage_unknown">未知</string>
+    <string name="usage_context_remaining">剩余 %1$s tokens</string>
+    <string name="usage_context_compacted">已压缩，等待下一次请求用量</string>
+    <string name="usage_context_last_request">最近一次请求的输入用量（含缓存）</string>
+</resources>

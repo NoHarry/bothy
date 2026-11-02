@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The virtual home's screens: its controls, the picture's chips and the log lines of changes made by hand. -->
+<resources>
+    <!-- Rooms, tones, scenes and places as screens name them; the model keeps the Chinese names in the code. -->
+    <string name="home_room_living">Living room</string>
+    <string name="home_room_bedroom">Bedroom</string>
+    <string name="home_room_kitchen">Kitchen</string>
+    <string name="home_room_study">Study</string>
+    <string name="home_tone_warm">Warm</string>
+    <string name="home_tone_neutral">Natural</string>
+    <string name="home_tone_cool">Cool white</string>
+    <string name="home_scene_home">Home</string>
+    <string name="home_scene_away">Away</string>
+    <string name="home_scene_sleep">Sleep</string>
+    <string name="home_scene_movie">Movie</string>
+    <string name="home_scene_morning">Wake up</string>
+    <string name="home_place_cabin">In the car</string>
+    <string name="home_place_home">At home</string>
+
+    <!-- The controls by hand. -->
+    <string name="home_occupied">Occupied</string>
+    <string name="home_empty">Empty</string>
+    <string name="home_row_light">Light</string>
+    <string name="home_row_tone">Tone</string>
+    <string name="home_row_curtain">Curtain</string>
+    <string name="home_row_room_temp">Temp</string>
+    <string name="home_row_ac">A/C</string>
+    <string name="home_whole_home">Whole home</string>
+    <string name="home_door_locked">Door locked</string>
+    <string name="home_door_unlocked">Door unlocked</string>
+    <string name="home_row_vacuum">Vacuum</string>
+    <string name="home_clean_all">Clean all</string>
+    <string name="home_vacuum_pause">Pause</string>
+    <string name="home_vacuum_dock">Dock</string>
+    <string name="home_row_scene">Scene</string>
+    <string name="home_row_outdoor">Outdoor</string>
+
+    <!-- The log lines of changes made by hand, and of the vacuum finishing a room. -->
+    <string name="home_log_occupied">%1$s: someone came in</string>
+    <string name="home_log_empty">%1$s: empty now</string>
+    <string name="home_log_light_on">%1$s: light on</string>
+    <string name="home_log_light_off">%1$s: light off</string>
+    <string name="home_log_light_brightness">%1$s: light %2$d%%</string>
+    <string name="home_log_light_tone">%1$s: %2$s light</string>
+    <string name="home_log_curtain_closed">%1$s: curtain closed</string>
+    <string name="home_log_curtain_open">%1$s: curtain open %2$d%%</string>
+    <string name="home_log_room_temp">%1$s: temperature set to %2$s</string>
+    <string name="home_log_ac_on">%1$s: A/C on</string>
+    <string name="home_log_ac_off">%1$s: A/C off</string>
+    <string name="home_log_ac_temp">%1$s: A/C set to %2$s</string>
+    <string name="home_log_door_locked">Door locked</string>
+    <string name="home_log_door_unlocked">Door unlocked</string>
+    <string name="home_log_vacuum_clean_all">Vacuum started cleaning the whole home</string>
+    <string name="home_log_vacuum_paused">Vacuum paused</string>
+    <string name="home_log_vacuum_dock">Vacuum going back to its dock</string>
+    <string name="home_log_vacuum_cleaned">Vacuum finished: %1$s</string>
+    <string name="home_log_scene">Switched to the %1$s scene</string>
+    <string name="home_log_outdoor_temp">Outdoor temperature set to %1$s</string>
+
+    <!-- The chips on the home picture. -->
+    <string name="home_chip_ac">A/C %1$s %2$s</string>
+    <string name="home_chip_door_locked">Door locked</string>
+    <string name="home_chip_door_unlocked">Door unlocked</string>
+    <string name="home_chip_scene">Scene: %1$s</string>
+</resources>

@@ -32,6 +32,10 @@ import kotlinx.coroutines.launch
  * Bothy's floating card or beside it in split screen, and the activity alone would be stopped there.
  */
 class PlaygroundService : Service() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguages.wrap(newBase))
+    }
+
     private var server: McpHttpServer? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -56,7 +60,8 @@ class PlaygroundService : Service() {
                 // Bothy may hold the tools of the other mode from before this start: told once the server answers.
                 Assistant.toolsChanged(this)
             } catch (taken: IOException) {
-                store.setServer(ServerState(ServerStatus.FAILED, problem = "端口 ${McpHttpServer.DEFAULT_PORT} 被占用：${taken.message}"))
+                val problem = getString(R.string.playground_port_taken, McpHttpServer.DEFAULT_PORT, taken.message)
+                store.setServer(ServerState(ServerStatus.FAILED, problem = problem))
             }
         }
         scope.launch {
@@ -64,7 +69,7 @@ class PlaygroundService : Service() {
             while (isActive) {
                 delay(TICK_MS)
                 val now = System.nanoTime()
-                store.tick((now - last) / 1e9)
+                store.tick((now - last) / 1e9, this@PlaygroundService)
                 last = now
             }
         }
@@ -83,7 +88,8 @@ class PlaygroundService : Service() {
     private fun startInForeground() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(NotificationChannel(CHANNEL, "演示场服务", NotificationManager.IMPORTANCE_LOW))
+            val name = getString(R.string.playground_channel)
+            manager.createNotificationChannel(NotificationChannel(CHANNEL, name, NotificationManager.IMPORTANCE_LOW))
         }
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, PlaygroundActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -92,8 +98,8 @@ class PlaygroundService : Service() {
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, CHANNEL) else Notification.Builder(this)
         val notification = builder
             .setSmallIcon(android.R.drawable.stat_sys_upload_done)
-            .setContentTitle("Bothy Playground 在运行")
-            .setContentText("虚拟座舱和小家的 MCP 服务：127.0.0.1:${McpHttpServer.DEFAULT_PORT}")
+            .setContentTitle(getString(R.string.playground_notification_title))
+            .setContentText(getString(R.string.playground_notification_text, McpHttpServer.DEFAULT_PORT))
             .setContentIntent(open)
             .setOngoing(true)
             .build()

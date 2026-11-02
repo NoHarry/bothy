@@ -17,9 +17,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 检查 → 工具目录. */
 @RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "zh")
 class ToolCatalogCheckTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
@@ -51,7 +53,7 @@ class ToolCatalogCheckTest {
         assertEquals(system.substringBefore("\n\nHost instructions:").toByteArray().size, stats.staticBytes)
         assertEquals(2, stats.toolGroups)
         assertFalse(stats.shortened)
-        assertTrue(stats.describe().startsWith("上次对话固定提示 "))
+        assertTrue(stats.describe(context.resources).startsWith("上次对话固定提示 "))
     }
 
     @Test
@@ -64,7 +66,7 @@ class ToolCatalogCheckTest {
 
         assertEquals(2, stats.toolGroups)
         assertTrue(stats.shortened)
-        assertTrue(stats.describe().contains("已自动缩短"))
+        assertTrue(stats.describe(context.resources).contains("已自动缩短"))
         assertNull("a request that is not a run (a summary, a model list) is not a run's prompt", PromptStats.of("You read logs."))
         assertNull(systemPromptOf("not json"))
     }

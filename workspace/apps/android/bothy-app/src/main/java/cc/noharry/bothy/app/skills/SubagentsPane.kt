@@ -25,6 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -54,25 +57,29 @@ private fun SubagentsOverview(onOpen: (String) -> Unit) {
     val context = LocalContext.current
     val settings by BothySubagents.settings.collectAsState()
     val save = { next: SubagentSettings -> saveSubagentSettings(context, next) }
-    SettingsGroup(title = "子 agent", subtitle = "下一次派子 agent 时生效。") {
+    SettingsGroup(
+        title = stringResource(R.string.skills_subagents),
+        subtitle = stringResource(R.string.skills_subagents_subtitle),
+    ) {
         Column {
             SubagentSwitchRow(
-                "AI 自主开子 agent", settings.enabled,
-                "开：可以并行的耗时任务，由 AI 自己决定交给后台子 agent，卡片上显示进度",
-                "关：AI 自己一步步做，不开子 agent；已经在跑的会照常完成并回报",
+                stringResource(R.string.skills_auto_spawn), settings.enabled,
+                stringResource(R.string.skills_auto_spawn_on),
+                stringResource(R.string.skills_auto_spawn_off),
             ) { save(settings.copy(enabled = it)) }
             SubagentSwitchRow(
-                "用 DeepSeek Search 接口搜索", settings.searchApi,
-                "开：子 agent 用 Search 接口（每次 ¥0.005），结果短、输入 token 少；主 agent 照旧",
-                "关：子 agent 和主 agent 一样搜索",
+                stringResource(R.string.skills_search_api), settings.searchApi,
+                stringResource(R.string.skills_search_api_on),
+                stringResource(R.string.skills_search_api_off),
             ) { save(settings.copy(searchApi = it)) }
             SubagentSwitchRow(
-                "允许子 agent 操作设备", settings.allowDeviceControl,
-                "开：子 agent 可以执行任务要求的设备操作",
-                "关：子 agent 只能查询，要操作的写进结果，由主 agent 决定",
+                stringResource(R.string.skills_device_control), settings.allowDeviceControl,
+                stringResource(R.string.skills_device_control_on),
+                stringResource(R.string.skills_device_control_off),
             ) { save(settings.copy(allowDeviceControl = it)) }
+            val model = settings.model.ifBlank { stringResource(R.string.skills_same_as_main) }
             Text(
-                "模型：${settings.model.ifBlank { "跟主 agent 一样" }} · 每个子 agent 打开网页和搜索最多 $MAX_CHILD_LOOKUPS 次",
+                pluralStringResource(R.plurals.skills_subagent_model, MAX_CHILD_LOOKUPS, model, MAX_CHILD_LOOKUPS),
                 Modifier.padding(Dimens.spaceSm),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
@@ -80,8 +87,8 @@ private fun SubagentsOverview(onOpen: (String) -> Unit) {
         }
     }
     SettingsGroup(
-        title = "子 agent 类型",
-        subtitle = "开着的类型会出现在 spawn_agent 里，主 agent 按类型派活、只写具体信息；关掉后技能会把要求写全，交给通用子 agent。点开一个类型可以改它能用的工具。",
+        title = stringResource(R.string.skills_kinds),
+        subtitle = stringResource(R.string.skills_kinds_subtitle),
     ) {
         SubagentKinds(onOpen)
     }
@@ -112,15 +119,17 @@ private fun SubagentKinds(onOpen: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-                    Text("${kind.label} · ${kind.id}", style = ConsoleType.body, color = ConsoleColors.text)
+                    val label = stringResource(kind.label)
+                    Text("$label · ${kind.id}", style = ConsoleType.body, color = ConsoleColors.text)
                     SubagentToolChips(kind.tools)
                     val loaded = when {
-                        !kind.enabled -> "未加载"
-                        kind.requiresDeepSeekLookup && !deepSeekLookup -> "需要 DeepSeek 的 key（官方接口或检测通过的中转），现在不会派"
-                        else -> "已加载"
+                        !kind.enabled -> R.string.skills_kind_not_loaded
+                        kind.requiresDeepSeekLookup && !deepSeekLookup -> R.string.skills_kind_needs_deepseek
+                        else -> R.string.skills_kind_loaded
                     }
+                    val status = stringResource(loaded)
                     Text(
-                        "最多查 ${kind.maxLookups} 次 · $loaded",
+                        pluralStringResource(R.plurals.skills_kind_status, kind.maxLookups, kind.maxLookups, status),
                         style = ConsoleType.meta,
                         color = ConsoleColors.muted,
                     )
@@ -148,11 +157,13 @@ private fun SubagentToolChips(tools: Set<SubagentToolGroup>) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs),
             ) {
-                Text(group.label, style = ConsoleType.meta, color = ConsoleColors.accent)
+                Text(stringResource(group.screenLabel), style = ConsoleType.meta, color = ConsoleColors.accent)
                 if (group.changes) ChangesDot()
             }
         }
-        if (tools.isEmpty()) Text("不能用任何工具", style = ConsoleType.meta, color = ConsoleColors.danger)
+        if (tools.isEmpty()) {
+            Text(stringResource(R.string.skills_no_tools), style = ConsoleType.meta, color = ConsoleColors.danger)
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import android.content.pm.PackageManager
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -47,6 +48,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +62,7 @@ import cc.noharry.bothy.voice.VoiceSegment
 import cc.noharry.bothy.voice.VoiceSegmentLabel
 import cc.noharry.bothy.voice.VoiceSessionState
 import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -119,11 +123,13 @@ internal fun VoiceStrip() {
 internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
     val context = LocalContext.current
     val state by VoiceController.state.collectAsState()
+    val denied = stringResource(R.string.voice_mic_denied)
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) VoiceController.toggle(context) else VoiceController.notice("未授予麦克风权限")
+        if (granted) VoiceController.toggle(context) else VoiceController.notice(denied)
     }
     val colors = ConsoleColors
     val on = state.status.isOn
+    val description = stringResource(if (on) R.string.voice_mic_stop else R.string.voice_mic_start)
     val fill = when {
         !on -> colors.accentSoft
         state.status == VoiceSessionStatus.BUSY -> colors.warning
@@ -144,7 +150,7 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
                     val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
                     if (on || granted) VoiceController.toggle(context) else permission.launch(Manifest.permission.RECORD_AUDIO)
                 }
-                .semantics { contentDescription = if (on) "结束语音" else "语音唤醒" },
+                .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
             if (on) {
@@ -173,9 +179,9 @@ private fun HandOverNotice() {
     AnimatedVisibility(visible = shown != null, enter = fadeIn() + expandVertically(), exit = fadeOut() + shrinkVertically()) {
         val current = shown ?: notice ?: return@AnimatedVisibility
         val (title, color) = when {
-            current.fellBack -> "当前任务已结束，作为新的一轮" to ConsoleColors.muted
-            current.mode == VoiceHandOverMode.APPEND -> "＋ 已追加到当前任务" to ConsoleColors.accent
-            else -> "↻ 已打断当前任务，按新问题处理" to ConsoleColors.warning
+            current.fellBack -> R.string.voice_handover_new_turn_notice to ConsoleColors.muted
+            current.mode == VoiceHandOverMode.APPEND -> R.string.voice_handover_append_notice to ConsoleColors.accent
+            else -> R.string.voice_handover_replace_notice to ConsoleColors.warning
         }
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(Dimens.radiusSm)).background(color.copy(alpha = 0.12f))
@@ -183,9 +189,9 @@ private fun HandOverNotice() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
-            Text(title, style = ConsoleType.label, color = color)
+            Text(stringResource(title), style = ConsoleType.label, color = color)
             Text(
-                current.ack?.let { "${current.text} · 小博：$it" } ?: current.text,
+                current.ack?.let { stringResource(R.string.voice_handover_with_ack, current.text, it) } ?: current.text,
                 style = ConsoleType.bodySmall,
                 color = ConsoleColors.text,
                 maxLines = 1,
@@ -224,8 +230,8 @@ private val VoiceSessionStatus.isOn: Boolean
 @Composable
 private fun VoiceSegmentRow(segment: VoiceSegment) {
     val (label, color) = when {
-        segment.dismissed -> "退出语音" to ConsoleColors.muted
-        segment.reason == VoiceEndReason.ECHO -> "回声" to ConsoleColors.tertiary
+        segment.dismissed -> stringResource(R.string.voice_segment_dismissed) to ConsoleColors.muted
+        segment.reason == VoiceEndReason.ECHO -> stringResource(R.string.voice_segment_echo) to ConsoleColors.tertiary
         else -> segmentBadge(segment.label)
     }
     Row(Modifier.fillMaxWidth().padding(vertical = Dimens.spaceXxs), verticalAlignment = Alignment.Top) {
@@ -243,11 +249,11 @@ private fun VoiceSegmentRow(segment: VoiceSegment) {
             Text(
                 listOfNotNull(
                     scoresLine(segment.judgment).takeIf { it.isNotEmpty() },
-                    endReasonLabel(segment.reason),
+                    stringResource(endReasonLabel(segment.reason)),
                     when (segment.handOver) {
-                        VoiceHandOverMode.APPEND -> "已追加到当前任务"
-                        VoiceHandOverMode.REPLACE -> "已打断当前任务，作为新问题"
-                        VoiceHandOverMode.NEW_TURN -> "已交给 Agent"
+                        VoiceHandOverMode.APPEND -> stringResource(R.string.voice_segment_appended)
+                        VoiceHandOverMode.REPLACE -> stringResource(R.string.voice_segment_replaced)
+                        VoiceHandOverMode.NEW_TURN -> stringResource(R.string.voice_segment_handed)
                         null -> null
                     },
                 ).joinToString(" · "),
@@ -260,64 +266,76 @@ private fun VoiceSegmentRow(segment: VoiceSegment) {
 
 @Composable
 private fun segmentBadge(label: VoiceSegmentLabel): Pair<String, Color> = when (label) {
-    VoiceSegmentLabel.AGENT -> "面向 Agent" to ConsoleColors.success
-    VoiceSegmentLabel.SIDE -> "人人对话" to ConsoleColors.muted
-    VoiceSegmentLabel.UNCERTAIN -> "不确定" to ConsoleColors.warning
+    VoiceSegmentLabel.AGENT -> stringResource(R.string.voice_badge_agent) to ConsoleColors.success
+    VoiceSegmentLabel.SIDE -> stringResource(R.string.voice_badge_side) to ConsoleColors.muted
+    VoiceSegmentLabel.UNCERTAIN -> stringResource(R.string.voice_badge_uncertain) to ConsoleColors.warning
 }
 
+@Composable
 internal fun voiceStatusLine(state: VoiceSessionState): String {
     val phase = when (state.status) {
-        VoiceSessionStatus.IDLE -> "未监听"
-        VoiceSessionStatus.STARTING -> "正在启动"
+        VoiceSessionStatus.IDLE -> R.string.voice_status_idle
+        VoiceSessionStatus.STARTING -> R.string.voice_status_starting
         VoiceSessionStatus.LISTENING -> when {
-            state.assistantSpeaking -> "播报中 · 可打断"
-            state.agentWorking -> "Agent 处理中 · 继续收音"
-            else -> "监听中"
+            state.assistantSpeaking -> R.string.voice_status_speaking
+            state.agentWorking -> R.string.voice_status_agent_listening
+            else -> R.string.voice_status_listening
         }
-        VoiceSessionStatus.BUSY -> "Agent 处理中 · 暂停判断"
-        VoiceSessionStatus.ERROR -> "已停止"
+        VoiceSessionStatus.BUSY -> R.string.voice_status_agent_busy
+        VoiceSessionStatus.ERROR -> R.string.voice_status_stopped
     }
     val on = state.status != VoiceSessionStatus.IDLE
     val effects = state.audioEffects
     val duplex = when {
         !on -> null
-        state.fullDuplex -> "全双工"
-        else -> "半双工"
+        state.fullDuplex -> R.string.voice_full_duplex
+        else -> R.string.voice_half_duplex
     }
+    val effect = effects?.let {
+        when {
+            it.echoGate -> R.string.voice_echo_gate
+            it.echoCanceller -> R.string.voice_aec_on
+            else -> R.string.voice_aec_off
+        }
+    }?.takeIf { on }
     return listOfNotNull(
-        phase,
+        stringResource(phase),
         state.engineLabel.takeIf { it.isNotEmpty() && on },
-        duplex,
-        effects?.let { if (it.echoGate) "参考回声门限" else if (it.echoCanceller) "AEC 开" else "AEC 关" }?.takeIf { on },
-        "Jev ${state.judgeCount} 次".takeIf { state.judgeCount > 0 },
-        "失败 ${state.judgeFailures}".takeIf { state.judgeFailures > 0 },
+        duplex?.let { stringResource(it) },
+        effect?.let { stringResource(it) },
+        pluralStringResource(R.plurals.voice_jev_calls, state.judgeCount, state.judgeCount)
+            .takeIf { state.judgeCount > 0 },
+        stringResource(R.string.voice_judge_failures, state.judgeFailures).takeIf { state.judgeFailures > 0 },
         state.lastJudgeLatencyMillis?.let { "${it}ms" },
-        "回声 ${state.echoes}".takeIf { state.echoes > 0 },
-        "打断 ${state.interruptions}".takeIf { state.interruptions > 0 },
+        pluralStringResource(R.plurals.voice_echoes, state.echoes, state.echoes).takeIf { state.echoes > 0 },
+        pluralStringResource(R.plurals.voice_interruptions, state.interruptions, state.interruptions)
+            .takeIf { state.interruptions > 0 },
     ).joinToString(" · ")
 }
 
+@Composable
 internal fun scoresLine(judgment: VoiceJudgment?): String = judgment?.let {
     listOfNotNull(
-        "说完 %.2f".format(it.turnComplete),
-        "等待 %.2f".format(it.holdingFloor),
-        "对小博 %.2f".format(it.addressedToAgent),
-        it.takingFloor?.let { score -> "插话 %.2f".format(score) },
-        it.replacesTask?.let { score -> "换任务 %.2f".format(score) },
+        stringResource(R.string.voice_score_complete, it.turnComplete),
+        stringResource(R.string.voice_score_holding, it.holdingFloor),
+        stringResource(R.string.voice_score_addressed, it.addressedToAgent),
+        it.takingFloor?.let { score -> stringResource(R.string.voice_score_taking, score) },
+        it.replacesTask?.let { score -> stringResource(R.string.voice_score_replaces, score) },
     ).joinToString(" · ")
 }.orEmpty()
 
-private fun endReasonLabel(reason: VoiceEndReason): String = when (reason) {
-    VoiceEndReason.JUDGED -> "Jev 判定说完"
-    VoiceEndReason.SILENCE_CAP -> "静音超时"
-    VoiceEndReason.JUDGE_FAILED -> "Jev 不可用"
-    VoiceEndReason.SIDE_TALK -> "旁聊断句"
-    VoiceEndReason.LENGTH_CAP -> "单轮超长"
-    VoiceEndReason.ECHO -> "播报回声"
-    VoiceEndReason.BACKCHANNEL -> "播报中附和，未交给 Agent"
-    VoiceEndReason.WAKE_PHRASE -> "听到唤醒词，前面的话不交给 Agent"
-    VoiceEndReason.FAR_SPEECH -> "比唤醒时轻得多，像是旁人或视频，未交给 Agent"
-    VoiceEndReason.DISMISSED -> "只说了「退出」这类话，直接结束对话"
+@StringRes
+private fun endReasonLabel(reason: VoiceEndReason): Int = when (reason) {
+    VoiceEndReason.JUDGED -> R.string.voice_end_judged
+    VoiceEndReason.SILENCE_CAP -> R.string.voice_end_silence_cap
+    VoiceEndReason.JUDGE_FAILED -> R.string.voice_end_judge_failed
+    VoiceEndReason.SIDE_TALK -> R.string.voice_end_side_talk
+    VoiceEndReason.LENGTH_CAP -> R.string.voice_end_length_cap
+    VoiceEndReason.ECHO -> R.string.voice_end_echo
+    VoiceEndReason.BACKCHANNEL -> R.string.voice_end_backchannel
+    VoiceEndReason.WAKE_PHRASE -> R.string.voice_end_wake_phrase
+    VoiceEndReason.FAR_SPEECH -> R.string.voice_end_far_speech
+    VoiceEndReason.DISMISSED -> R.string.voice_end_dismissed
 }
 
 private const val LIVE_TEXT_CHARS = 120

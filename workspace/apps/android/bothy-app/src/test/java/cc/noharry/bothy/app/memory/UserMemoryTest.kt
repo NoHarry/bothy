@@ -1,4 +1,7 @@
 package cc.noharry.bothy.app.memory
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.RuntimeContextRequest
 import cc.noharry.agent.kernel.api.RuntimeContextScalar
@@ -22,9 +25,15 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalAgentRuntimeApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class UserMemoryTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val dir: File = Files.createTempDirectory("user-memory").toFile()
     private var clock = 1_000L
     private val book = UserMemoryBook(File(dir, "memories.json")) { clock }
@@ -64,7 +73,9 @@ class UserMemoryTest {
         assertEquals("不记身份证号、银行卡号这类长号码", memoryContentError("卡号 6222 0212 3456 7890"))
         assertEquals("内容是空的", memoryContentError("  "))
         assertTrue(memoryContentError("长".repeat(MAX_MEMORY_CHARS + 1))!!.startsWith("太长了"))
-        assertTrue(book.remember(MemoryCategory.OTHER, "验证码 123456", MemorySource.SAID) is MemoryWrite.Refused)
+        val secret = book.remember(MemoryCategory.OTHER, "验证码 123456", MemorySource.SAID) as MemoryWrite.Refused
+        assertEquals(MemoryRefusal.Secret, secret.why)
+        assertEquals("不记密码、验证码这类信息", refusalText(context, secret))
         assertTrue(book.all().isEmpty())
     }
 
@@ -86,6 +97,9 @@ class UserMemoryTest {
         repeat(MAX_PER_CATEGORY) { book.remember(MemoryCategory.MEDIA, "喜欢歌手 $it", MemorySource.SAID) }
         val full = book.remember(MemoryCategory.MEDIA, "喜欢歌手 X", MemorySource.SAID) as MemoryWrite.Refused
         assertTrue(full.reason, full.reason.contains("娱乐"))
+        // The page says the same in its own words; 小博 reads the reason.
+        assertEquals(MemoryRefusal.CategoryFull(MemoryCategory.MEDIA), full.why)
+        assertEquals(full.reason, refusalText(context, full))
         val other = book.remember(MemoryCategory.OTHER, "别的", MemorySource.SAID) as MemoryWrite.Saved
         assertTrue(book.update(other.memory.id, "别的", MemoryCategory.MEDIA, MemorySource.TYPED) is MemoryWrite.Refused)
         val kinds = MemoryCategory.entries.filter { it != MemoryCategory.MEDIA }
@@ -173,15 +187,15 @@ class UserMemoryTest {
     @Test
     fun theHeaderNamesTheUserAndCountsTheDays() {
         val day = 24L * 60 * 60 * 1000
-        assertEquals("还没有记住什么", memorySummary(emptyList(), 0L).line)
+        assertEquals("还没有记住什么", memorySummary(context, emptyList(), 0L).line)
         book.remember(MemoryCategory.IDENTITY, "以后叫我老王，别叫全名", MemorySource.SAID)
         clock += 2 * day
         book.remember(MemoryCategory.PLACES, "公司在望京 SOHO", MemorySource.TYPED)
-        val summary = memorySummary(book.all(), clock + day / 2)
+        val summary = memorySummary(context, book.all(), clock + day / 2)
         assertEquals("老王", summary.name)
         assertEquals("小博记住了 2 件事 · 认识你 3 天", summary.line)
         assertEquals(listOf("2", "1", "2"), summary.metrics.take(3).map { it.first })
-        assertEquals("正在记下来", "Running mcp__memory__user_memory".stepPhrase())
+        assertEquals("正在记下来", "Running mcp__memory__user_memory".stepPhrase(context.resources))
         // What a model wrote on the bench (2026-10-15), and other ways of putting it.
         listOf(
             "称呼为老王" to "老王", "用户希望被称为小李" to "小李", "我叫王磊，是程序员" to "王磊", "称呼：老张" to "老张", "用户名叫杜强" to "杜强",
@@ -189,8 +203,19 @@ class UserMemoryTest {
             "不用叫我王总" to null, "不要再叫我老王" to null,
         ).forEach { (words, name) ->
             val memory = UserMemory("m", MemoryCategory.IDENTITY, words, MemorySource.SAID, null, 0L, 0L)
-            assertEquals(words, name, memorySummary(listOf(memory), 0L).name)
+            assertEquals(words, name, memorySummary(context, listOf(memory), 0L).name)
         }
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun theHeaderCountsInEnglishWithSingularAndPlural() {
+        book.remember(MemoryCategory.IDENTITY, "叫我老王", MemorySource.SAID)
+        val one = memorySummary(context, book.all(), clock).line
+        assertEquals("Xiao Bo remembers 1 thing · has known you for 1 day", one)
+        book.remember(MemoryCategory.PLACES, "家在望京花园", MemorySource.SAID)
+        val two = memorySummary(context, book.all(), clock + 2L * 24 * 60 * 60 * 1000).line
+        assertEquals("Xiao Bo remembers 2 things · has known you for 3 days", two)
     }
 
     private fun saved(result: MemoryWrite): UserMemory = (result as MemoryWrite.Saved).memory

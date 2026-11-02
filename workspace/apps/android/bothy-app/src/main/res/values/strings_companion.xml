@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Companion, its errors, and Checks → Companion. -->
+<resources>
+    <string name="companion_service_qwen">Qwen</string>
+    <string name="companion_service_qwen_hint">Model Studio API key (leave empty to use the speech recognition Model Studio key). For a workspace key starting with sk-ws-, change the address to https://&lt;WorkspaceId&gt;.cn-beijing.maas.aliyuncs.com/compatible-mode/v1</string>
+    <string name="companion_service_doubao">Doubao</string>
+    <string name="companion_service_doubao_hint">Volcano Engine Ark API key; for the model, enter a model name or endpoint ID enabled in Ark (for role-play chat, try the doubao-seed-character series)</string>
+    <string name="companion_service_hunyuan">Hunyuan</string>
+    <string name="companion_service_hunyuan_hint">Tencent Hunyuan API key</string>
+    <string name="companion_service_custom">Custom (OpenAI-compatible)</string>
+    <string name="companion_service_custom_hint">Any OpenAI-compatible /chat/completions service</string>
+    <string name="companion_mode_observe">Log only, don\'t route (see whether the judgement is right first)</string>
+    <string name="companion_mode_observe_short">Log only, don\'t route</string>
+    <string name="companion_mode_route">Send small talk to the companion service</string>
+
+    <string name="companion_error_threshold">Sensitivity must be between 0.5 and 1</string>
+    <string name="companion_error_no_address">%1$s has no address yet</string>
+    <string name="companion_error_no_model">%1$s has no model yet</string>
+    <string name="companion_error_no_key">%1$s has no API key</string>
+    <string name="companion_error_key_whitespace">The API key can\'t contain whitespace</string>
+    <string name="companion_error_key_not_saved">Couldn\'t save the API key</string>
+    <string name="companion_error_url_invalid">The address isn\'t valid</string>
+    <string name="companion_error_url_https">The address must start with https:// (http:// only for this device)</string>
+    <string name="companion_error_extra_not_object">Extra parameters must be a JSON object</string>
+    <string name="companion_error_extra_invalid">Extra parameters aren\'t valid JSON</string>
+    <plurals name="companion_error_timeout">
+        <item quantity="one">The companion service didn\'t answer for %1$d second</item>
+        <item quantity="other">The companion service didn\'t answer for %1$d seconds</item>
+    </plurals>
+    <string name="companion_http_with_message">HTTP %1$d: %2$s</string>
+    <string name="companion_http_with_hint">%1$s. %2$s</string>
+    <string name="companion_http_hint_key">Check the API key (a Qwen sk-ws- workspace key needs the workspace address)</string>
+    <string name="companion_http_hint_address">Check the address and model name</string>
+
+    <string name="companion_intro">Small talk in voice (chatting, venting, jokes) goes to the companion service and is answered in Xiao Bo\'s own voice; requests to do something still go to Xiao Bo. Jev gives each turn one more score for “is this small talk”, and turns that mention navigation, the AC, playing music and the like, or that come right after Xiao Bo asked a question, always go to Xiao Bo; when the companion service fails or judges that something should be done, the turn goes back to Xiao Bo too.</string>
+    <string name="companion_enable">Turn on companion chat</string>
+    <string name="companion_service">Companion service</string>
+    <string name="companion_key">API key</string>
+    <string name="companion_key_saved">API key · saved (leave empty to keep it)</string>
+    <string name="companion_key_qwen">API key (leave empty to use the speech recognition Model Studio key)</string>
+    <string name="companion_no_key_yet">no API key yet</string>
+    <string name="companion_missing_one">%1$s: %2$s. Until it is filled in and saved, all small talk goes to Xiao Bo.</string>
+    <string name="companion_missing_two">%1$s: %2$s, %3$s. Until they are filled in and saved, all small talk goes to Xiao Bo.</string>
+    <string name="companion_field_address">Address (up to /v1, without /chat/completions)</string>
+    <string name="companion_field_model">Model</string>
+    <string name="companion_field_extra">Extra parameters (JSON, optional, e.g. {\"enable_thinking\": false})</string>
+    <string name="companion_field_threshold">Sensitivity (0.5–1: the small-talk score a turn needs to count as small talk; higher is more cautious)</string>
+    <string name="companion_field_persona">Persona (system prompt)</string>
+    <string name="companion_saved">Saved; applies from the next voice turn</string>
+    <string name="companion_discarded">Changes discarded</string>
+    <string name="companion_try">Try it (with the saved settings)</string>
+    <string name="companion_try_words">I\'m a bit tired today</string>
+    <string name="companion_try_asking">Asking %1$s…</string>
+    <string name="companion_try_reply">“%1$s” → %2$s (%3$d ms)</string>
+    <string name="companion_try_failed">Failed: %1$s</string>
+    <string name="companion_decisions_title">Recent routing decisions (since this launch)</string>
+    <string name="companion_decisions_empty">No voice turns have been judged yet.</string>
+    <string name="companion_decision_line">%1$s %2$s · %3$s · “%4$s”</string>
+    <string name="companion_route_companion">Companion</string>
+    <string name="companion_route_agent">Xiao Bo</string>
+    <string name="companion_reason_off">off</string>
+    <string name="companion_reason_not_scored">not scored</string>
+    <string name="companion_reason_below">small_talk %1$.2f &lt; %2$.2f</string>
+    <string name="companion_reason_task_word">task word 「%1$s」</string>
+    <string name="companion_reason_answers_agent">answers the agent\'s question</string>
+    <string name="companion_reason_observing">observe: would chat (%1$.2f)</string>
+    <string name="companion_reason_small_talk">small_talk %1$.2f</string>
+
+    <string name="companion_check_off">Off</string>
+    <string name="companion_check_realtime">Not used in end-to-end mode: Doubao answers small talk itself</string>
+    <string name="companion_check_empty">%1$s · the service replied with nothing</string>
+    <string name="companion_check_ok">%1$s · replied in %2$d ms</string>
+</resources>

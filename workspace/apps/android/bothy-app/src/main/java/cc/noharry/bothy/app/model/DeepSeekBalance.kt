@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.model
+import android.content.Context
+import cc.noharry.bothy.app.R
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -29,21 +31,26 @@ internal fun parseDeepSeekBalance(body: String): DeepSeekBalance {
     return DeepSeekBalance(root["is_available"]?.jsonPrimitive?.booleanOrNull ?: amounts.isNotEmpty(), amounts)
 }
 
-/** 「¥110.00（充值 100.00，赠送 10.00）」 per currency, and whether the key is out of credit. */
-internal fun DeepSeekBalance.summary(): String {
-    val totals = amounts.joinToString("；") { amount ->
+/** 「¥110.00（充值 100.00，赠送 10.00）」 per currency, and whether the key is out of credit, in the screen's language. */
+internal fun DeepSeekBalance.summary(context: Context): String {
+    val totals = amounts.joinToString(context.getString(R.string.model_balance_separator)) { amount ->
         val sign = CURRENCY_SIGNS[amount.currency] ?: "${amount.currency} "
-        "$sign${amount.total}（充值 ${amount.toppedUp}，赠送 ${amount.granted}）"
+        context.getString(R.string.model_balance_amount, "$sign${amount.total}", amount.toppedUp, amount.granted)
     }
     return when {
-        totals.isEmpty() -> if (available) "可用" else "余额不足，暂不可用"
+        totals.isEmpty() ->
+            context.getString(if (available) R.string.model_deepseek_available else R.string.model_balance_insufficient)
         available -> totals
-        else -> "$totals · 余额不足，暂不可用"
+        else -> context.getString(R.string.model_balance_amounts_insufficient, totals)
     }
 }
 
-/** Asks DeepSeek with [apiKey]; the key goes only to its own host, in the header, never into a log. */
+/**
+ * Asks DeepSeek with [apiKey]; the key goes only to its own host, in the header, never into a log. A failure's message
+ * is in the screen's language ([context]).
+ */
 internal suspend fun fetchDeepSeekBalance(
+    context: Context,
     apiKey: String,
     client: OkHttpClient = BALANCE_CLIENT,
     url: String = DEEPSEEK_BALANCE_URL,
@@ -54,8 +61,12 @@ internal suspend fun fetchDeepSeekBalance(
             val body = response.body?.string().orEmpty()
             when {
                 response.isSuccessful -> parseDeepSeekBalance(body)
-                response.code == UNAUTHORIZED -> throw IOException("API key 无效或已停用")
-                else -> throw IOException("HTTP ${response.code}${body.errorMessage()?.let { "：$it" }.orEmpty()}")
+                response.code == UNAUTHORIZED ->
+                    throw IOException(context.getString(R.string.model_balance_key_rejected))
+                else -> throw IOException(
+                    body.errorMessage()?.let { context.getString(R.string.model_http_error, response.code, it) }
+                        ?: "HTTP ${response.code}",
+                )
             }
         }
     }

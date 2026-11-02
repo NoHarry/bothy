@@ -1,4 +1,5 @@
 package cc.noharry.bothy.playground
+import android.content.Context
 import cc.noharry.bothy.playground.cabin.Seat
 import cc.noharry.bothy.playground.cabin.summary
 import cc.noharry.bothy.playground.home.Room
@@ -64,11 +65,11 @@ class PlaygroundStore(initial: World = World(), private val clock: () -> Long = 
     fun record(server: String, tool: String, summary: String, highlights: Set<String>, fromAssistant: Boolean = true) =
         synchronized(lock) { callLog.add(server, tool, summary, highlights, fromAssistant) }
 
-    /** The world moving on by [seconds]; what happened on its own goes to the log as notes. */
-    fun tick(seconds: Double) = synchronized(lock) {
-        val notes = mutableListOf<String>()
+    /** The world moving on by [seconds]; what happened on its own goes to the log as notes, in [context]'s language. */
+    fun tick(seconds: Double, context: Context) = synchronized(lock) {
+        val notes = mutableListOf<WorldNote>()
         worldState.value = worldState.value.tick(seconds, notes = notes)
-        notes.forEach { callLog.add("playground", "simulation", it, emptySet(), fromAssistant = false) }
+        notes.forEach { callLog.add("playground", "simulation", it.text(context), emptySet(), fromAssistant = false) }
     }
 
     fun reset() = synchronized(lock) {

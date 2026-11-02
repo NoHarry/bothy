@@ -13,12 +13,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.playground.CallRecord
 import cc.noharry.bothy.playground.PlaygroundScene
 import cc.noharry.bothy.playground.PlaygroundStore
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.ServerStatus
 import cc.noharry.bothy.playground.cabin.CabinControls
@@ -37,21 +39,29 @@ import java.util.Locale
 @Composable
 internal fun SidePanel(scene: PlaygroundScene, world: World, calls: List<CallRecord>, server: ServerState, flash: Float, store: PlaygroundStore, modifier: Modifier) {
     Column(modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Card("最近") {
-            if (calls.isEmpty()) Text("还没有调用。在 Bothy 里连上「${scene.label}」，然后跟小博说一句。", color = PlaygroundColors.muted, fontSize = 13.sp)
+        Card(stringResource(R.string.headunit_recent)) {
+            val none = stringResource(R.string.headunit_no_calls, stringResource(scene.labelRes))
+            if (calls.isEmpty()) Text(none, color = PlaygroundColors.muted, fontSize = 13.sp)
             calls.take(RECENT_CALLS).forEachIndexed { i, call -> CallRow(call, if (i == 0) flash else 0f) }
         }
-        Card("控制（手动改，Bothy 的计划也看得到）") {
+        Card(stringResource(R.string.headunit_controls_title)) {
             if (scene == PlaygroundScene.CABIN) CabinControls(world.cabin, store) else HomeControls(world.home, store)
         }
-        Card("试试对小博说") {
-            EXAMPLES.getValue(scene).forEach { Text("「$it」", color = PlaygroundColors.text, fontSize = 14.sp, lineHeight = 21.sp) }
-            Text(GESTURES.getValue(scene), color = PlaygroundColors.muted, fontSize = 12.sp, lineHeight = 18.sp)
+        Card(stringResource(R.string.headunit_try_saying_to)) {
+            EXAMPLES.getValue(scene).forEach {
+                val example = stringResource(R.string.headunit_quoted, stringResource(it))
+                Text(example, color = PlaygroundColors.text, fontSize = 14.sp, lineHeight = 21.sp)
+            }
+            val gestures = stringResource(GESTURES.getValue(scene))
+            Text(gestures, color = PlaygroundColors.muted, fontSize = 12.sp, lineHeight = 18.sp)
         }
-        Card("连接") {
+        Card(stringResource(R.string.headunit_connection)) {
             Text(
-                "在 Bothy 的「连接应用」里连上「虚拟座舱」和「虚拟小家」（同一台设备，不用 key）。" +
-                    if (server.status == ServerStatus.RUNNING) "地址：${server.address}/cabin/mcp、/home/mcp" else "",
+                if (server.status == ServerStatus.RUNNING) {
+                    stringResource(R.string.headunit_connect_hint_address, server.address)
+                } else {
+                    stringResource(R.string.headunit_connect_hint)
+                },
                 color = PlaygroundColors.muted,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
@@ -80,44 +90,44 @@ private fun CallRow(call: CallRecord, flash: Float) {
     ) {
         Text(TIME.get()!!.format(Date(call.atMillis)), color = PlaygroundColors.faint, fontSize = 12.sp)
         val (tag, color) = when {
-            call.fromAssistant -> "小博" to PlaygroundColors.glow
-            call.tool == PlaygroundStore.MANUAL -> "手动" to PlaygroundColors.sage
-            else -> "模拟" to PlaygroundColors.faint
+            call.fromAssistant -> R.string.headunit_xiaobo to PlaygroundColors.glow
+            call.tool == PlaygroundStore.MANUAL -> R.string.headunit_manual to PlaygroundColors.sage
+            else -> R.string.headunit_simulated to PlaygroundColors.faint
         }
-        Text(tag, color = color, fontSize = 12.sp)
+        Text(stringResource(tag), color = color, fontSize = 12.sp)
         Text(call.summary, color = PlaygroundColors.text, fontSize = 13.sp, lineHeight = 18.sp)
     }
 }
 
 private val EXAMPLES = mapOf(
     PlaygroundScene.CABIN to listOf(
-        "你好小博，我有点冷",
-        "把主驾座椅加热开到二档",
-        "氛围灯换成森林绿",
-        "副驾车窗开一半",
-        "放点轻松的音乐",
-        "导航去西湖",
-        "车里降到 24 度以下就把车窗都关上",
-        "我这边好热",
-        "打开后备箱",
-        "屏幕太亮了，音量也小一点",
-        "把副驾车门打开",
-        "给后排乘客的座椅都开通风",
+        R.string.headunit_example_cold,
+        R.string.headunit_example_seat_heat,
+        R.string.headunit_example_ambient_green,
+        R.string.headunit_example_window_half,
+        R.string.headunit_say_relaxing_music,
+        R.string.headunit_example_west_lake,
+        R.string.headunit_example_close_windows_below,
+        R.string.headunit_example_hot_side,
+        R.string.headunit_say_open_trunk,
+        R.string.headunit_example_screen_volume,
+        R.string.headunit_example_open_door,
+        R.string.headunit_example_rear_ventilation,
     ),
     PlaygroundScene.HOME to listOf(
-        "我要睡觉了",
-        "把客厅的灯调暗一点",
-        "拉上卧室的窗帘",
-        "让扫地机扫一下厨房",
-        "客厅超过 28 度就开空调",
-        "我出门了",
-        "卧室有人的时候就把卧室灯开到 30%",
+        R.string.headunit_example_bedtime,
+        R.string.headunit_example_dim_living,
+        R.string.headunit_example_bedroom_curtains,
+        R.string.headunit_example_vacuum_kitchen,
+        R.string.headunit_example_living_ac,
+        R.string.headunit_example_heading_out,
+        R.string.headunit_example_bedroom_light,
     ),
 )
 
 private val GESTURES = mapOf(
-    PlaygroundScene.CABIN to "在图上：点座位让人上下车，长按座位让那里的人说话（「我」就是他），点车窗开关窗，长按车窗开关车门，点车尾开关后备箱。",
-    PlaygroundScene.HOME to "在图上：点房间开关灯，长按房间切换有没有人，点窗帘轨道开关窗帘，点门开关门锁。",
+    PlaygroundScene.CABIN to R.string.headunit_gestures_cabin,
+    PlaygroundScene.HOME to R.string.headunit_gestures_home,
 )
 
 private const val RECENT_CALLS = 4

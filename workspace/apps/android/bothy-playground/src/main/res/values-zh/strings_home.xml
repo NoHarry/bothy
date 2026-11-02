@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The virtual home's screens: its controls, the picture's chips and the log lines of changes made by hand. -->
+<resources>
+    <!-- Rooms, tones, scenes and places as screens name them; the model keeps the Chinese names in the code. -->
+    <string name="home_room_living">客厅</string>
+    <string name="home_room_bedroom">卧室</string>
+    <string name="home_room_kitchen">厨房</string>
+    <string name="home_room_study">书房</string>
+    <string name="home_tone_warm">暖光</string>
+    <string name="home_tone_neutral">自然光</string>
+    <string name="home_tone_cool">冷白</string>
+    <string name="home_scene_home">回家</string>
+    <string name="home_scene_away">离家</string>
+    <string name="home_scene_sleep">睡觉</string>
+    <string name="home_scene_movie">观影</string>
+    <string name="home_scene_morning">起床</string>
+    <string name="home_place_cabin">车上</string>
+    <string name="home_place_home">家里</string>
+
+    <!-- The controls by hand. -->
+    <string name="home_occupied">有人</string>
+    <string name="home_empty">没人</string>
+    <string name="home_row_light">灯</string>
+    <string name="home_row_tone">色调</string>
+    <string name="home_row_curtain">窗帘</string>
+    <string name="home_row_room_temp">室温</string>
+    <string name="home_row_ac">空调</string>
+    <string name="home_whole_home">全屋</string>
+    <string name="home_door_locked">门已锁</string>
+    <string name="home_door_unlocked">门开着</string>
+    <string name="home_row_vacuum">扫地机</string>
+    <string name="home_clean_all">全屋清扫</string>
+    <string name="home_vacuum_pause">暂停</string>
+    <string name="home_vacuum_dock">回充</string>
+    <string name="home_row_scene">场景</string>
+    <string name="home_row_outdoor">室外</string>
+
+    <!-- The log lines of changes made by hand, and of the vacuum finishing a room. -->
+    <string name="home_log_occupied">%1$s有人了</string>
+    <string name="home_log_empty">%1$s没人了</string>
+    <string name="home_log_light_on">%1$s开灯</string>
+    <string name="home_log_light_off">%1$s关灯</string>
+    <string name="home_log_light_brightness">%1$s灯亮度 %2$d%%</string>
+    <string name="home_log_light_tone">%1$s灯换成%2$s</string>
+    <string name="home_log_curtain_closed">%1$s窗帘关上</string>
+    <string name="home_log_curtain_open">%1$s窗帘开到 %2$d%%</string>
+    <string name="home_log_room_temp">%1$s室温设为 %2$s</string>
+    <string name="home_log_ac_on">%1$s空调打开</string>
+    <string name="home_log_ac_off">%1$s空调关闭</string>
+    <string name="home_log_ac_temp">%1$s空调设到 %2$s</string>
+    <string name="home_log_door_locked">门锁上</string>
+    <string name="home_log_door_unlocked">门锁打开</string>
+    <string name="home_log_vacuum_clean_all">扫地机开始全屋清扫</string>
+    <string name="home_log_vacuum_paused">扫地机暂停</string>
+    <string name="home_log_vacuum_dock">扫地机回充</string>
+    <string name="home_log_vacuum_cleaned">扫地机扫完了%1$s</string>
+    <string name="home_log_scene">切到「%1$s」场景</string>
+    <string name="home_log_outdoor_temp">室外温度设为 %1$s</string>
+
+    <!-- The chips on the home picture. -->
+    <string name="home_chip_ac">空调 %1$s %2$s</string>
+    <string name="home_chip_door_locked">门已上锁</string>
+    <string name="home_chip_door_unlocked">门锁开着</string>
+    <string name="home_chip_scene">场景：%1$s</string>
+</resources>

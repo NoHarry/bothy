@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Checks: the checks, their results and the ways to fix them. -->
+<resources>
+    <string name="checks_title">Check everything</string>
+    <string name="checks_running">Checking…</string>
+    <string name="checks_start">Run checks</string>
+    <string name="checks_not_yet">Not checked yet</string>
+    <string name="checks_about">Calls the model lists of the current chat model and image model once, plus Model Studio, Jev (about 2k tokens) and MiMo (synthesizes two characters, not played); with a DeepSeek model it checks the official balance, and through a relay it tests the official features once (may run one search, ¥0.005); and records 0.5 seconds of sound (kept only in memory).</string>
+    <plurals name="checks_count_ok">
+        <item quantity="one">%1$d OK</item>
+        <item quantity="other">%1$d OK</item>
+    </plurals>
+    <plurals name="checks_count_warn">
+        <item quantity="one">%1$d warning</item>
+        <item quantity="other">%1$d warnings</item>
+    </plurals>
+    <plurals name="checks_count_fail">
+        <item quantity="one">%1$d unavailable</item>
+        <item quantity="other">%1$d unavailable</item>
+    </plurals>
+    <plurals name="checks_count_off">
+        <item quantity="one">%1$d off</item>
+        <item quantity="other">%1$d off</item>
+    </plurals>
+    <plurals name="checks_count_running">
+        <item quantity="one">%1$d checking</item>
+        <item quantity="other">%1$d checking</item>
+    </plurals>
+
+    <string name="checks_group_models">Models</string>
+    <string name="checks_group_voice">Voice</string>
+    <string name="checks_group_permissions">Permissions and services</string>
+    <string name="checks_chat">Chat model</string>
+    <string name="checks_deepseek">DeepSeek official features</string>
+    <string name="checks_image">Image model</string>
+    <string name="checks_tools">Tool catalog</string>
+    <string name="checks_asr">Speech recognition</string>
+    <string name="checks_jev">Jev turn judgement</string>
+    <string name="checks_tts">Spoken replies</string>
+    <string name="checks_wake">Voice wake</string>
+    <string name="checks_mic">Recording</string>
+    <string name="checks_companion">Companion</string>
+    <string name="checks_realtime">End-to-end demo</string>
+    <string name="checks_record_permission">Microphone permission</string>
+    <string name="checks_overlay">Overlay permission</string>
+    <string name="checks_accessibility">Accessibility service (screen control)</string>
+    <string name="checks_notifications">Notification permission</string>
+
+    <string name="checks_fix_models">Open Models and services</string>
+    <string name="checks_fix_image_model">Open Image model</string>
+    <string name="checks_fix_voice">Open Voice settings</string>
+    <string name="checks_fix_allow">Allow</string>
+    <string name="checks_fix_allow_in_settings">Allow in settings</string>
+    <string name="checks_fix_turn_on">Turn on in settings</string>
+    <string name="checks_fix_wake_on">Turn on wake</string>
+    <string name="checks_fix_overlay_start">Show floating card</string>
+
+    <string name="checks_timeout">Timed out: no result after %1$d s</string>
+    <string name="checks_service_available">%1$s · service available</string>
+    <string name="checks_model_not_listed">%1$s · service available, but the selected %2$s isn\'t among the models it lists (it may have been retired); pick another next to the input box: %3$s</string>
+    <string name="checks_listed_more">%1$s (%2$d in all)</string>
+    <string name="checks_list_separator">", "</string>
+    <string name="checks_not_deepseek">%1$s · %2$s is not a DeepSeek model, not checked</string>
+    <string name="checks_label_no_key">%1$s · API key missing</string>
+    <string name="checks_deepseek_features_messages">native deferred tools, Search/Fetch</string>
+    <string name="checks_deepseek_official_ok">Official API · %1$s available automatically · balance: %2$s</string>
+    <string name="checks_deepseek_official_balance">Official API · balance: %1$s</string>
+    <string name="checks_deepseek_official_failed">Official API · balance check failed: %1$s</string>
+    <string name="checks_deepseek_balance">Balance</string>
+    <string name="checks_deepseek_native_tools">Native deferred tools</string>
+    <string name="checks_deepseek_none">%1$s; works as usual, just without DeepSeek-only features</string>
+    <string name="checks_off">Off</string>
+    <string name="checks_no_key">API key missing</string>
+    <string name="checks_no_model">No model selected</string>
+    <string name="checks_image_not_listed">%1$s · service available, but it doesn\'t list this model</string>
+    <string name="checks_asr_local_ok">On-device recognition · model installed</string>
+    <string name="checks_asr_no_key">Recognition uses Model Studio, but the Model Studio key is missing: add it on the Keys page</string>
+    <string name="checks_asr_ok">Model Studio · %1$s · key works</string>
+    <string name="checks_asr_failed">Model Studio · %1$s</string>
+    <string name="checks_jev_not_set">Not set up: every spoken sentence goes straight to the agent (add a Jev key on the Keys page to turn judging on)</string>
+    <string name="checks_jev_off">Off: every spoken sentence goes straight to the agent</string>
+    <string name="checks_tts_off">Spoken replies are off</string>
+    <string name="checks_tts_ok">%1$s · synthesized %2$d KB</string>
+    <string name="checks_wake_off">Off: saying “OK Bothy” gets no response</string>
+    <string name="checks_wake_ok">Listening for “OK Bothy”</string>
+    <string name="checks_wake_not_listening">On, but not listening: %1$s</string>
+    <string name="checks_mic_no_permission">No microphone permission</string>
+    <string name="checks_mic_busy">%1$s · the microphone is in use by the wake word or a voice session</string>
+    <string name="checks_mic_silent">%1$s · recorded only silence: another app may hold the recording (such as the system voice assistant) or the system muted it</string>
+    <string name="checks_mic_ok">%1$s · sound picked up (%2$s dBFS)</string>
+    <string name="checks_capture_mono_aec">Mono · system echo cancellation</string>
+    <string name="checks_capture_mono">Mono</string>
+    <string name="checks_allowed">Allowed</string>
+    <string name="checks_record_denied">Not allowed: voice and wake won\'t work</string>
+    <string name="checks_overlay_denied">Not allowed: Xiao Bo\'s floating card and voice wake both need it</string>
+    <string name="checks_accessibility_off">Screen control is off (Basic tools)</string>
+    <string name="checks_accessibility_connected">Connected</string>
+    <string name="checks_accessibility_repaired">The system hadn\'t connected it (common after the app is force-stopped); turned it back on and connected it</string>
+    <string name="checks_accessibility_stuck">On, but the system never connected it, and turning it back on didn\'t help: Xiao Bo can\'t control the screen</string>
+    <string name="checks_accessibility_disabled">Off: Xiao Bo can\'t control the screen</string>
+    <string name="checks_notifications_not_needed">Not needed on this Android version</string>
+    <string name="checks_notifications_denied">Not allowed: the background recording notification won\'t show; recording and wake still work</string>
+    <string name="checks_cannot_connect">Can\'t connect: %1$s</string>
+    <string name="checks_http_key">HTTP %1$d: wrong key or no permission</string>
+    <string name="checks_http_404">HTTP 404: wrong address</string>
+    <string name="checks_http_429">HTTP 429: too many requests or quota used up</string>
+    <string name="checks_http_server">HTTP %1$d: service error</string>
+</resources>

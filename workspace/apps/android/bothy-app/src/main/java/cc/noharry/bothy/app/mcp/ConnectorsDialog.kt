@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.mcp
+import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,6 +58,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -70,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -100,6 +105,7 @@ internal fun SidebarFooter(
 ) {
     val colors = ConsoleColors
     val context = LocalContext.current
+    val settingsLabel = stringResource(R.string.common_settings)
     var showConnectors by remember { mutableStateOf(false) }
     val controller = remember { ConnectorController(context.applicationContext) }
     // The pill shows what is connected; with nothing connected, a few of the apps on offer. Read from what this car
@@ -128,7 +134,7 @@ internal fun SidebarFooter(
                 .clip(CircleShape)
                 .background(if (settingsSelected) colors.accentSoft else Color.Transparent)
                 .clickable(onClick = onShowSettings)
-                .semantics { role = Role.Button; contentDescription = "Settings" },
+                .semantics { role = Role.Button; contentDescription = settingsLabel },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -152,7 +158,13 @@ internal fun SidebarFooter(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
-            Text("连接应用", style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(
+                stringResource(R.string.mcp_connect_apps),
+                style = ConsoleType.body,
+                color = colors.text,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+            )
             Spacer(Modifier.width(Dimens.spaceXsMd))
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) { shown.forEach { ConnectorAvatar(it, PILL_AVATAR_SIZE) } }
             if (connected > 0) {
@@ -229,8 +241,12 @@ internal fun ConnectorsDialog(
     }
 }
 
+private val FILTER_ALL = R.string.mcp_filter_all
+private val FILTER_CUSTOM = R.string.mcp_filter_custom
+
 /** The chips over the market: everything, each category in catalog order, then 自定义. */
-private val CONNECTOR_FILTERS: List<String> = listOf(FILTER_ALL) + DEBUG_CONNECTORS.map { it.category }.distinct() + FILTER_CUSTOM
+private val CONNECTOR_FILTERS: List<Int> =
+    listOf(FILTER_ALL) + DEBUG_CONNECTORS.map { it.category }.distinct() + FILTER_CUSTOM
 
 /** 连接应用 as an app market: a card per app under its category, tapped for the app's own page. */
 @Composable
@@ -241,24 +257,36 @@ private fun ColumnScope.ConnectorCatalog(
     onDismiss: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
-    var filter by remember { mutableStateOf(FILTER_ALL) }
+    var filter by remember { mutableIntStateOf(FILTER_ALL) }
     val connected = statuses.values.count { it is ConnectorStatus.Connected }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("连接应用", style = ConsoleType.hero, color = colors.text, modifier = Modifier.weight(1f))
         Text(
-            if (connected > 0) "已连接 $connected 个" else "还没有连接",
+            stringResource(R.string.mcp_connect_apps),
+            style = ConsoleType.hero,
+            color = colors.text,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            if (connected > 0) {
+                pluralStringResource(R.plurals.mcp_connected_count, connected, connected)
+            } else {
+                stringResource(R.string.mcp_none_connected)
+            },
             style = ConsoleType.meta,
             color = if (connected > 0) colors.success else colors.muted,
         )
         Spacer(Modifier.width(Dimens.spaceSm))
-        IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "关闭", tint = colors.muted) }
+        IconButton(onClick = onDismiss) {
+            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.common_close), tint = colors.muted)
+        }
     }
     Spacer(Modifier.height(Dimens.spaceMd))
     OutlinedTextField(
         value = query,
         onValueChange = { query = it },
-        placeholder = { Text("搜索应用，比如 咖啡、叫车、地图") },
+        placeholder = { Text(stringResource(R.string.mcp_search_placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = colors.muted) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
@@ -267,20 +295,25 @@ private fun ColumnScope.ConnectorCatalog(
     Spacer(Modifier.height(Dimens.spaceMd))
     FilterChips(filter) { filter = it }
     val words = query.trim()
-    val apps = DEBUG_CONNECTORS.filter { (filter == FILTER_ALL || it.category == filter) && it.matches(words) }
+    val apps = DEBUG_CONNECTORS.filter { (filter == FILTER_ALL || it.category == filter) && it.matches(words, context) }
+    val customTitle = stringResource(R.string.mcp_custom_a2a_title)
+    val customSummary = stringResource(R.string.mcp_custom_a2a_summary)
     val customShown = (filter == FILTER_ALL || filter == FILTER_CUSTOM) &&
-        (words.isEmpty() || CUSTOM_TITLE.contains(words, true) || CUSTOM_SUMMARY.contains(words, true))
-    ConnectorGrid(apps, customShown, statuses, onOpen, onShowA2aProfiles, emptyText = "没有找到「$words」")
+        (words.isEmpty() || customTitle.contains(words, true) || customSummary.contains(words, true))
+    ConnectorGrid(
+        apps, customShown, statuses, onOpen, onShowA2aProfiles,
+        emptyText = stringResource(R.string.mcp_no_results, words),
+    )
 }
 
 @Composable
-private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
+private fun FilterChips(selected: Int, onSelect: (Int) -> Unit) {
     val colors = ConsoleColors
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         CONNECTOR_FILTERS.forEach { entry ->
             val active = entry == selected
             Text(
-                entry,
+                stringResource(entry),
                 style = ConsoleType.body,
                 color = if (active) colors.panel else colors.text,
                 modifier = Modifier
@@ -293,9 +326,11 @@ private fun FilterChips(selected: String, onSelect: (String) -> Unit) {
     }
 }
 
-private fun Connector.matches(words: String): Boolean =
-    words.isEmpty() || name.contains(words, true) || summary.contains(words, true) || category.contains(words, true) ||
-        mcp?.abilities?.any { it.contains(words, true) } == true
+/** Matches the app's saved name too, so a brand is found in either language. */
+private fun Connector.matches(words: String, context: Context): Boolean =
+    words.isEmpty() || name.contains(words, true) ||
+        listOf(title, summary, category).any { context.getString(it).contains(words, true) } ||
+        mcp?.abilities?.any { context.getString(it).contains(words, true) } == true
 
 @Composable
 private fun ColumnScope.ConnectorGrid(
@@ -313,25 +348,29 @@ private fun ColumnScope.ConnectorGrid(
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
         apps.groupBy { it.category }.forEach { (category, members) ->
-            item(key = "category-$category", span = { GridItemSpan(maxLineSpan) }) { ConnectorSectionTitle(category) }
+            item(key = "category-$category", span = { GridItemSpan(maxLineSpan) }) {
+                ConnectorSectionTitle(stringResource(category))
+            }
             items(members, key = { it.id }) { connector ->
                 ConnectorCard(
                     avatar = { ConnectorAvatar(connector, CARD_AVATAR_SIZE) },
-                    title = connector.name,
-                    summary = connector.summary,
+                    title = stringResource(connector.title),
+                    summary = stringResource(connector.summary),
                     status = { StatusChip(statuses[connector.id] ?: ConnectorStatus.Disconnected) },
                     onClick = { onOpen(connector) },
                 )
             }
         }
         if (customShown) {
-            item(key = "category-custom", span = { GridItemSpan(maxLineSpan) }) { ConnectorSectionTitle(FILTER_CUSTOM) }
+            item(key = "category-custom", span = { GridItemSpan(maxLineSpan) }) {
+                ConnectorSectionTitle(stringResource(FILTER_CUSTOM))
+            }
             item(key = "custom-a2a") {
                 ConnectorCard(
                     avatar = { LetterAvatar("A2A", ConsoleColors.inkSoft, CARD_AVATAR_SIZE, 13.sp, APP_ICON_SHAPE) },
-                    title = CUSTOM_TITLE,
-                    summary = CUSTOM_SUMMARY,
-                    status = { ChipText("管理", ConsoleColors.text) },
+                    title = stringResource(R.string.mcp_custom_a2a_title),
+                    summary = stringResource(R.string.mcp_custom_a2a_summary),
+                    status = { ChipText(stringResource(R.string.mcp_manage), ConsoleColors.text) },
                     onClick = onShowA2aProfiles,
                 )
             }
@@ -383,11 +422,11 @@ private fun StatusChip(status: ConnectorStatus) {
         is ConnectorStatus.Connected -> Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(Dimens.spaceXs))
-            Text("已连接", style = ConsoleType.body, color = colors.success)
+            Text(stringResource(R.string.mcp_status_connected), style = ConsoleType.body, color = colors.success)
         }
-        ConnectorStatus.Paused -> ChipText("已停用", colors.muted)
-        is ConnectorStatus.Pairing -> ChipText("配对中", colors.accent)
-        ConnectorStatus.Disconnected -> ChipText("连接", colors.text)
+        ConnectorStatus.Paused -> ChipText(stringResource(R.string.mcp_status_paused), colors.muted)
+        is ConnectorStatus.Pairing -> ChipText(stringResource(R.string.mcp_status_pairing), colors.accent)
+        ConnectorStatus.Disconnected -> ChipText(stringResource(R.string.common_connect), colors.text)
     }
 }
 
@@ -422,6 +461,7 @@ private fun ColumnScope.ConnectorDetail(
     onBack: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val title = stringResource(connector.title)
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -466,27 +506,34 @@ private fun ColumnScope.ConnectorDetail(
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = colors.muted) }
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = stringResource(R.string.common_back),
+                tint = colors.muted,
+            )
+        }
         ConnectorAvatar(connector, ROW_AVATAR_SIZE)
         Spacer(Modifier.width(Dimens.spaceMd))
         Column(Modifier.weight(1f)) {
-            Text(connector.name, style = ConsoleType.hero, color = colors.text)
-            Text(connector.summary, style = ConsoleType.bodySmall, color = colors.muted)
-            Text("通过预置中转 ${controller.relayHost(connector)} 连接", style = ConsoleType.meta, color = colors.tertiary)
+            Text(title, style = ConsoleType.hero, color = colors.text)
+            Text(stringResource(connector.summary), style = ConsoleType.bodySmall, color = colors.muted)
+            Text(
+                stringResource(R.string.mcp_via_relay, controller.relayHost(connector)),
+                style = ConsoleType.meta,
+                color = colors.tertiary,
+            )
         }
     }
     Spacer(Modifier.height(Dimens.spaceXl))
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         when (status) {
             ConnectorStatus.Disconnected -> {
-                Text(
-                    "连接后，小博会把需要你个人账号的事交给你自己的 ${connector.name}，办完再回到这里播报。" +
-                        "需要一部能扫码的手机，和你的 ${connector.name} 账号；手机上的页面会一步步带你配置。",
-                    style = ConsoleType.body,
-                    color = colors.text,
-                )
+                Text(stringResource(R.string.mcp_agent_intro, title), style = ConsoleType.body, color = colors.text)
                 Spacer(Modifier.height(Dimens.spaceLg))
-                Button(onClick = { run { controller.connect(connector) } }, enabled = !busy) { Text("开始连接") }
+                Button(onClick = { run { controller.connect(connector) } }, enabled = !busy) {
+                    Text(stringResource(R.string.mcp_start_connecting))
+                }
             }
             ConnectorStatus.Paused -> Unit
             is ConnectorStatus.Pairing -> PairingPanel(
@@ -499,15 +546,18 @@ private fun ColumnScope.ConnectorDetail(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success)
                     Spacer(Modifier.width(Dimens.spaceSm))
-                    Text("已连接到你的 ${connector.name}", style = ConsoleType.panelTitle, color = colors.text)
+                    Text(
+                        stringResource(R.string.mcp_connected_to_your, title),
+                        style = ConsoleType.panelTitle,
+                        color = colors.text,
+                    )
                 }
                 Spacer(Modifier.height(Dimens.spaceSm))
                 Text(
-                    if (status.verified) {
-                        "已经走通过一次完整流程。直接对小博说「让 ${connector.name} 帮我……」就行。"
-                    } else {
-                        "还没有走通过完整流程：可以在手机连接页点「测试连接」，或直接对小博说「让 ${connector.name} 帮我……」。"
-                    },
+                    stringResource(
+                        if (status.verified) R.string.mcp_agent_verified else R.string.mcp_agent_unverified,
+                        title,
+                    ),
                     style = ConsoleType.body,
                     color = colors.muted,
                 )
@@ -528,16 +578,26 @@ private fun ColumnScope.ConnectorDetail(
                             }
                         },
                         enabled = !busy && !testing,
-                    ) { Text("测试连接") }
-                    OutlinedButton(onClick = { confirmDisconnect = true }, enabled = !busy && !testing) { Text("解除绑定", color = colors.danger) }
+                    ) { Text(stringResource(R.string.mcp_test_connection)) }
+                    OutlinedButton(onClick = { confirmDisconnect = true }, enabled = !busy && !testing) {
+                        Text(stringResource(R.string.mcp_unpair), color = colors.danger)
+                    }
                 }
                 if (testing) {
                     Spacer(Modifier.height(Dimens.spaceSm))
-                    Text("已交给 ${connector.name}，等它汇报（一般半分钟到两分钟）…", style = ConsoleType.body, color = colors.muted)
+                    Text(
+                        stringResource(R.string.mcp_test_waiting, title),
+                        style = ConsoleType.body,
+                        color = colors.muted,
+                    )
                 }
                 testResult?.let { (ok, text) ->
                     Spacer(Modifier.height(Dimens.spaceSm))
-                    Text(if (ok) "${connector.name}：$text" else text, style = ConsoleType.body, color = if (ok) colors.success else colors.danger)
+                    Text(
+                        if (ok) stringResource(R.string.mcp_test_reply, title, text) else text,
+                        style = ConsoleType.body,
+                        color = if (ok) colors.success else colors.danger,
+                    )
                 }
             }
         }
@@ -587,20 +647,17 @@ private fun ColumnScope.ConnectorDetail(
     if (confirmDisconnect) {
         BothyAlertDialog(
             onDismissRequest = { confirmDisconnect = false },
-            title = { Text("解除和 ${connector.name} 的绑定？") },
-            text = {
-                Text(
-                    "解除绑定后小博不能再把事交给 ${connector.name}。会先让 ${connector.name} 删掉它那边的例行任务和 car-relay 连接器" +
-                        "并回报结果（最多等三分钟），两边都会留下记录。",
-                )
-            },
+            title = { Text(stringResource(R.string.mcp_unpair_title, title)) },
+            text = { Text(stringResource(R.string.mcp_unpair_message, title)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmDisconnect = false
                     unpair()
-                }) { Text("解除绑定", color = colors.danger) }
+                }) { Text(stringResource(R.string.mcp_unpair), color = colors.danger) }
             },
-            dismissButton = { TextButton(onClick = { confirmDisconnect = false }) { Text("取消") } },
+            dismissButton = {
+                TextButton(onClick = { confirmDisconnect = false }) { Text(stringResource(R.string.common_cancel)) }
+            },
         )
     }
 }
@@ -620,20 +677,25 @@ private fun AccountPanel(
     onSignOut: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val title = stringResource(connector.title)
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     // Typed on a device screen it is easy to mistype; owner 2026-10-12: 「密码加个按钮可以看见」.
     var showPassword by remember { mutableStateOf(false) }
-    ConnectorSectionTitle("账号")
+    ConnectorSectionTitle(stringResource(R.string.mcp_account))
     if (account != null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("已登录：$account", style = ConsoleType.panelTitle, color = colors.text, modifier = Modifier.weight(1f))
-            OutlinedButton(onClick = onSignOut, enabled = !busy) { Text("退出账号") }
+            Text(
+                stringResource(R.string.mcp_signed_in_as, account),
+                style = ConsoleType.panelTitle,
+                color = colors.text,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedButton(onClick = onSignOut, enabled = !busy) { Text(stringResource(R.string.mcp_sign_out)) }
         }
         Spacer(Modifier.height(Dimens.spaceSm))
         Text(
-            "在别的平板或手机上登录这个账号，就会加入同一个 ${connector.name} 连接，不用扫码。" +
-                "手机打开 $accountPage 可以管理设备、看委托记录、更新例行任务的 Webhook。",
+            stringResource(R.string.mcp_account_signed_in_hint, title, accountPage),
             style = ConsoleType.body,
             color = colors.muted,
         )
@@ -641,9 +703,9 @@ private fun AccountPanel(
     }
     Text(
         if (connected) {
-            "注册一个账号接管这个连接：以后别的设备登录同一个账号就能直接用，例行任务的 Webhook 换了也能在网页上改。"
+            stringResource(R.string.mcp_account_register_hint)
         } else {
-            "已经有账号？直接登录，这台设备会加入账号的 ${connector.name} 连接，不用扫码。"
+            stringResource(R.string.mcp_account_sign_in_hint, title)
         },
         style = ConsoleType.body,
         color = colors.muted,
@@ -653,7 +715,7 @@ private fun AccountPanel(
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("用户名") },
+            label = { Text(stringResource(R.string.mcp_username)) },
             singleLine = true,
             modifier = Modifier.weight(1f),
             colors = outlinedTextFieldColors(),
@@ -661,11 +723,13 @@ private fun AccountPanel(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("密码（至少 8 位）") },
+            label = { Text(stringResource(R.string.mcp_password)) },
             singleLine = true,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
             trailingIcon = {
-                TextButton(onClick = { showPassword = !showPassword }) { Text(if (showPassword) "隐藏" else "显示") }
+                TextButton(onClick = { showPassword = !showPassword }) {
+                    Text(stringResource(if (showPassword) R.string.mcp_hide else R.string.mcp_show))
+                }
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier.weight(1f),
@@ -675,8 +739,12 @@ private fun AccountPanel(
     Spacer(Modifier.height(Dimens.spaceSm))
     val filled = name.isNotBlank() && password.isNotEmpty()
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Button(onClick = { onSignIn(name, password, false); password = "" }, enabled = !busy && filled) { Text("登录") }
-        OutlinedButton(onClick = { onSignIn(name, password, true); password = "" }, enabled = !busy && filled) { Text("注册") }
+        Button(onClick = { onSignIn(name, password, false); password = "" }, enabled = !busy && filled) {
+            Text(stringResource(R.string.mcp_sign_in))
+        }
+        OutlinedButton(onClick = { onSignIn(name, password, true); password = "" }, enabled = !busy && filled) {
+            Text(stringResource(R.string.mcp_register))
+        }
     }
 }
 
@@ -695,10 +763,10 @@ private fun PairingPanel(status: ConnectorStatus.Pairing, busy: Boolean, onRefre
         PairingQr(status.connectUrl, usable)
         Spacer(Modifier.width(Dimens.spaceXl))
         Column(Modifier.weight(1f)) {
-            Text("用手机扫码，按页面提示完成连接", style = ConsoleType.panelTitle, color = colors.text)
+            Text(stringResource(R.string.mcp_pairing_scan), style = ConsoleType.panelTitle, color = colors.text)
             Spacer(Modifier.height(Dimens.spaceSm))
             Text(
-                "扫不了码时，用手机浏览器打开 ${status.connectUrl.substringBefore('?')}，输入配对码：",
+                stringResource(R.string.mcp_pairing_manual, status.connectUrl.substringBefore('?')),
                 style = ConsoleType.body,
                 color = colors.muted,
             )
@@ -711,15 +779,15 @@ private fun PairingPanel(status: ConnectorStatus.Pairing, busy: Boolean, onRefre
                 color = if (usable) colors.text else colors.tertiary,
                 modifier = Modifier.padding(vertical = Dimens.spaceSm),
             )
-            Text(
-                if (usable) "有效期到 ${clockTime(status.expiresAtMillis)}，连好后这里会自动显示「已连接」。" else "配对码已过期，请刷新。",
-                style = ConsoleType.bodySmall,
-                color = colors.muted,
-            )
+            val validity = if (usable) stringResource(R.string.mcp_pairing_valid_until, clockTime(status.expiresAtMillis))
+            else stringResource(R.string.mcp_pairing_expired)
+            Text(validity, style = ConsoleType.bodySmall, color = colors.muted)
             Spacer(Modifier.height(Dimens.spaceLg))
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-                OutlinedButton(onClick = onRefresh, enabled = !busy) { Text("刷新配对码") }
-                TextButton(onClick = onCancel, enabled = !busy) { Text("取消", color = colors.danger) }
+                OutlinedButton(onClick = onRefresh, enabled = !busy) { Text(stringResource(R.string.mcp_refresh_code)) }
+                TextButton(onClick = onCancel, enabled = !busy) {
+                    Text(stringResource(R.string.common_cancel), color = colors.danger)
+                }
             }
             Spacer(Modifier.height(Dimens.spaceXl))
             PairingSteps()
@@ -733,7 +801,7 @@ internal fun ConnectionEvents(events: List<String>) {
     if (events.isEmpty()) return
     val colors = ConsoleColors
     Spacer(Modifier.height(Dimens.spaceXl))
-    Text("最近记录", style = ConsoleType.meta, color = colors.muted)
+    Text(stringResource(R.string.mcp_recent_events), style = ConsoleType.meta, color = colors.muted)
     events.forEach { Text(it, style = ConsoleType.bodySmall, color = colors.text, modifier = Modifier.padding(top = Dimens.spaceXs)) }
 }
 
@@ -748,7 +816,11 @@ private fun PairingQr(link: String, usable: Boolean) {
         contentAlignment = Alignment.Center,
     ) {
         if (usable) QrCode(link, Modifier.fillMaxWidth().fillMaxHeight())
-        else Text("配对码已失效", style = ConsoleType.body, color = Color(0xFF6B6B66))
+        else Text(
+            stringResource(R.string.mcp_pairing_code_invalid),
+            style = ConsoleType.body,
+            color = Color(0xFF6B6B66),
+        )
     }
 }
 
@@ -756,13 +828,18 @@ private fun PairingQr(link: String, usable: Boolean) {
 @Composable
 private fun PairingSteps() {
     val colors = ConsoleColors
-    Text("手机上要做的事", style = ConsoleType.meta, color = colors.muted)
+    Text(stringResource(R.string.mcp_phone_steps), style = ConsoleType.meta, color = colors.muted)
     listOf(
-        "复制页面上的第一段话发给 Grok Bot，它会建好例行任务，发来两个链接",
-        "点开链接复制 Webhook 地址和密钥，粘到页面上，点「连接」",
-        "把页面给的第二段话发给 Grok Bot，并在 Auto-review 里放行 car-relay 的两个汇报工具",
+        R.string.mcp_phone_step_1,
+        R.string.mcp_phone_step_2,
+        R.string.mcp_phone_step_3,
     ).forEachIndexed { index, step ->
-        Text("${index + 1}. $step", style = ConsoleType.bodySmall, color = colors.text, modifier = Modifier.padding(top = Dimens.spaceXs))
+        Text(
+            "${index + 1}. ${stringResource(step)}",
+            style = ConsoleType.bodySmall,
+            color = colors.text,
+            modifier = Modifier.padding(top = Dimens.spaceXs),
+        )
     }
 }
 
@@ -770,7 +847,8 @@ private fun PairingSteps() {
 @Composable
 internal fun QrCode(text: String, modifier: Modifier = Modifier) {
     val modules = remember(text) { qrModules(text) }
-    Canvas(modifier.semantics { contentDescription = "配对二维码" }) {
+    val description = stringResource(R.string.mcp_pairing_qr)
+    Canvas(modifier.semantics { contentDescription = description }) {
         if (modules.isEmpty()) return@Canvas
         val cell = minOf(size.width, size.height) / modules.size
         val origin = Offset((size.width - cell * modules.size) / 2, (size.height - cell * modules.size) / 2)
@@ -792,7 +870,10 @@ internal fun qrModules(text: String): List<BooleanArray> = runCatching {
 @Composable
 internal fun ConnectorAvatar(connector: Connector, size: androidx.compose.ui.unit.Dp) {
     val small = size < ROW_AVATAR_SIZE
-    LetterAvatar(connector.mark, Color(connector.color), size, if (small) 10.sp else 22.sp, if (small) CircleShape else APP_ICON_SHAPE)
+    val mark = stringResource(connector.mark ?: connector.title).take(1)
+    LetterAvatar(
+        mark, Color(connector.color), size, if (small) 10.sp else 22.sp, if (small) CircleShape else APP_ICON_SHAPE,
+    )
 }
 
 @Composable
@@ -810,8 +891,6 @@ private fun LetterAvatar(
 
 private fun clockTime(millis: Long): String = SimpleDateFormat("HH:mm", Locale.US).format(Date(millis))
 
-private const val CUSTOM_TITLE = "自定义 A2A 智能体"
-private const val CUSTOM_SUMMARY = "填写地址和访问令牌，接入任何支持 A2A 协议的智能体。"
 private const val PAIRING_POLL_MS = 3_000L
 private const val CLOCK_TICK_MS = 15_000L
 private val DIALOG_MAX_WIDTH = 1280.dp
@@ -825,7 +904,5 @@ private val CARD_MIN_WIDTH = 300.dp
 private val CARD_HEIGHT = 150.dp
 private val APP_ICON_SHAPE = RoundedCornerShape(12.dp)
 private const val PILL_AVATARS = 3
-private const val FILTER_ALL = "全部"
-private const val FILTER_CUSTOM = "自定义"
 private val QR_SIZE = 240.dp
 private val CODE_FONT_SIZE = 30.sp

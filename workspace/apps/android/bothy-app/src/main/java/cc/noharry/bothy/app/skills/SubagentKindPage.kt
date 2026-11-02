@@ -24,7 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -51,9 +54,14 @@ internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
     BackHandler(onBack = onBack)
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            Text("‹ 子 agent", Modifier.clickable(onClick = onBack).padding(vertical = Dimens.spaceXs), style = ConsoleType.body, color = ConsoleColors.accent)
+            Text(
+                stringResource(R.string.skills_back_to_subagents),
+                Modifier.clickable(onClick = onBack).padding(vertical = Dimens.spaceXs),
+                style = ConsoleType.body,
+                color = ConsoleColors.accent,
+            )
             Text("›", style = ConsoleType.body, color = ConsoleColors.muted)
-            Text(kind.label, style = ConsoleType.body, color = ConsoleColors.text)
+            Text(stringResource(kind.label), style = ConsoleType.body, color = ConsoleColors.text)
         }
         KindBasics(kind, settings) {
             saveSubagentKind(context, id, it)
@@ -62,16 +70,23 @@ internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
         KindTools(kind, settings.allowDeviceControl) { tools -> save(tools, kind.maxLookups) }
         KindLookups(kind) { lookups -> save(kind.tools, lookups) }
         val instructions = remember(id) { subagentKindText(context, kind) }
-        SettingsGroup(title = "提示词", subtitle = "runtime-workspace/agents/${kind.id}/AGENT.md，随 APK 打包，这里只读。") {
+        SettingsGroup(stringResource(R.string.skills_prompt), stringResource(R.string.skills_prompt_subtitle, kind.id)) {
             Markdown(instructions, Modifier.padding(Dimens.spaceMd))
         }
         val defaults = subagentKindDefaults(id)
         if (defaults != null && (defaults.tools != kind.tools || defaults.maxLookups != kind.maxLookups)) {
+            val separator = stringResource(R.string.skills_list_separator)
+            val tools = SubagentToolGroup.entries.filter { it in defaults.tools }
+                .map { stringResource(it.screenLabel) }.joinToString(separator)
             TextButton(onClick = {
                 resetSubagentKindTools(context, id)
                 reload()
             }) {
-                Text("恢复默认工具和次数（${defaults.toolLabels()} · 最多 ${defaults.maxLookups} 次）", style = ConsoleType.body, color = ConsoleColors.accent)
+                Text(
+                    pluralStringResource(R.plurals.skills_reset_tools, defaults.maxLookups, tools, defaults.maxLookups),
+                    style = ConsoleType.body,
+                    color = ConsoleColors.accent,
+                )
             }
         }
     }
@@ -80,28 +95,42 @@ internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
 /** Whether it is offered, what the main agent reads about it, and the model and search it follows. */
 @Composable
 private fun KindBasics(kind: SubagentKind, settings: SubagentSettings, onEnabled: (Boolean) -> Unit) {
-    SettingsGroup(title = kind.label, subtitle = kind.id) {
+    SettingsGroup(title = stringResource(kind.label), subtitle = kind.id) {
         Column {
             Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("加载这个类型", style = ConsoleType.body, color = ConsoleColors.text)
                     Text(
-                        if (kind.enabled) "开：主 agent 可以在 spawn_agent 里写 agent: ${kind.id}" else "关：不出现在 spawn_agent 里，技能把要求写全交给通用子 agent",
+                        stringResource(R.string.skills_kind_load),
+                        style = ConsoleType.body,
+                        color = ConsoleColors.text,
+                    )
+                    Text(
+                        if (kind.enabled) {
+                            stringResource(R.string.skills_kind_on, kind.id)
+                        } else {
+                            stringResource(R.string.skills_kind_off)
+                        },
                         style = ConsoleType.meta,
                         color = ConsoleColors.muted,
                     )
                 }
                 Switch(kind.enabled, onCheckedChange = onEnabled, colors = switchColors())
             }
-            KindInfoRow("给主 agent 看的说明", kind.description)
-            KindInfoRow("模型", settings.model.ifBlank { "跟主 agent 一样" } + "（在「子 agent」里设置）")
+            KindInfoRow(stringResource(R.string.skills_kind_description), kind.description)
+            val model = settings.model.ifBlank { stringResource(R.string.skills_same_as_main) }
             KindInfoRow(
-                "搜索",
-                when {
-                    !kind.searches -> "不搜索：没勾「联网搜索」"
-                    kind.searchApi ?: settings.searchApi -> "DeepSeek Search 接口（在「子 agent」里设置）"
-                    else -> "和主 agent 一样（在「子 agent」里设置）"
-                },
+                stringResource(R.string.skills_kind_model),
+                stringResource(R.string.skills_kind_model_value, model),
+            )
+            KindInfoRow(
+                stringResource(R.string.skills_kind_search),
+                stringResource(
+                    when {
+                        !kind.searches -> R.string.skills_kind_no_search
+                        kind.searchApi ?: settings.searchApi -> R.string.skills_kind_search_api
+                        else -> R.string.skills_kind_search_same
+                    },
+                ),
             )
         }
     }
@@ -111,30 +140,36 @@ private fun KindBasics(kind: SubagentKind, settings: SubagentSettings, onEnabled
 @Composable
 private fun KindTools(kind: SubagentKind, deviceControlAllowed: Boolean, onChange: (Set<SubagentToolGroup>) -> Unit) {
     SettingsGroup(
-        title = "可用工具",
-        subtitle = "只能调用勾上的，别的调用会被拒绝；工具列表不变，和主 agent 共用缓存。红点表示会改动东西。",
+        title = stringResource(R.string.skills_kind_tools),
+        subtitle = stringResource(R.string.skills_kind_tools_subtitle),
     ) {
         Column {
+            val offNote = stringResource(R.string.skills_device_control_off_note)
             KindToolGrid(SubagentToolGroup.entries) { group ->
                 KindToolCell(
-                    label = group.label,
-                    detail = group.detail,
+                    label = stringResource(group.screenLabel),
+                    detail = stringResource(group.detail),
                     checked = group in kind.tools,
                     changes = group.changes,
-                    note = "「允许子 agent 操作设备」关着，暂不生效".takeIf {
+                    note = offNote.takeIf {
                         group == SubagentToolGroup.DEVICE_CONTROL && group in kind.tools && !deviceControlAllowed
                     },
                 ) { on -> onChange(if (on) kind.tools + group else kind.tools - group) }
             }
             HorizontalDivider(color = ConsoleColors.borderSubtle)
             Text(
-                "只有主 agent 能用",
+                stringResource(R.string.skills_main_agent_only),
                 Modifier.padding(start = Dimens.spaceMd, top = Dimens.spaceSm),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
             KindToolGrid(DEBUG_MAIN_AGENT_ONLY_TOOLS) { (label, detail) ->
-                KindToolCell(label = label, detail = detail, checked = false, enabled = false)
+                KindToolCell(
+                    label = stringResource(label),
+                    detail = stringResource(detail),
+                    checked = false,
+                    enabled = false,
+                )
             }
         }
     }
@@ -143,10 +178,17 @@ private fun KindTools(kind: SubagentKind, deviceControlAllowed: Boolean, onChang
 @Composable
 private fun KindLookups(kind: SubagentKind, onChange: (Int) -> Unit) {
     val looksUp = kind.tools.any { it == SubagentToolGroup.SEARCH || it == SubagentToolGroup.FETCH }
-    SettingsGroup(title = "打开网页和搜索", subtitle = "这个类型每次最多查几次，到了就用已有结果交回。") {
+    SettingsGroup(
+        title = stringResource(R.string.skills_lookups),
+        subtitle = stringResource(R.string.skills_lookups_subtitle),
+    ) {
         Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (looksUp) "最多 ${kind.maxLookups} 次" else "没勾「联网搜索」和「打开网页」，这一项不起作用",
+                if (looksUp) {
+                    pluralStringResource(R.plurals.skills_lookups_max, kind.maxLookups, kind.maxLookups)
+                } else {
+                    stringResource(R.string.skills_lookups_unused)
+                },
                 Modifier.weight(1f),
                 style = ConsoleType.body,
                 color = if (looksUp) ConsoleColors.text else ConsoleColors.muted,

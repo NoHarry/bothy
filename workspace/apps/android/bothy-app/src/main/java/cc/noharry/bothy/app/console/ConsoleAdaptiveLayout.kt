@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.console
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.icon
 
 internal enum class WindowClass {
@@ -39,11 +42,11 @@ internal enum class WindowClass {
     EXPANDED,
 }
 
-internal enum class NavigationDestination(val label: String) {
-    SESSIONS("Sessions"),
-    CONVERSATION("Chat"),
-    BOARD("Board"),
-    SETTINGS("Settings"),
+internal enum class NavigationDestination(@StringRes val label: Int) {
+    SESSIONS(R.string.console_nav_sessions),
+    CONVERSATION(R.string.console_nav_chat),
+    BOARD(R.string.console_board),
+    SETTINGS(R.string.common_settings),
 }
 
 internal data class ConsoleLayoutPolicy(
@@ -105,12 +108,13 @@ internal fun DestinationBar(
         Row(Modifier.fillMaxWidth().padding(4.dp)) {
             destinations.forEach { destination ->
                 val active = destination == selected
+                val label = stringResource(destination.label)
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { onSelected(destination) }
                         .semantics {
-                            contentDescription = destination.label
+                            contentDescription = label
                             role = Role.Tab
                             this.selected = active
                         },
@@ -133,7 +137,7 @@ internal fun DestinationBar(
                         )
                         Spacer(Modifier.height(Dimens.spaceXs))
                         Text(
-                            text = destination.label,
+                            text = label,
                             style = ConsoleType.label,
                             color = if (active) colors.accent else colors.muted,
                             fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
@@ -168,13 +172,14 @@ internal fun DestinationRail(
         Column(Modifier.fillMaxSize().padding(4.dp)) {
             destinations.forEach { destination ->
                 val active = destination == selected
+                val label = stringResource(destination.label)
                 Surface(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .clickable { onSelected(destination) }
                         .semantics {
-                            contentDescription = destination.label
+                            contentDescription = label
                             role = Role.Tab
                             this.selected = active
                         },
@@ -193,7 +198,7 @@ internal fun DestinationRail(
                             )
                             Spacer(Modifier.height(Dimens.spaceXs))
                             Text(
-                                text = destination.label,
+                                text = label,
                                 style = ConsoleType.label,
                                 color = if (active) colors.accent else colors.muted,
                                 fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
@@ -249,6 +254,7 @@ private fun NavRailItem(
     onClick: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val label = stringResource(destination.label)
     Box(Modifier.fillMaxWidth().height(NAV_RAIL_ITEM_HEIGHT)) {
         if (active) {
             Box(
@@ -272,7 +278,7 @@ private fun NavRailItem(
                 .background(if (active) colors.accentSoft else Color.Transparent)
                 .clickable(onClick = onClick)
                 .semantics {
-                    contentDescription = destination.label
+                    contentDescription = label
                     role = Role.Tab
                     this.selected = active
                 },

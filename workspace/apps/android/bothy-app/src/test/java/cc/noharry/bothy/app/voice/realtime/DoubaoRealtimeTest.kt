@@ -26,6 +26,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 端到端演示模式's wire: the Seeduplex events as captured from the service, the messages sent, float audio, and the probe. */
 @RunWith(RobolectricTestRunner::class)
@@ -187,7 +188,7 @@ class DoubaoRealtimeTest {
                 webSocket.close(1000, null)
             }
         }))
-        val result = probeDoubaoRealtime(OkHttpClient(), "test-key", RealtimeConfig(), server.url("/").toString().replace("http", "ws"))
+        val result = probeDoubaoRealtime(context, OkHttpClient(), "test-key", RealtimeConfig(), server.url("/").toString().replace("http", "ws"))
         assertTrue(result.exceptionOrNull()?.message, result.isSuccess)
         val request = server.takeRequest(5, TimeUnit.SECONDS)!!
         assertEquals("test-key", request.getHeader("X-Api-Key"))
@@ -198,7 +199,7 @@ class DoubaoRealtimeTest {
     @Test
     fun probeExplainsARefusedKey() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(403).setBody("""{"error":"requested resource not granted"}"""))
-        val result = probeDoubaoRealtime(OkHttpClient(), "test-key", RealtimeConfig(), server.url("/").toString().replace("http", "ws"))
+        val result = probeDoubaoRealtime(context, OkHttpClient(), "test-key", RealtimeConfig(), server.url("/").toString().replace("http", "ws"))
         val message = result.exceptionOrNull()?.message.orEmpty()
         assertTrue(message, "HTTP 403" in message && "not granted" in message)
     }
@@ -232,15 +233,16 @@ class DoubaoRealtimeTest {
     }
 
     @Test
+    @Config(qualifiers = "zh")
     fun aPresetIsWhatTheModelIsToldAndATypedPersonaIsKept() {
         val savage = RealtimeConfig(persona = "你是小博", personaPreset = DoubaoRealtimePersona.SAVAGE.id)
         assertTrue(realtimeInstructions(savage.effectivePersona).startsWith(DoubaoRealtimePersona.SAVAGE.text + "\n"))
-        assertEquals("毒舌损友", savage.personaLabel())
+        assertEquals("毒舌损友", savage.personaLabel(context))
         saveRealtimeConfig(context, savage)
         assertEquals(savage, loadRealtimeConfig(context))
         // Custom: the typed text, kept while a preset is in use.
         assertEquals("你是小博", savage.copy(personaPreset = CUSTOM_REALTIME_PERSONA).effectivePersona)
-        assertEquals("自定义人设", savage.copy(personaPreset = CUSTOM_REALTIME_PERSONA).personaLabel())
+        assertEquals("自定义人设", savage.copy(personaPreset = CUSTOM_REALTIME_PERSONA).personaLabel(context))
 
         // Saved before the presets: a typed persona stays in use, the old default is the default preset.
         val prefs = context.getSharedPreferences("debug_realtime_voice", Context.MODE_PRIVATE)
@@ -260,7 +262,7 @@ class DoubaoRealtimeTest {
         assertEquals(presets.size, presets.map { it.id }.toSet().size)
         assertEquals(presets.size, presets.map { it.text }.toSet().size)
         assertFalse(presets.any { it.id == CUSTOM_REALTIME_PERSONA })
-        presets.forEach { assertTrue(it.label, it.text.startsWith("你是小博") && it.text.length <= 300) }
+        presets.forEach { assertTrue(it.id, it.text.startsWith("你是小博") && it.text.length <= 300) }
         assertEquals(DEFAULT_REALTIME_PERSONA, DoubaoRealtimePersona.WARM.text)
     }
 

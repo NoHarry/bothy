@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.model
 import android.content.Context
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.evidence.benchTrustedClient
 import cc.noharry.bothy.app.plans.describe
@@ -54,7 +55,10 @@ internal fun DeepSeekProbe.describe(): String =
     listOfNotNull("balance" to balance, "tools" to tools, passthrough?.let { "passthrough" to it })
         .joinToString(" | ") { (name, check) -> "$name ${if (check.passed) "✓ ${check.url} ${check.note}" else "✗ ${check.note}"}" }
 
-/** Passed when [url] is set: where it worked. [note] says what came back, for the Settings page and logcat. */
+/**
+ * Passed when [url] is set: where it worked. [note] says what came back, for the Settings page and logcat, in the
+ * language the screens had when it was checked.
+ */
 internal data class DeepSeekCheck(val url: String?, val note: String) {
     val passed: Boolean get() = url != null
 }
@@ -71,7 +75,8 @@ internal object DeepSeekProbes {
         saved(context, profile.id)?.takeIf { it.fingerprint == deepSeekProbeFingerprint(profile.endpoint, profile.baseUrl, apiKey) }
 
     suspend fun check(context: Context, profile: ProviderProfile, apiKey: String): DeepSeekProbe = withContext(Dispatchers.IO) {
-        probeDeepSeek(profile.endpoint, profile.baseUrl, apiKey, profile.model, deepSeekProbeClient(context)).also { save(context, profile.id, it) }
+        probeDeepSeek(context, profile.endpoint, profile.baseUrl, apiKey, profile.model, deepSeekProbeClient(context))
+            .also { save(context, profile.id, it) }
     }
 
     fun save(context: Context, profileId: String, probe: DeepSeekProbe) {
@@ -87,6 +92,7 @@ internal object DeepSeekProbes {
 }
 
 internal suspend fun probeDeepSeek(
+    context: Context,
     endpoint: ProviderEndpoint,
     baseUrl: String,
     apiKey: String,
@@ -95,9 +101,15 @@ internal suspend fun probeDeepSeek(
 ): DeepSeekProbe = withContext(Dispatchers.IO) {
     val key = apiKey.trim()
     // At once, so a relay that does not answer costs one timeout rather than five.
-    val balance = async { firstPassing(deepSeekBalanceCandidates(baseUrl)) { url -> checkBalance(client, url, key) } }
-    val tools = async { firstPassing(deepSeekToolsCandidates(baseUrl)) { url -> checkSearch(client, url, key) } }
-    val passthrough = async { if (endpoint == ProviderEndpoint.MESSAGES) checkPassthrough(client, baseUrl, key, model) else null }
+    val balance = async {
+        firstPassing(context, deepSeekBalanceCandidates(baseUrl)) { url -> checkBalance(context, client, url, key) }
+    }
+    val tools = async {
+        firstPassing(context, deepSeekToolsCandidates(baseUrl)) { url -> checkSearch(context, client, url, key) }
+    }
+    val passthrough = async {
+        if (endpoint == ProviderEndpoint.MESSAGES) checkPassthrough(context, client, baseUrl, key, model) else null
+    }
     DeepSeekProbe(
         fingerprint = deepSeekProbeFingerprint(endpoint, baseUrl, key),
         balance = balance.await(),
@@ -134,29 +146,34 @@ internal fun deepSeekRelayClient(context: Context): OkHttpClient =
 private fun deepSeekProbeClient(context: Context): OkHttpClient =
     benchTrustedClient(context).connectTimeout(8, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).callTimeout(20, TimeUnit.SECONDS).build()
 
-private inline fun firstPassing(urls: List<String>, check: (String) -> DeepSeekCheck): DeepSeekCheck {
+private inline fun firstPassing(context: Context, urls: List<String>, check: (String) -> DeepSeekCheck): DeepSeekCheck {
     val failed = mutableListOf<String>()
     for (url in urls) {
         val result = check(url)
         if (result.passed) return result
         failed += result.note
     }
-    return DeepSeekCheck(null, failed.distinct().joinToString(" / ").ifBlank { "Base URL 不是 http(s) 地址" })
+    val notes = failed.distinct().joinToString(" / ")
+    return DeepSeekCheck(null, notes.ifBlank { context.getString(R.string.model_probe_not_http) })
 }
 
-private fun checkBalance(client: OkHttpClient, url: String, key: String): DeepSeekCheck = attempt {
+private fun checkBalance(context: Context, client: OkHttpClient, url: String, key: String) = attempt(context) {
     val request = Request.Builder().url(url).header("Authorization", "Bearer $key").header("Accept", "application/json").build()
     val (code, body) = client.call(request)
     val json = body.jsonObjectOrNull()
     when {
-        code != HTTP_OK -> DeepSeekCheck(null, body.failure(code))
-        json == null || ("balance_infos" !in json && "is_available" !in json) -> DeepSeekCheck(null, "HTTP 200 但不是 DeepSeek 的余额")
-        else -> DeepSeekCheck(url, "余额：${parseDeepSeekBalance(body).summary()}")
+        code != HTTP_OK -> DeepSeekCheck(null, body.failure(context, code))
+        json == null || ("balance_infos" !in json && "is_available" !in json) ->
+            DeepSeekCheck(null, context.getString(R.string.model_probe_not_balance))
+        else -> DeepSeekCheck(
+            url,
+            context.getString(R.string.model_balance, parseDeepSeekBalance(body).summary(context)),
+        )
     }
 }
 
 /** One real search with one result (5 元/千次); a path the relay does not have answers 404 without reaching DeepSeek. */
-private fun checkSearch(client: OkHttpClient, url: String, key: String): DeepSeekCheck = attempt {
+private fun checkSearch(context: Context, client: OkHttpClient, url: String, key: String) = attempt(context) {
     val body = buildJsonObject {
         put("query", PROBE_QUERY)
         put("count", 1)
@@ -164,9 +181,10 @@ private fun checkSearch(client: OkHttpClient, url: String, key: String): DeepSee
     val request = Request.Builder().url("$url/search").header("Authorization", "Bearer $key").post(body.toString().toRequestBody(JSON_TYPE)).build()
     val (code, text) = client.call(request)
     when {
-        code != HTTP_OK -> DeepSeekCheck(null, text.failure(code))
-        text.jsonObjectOrNull()?.get("results") !is JsonArray -> DeepSeekCheck(null, "HTTP 200 但不是 DeepSeek 的搜索结果")
-        else -> DeepSeekCheck(url, "可用")
+        code != HTTP_OK -> DeepSeekCheck(null, text.failure(context, code))
+        text.jsonObjectOrNull()?.get("results") !is JsonArray ->
+            DeepSeekCheck(null, context.getString(R.string.model_probe_not_search))
+        else -> DeepSeekCheck(url, context.getString(R.string.model_deepseek_available))
     }
 }
 
@@ -176,21 +194,29 @@ private fun checkSearch(client: OkHttpClient, url: String, key: String): DeepSee
  * system update loading a tool nobody declared ("tool_addition references unknown tool") shows the in-history system
  * message and `tool_addition` arrive. A relay that drops either lets the model answer a few tokens instead.
  */
-private fun checkPassthrough(client: OkHttpClient, baseUrl: String, key: String, model: String): DeepSeekCheck {
-    if (model.isBlank()) return DeepSeekCheck(null, "没有选模型，无法检测")
+private fun checkPassthrough(
+    context: Context,
+    client: OkHttpClient,
+    baseUrl: String,
+    key: String,
+    model: String,
+): DeepSeekCheck {
+    if (model.isBlank()) return DeepSeekCheck(null, context.getString(R.string.model_probe_no_model))
     val url = baseUrl.trim().trimEnd('/').let { if (it.endsWith(MESSAGES_PATH)) it else it + MESSAGES_PATH }
-    return attempt {
+    return attempt(context) {
         val (deferCode, deferText) = client.call(messagesRequest(url, key, deferOnlyBody(model)))
         when {
             deferCode == HTTP_BAD_REQUEST && deferText.contains(ALL_DEFERRED_REFUSAL, ignoreCase = true) -> Unit
-            deferCode == HTTP_OK -> return@attempt DeepSeekCheck(null, "模型照常回答，中转丢掉了 defer_loading")
-            else -> return@attempt DeepSeekCheck(null, deferText.failure(deferCode))
+            deferCode == HTTP_OK ->
+                return@attempt DeepSeekCheck(null, context.getString(R.string.model_probe_dropped, "defer_loading"))
+            else -> return@attempt DeepSeekCheck(null, deferText.failure(context, deferCode))
         }
         val (code, text) = client.call(messagesRequest(url, key, toolAdditionBody(model)))
         when {
-            code == HTTP_BAD_REQUEST && text.contains(UNKNOWN_TOOL_REFUSAL, ignoreCase = true) -> DeepSeekCheck(url, "原样透传")
-            code == HTTP_OK -> DeepSeekCheck(null, "模型照常回答，中转丢掉了 tool_addition")
-            else -> DeepSeekCheck(null, text.failure(code))
+            code == HTTP_BAD_REQUEST && text.contains(UNKNOWN_TOOL_REFUSAL, ignoreCase = true) ->
+                DeepSeekCheck(url, context.getString(R.string.model_probe_passed_through))
+            code == HTTP_OK -> DeepSeekCheck(null, context.getString(R.string.model_probe_dropped, "tool_addition"))
+            else -> DeepSeekCheck(null, text.failure(context, code))
         }
     }
 }
@@ -274,12 +300,13 @@ private fun DeepSeekCheck.toJson(): JsonObject = buildJsonObject {
 private fun JsonObject.check(key: String): DeepSeekCheck? =
     (this[key] as? JsonObject)?.let { DeepSeekCheck(it.text("url").ifBlank { null }, it.text("note")) }
 
-private inline fun attempt(block: () -> DeepSeekCheck): DeepSeekCheck = try {
+private inline fun attempt(context: Context, block: () -> DeepSeekCheck): DeepSeekCheck = try {
     block()
 } catch (cancelled: CancellationException) {
     throw cancelled
 } catch (error: Exception) {
-    DeepSeekCheck(null, "连不上：${error.message ?: error.javaClass.simpleName}".take(MAX_NOTE_CHARS))
+    val reason = error.message ?: error.javaClass.simpleName
+    DeepSeekCheck(null, context.getString(R.string.model_probe_unreachable, reason).take(MAX_NOTE_CHARS))
 }
 
 private fun OkHttpClient.call(request: Request): Pair<Int, String> =
@@ -288,11 +315,12 @@ private fun OkHttpClient.call(request: Request): Pair<Int, String> =
 private fun String.jsonObjectOrNull(): JsonObject? = runCatching { Json.parseToJsonElement(this).jsonObject }.getOrNull()
 
 /** 「HTTP 404」 with the answer's own error message when it has one; never the body itself, which may be a web page. */
-private fun String.failure(code: Int): String {
+private fun String.failure(context: Context, code: Int): String {
     val message = jsonObjectOrNull()?.let { json ->
         (json["error"] as? JsonObject)?.text("message") ?: json.text("message")
     }?.ifBlank { null }
-    return (if (message == null) "HTTP $code" else "HTTP $code：$message").take(MAX_NOTE_CHARS)
+    val note = if (message == null) "HTTP $code" else context.getString(R.string.model_http_error, code, message)
+    return note.take(MAX_NOTE_CHARS)
 }
 
 private fun JsonObject.text(key: String): String = runCatching { this[key]?.jsonPrimitive?.contentOrNull }.getOrNull().orEmpty()

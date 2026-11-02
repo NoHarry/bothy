@@ -77,7 +77,7 @@ class ModelDownloaderTest {
 
         val progress = downloader.download(spec(sha256 = "0".repeat(64))).toList()
 
-        assertTrue(progress.last() is ModelDownloader.Progress.Failed)
+        assertEquals(ModelDownloader.Failure.CHECKSUM, (progress.last() as ModelDownloader.Progress.Failed).failure)
         assertFalse(downloader.file(spec()).exists())
         assertFalse(File(dir, "model.gguf.part").exists())
     }

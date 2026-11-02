@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="session_sessions">会话</string>
+    <string name="session_files">文件</string>
+    <string name="session_new">新会话</string>
+    <string name="session_new_title">新会话</string>
+    <string name="session_untitled">未命名会话</string>
+    <string name="session_clear_runtime_data">清除运行数据</string>
+    <string name="session_clear_runtime_data_title">清除运行数据？</string>
+    <string name="session_clear_runtime_data_message">删除所有会话、工作区的记忆/待办/产物、运行证据和调试日志。服务商 API key 和 MCP 开关会保留。正在进行的运行会被停止。</string>
+    <string name="session_clear_all">全部清除</string>
+    <string name="session_delete">删除会话</string>
+    <string name="session_settings_title">会话</string>
+    <string name="session_settings_subtitle">唤醒时什么时候开新会话，最多留几个</string>
+    <string name="session_every_wake">每次唤醒都开新会话</string>
+    <string name="session_every_wake_on">开：每次唤醒都从新会话开始，不接上一轮（后台任务还没回报的会话除外）</string>
+    <string name="session_every_wake_off">关：隔一段时间没说话再唤醒才开新会话，之内接着聊，「再高一点」还能接上</string>
+    <string name="session_idle_title">多久没说话再唤醒开新会话</string>
+    <string name="session_idle_unused">每次唤醒都开新会话时不用</string>
+    <string name="session_idle_note">离上一轮超过这么久，唤醒就开新会话</string>
+    <plurals name="session_minutes">
+        <item quantity="other">%1$d 分钟</item>
+    </plurals>
+    <string name="session_max_title">最多保留会话</string>
+    <string name="session_max_note">超过时，开新会话那一刻删掉最久没用的，连同记录和生成的图片；正在运行或后台任务没回报的保留</string>
+    <plurals name="session_count">
+        <item quantity="other">%1$d 个</item>
+    </plurals>
+</resources>

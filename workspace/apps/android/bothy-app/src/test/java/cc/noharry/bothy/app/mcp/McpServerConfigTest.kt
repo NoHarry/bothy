@@ -8,9 +8,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** 设置 → 连接 → MCP: standard servers by address, token and headers. */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class McpServerConfigTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
 

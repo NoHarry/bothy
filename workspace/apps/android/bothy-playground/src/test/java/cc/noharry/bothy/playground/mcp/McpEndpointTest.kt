@@ -1,4 +1,6 @@
 package cc.noharry.bothy.playground.mcp
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.playground.Highlight
 import cc.noharry.bothy.playground.PlaygroundStore
 import cc.noharry.bothy.playground.cabin.Seat
@@ -21,9 +23,18 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-/** The two servers as an MCP client sees them: the handshake, the tool list, calls that change the world, resources. */
+/**
+ * The two servers as an MCP client sees them: the handshake, the tool list, calls that change the world, resources.
+ * The log's notes are read in Chinese.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class McpEndpointTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
     private val store = PlaygroundStore(clock = { 0L })
     private val endpoints = playgroundEndpoints(store)
     private val cabin = endpoints.getValue("/cabin/mcp")
@@ -106,9 +117,9 @@ class McpEndpointTest {
     @Test
     fun theVacuumWorksThroughEveryRoomThenGoesHome() {
         call(home, "control_vacuum", """{"action":"start","room":"all"}""")
-        repeat(Room.entries.size) { store.tick(46.0) }
+        repeat(Room.entries.size) { store.tick(46.0, context) }
         assertEquals(VacuumStatus.RETURNING, store.read().home.vacuum.status)
-        store.tick(7.0)
+        store.tick(7.0, context)
         assertEquals(VacuumStatus.DOCKED, store.read().home.vacuum.status)
         assertTrue(store.calls.value.any { it.summary == "扫地机扫完了书房" })
         assertTrue(call(home, "control_vacuum", """{"action":"pause"}""").isError())

@@ -5,6 +5,7 @@ import cc.noharry.agent.mcp.McpClientMessages
 import cc.noharry.agent.mcp.McpHttpClient
 import cc.noharry.agent.mcp.McpToolProvider
 import cc.noharry.bothy.app.BuildConfig
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.evidence.BenchHttpTransport
@@ -60,7 +61,10 @@ internal fun httpMcpToolProvider(context: Context, server: McpServer): McpToolPr
         describe = { it.withSpokenHint() },
     )
 
-/** The app's words for MCP problems, shown in 连接应用, the tool preview and a run's tool errors. */
+/**
+ * The app's words for MCP problems on its shared connections: a run's tool errors, which the model reads, so they stay
+ * as they are in every language ([ScreenMcpMessages] has the screen's own).
+ */
 internal object ChineseMcpMessages : McpClientMessages {
     override fun timedOut(seconds: Long): String = "$seconds 秒没有回应"
 
@@ -91,6 +95,59 @@ internal object ChineseMcpMessages : McpClientMessages {
 
     override fun toolsListTooManyPages(maxPages: Int): String = "tools/list 超过 $maxPages 页"
 }
+
+/**
+ * The words for MCP problems that only the screen shows (连接应用's check, the tool preview), in the app's
+ * language; the same problems as [ChineseMcpMessages].
+ */
+internal class ScreenMcpMessages(private val context: Context) : McpClientMessages {
+    override fun timedOut(seconds: Long): String = context.getString(R.string.mcp_problem_timed_out, seconds)
+
+    override fun unreachable(detail: String): String = context.getString(R.string.mcp_problem_unreachable, detail)
+
+    override fun notJsonRpc(): String = context.getString(R.string.mcp_problem_not_json_rpc)
+
+    override fun initializeRefused(rawHint: String): String =
+        if (rawHint.isEmpty()) {
+            context.getString(R.string.mcp_problem_no_initialize)
+        } else {
+            context.getString(R.string.mcp_problem_no_initialize_hint, rawHint)
+        }
+
+    override fun httpProblem(status: Int): String? = when (status) {
+        in 200..299 -> null
+        401, 403 -> context.getString(R.string.mcp_problem_http_refused, status)
+        404 -> context.getString(R.string.mcp_problem_http_not_found)
+        405 -> context.getString(R.string.mcp_problem_http_no_post)
+        406, 415 -> context.getString(R.string.mcp_problem_http_format, status)
+        in 500..599 -> context.getString(R.string.mcp_problem_http_server, status)
+        else -> "HTTP $status"
+    }
+
+    override fun toolsListFailed(statusCode: Int): String =
+        context.getString(R.string.mcp_problem_tools_list_failed, statusCode)
+
+    override fun toolsListNotJson(): String = context.getString(R.string.mcp_problem_tools_list_not_json)
+
+    override fun toolsListError(message: String): String =
+        context.getString(R.string.mcp_problem_tools_list_error, message)
+
+    override fun toolsListCursorRepeated(): String = context.getString(R.string.mcp_problem_tools_list_cursor)
+
+    override fun toolsListTooManyPages(maxPages: Int): String =
+        context.getString(R.string.mcp_problem_tools_list_pages, maxPages)
+
+    /** True when [problem] says the server was not reached at all, or not in time (a bare 连不上 included). */
+    fun isNetwork(problem: String): Boolean {
+        val timedOut = context.getString(R.string.mcp_problem_timed_out)
+        return problem.startsWith(context.getString(R.string.mcp_problem_unreachable_plain)) ||
+            (problem.startsWith(timedOut.substringBefore(SECONDS_PLACEHOLDER)) &&
+                problem.endsWith(timedOut.substringAfter(SECONDS_PLACEHOLDER)))
+    }
+}
+
+/** Where [ScreenMcpMessages.timedOut]'s resource puts the seconds. */
+private const val SECONDS_PLACEHOLDER = "%1\$d"
 
 /** An order or payment tool, from any server, says it waits for the user's pick ([TRANSACTION_HINT]). */
 internal fun ToolDescriptor.withSpokenHint(): ToolDescriptor =

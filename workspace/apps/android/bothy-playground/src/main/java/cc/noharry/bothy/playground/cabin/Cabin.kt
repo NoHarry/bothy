@@ -1,21 +1,27 @@
 package cc.noharry.bothy.playground.cabin
+import androidx.annotation.StringRes
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.headunit.on
 import cc.noharry.bothy.playground.nav.NavState
 import kotlin.math.roundToInt
 
-/** The four seats; the windows sit at the same four places. */
-enum class Seat(val id: String, val label: String) {
-    DRIVER("driver", "主驾"),
-    PASSENGER("passenger", "副驾"),
-    REAR_LEFT("rear_left", "左后"),
-    REAR_RIGHT("rear_right", "右后"),
+/**
+ * The four seats; the windows sit at the same four places. [label] is what the model reads, [labelRes] what screens
+ * show.
+ */
+enum class Seat(val id: String, val label: String, @StringRes val labelRes: Int) {
+    DRIVER("driver", "主驾", R.string.cabin_seat_driver),
+    PASSENGER("passenger", "副驾", R.string.cabin_seat_passenger),
+    REAR_LEFT("rear_left", "左后", R.string.cabin_seat_rear_left),
+    REAR_RIGHT("rear_right", "右后", R.string.cabin_seat_rear_right),
 }
 
-enum class ClimateMode(val id: String, val label: String) {
-    AUTO("auto", "自动"),
-    COOL("cool", "制冷"),
-    HEAT("heat", "制热"),
-    VENT("vent", "通风"),
+/** [label] is what the model reads, [labelRes] what screens show. */
+enum class ClimateMode(val id: String, val label: String, @StringRes val labelRes: Int) {
+    AUTO("auto", "自动", R.string.cabin_mode_auto),
+    COOL("cool", "制冷", R.string.cabin_mode_cool),
+    HEAT("heat", "制热", R.string.cabin_mode_heat),
+    VENT("vent", "通风", R.string.cabin_mode_vent),
 }
 
 /** Heating and ventilation never run together on one seat: turning one on turns the other off. */
@@ -90,6 +96,17 @@ internal val AMBIENT_COLORS: List<Triple<String, Long, List<String>>> = listOf(
     Triple("薰衣草紫", 0xFFC3A6FF, listOf("purple", "紫", "紫色")),
     Triple("玫瑰红", 0xFFFF7A90, listOf("red", "pink", "红", "红色", "粉", "粉色")),
     Triple("香槟金", 0xFFFFD166, listOf("gold", "金", "金色")),
+)
+
+/** What screens call each of [AMBIENT_COLORS], by the Chinese name the model reads; a #RRGGBB has none. */
+internal val AMBIENT_COLOR_LABELS: Map<String, Int> = mapOf(
+    "暖白" to R.string.cabin_color_warm_white,
+    "暖橙" to R.string.cabin_color_warm_orange,
+    "森林绿" to R.string.cabin_color_forest_green,
+    "冰蓝" to R.string.cabin_color_ice_blue,
+    "薰衣草紫" to R.string.cabin_color_lavender,
+    "玫瑰红" to R.string.cabin_color_rose_red,
+    "香槟金" to R.string.cabin_color_champagne_gold,
 )
 
 internal const val KM_PER_PERCENT = 5.2

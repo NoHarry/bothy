@@ -1,6 +1,9 @@
 @file:OptIn(ExperimentalA2aClientApi::class, ExperimentalCoroutinesApi::class)
 
 package cc.noharry.bothy.app.a2a
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.a2a.A2aAgentCard
 import cc.noharry.agent.a2a.A2aArtifact
 import cc.noharry.agent.a2a.A2aClient
@@ -52,8 +55,16 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+/** Under Robolectric with the Chinese resources: the notices and the overlay's words come from them. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class A2aClientSessionTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+
     @Test
     fun streamRoutesChannelsAndSpeaksOnlySpeech() = runTest(UnconfinedTestDispatcher()) {
         val client = FakeA2aClient()
@@ -437,7 +448,7 @@ class A2aClientSessionTest {
             .append { A2aClientItem.Tool(it, "t1", "c", "mcp__device__navi", "started", 1_000, null) }
             .append { A2aClientItem.Question(it, "t1", "q1", "走高速吗？", listOf("是"), QUESTION_PENDING) }
 
-        val hud = state.overlayHud(nowEpochMillis = 4_000)
+        val hud = state.overlayHud(nowEpochMillis = 4_000, texts = context.resources)
 
         assertEquals(OverlayPhase.LIVE, hud.phase)
         assertEquals("Speech", hud.planTitle)
@@ -446,7 +457,7 @@ class A2aClientSessionTest {
         assertEquals("navi", hud.toolLines.single().name)
         assertEquals("好的", hud.resultText)
         assertEquals("3s", hud.elapsedLabel)
-        assertEquals("暂无播报（只播报 channel=speech）", A2aClientState().overlayHud().planEmptyText)
+        assertEquals("暂无播报（只播报 channel=speech）", A2aClientState().overlayHud(texts = context.resources).planEmptyText)
     }
 
     @Test
@@ -465,6 +476,7 @@ class A2aClientSessionTest {
         var now = 0L
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         return A2aClientSession(
+            texts = context.resources,
             client = client,
             remote = RemoteAgentRef("test", URI("http://127.0.0.1:8766/a2a")),
             scope = backgroundScope,

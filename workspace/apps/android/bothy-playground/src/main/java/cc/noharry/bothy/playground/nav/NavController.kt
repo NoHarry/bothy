@@ -503,10 +503,16 @@ internal fun Int.duration(): String {
 
 /** 「21:34」 today, 「明天 07:05」 after midnight. */
 internal fun clockText(at: Long, now: Long): String {
+    val (text, tomorrow) = clockParts(at, now)
+    return if (tomorrow) "明天 $text" else text
+}
+
+/** [at] as 「21:34」, and whether it falls on another day than [now] (the screen words that in its own language). */
+internal fun clockParts(at: Long, now: Long): Pair<String, Boolean> {
     val day = Calendar.getInstance().apply { timeInMillis = now }.get(Calendar.DAY_OF_YEAR)
     val then = Calendar.getInstance().apply { timeInMillis = at }
     val text = "%02d:%02d".format(then.get(Calendar.HOUR_OF_DAY), then.get(Calendar.MINUTE))
-    return if (then.get(Calendar.DAY_OF_YEAR) != day) "明天 $text" else text
+    return text to (then.get(Calendar.DAY_OF_YEAR) != day)
 }
 
 /** Points along this line every [meters] (the first included). */

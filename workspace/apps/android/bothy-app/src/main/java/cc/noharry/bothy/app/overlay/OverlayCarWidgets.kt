@@ -33,10 +33,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.icon
 import kotlin.math.abs
@@ -120,7 +122,7 @@ internal object CarA2uiSwitch : A2uiBasicCatalogV1.CheckBox {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)) {
                 Text(label, style = TextStyle(color = OverlayPalette.text, fontSize = 18.sp, fontWeight = FontWeight.Medium), modifier = Modifier.weight(1f))
                 Text(
-                    if (value) "开" else "关",
+                    stringResource(if (value) R.string.common_on else R.string.common_off),
                     style = TextStyle(color = if (value) OverlayPalette.glow else OverlayPalette.faint, fontSize = 16.sp),
                     modifier = Modifier.padding(end = 12.dp),
                 )
@@ -220,7 +222,7 @@ private fun CheckRow(text: String, selected: Boolean, enabled: Boolean, onClick:
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)) {
             Text(text, style = TextStyle(color = OverlayPalette.text, fontSize = 18.sp), modifier = Modifier.weight(1f))
             if (selected) {
-                Icon(Icons.Filled.CheckCircle, contentDescription = "已选", tint = OverlayPalette.glow, modifier = Modifier.size(28.dp))
+                Icon(Icons.Filled.CheckCircle, contentDescription = stringResource(R.string.overlay_selected), tint = OverlayPalette.glow, modifier = Modifier.size(28.dp))
             } else {
                 // The core icon set has no empty circle; an outline the size of the check takes its place.
                 Box(Modifier.size(28.dp).padding(2.dp).border(2.dp, OverlayPalette.faint, CircleShape))

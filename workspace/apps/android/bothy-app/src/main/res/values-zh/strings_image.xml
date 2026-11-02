@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Image model, its test generation, and generated pictures in the console. -->
+<resources>
+    <string name="image_intro">OpenAI 兼容的 images/generations 接口，与对话模型分开配置。开启后助手可以调用 image_generate 生成图片，并显示在悬浮窗上。</string>
+    <string name="image_allow">允许助手生成图片</string>
+    <string name="image_base_url">Base URL（例如 https://api.example.com/v1）</string>
+    <string name="image_api_key">API key</string>
+    <string name="image_api_key_saved">API key · 已保存（留空保持不变）</string>
+    <string name="image_size">Size（可选，如 1024x1024；留空用服务默认）</string>
+    <string name="image_timeout">超时（秒，10–300）</string>
+    <string name="image_delete_key">删除 API key</string>
+    <string name="image_key_deleted">已删除 API key · 生图已关闭</string>
+    <string name="image_saved">已保存 · 下一次请求生效</string>
+    <string name="image_discarded">已放弃修改</string>
+    <string name="image_model_none">模型 · 未选</string>
+    <string name="image_model_current">模型 · %1$s</string>
+    <string name="image_refresh_list">刷新列表</string>
+    <string name="image_fetch_first">先填 Base URL 和 API key 并保存，再从服务拉取模型列表。</string>
+    <string name="image_fetching">正在拉取模型列表…</string>
+    <string name="image_fetch_failed">拉取失败：%1$s</string>
+    <string name="image_unknown_error">未知错误</string>
+    <string name="image_no_models">服务没有列出任何模型。</string>
+    <string name="image_model_not_listed">当前在用，服务的列表里没有</string>
+    <string name="image_no_image_models">没认出生图模型，到其他模型里找。</string>
+    <string name="image_hide_others">收起其他模型</string>
+    <string name="image_other_models">其他模型（%1$d）</string>
+    <string name="image_test">测试生成</string>
+    <string name="image_prompt">描述</string>
+    <string name="image_generating">生成中…</string>
+    <string name="image_save_key_first">先保存 API key</string>
+    <string name="image_test_failed">失败（%1$ds）：%2$s</string>
+    <string name="image_revised_prompt">改写后的描述：%1$s</string>
+    <string name="image_generated">生成的图片</string>
+    <string name="image_view_larger">放大查看</string>
+    <string name="image_generating_picture">正在生成图片…</string>
+    <string name="image_file_cleared">图片文件已清理</string>
+
+    <string name="image_problem_base_url_scheme">Base URL 必须是 https://，或 127.0.0.1 上的 http://（adb reverse）。</string>
+    <string name="image_problem_base_url_parts">Base URL 不能包含账号密码、查询参数或片段。</string>
+    <string name="image_problem_model_whitespace">模型 ID 不能包含空白字符。</string>
+    <string name="image_problem_no_model">先选一个模型，再开启生图。</string>
+    <string name="image_problem_size">Size 要写成 1024x1024 这样，或者留空。</string>
+    <string name="image_problem_timeout">超时要在 10–300 秒之间。</string>
+    <string name="image_problem_no_key">先添加 API key，再开启生图。</string>
+    <string name="image_problem_key_whitespace">API key 不能包含空白字符。</string>
+    <string name="image_problem_key_not_removed">无法删除已保存的 key。</string>
+    <string name="image_problem_not_saved">无法保存生图模型设置。</string>
+    <string name="image_problem_key_not_saved">无法保存 API key。</string>
+</resources>

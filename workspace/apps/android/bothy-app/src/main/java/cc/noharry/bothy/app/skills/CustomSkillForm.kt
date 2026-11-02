@@ -24,7 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -48,8 +51,7 @@ internal fun CustomSkillForm(editing: String?, onDone: () -> Unit, modifier: Mod
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
             Text(
-                "粘贴或输入 SKILL.md：开头用 --- 包住的 YAML 头写 name（小写字母、数字和 -）和 description（一行，写清做什么、什么时候用），" +
-                    "下面是给小博的做法。保存后默认开启，下一次请求生效：description 进技能目录，用到时再读全文。",
+                stringResource(R.string.skills_custom_hint),
                 style = ConsoleType.bodySmall,
                 color = ConsoleColors.muted,
             )
@@ -69,9 +71,9 @@ internal fun CustomSkillForm(editing: String?, onDone: () -> Unit, modifier: Mod
         HorizontalDivider(color = ConsoleColors.border)
         Spacer(Modifier.height(Dimens.spaceXs))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onDone) { Text("取消") }
+            TextButton(onClick = onDone) { Text(stringResource(R.string.common_cancel)) }
             Spacer(Modifier.width(Dimens.spaceSm))
-            TextButton(onClick = { checkNow() }) { Text("检查格式") }
+            TextButton(onClick = { checkNow() }) { Text(stringResource(R.string.skills_custom_check)) }
             Spacer(Modifier.width(Dimens.spaceSm))
             Button(
                 onClick = {
@@ -81,20 +83,33 @@ internal fun CustomSkillForm(editing: String?, onDone: () -> Unit, modifier: Mod
                     }
                 },
                 shape = RoundedCornerShape(Dimens.radiusMd),
-            ) { Text("保存") }
+            ) { Text(stringResource(R.string.common_save)) }
         }
     }
 }
 
 @Composable
 private fun SkillCheckReport(check: SkillCheck) {
+    val resources = LocalContext.current.resources
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         if (check.errors.isEmpty()) {
-            Text("格式没问题：${check.name}", style = ConsoleType.body, color = ConsoleColors.success)
+            Text(
+                stringResource(R.string.skills_custom_ok, check.name.orEmpty()),
+                style = ConsoleType.body,
+                color = ConsoleColors.success,
+            )
         } else {
-            Text("有 ${check.errors.size} 处要改，改好才能保存：", style = ConsoleType.body, color = ConsoleColors.danger)
-            check.errors.forEach { Text("• $it", style = ConsoleType.bodySmall, color = ConsoleColors.danger) }
+            Text(
+                pluralStringResource(R.plurals.skills_custom_errors, check.errors.size, check.errors.size),
+                style = ConsoleType.body,
+                color = ConsoleColors.danger,
+            )
+            check.errors.forEach {
+                Text("• ${it.text(resources)}", style = ConsoleType.bodySmall, color = ConsoleColors.danger)
+            }
         }
-        check.warnings.forEach { Text("• $it", style = ConsoleType.bodySmall, color = ConsoleColors.warning) }
+        check.warnings.forEach {
+            Text("• ${it.text(resources)}", style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+        }
     }
 }

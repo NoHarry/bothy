@@ -17,9 +17,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aClientItem
 import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.currentTurnItems
@@ -56,9 +58,9 @@ internal fun ConsoleChoices(
     }
     Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("选一个", style = ConsoleType.meta, color = ConsoleColors.muted)
+            Text(stringResource(R.string.a2ui_pick_one), style = ConsoleType.meta, color = ConsoleColors.muted)
             Spacer(Modifier.weight(1f))
-            Text("说「第二个」也可以", style = ConsoleType.meta, color = ConsoleColors.tertiary)
+            Text(stringResource(R.string.a2ui_pick_by_voice), style = ConsoleType.meta, color = ConsoleColors.tertiary)
         }
         A2uiChoiceSurface(
             messages,

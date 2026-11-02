@@ -68,19 +68,47 @@ data class VoiceTurnThresholds(
     /** In a session that may be dismissed by voice, words for the assistant at this `ends_session` score end it. */
     val endSession: Double = 0.7,
 ) {
-    fun validationError(): String? = when {
+    /** Null when the thresholds hang together, else the first thing wrong (for the host to word). */
+    fun validationError(): ThresholdProblem? = when {
         listOf(eos, eosFloor, holdingFloorMin, addresseeAgent, addresseeSide, bargeIn, replaceTask, sureEnd, endSession).any { !it.isFinite() || it !in 0.0..1.0 } ->
-            "Scores must be between 0 and 1."
-        eosFloor > eos -> "The end-of-turn floor cannot exceed the end-of-turn threshold."
-        addresseeSide > addresseeAgent -> "The side-talk bound cannot exceed the agent bound."
-        eosDecayMillis <= 0 || confirmQuietMillis < 0 -> "Durations must be positive."
+            ThresholdProblem.SCORE_RANGE
+        eosFloor > eos -> ThresholdProblem.EOS_FLOOR_ABOVE_EOS
+        addresseeSide > addresseeAgent -> ThresholdProblem.SIDE_ABOVE_AGENT
+        eosDecayMillis <= 0 || confirmQuietMillis < 0 -> ThresholdProblem.DURATIONS
         silenceCapMillis <= confirmQuietMillis || holdingSilenceCapMillis < silenceCapMillis ->
-            "Silence caps must exceed the quiet window, and holding must not shorten them."
-        maxTurnMillis < silenceCapMillis -> "The longest turn cannot be shorter than the silence cap."
-        maxAgentTurnMillis < maxTurnMillis -> "A turn for the assistant cannot be capped shorter than any other."
-        unsettledQuietMillis !in confirmQuietMillis..silenceCapMillis -> "The unsettled wait must lie between the quiet window and the silence cap."
+            ThresholdProblem.SILENCE_CAPS
+        maxTurnMillis < silenceCapMillis -> ThresholdProblem.LONGEST_TURN
+        maxAgentTurnMillis < maxTurnMillis -> ThresholdProblem.AGENT_TURN
+        unsettledQuietMillis !in confirmQuietMillis..silenceCapMillis -> ThresholdProblem.UNSETTLED_WAIT
         else -> null
     }
+}
+
+/** What [VoiceTurnThresholds.validationError] found wrong. */
+enum class ThresholdProblem {
+    /** Scores must be between 0 and 1. */
+    SCORE_RANGE,
+
+    /** The end-of-turn floor cannot exceed the end-of-turn threshold. */
+    EOS_FLOOR_ABOVE_EOS,
+
+    /** The side-talk bound cannot exceed the agent bound. */
+    SIDE_ABOVE_AGENT,
+
+    /** Durations must be positive. */
+    DURATIONS,
+
+    /** Silence caps must exceed the quiet window, and holding must not shorten them. */
+    SILENCE_CAPS,
+
+    /** The longest turn cannot be shorter than the silence cap. */
+    LONGEST_TURN,
+
+    /** A turn for the assistant cannot be capped shorter than any other. */
+    AGENT_TURN,
+
+    /** The unsettled wait must lie between the quiet window and the silence cap. */
+    UNSETTLED_WAIT,
 }
 
 object VoiceTurnPolicy {

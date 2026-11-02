@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.usage
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -37,12 +42,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.model.summary
 import java.time.LocalDate
+import java.util.Locale
 
 /**
  * Settings → 用量与费用: tokens per day and model for every model call (agent rounds, voice acknowledgements, Jev),
@@ -60,8 +67,14 @@ internal fun UsagePane() {
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-            Text("用量与费用", style = ConsoleType.hero.copy(fontSize = TITLE_SIZE), color = ConsoleColors.text)
-            UsageSegmented(UsageTab.entries, UsageTab.valueOf(tab), UsageTab::label, framed = false) { tab = it.name }
+            Text(
+                stringResource(R.string.usage_title),
+                style = ConsoleType.hero.copy(fontSize = TITLE_SIZE),
+                color = ConsoleColors.text,
+            )
+            UsageSegmented(UsageTab.entries, UsageTab.valueOf(tab), { stringResource(it.label) }, framed = false) {
+                tab = it.name
+            }
         }
         when (UsageTab.valueOf(tab)) {
             UsageTab.STATS -> UsageStatsTab(usage, book)
@@ -70,7 +83,10 @@ internal fun UsagePane() {
     }
 }
 
-private enum class UsageTab(val label: String) { STATS("用量统计"), PRICES("模型价格") }
+private enum class UsageTab(@StringRes val label: Int) {
+    STATS(R.string.usage_tab_stats),
+    PRICES(R.string.usage_tab_prices),
+}
 
 @Composable
 private fun UsageStatsTab(usage: UsageDays, book: PriceBook) {
@@ -81,13 +97,18 @@ private fun UsageStatsTab(usage: UsageDays, book: PriceBook) {
     UsageSummaryCard(usageSummary(usage, book, today))
     UsageActivityCard(usage, book, daily, today)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("时间范围", Modifier.weight(1f), style = ConsoleType.panelTitle, color = ConsoleColors.text)
-        UsageSegmented(UsageRange.entries, range, UsageRange::label) { rangeName = it.name }
+        Text(
+            stringResource(R.string.usage_time_range),
+            Modifier.weight(1f),
+            style = ConsoleType.panelTitle,
+            color = ConsoleColors.text,
+        )
+        UsageSegmented(UsageRange.entries, range, { stringResource(it.label) }) { rangeName = it.name }
     }
     UsageTrendCard(usage, book, daily, today, range)
     UsageModelsCard(usage, book, today.minusDays(range.days - 1L))
     Text(
-        "Token 为输入（含缓存命中）+ 输出（含推理）。费用按「模型价格」里的单价和汇率折算，未定价的模型不计费。",
+        stringResource(R.string.usage_tokens_note),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.tertiary,
     )
@@ -95,12 +116,15 @@ private fun UsageStatsTab(usage: UsageDays, book: PriceBook) {
 
 @Composable
 private fun UsageSummaryCard(summary: UsageSummary) {
+    val locale = screenLocale()
     val metrics = listOf(
-        tokens(summary.totalTokens) to "累计 Token 数",
-        tokens(summary.peakDayTokens) to "单日峰值 Token 数",
-        yuan(summary.totalCostCny) to "累计费用",
-        "${summary.currentStreak} 天" to "当前连续天数",
-        "${summary.longestStreak} 天" to "最长连续天数",
+        tokens(summary.totalTokens, locale) to stringResource(R.string.usage_total_tokens),
+        tokens(summary.peakDayTokens, locale) to stringResource(R.string.usage_peak_day_tokens),
+        yuan(summary.totalCostCny) to stringResource(R.string.usage_total_cost),
+        pluralStringResource(R.plurals.usage_days, summary.currentStreak, summary.currentStreak) to
+            stringResource(R.string.usage_current_streak),
+        pluralStringResource(R.plurals.usage_days, summary.longestStreak, summary.longestStreak) to
+            stringResource(R.string.usage_longest_streak),
     )
     UsageCard(null) {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -135,11 +159,17 @@ private fun UsageActivityCard(usage: UsageDays, book: PriceBook, daily: Map<Loca
     var modeName by rememberSaveable { mutableStateOf(HeatMode.DAILY.name) }
     val mode = HeatMode.valueOf(modeName)
     var picked by remember { mutableStateOf<LocalDate?>(null) }
-    UsageCard("Token 活动", { UsageSegmented(HeatMode.entries, mode, HeatMode::label) { modeName = it.name } }) {
+    val resources = LocalContext.current.resources
+    val activity = stringResource(R.string.usage_token_activity)
+    val modes: @Composable () -> Unit = {
+        UsageSegmented(HeatMode.entries, mode, { stringResource(it.label) }) { modeName = it.name }
+    }
+    UsageCard(activity, modes) {
         UsageHeatmap(daily, today, mode, picked) { picked = if (picked == it) null else it }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                picked?.let { heatDetail(mode, it, usage, book, daily) } ?: "点格子查看当天用量",
+                picked?.let { resources.heatDetail(mode, it, usage, book, daily) }
+                    ?: stringResource(R.string.usage_heatmap_hint),
                 Modifier.weight(1f),
                 style = ConsoleType.bodySmall,
                 color = if (picked == null) ConsoleColors.tertiary else ConsoleColors.text,
@@ -150,26 +180,52 @@ private fun UsageActivityCard(usage: UsageDays, book: PriceBook, daily: Map<Loca
 }
 
 /** The picked square in words, for what the mode colours it by. */
-private fun heatDetail(mode: HeatMode, date: LocalDate, usage: UsageDays, book: PriceBook, daily: Map<LocalDate, Long>): String =
-    when (mode) {
+private fun Resources.heatDetail(
+    mode: HeatMode,
+    date: LocalDate,
+    usage: UsageDays,
+    book: PriceBook,
+    daily: Map<LocalDate, Long>,
+): String {
+    val locale = screenLocale
+    return when (mode) {
         HeatMode.DAILY -> dayDetail(date, usage, book)
         HeatMode.WEEKLY -> {
             val monday = date.minusDays(date.dayOfWeek.value - 1L)
             val week = (0L until DAYS_PER_WEEK).map(monday::plusDays)
-            "${shortDate(monday)}–${shortDate(week.last())} 这周 · ${tokens(week.sumOf { daily[it] ?: 0L })} Token · " +
-                yuan(cost(usage.filterKeys { it in week.map(LocalDate::toString) }, book))
+            getString(
+                R.string.usage_week_detail,
+                shortDate(monday), shortDate(week.last()), tokens(week.sumOf { daily[it] ?: 0L }, locale),
+                yuan(cost(usage.filterKeys { it in week.map(LocalDate::toString) }, book)),
+            )
         }
-        HeatMode.CUMULATIVE -> "截至 $date 累计 ${tokens(daily.filterKeys { !it.isAfter(date) }.values.sum())} Token"
+        HeatMode.CUMULATIVE -> {
+            val total = tokens(daily.filterKeys { !it.isAfter(date) }.values.sum(), locale)
+            getString(R.string.usage_cumulative_detail, date.toString(), total)
+        }
     }
+}
 
-private fun dayDetail(date: LocalDate, usage: UsageDays, book: PriceBook): String {
+private fun Resources.dayDetail(date: LocalDate, usage: UsageDays, book: PriceBook): String {
     val models = usage[date.toString()].orEmpty()
     val total = models.values.fold(ModelUsage(), ModelUsage::plus)
-    return "$date ${weekdayName(date)} · ${tokens(total.totalTokens)} Token（输入 ${tokens(total.inputTokens)} / 输出 ${tokens(total.outputTokens)}）" +
-        " · ${yuan(cost(mapOf(date.toString() to models), book))} · ${total.requests} 次"
+    val locale = screenLocale
+    return getQuantityString(
+        R.plurals.usage_day_detail, total.requests.toInt(),
+        date.toString(), weekdayName(date, locale),
+        tokens(total.totalTokens, locale), tokens(total.inputTokens, locale), tokens(total.outputTokens, locale),
+        yuan(cost(mapOf(date.toString() to models), book)), total.requests,
+    )
 }
 
 private fun shortDate(date: LocalDate) = "${date.monthValue}/${date.dayOfMonth}"
+
+/** The language the screen shows, which picks the units and names in its numbers and dates. */
+private val Resources.screenLocale: Locale get() = configuration.locales[0]
+
+/** [screenLocale] of the resources this composition shows text from. */
+@Composable
+internal fun screenLocale(): Locale = LocalContext.current.resources.screenLocale
 
 @Composable
 private fun UsageTrendCard(usage: UsageDays, book: PriceBook, daily: Map<LocalDate, Long>, today: LocalDate, range: UsageRange) {
@@ -180,22 +236,32 @@ private fun UsageTrendCard(usage: UsageDays, book: PriceBook, daily: Map<LocalDa
         TrendMetric.COST -> rangeSeries(today, range) { dayCost(usage, book, it) }
     }
     var picked by remember(range) { mutableStateOf<LocalDate?>(null) }
+    val resources = LocalContext.current.resources
     val inRange = daysFrom(usage, series.first().first)
     val requests = inRange.values.sumOf { models -> models.values.sumOf { it.requests } }
     val header: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-            Text("${yuan(cost(inRange, book))} · $requests 次请求", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-            UsageSegmented(TrendMetric.entries, metric, TrendMetric::label) { metricName = it.name }
+            Text(
+                pluralStringResource(
+                    R.plurals.usage_cost_requests, requests.toInt(), yuan(cost(inRange, book)), requests,
+                ),
+                style = ConsoleType.bodySmall,
+                color = ConsoleColors.muted,
+            )
+            UsageSegmented(TrendMetric.entries, metric, { stringResource(it.label) }) { metricName = it.name }
         }
     }
-    UsageCard(metric.title, header) {
+    UsageCard(stringResource(metric.title), header) {
         if (series.all { it.second == 0.0 }) {
             val unpriced = metric == TrendMetric.COST && series.any { (daily[it.first] ?: 0L) > 0 }
-            UsageEmptyBox("还没有可展示的数据", if (unpriced) "当前区间用到的模型还没有价格，到「模型价格」同步或手填。" else "当前区间暂无可展示的用量数据。")
+            UsageEmptyBox(
+                stringResource(R.string.usage_empty_title),
+                stringResource(if (unpriced) R.string.usage_empty_unpriced else R.string.usage_empty_range),
+            )
         } else {
             UsageTrendBars(series, metric, picked) { picked = if (picked == it) null else it }
             Text(
-                picked?.let { dayDetail(it, usage, book) } ?: "点柱子查看当天用量；标注的是区间峰值",
+                picked?.let { resources.dayDetail(it, usage, book) } ?: stringResource(R.string.usage_bars_hint),
                 style = ConsoleType.bodySmall,
                 color = if (picked == null) ConsoleColors.tertiary else ConsoleColors.text,
             )
@@ -205,23 +271,34 @@ private fun UsageTrendCard(usage: UsageDays, book: PriceBook, daily: Map<LocalDa
 
 @Composable
 private fun UsageModelsCard(usage: UsageDays, book: PriceBook, from: LocalDate) {
+    val locale = screenLocale()
     val models = modelTotals(usage, from).entries.sortedWith(
         compareByDescending<Map.Entry<String, ModelUsage>> { (model, use) -> book.prices[model]?.let(use::costUsd) ?: 0.0 }
             .thenByDescending { it.value.totalTokens },
     )
-    UsageCard("模型用量") {
-        if (models.isEmpty()) UsageEmptyBox("还没有模型调用", "当前区间没有记录到模型用量。")
-        else ModelRow("模型", "请求", "输入（缓存命中）", "输出", "费用", header = true)
+    UsageCard(stringResource(R.string.usage_model_usage)) {
+        if (models.isEmpty()) {
+            UsageEmptyBox(stringResource(R.string.usage_no_calls_title), stringResource(R.string.usage_no_calls_body))
+        } else {
+            ModelRow(
+                stringResource(R.string.usage_model), stringResource(R.string.usage_requests),
+                stringResource(R.string.usage_input_with_cache_hits), stringResource(R.string.usage_output),
+                stringResource(R.string.usage_cost), header = true,
+            )
+        }
         models.forEach { (model, use) ->
             HorizontalDivider(color = ConsoleColors.borderSubtle)
             val price = book.prices[model]
             ModelRow(
                 model,
                 "${use.requests}",
-                "${tokens(use.inputTokens)}（${tokens(use.cacheReadTokens)}）",
-                tokens(use.outputTokens),
-                price?.let { yuan(use.costUsd(it) * book.usdToCny) } ?: "未定价",
-                source = price?.source ?: "到「模型价格」同步或手填",
+                stringResource(
+                    R.string.usage_input_and_cache,
+                    tokens(use.inputTokens, locale), tokens(use.cacheReadTokens, locale),
+                ),
+                tokens(use.outputTokens, locale),
+                price?.let { yuan(use.costUsd(it) * book.usdToCny) } ?: stringResource(R.string.usage_unpriced),
+                source = price?.let { priceSource(it) } ?: stringResource(R.string.usage_unpriced_hint),
                 unpriced = price == null,
             )
         }
@@ -264,7 +341,13 @@ internal fun UsageCard(title: String?, action: (@Composable () -> Unit)? = null,
 
 /** Pill tabs in the console's segmented style; [framed] puts them in a track, as inside cards. */
 @Composable
-internal fun <T> UsageSegmented(options: List<T>, selected: T, label: (T) -> String, framed: Boolean = true, onSelect: (T) -> Unit) {
+internal fun <T> UsageSegmented(
+    options: List<T>,
+    selected: T,
+    label: @Composable (T) -> String,
+    framed: Boolean = true,
+    onSelect: (T) -> Unit,
+) {
     val colors = ConsoleColors
     val shape = RoundedCornerShape(Dimens.radiusFull)
     val track = if (framed) Modifier.background(colors.bg, shape).border(1.dp, colors.borderSubtle, shape).padding(SEGMENT_INSET) else Modifier

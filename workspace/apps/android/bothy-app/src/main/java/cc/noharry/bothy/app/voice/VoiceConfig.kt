@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.voice
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.voice.DASHSCOPE_DEFAULT_ENDPOINT
 import cc.noharry.bothy.voice.DASHSCOPE_DEFAULT_MODEL
 import cc.noharry.bothy.voice.DashScopeAsrModel
@@ -17,9 +19,9 @@ import cc.noharry.bothy.app.voice.tts.validationError
 import java.io.File
 import java.net.URI
 
-internal enum class VoiceEngine(val wireName: String, val label: String) {
-    LOCAL("local", "本地 · sherpa-onnx"),
-    DASHSCOPE("dashscope", "云端 · 阿里云百炼"),
+internal enum class VoiceEngine(val wireName: String, @StringRes val label: Int) {
+    LOCAL("local", R.string.voice_engine_local),
+    DASHSCOPE("dashscope", R.string.voice_engine_dashscope),
 }
 
 /** The platform microphone, with its echo canceller when [VoiceConfig.echoCancel]; [onEffects] hears which effects run. */
@@ -76,19 +78,28 @@ internal data class VoiceConfig(
     val hotwords: List<String> = DEFAULT_HOTWORDS,
 ) {
 
-    fun validationError(): String? {
+    /** Null when usable, else what is wrong, in [context]'s language. */
+    fun validationError(context: Context): String? {
         val uri = runCatching { URI(dashscopeEndpoint) }.getOrNull()
         return when {
-            localThreads !in 1..MAX_LOCAL_THREADS -> "本地线程数需为 1–$MAX_LOCAL_THREADS。"
-            uri?.scheme != "wss" || uri.host.isNullOrBlank() -> "百炼地址需为 wss:// 地址。"
-            uri.userInfo != null || uri.query != null || uri.fragment != null -> "百炼地址不能包含凭据、查询参数或片段。"
-            DashScopeAsrModel.entries.none { it.id == dashscopeModel } -> "请选择一个百炼识别模型。"
-            engine == VoiceEngine.DASHSCOPE && !hasDashscopeKey -> "使用百炼前请先在「密钥」页保存百炼 key。"
-            historyMessages !in 0..MAX_HISTORY_MESSAGES -> "上下文条数需为 0–$MAX_HISTORY_MESSAGES。"
-            nearGateBelowDb !in NEAR_GATE_BELOW_RANGE -> "近场门需为 ${NEAR_GATE_BELOW_RANGE.first}–${NEAR_GATE_BELOW_RANGE.last} dB。"
-            hotwords.size > MAX_HOTWORDS -> "热词最多 $MAX_HOTWORDS 个。"
-            hotwords.firstNotNullOfOrNull(::hotwordProblem) != null -> hotwords.firstNotNullOf(::hotwordProblem)
-            else -> thresholds.validationError()
+            localThreads !in 1..MAX_LOCAL_THREADS ->
+                context.getString(R.string.voice_local_threads_range, MAX_LOCAL_THREADS)
+            uri?.scheme != "wss" || uri.host.isNullOrBlank() -> context.getString(R.string.voice_dashscope_endpoint_wss)
+            uri.userInfo != null || uri.query != null || uri.fragment != null ->
+                context.getString(R.string.voice_dashscope_endpoint_parts)
+            DashScopeAsrModel.entries.none { it.id == dashscopeModel } ->
+                context.getString(R.string.voice_dashscope_model_required)
+            engine == VoiceEngine.DASHSCOPE && !hasDashscopeKey ->
+                context.getString(R.string.voice_dashscope_key_needed)
+            historyMessages !in 0..MAX_HISTORY_MESSAGES ->
+                context.getString(R.string.voice_history_range, MAX_HISTORY_MESSAGES)
+            nearGateBelowDb !in NEAR_GATE_BELOW_RANGE -> context.getString(
+                R.string.voice_near_gate_range, NEAR_GATE_BELOW_RANGE.first, NEAR_GATE_BELOW_RANGE.last,
+            )
+            hotwords.size > MAX_HOTWORDS ->
+                context.resources.getQuantityString(R.plurals.voice_hotwords_max, MAX_HOTWORDS, MAX_HOTWORDS)
+            else -> hotwords.firstNotNullOfOrNull(::hotwordProblem)?.let { describeHotwordProblem(context, it) }
+                ?: thresholds.validationError()?.let { context.getString(it.message()) }
         }
     }
 }
@@ -137,17 +148,17 @@ internal fun saveVoiceConfig(
     clearKey: Boolean = false,
 ): String? {
     val key = if (clearKey) "" else replacementKey.trim().ifEmpty { loadDashscopeKey(context) }
-    if (key.any(Char::isWhitespace)) return "API key 不能包含空白字符。"
+    if (key.any(Char::isWhitespace)) return context.getString(R.string.voice_key_whitespace)
     val saved = config.copy(
         dashscopeEndpoint = config.dashscopeEndpoint.trim(),
         dashscopeModel = config.dashscopeModel.trim(),
         hasDashscopeKey = key.isNotEmpty(),
     )
-    saved.validationError()?.let { return it }
+    saved.validationError(context)?.let { return it }
     return try {
         val keyFile = File(context.noBackupFilesDir, DASHSCOPE_KEY_FILE)
         if (clearKey) {
-            if (keyFile.exists() && !keyFile.delete()) return "无法删除已保存的 key。"
+            if (keyFile.exists() && !keyFile.delete()) return context.getString(R.string.voice_key_delete_failed)
         } else if (replacementKey.isNotBlank()) {
             context.noBackupFilesDir.mkdirs()
             keyFile.writeText(key, Charsets.UTF_8)
@@ -177,9 +188,9 @@ internal fun saveVoiceConfig(
             .putLong("silence_cap_ms", t.silenceCapMillis)
             .putLong("holding_silence_cap_ms", t.holdingSilenceCapMillis)
             .commit()
-        if (committed) null else "无法保存语音设置。"
+        if (committed) null else context.getString(R.string.voice_save_failed)
     } catch (_: java.io.IOException) {
-        "无法保存 API key。"
+        context.getString(R.string.voice_key_save_failed)
     }
 }
 

@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,7 +39,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -63,9 +67,10 @@ internal fun HealthPane(openSection: (SettingsSection) -> Unit) {
     var results by remember { mutableStateOf<Map<String, CheckResult>>(emptyMap()) }
     var running by remember { mutableStateOf(false) }
     var checkedAt by remember { mutableStateOf("") }
+    val checking = stringResource(R.string.checks_running)
     val runChecks = { checks: List<HealthCheck> ->
         running = true
-        results = results + checks.associate { it.id to CheckResult(CheckState.RUNNING, "检查中…") }
+        results = results + checks.associate { it.id to CheckResult(CheckState.RUNNING, checking) }
         scope.launch {
             runHealthChecks(context, checks) { id, result -> results = results + (id to result) }
             running = false
@@ -100,7 +105,7 @@ internal fun HealthPane(openSection: (SettingsSection) -> Unit) {
 private fun CheckHeader(results: Map<String, CheckResult>, running: Boolean, checkedAt: String, onRun: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
         Column(Modifier.weight(1f)) {
-            Text("一键检查", style = ConsoleType.panelTitle, color = ConsoleColors.text)
+            Text(stringResource(R.string.checks_title), style = ConsoleType.panelTitle, color = ConsoleColors.text)
             Text(checkSummary(results, running, checkedAt), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
         }
         Button(
@@ -108,30 +113,31 @@ private fun CheckHeader(results: Map<String, CheckResult>, running: Boolean, che
             enabled = !running,
             shape = RoundedCornerShape(Dimens.radiusMd),
             colors = ButtonDefaults.buttonColors(containerColor = ConsoleColors.accent, contentColor = if (ConsoleColors.isDark) ConsoleColors.bg else Color.White),
-        ) { Text(if (running) "检查中…" else "开始检查") }
+        ) { Text(stringResource(if (running) R.string.checks_running else R.string.checks_start)) }
     }
     Text(
-        "会调用一次当前对话模型和生图模型的模型列表、百炼、Jev（约 2k token）和 MiMo（合成两个字，不播放）；当前是 DeepSeek 模型时查官方余额，经中转的检测一次官方能力（可能搜一次，¥0.005）；并录 0.5 秒声音（只在内存里）。",
+        stringResource(R.string.checks_about),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
 }
 
+@Composable
 private fun checkSummary(results: Map<String, CheckResult>, running: Boolean, checkedAt: String): String {
-    if (results.isEmpty()) return "还没检查"
+    if (results.isEmpty()) return stringResource(R.string.checks_not_yet)
     val counts = results.values.groupingBy { it.state }.eachCount()
     val parts = listOfNotNull(
-        counts[CheckState.OK]?.let { "$it 项正常" },
-        counts[CheckState.WARN]?.let { "$it 项提醒" },
-        counts[CheckState.FAIL]?.let { "$it 项不可用" },
-        counts[CheckState.OFF]?.let { "$it 项没开" },
-        counts[CheckState.RUNNING]?.let { "$it 项检查中" },
+        counts[CheckState.OK]?.let { pluralStringResource(R.plurals.checks_count_ok, it, it) },
+        counts[CheckState.WARN]?.let { pluralStringResource(R.plurals.checks_count_warn, it, it) },
+        counts[CheckState.FAIL]?.let { pluralStringResource(R.plurals.checks_count_fail, it, it) },
+        counts[CheckState.OFF]?.let { pluralStringResource(R.plurals.checks_count_off, it, it) },
+        counts[CheckState.RUNNING]?.let { pluralStringResource(R.plurals.checks_count_running, it, it) },
     )
     return parts.joinToString(" · ") + if (!running && checkedAt.isNotEmpty()) " · $checkedAt" else ""
 }
 
 @Composable
-private fun CheckGroup(group: String, checks: List<HealthCheck>, results: Map<String, CheckResult>, fix: (CheckFix) -> Unit) {
+private fun CheckGroup(@StringRes group: Int, checks: List<HealthCheck>, results: Map<String, CheckResult>, fix: (CheckFix) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.radiusMd),
@@ -139,7 +145,7 @@ private fun CheckGroup(group: String, checks: List<HealthCheck>, results: Map<St
         border = BorderStroke(1.dp, ConsoleColors.borderSubtle),
     ) {
         Column(Modifier.padding(vertical = Dimens.spaceXs)) {
-            Text(group, style = ConsoleType.label, color = ConsoleColors.muted, modifier = Modifier.padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceXs))
+            Text(stringResource(group), style = ConsoleType.label, color = ConsoleColors.muted, modifier = Modifier.padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceXs))
             checks.forEachIndexed { index, check ->
                 if (index > 0) HorizontalDivider(color = ConsoleColors.borderSubtle, modifier = Modifier.padding(horizontal = Dimens.spaceMd))
                 CheckRow(check, results[check.id], fix)
@@ -160,12 +166,12 @@ private fun CheckRow(check: HealthCheck, result: CheckResult?, fix: (CheckFix) -
             Text("●", style = ConsoleType.bodySmall, color = stateColor(result?.state))
         }
         Column(Modifier.weight(1f).padding(start = Dimens.spaceSm)) {
-            Text(check.title, style = ConsoleType.body, color = ConsoleColors.text)
-            Text(result?.detail ?: "还没检查", style = ConsoleType.bodySmall, color = if (result?.state == CheckState.FAIL) ConsoleColors.danger else ConsoleColors.muted)
+            Text(stringResource(check.title), style = ConsoleType.body, color = ConsoleColors.text)
+            Text(result?.detail ?: stringResource(R.string.checks_not_yet), style = ConsoleType.bodySmall, color = if (result?.state == CheckState.FAIL) ConsoleColors.danger else ConsoleColors.muted)
         }
         result?.fix?.takeIf { result.state != CheckState.OK && result.state != CheckState.RUNNING }?.let { item ->
             Spacer(Modifier.width(Dimens.spaceSm))
-            TextButton(onClick = { fix(item) }) { Text(item.label) }
+            TextButton(onClick = { fix(item) }) { Text(stringResource(item.label)) }
         }
     }
 }

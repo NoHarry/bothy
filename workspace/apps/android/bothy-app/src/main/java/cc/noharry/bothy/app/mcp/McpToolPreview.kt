@@ -4,6 +4,7 @@ import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
 import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.bothy.app.R
 import kotlinx.coroutines.withTimeoutOrNull
 import cc.noharry.agent.mcp.McpRpcClient
 import cc.noharry.agent.mcp.listMcpTools
@@ -31,7 +32,7 @@ internal suspend fun loadMcpProviderTools(context: Context, provider: McpProvide
         DEBUG_MCP_PROVIDER_TOOLS_JSON -> {
             val catalog = loadMcpCatalog(context.applicationContext)
             if (catalog == null) {
-                McpToolsResult.Unavailable("mcp/tools.json not found in assets")
+                McpToolsResult.Unavailable(context.getString(R.string.mcp_tools_json_missing))
             } else {
                 McpToolsResult.Loaded(
                     catalog.tools.map { tool ->
@@ -50,7 +51,7 @@ internal suspend fun loadMcpProviderTools(context: Context, provider: McpProvide
             DeviceNotificationMcpProvider(context.applicationContext).listTools().toPreviewResult()
         DEBUG_MCP_PROVIDER_DEVICE_MEDIA ->
             DeviceMediaMcpProvider(context.applicationContext).listTools().toPreviewResult()
-        else -> McpToolsResult.Unavailable("Unknown provider: ${provider.id}")
+        else -> McpToolsResult.Unavailable(context.getString(R.string.mcp_unknown_provider, provider.id))
     }
 }
 
@@ -60,11 +61,13 @@ private suspend fun loadServerTools(context: Context, server: McpServer): McpToo
         val connect = client.connect()
         if (!connect.ok) {
             McpHttpClients.close(server.id)
-            return@withTimeoutOrNull McpToolsResult.Unavailable(connect.errorMessage ?: "${server.label} 连不上")
+            return@withTimeoutOrNull McpToolsResult.Unavailable(
+                connect.errorMessage ?: context.getString(R.string.mcp_server_unreachable, server.label),
+            )
         }
-        val listing = listMcpTools(client, ChineseMcpMessages)
+        val listing = listMcpTools(client, ScreenMcpMessages(context))
         listing.problem?.let { McpToolsResult.Unavailable(it) } ?: listing.tools.toPreviewResult()
-    } ?: McpToolsResult.Unavailable("${server.label} tools/list 超时")
+    } ?: McpToolsResult.Unavailable(context.getString(R.string.mcp_server_tools_timeout, server.label))
 }
 
 private fun List<ToolDescriptor>.toPreviewResult(): McpToolsResult =

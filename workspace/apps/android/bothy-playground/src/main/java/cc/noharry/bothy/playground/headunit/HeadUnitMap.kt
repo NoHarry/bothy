@@ -58,18 +58,19 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.nav.Guide
 import cc.noharry.bothy.playground.nav.NavState
 import cc.noharry.bothy.playground.nav.NavStatus
 import cc.noharry.bothy.playground.nav.TrafficStretch
 import cc.noharry.bothy.playground.nav.ViaProgress
-import cc.noharry.bothy.playground.nav.clockText
-import cc.noharry.bothy.playground.nav.duration
-import cc.noharry.bothy.playground.nav.km
+import cc.noharry.bothy.playground.nav.clockParts
 import kotlinx.coroutines.delay
 
 /**
@@ -83,26 +84,31 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier, o
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(TURN_ARROW))
             Column {
-                val (number, unit) = nav.stepMeters.stepDistanceParts()
+                val (number, unitName) = nav.stepMeters.stepDistanceParts()
+                val unit = stringResource(unitName)
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(number, color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold, lineHeight = 40.sp)
                     Text(unit, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 3.dp, bottom = 5.dp))
                 }
                 // 后进入 leads the road, as on AMap's stock panel: beside a long distance it wrapped.
+                val onto = stringResource(R.string.headunit_turn_onto)
+                val road = nav.nextRoad.ifEmpty { stringResource(R.string.headunit_road_ahead) }
                 Row(verticalAlignment = Alignment.Bottom) {
-                    Text("后进入 ", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
-                    Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(onto, color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
+                    Text(road, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
         ExitLine(nav.guide)
-        if (nav.guide.gpsWeak) Text("GPS 信号弱，位置可能不准", color = Color(0xFFFFC72C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
+        val gpsWeak = stringResource(R.string.headunit_gps_weak)
+        if (nav.guide.gpsWeak) Text(gpsWeak, color = Color(0xFFFFC72C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
         Spacer(Modifier.height(10.dp))
         SpeedLine(nav)
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth()) {
-            Text("${nav.remainingSeconds.duration()} · ${nav.remainingMeters.km()}", color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            Text("${clockText(now + nav.remainingSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 14.sp)
+            val left = "${nav.remainingSeconds.durationText()} · ${nav.remainingMeters.distanceText()}"
+            Text(left, color = UnitColors.muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(etaText(now + nav.remainingSeconds * 1000L, now), color = UnitColors.muted, fontSize = 14.sp)
         }
     }
 }
@@ -112,10 +118,10 @@ internal fun TurnCard(nav: NavState, now: Long, modifier: Modifier = Modifier, o
 private fun ExitLine(guide: Guide) {
     if (guide.exit.isBlank() && guide.toward.isBlank()) return
     Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("去", color = UnitColors.muted, fontSize = 15.sp)
+        Text(stringResource(R.string.headunit_exit_to), color = UnitColors.muted, fontSize = 15.sp)
         if (guide.exit.isNotBlank()) {
             Text(
-                if ("出口" in guide.exit) guide.exit else "出口 ${guide.exit}",
+                if ("出口" in guide.exit) guide.exit else stringResource(R.string.headunit_exit_number, guide.exit),
                 color = Color.White,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -142,14 +148,21 @@ private fun SpeedLine(nav: NavState) {
         if (nav.lightsLeft > 0) {
             // On the right, kept to one line beside the limit's sign: the light's icon says what the number counts.
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Filled.Traffic, contentDescription = "红绿灯", tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
-            Text("${nav.lightsLeft} 个", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
+            val lights = stringResource(R.string.headunit_traffic_lights)
+            Icon(Icons.Filled.Traffic, contentDescription = lights, tint = UnitColors.muted, modifier = Modifier.size(18.dp).padding(bottom = 2.dp))
+            val count = pluralStringResource(R.plurals.headunit_lights_left, nav.lightsLeft, nav.lightsLeft)
+            Text(count, color = UnitColors.muted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(bottom = 2.dp))
         }
     }
     if (nav.guide.sectionLimitKmh > 0) {
         val average = nav.guide.sectionAverageKmh
         Text(
-            "区间测速 · 平均 $average · 限速 ${nav.guide.sectionLimitKmh} · 还剩 ${nav.guide.sectionLeftMeters.km()}",
+            stringResource(
+                R.string.headunit_section_speed,
+                average,
+                nav.guide.sectionLimitKmh,
+                nav.guide.sectionLeftMeters.distanceText(),
+            ),
             color = if (average > nav.guide.sectionLimitKmh) LIMIT_RED else UnitColors.muted,
             fontSize = 13.sp,
             maxLines = 1,
@@ -174,9 +187,15 @@ internal fun NextStopCard(nav: NavState, now: Long, onClick: () -> Unit, modifie
         }
         Spacer(Modifier.height(6.dp))
         Row(Modifier.fillMaxWidth()) {
-            val more = if (nav.waypoints.size > 1) " · 后面还有 ${nav.waypoints.size - 1} 站" else if (next != null) " · 然后到终点" else " · 终点"
-            Text(left.meters.km() + more, color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            Text("${clockText(now + left.seconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)
+            val distance = left.meters.distanceText()
+            val more = nav.waypoints.size - 1
+            val line = when {
+                more > 0 -> pluralStringResource(R.plurals.headunit_next_more, more, distance, more)
+                next != null -> stringResource(R.string.headunit_next_then_end, distance)
+                else -> stringResource(R.string.headunit_next_is_end, distance)
+            }
+            Text(line, color = UnitColors.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
+            Text(etaText(now + left.seconds * 1000L, now), color = UnitColors.muted, fontSize = 13.sp)
         }
     }
 }
@@ -196,20 +215,32 @@ internal fun RoutePreviewCard(nav: NavState, onStart: () -> Unit, onCancel: () -
     }
     val left = ((nav.startsAt - now + 999) / 1000).coerceAtLeast(0)
     UnitCard(modifier) {
-        Text("路线已规划", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        val planned = stringResource(R.string.headunit_route_planned)
+        Text(planned, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(4.dp))
-        Text("全程 ${nav.totalMeters.km()} · 约 ${nav.totalSeconds.duration()} · ${clockText(now + nav.totalSeconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 13.sp)
-        if (nav.waitsForGo) Text("说「出发」就走", color = UnitColors.muted, fontSize = 13.sp)
+        val summary = stringResource(
+            R.string.headunit_route_summary,
+            nav.totalMeters.distanceText(),
+            nav.totalSeconds.durationText(),
+            clockLabel(now + nav.totalSeconds * 1000L, now),
+        )
+        Text(summary, color = UnitColors.muted, fontSize = 13.sp)
+        if (nav.waitsForGo) Text(stringResource(R.string.headunit_say_go), color = UnitColors.muted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (nav.waitsForGo) "开始导航" else "开始导航 ${left}s",
+                if (nav.waitsForGo) {
+                    stringResource(R.string.headunit_start_navigation)
+                } else {
+                    stringResource(R.string.headunit_start_navigation_in, left)
+                },
                 color = UnitColors.screen,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clip(RoundedCornerShape(50)).background(UnitColors.teal).clickable(onClick = onStart).padding(horizontal = 18.dp, vertical = 9.dp),
             )
-            Text("取消", color = Color.White, fontSize = 15.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(UnitColors.raised).clickable(onClick = onCancel).padding(horizontal = 18.dp, vertical = 9.dp))
+            val cancel = stringResource(R.string.common_cancel)
+            Text(cancel, color = Color.White, fontSize = 15.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(UnitColors.raised).clickable(onClick = onCancel).padding(horizontal = 18.dp, vertical = 9.dp))
         }
     }
 }
@@ -222,12 +253,14 @@ internal fun IdleNavCard(nav: NavState, ready: String?, modifier: Modifier = Mod
             Icon(if (nav.status == NavStatus.ARRIVED) Icons.Filled.Flag else Icons.Filled.Navigation, contentDescription = null, tint = UnitColors.teal, modifier = Modifier.size(26.dp))
             Column {
                 val title = when {
-                    ready != null -> "导航还不能用"
-                    nav.status == NavStatus.ARRIVED -> "已到达「${nav.destination?.name}」"
-                    else -> "想去哪？"
+                    ready != null -> stringResource(R.string.headunit_nav_unavailable)
+                    nav.status == NavStatus.ARRIVED ->
+                        stringResource(R.string.headunit_arrived_at, nav.destination?.name.orEmpty())
+                    else -> stringResource(R.string.headunit_where_to)
                 }
                 Text(title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(ready ?: "对小博说「导航去深圳湾公园，路上经过南山书城」", color = UnitColors.muted, fontSize = 13.sp, lineHeight = 18.sp)
+                val hint = ready ?: stringResource(R.string.headunit_nav_hint)
+                Text(hint, color = UnitColors.muted, fontSize = 13.sp, lineHeight = 18.sp)
             }
         }
     }
@@ -250,11 +283,19 @@ internal fun NavActionBar(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier.clip(RoundedCornerShape(16.dp)).background(UnitColors.card).padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-        ActionItem(Icons.AutoMirrored.Filled.ExitToApp, "退出", onExit)
-        ActionItem(if (overview) Icons.Filled.MyLocation else Icons.Filled.Route, if (overview) "退出全览" else "全览", onOverview)
-        ActionItem(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "已静音" else "播报", onMute)
-        if (paused != null) ActionItem(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, if (paused) "继续" else "暂停", onPause)
-        if (onMore != null) ActionItem(Icons.Filled.MoreHoriz, "更多", onMore)
+        ActionItem(Icons.AutoMirrored.Filled.ExitToApp, stringResource(R.string.headunit_action_exit), onExit)
+        val overviewLabel =
+            stringResource(if (overview) R.string.headunit_action_exit_overview else R.string.headunit_action_overview)
+        ActionItem(if (overview) Icons.Filled.MyLocation else Icons.Filled.Route, overviewLabel, onOverview)
+        val muteLabel = stringResource(if (muted) R.string.headunit_action_muted else R.string.headunit_action_voice)
+        val muteIcon = if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp
+        ActionItem(muteIcon, muteLabel, onMute)
+        if (paused != null) {
+            val pauseLabel =
+                stringResource(if (paused) R.string.headunit_action_resume else R.string.headunit_action_pause)
+            ActionItem(if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, pauseLabel, onPause)
+        }
+        if (onMore != null) ActionItem(Icons.Filled.MoreHoriz, stringResource(R.string.headunit_action_more), onMore)
     }
 }
 
@@ -278,10 +319,11 @@ internal fun BrowseControls(onBack: () -> Unit, onZoom: (Boolean) -> Unit, modif
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(Icons.Filled.Navigation, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            Text(" 继续导航", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            val resume = stringResource(R.string.headunit_resume_navigation)
+            Text(resume, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
-        ZoomButton(Icons.Filled.Remove, "缩小") { onZoom(false) }
-        ZoomButton(Icons.Filled.Add, "放大") { onZoom(true) }
+        ZoomButton(Icons.Filled.Remove, stringResource(R.string.headunit_zoom_out)) { onZoom(false) }
+        ZoomButton(Icons.Filled.Add, stringResource(R.string.headunit_zoom_in)) { onZoom(true) }
     }
 }
 
@@ -383,8 +425,40 @@ internal fun turnIcon(type: Int): ImageVector = when (type) {
 }
 
 /** How far to the turn, the number and its unit apart, as AMap's panel sets them (「421」「米」). */
-internal fun Int.stepDistanceParts(): Pair<String, String> =
-    if (this < 1000) "$this" to "米" else "${(this / 100) / 10.0}".removeSuffix(".0") to "公里"
+internal fun Int.stepDistanceParts(): Pair<String, Int> =
+    if (this < 1000) {
+        "$this" to R.string.headunit_unit_meters
+    } else {
+        "${(this / 100) / 10.0}".removeSuffix(".0") to R.string.headunit_unit_kilometers
+    }
+
+/** A distance as the screen shows it, 「800 米」「1.2 公里」; what the model reads is [km]'s. */
+@Composable
+internal fun Int.distanceText(): String =
+    if (this < 1000) stringResource(R.string.headunit_meters, this)
+    else stringResource(R.string.headunit_kilometers, "${(this / 100) / 10.0}".removeSuffix(".0"))
+
+/** A duration as the screen shows it, 「25 分钟」「1 小时 5 分」; what the model reads is [duration]'s. */
+@Composable
+internal fun Int.durationText(): String {
+    val minutes = (this + 59) / 60
+    return when {
+        minutes < 60 -> stringResource(R.string.headunit_minutes, minutes)
+        minutes % 60 == 0 -> stringResource(R.string.headunit_hours, minutes / 60)
+        else -> stringResource(R.string.headunit_hours_minutes, minutes / 60, minutes % 60)
+    }
+}
+
+/** A time as the screen shows it: 「21:34」 today, 「明天 07:05」 after midnight ([clockParts]). */
+@Composable
+internal fun clockLabel(at: Long, now: Long): String {
+    val (time, tomorrow) = clockParts(at, now)
+    return if (tomorrow) stringResource(R.string.headunit_tomorrow_at, time) else time
+}
+
+/** When it gets there, as the screen says it: 「21:34到」. */
+@Composable
+internal fun etaText(at: Long, now: Long): String = stringResource(R.string.headunit_eta, clockLabel(at, now))
 
 private val TURN_ARROW = 64.dp
 internal val PROGRESS_WIDTH = 26.dp

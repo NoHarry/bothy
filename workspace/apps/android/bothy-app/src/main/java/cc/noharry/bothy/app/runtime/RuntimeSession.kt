@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.SystemClock
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.*
 import cc.noharry.bothy.app.a2ui.UserQuestion
 import cc.noharry.bothy.app.companion.*
@@ -239,6 +240,13 @@ internal object RuntimeSession {
         applyLoadedConfig(loaded)
         status = "Config reloaded"
         transcript.appendStatus(loaded.summary(loaded.activeProfile))
+        refreshModelOptions(context.applicationContext)
+        notifyChanged()
+    }
+    /** The screens changed language: what the config words as it loads (the on-device model's profile name) follows. */
+    fun languageChanged(context: Context) {
+        if (config == null) return
+        applyLoadedConfig(ProviderConfig.load(context.applicationContext))
         refreshModelOptions(context.applicationContext)
         notifyChanged()
     }
@@ -495,7 +503,7 @@ internal object RuntimeSession {
         label: String,
         speak: Boolean = true,
         scene: String = COMPANION_SCENE,
-        statusText: String = "闲聊 · $label",
+        statusText: String? = null,
     ) {
         val app = context.applicationContext
         ensureConfig(app)
@@ -505,7 +513,7 @@ internal object RuntimeSession {
         transcript.appendFinalResponse(reply)
         // A chat line while 小博 still runs a task (端到端) must not take that run's card.
         if (!runner.isRunning) runner.showOutsideRequest(id, words)
-        status = statusText
+        status = statusText ?: app.getString(R.string.runtime_status_chat, label)
         notifyChanged()
         val turn = SessionTurn(
             turnId = id, requestId = id, runId = id, sessionId = sessionCoordinator.activeSessionId, scene = scene,
@@ -542,7 +550,7 @@ internal object RuntimeSession {
         runner.postSteeringText(wireText, notLanded = {
             onNewTurn()
             submitText(context.applicationContext, rawText, backend = null, spoken = true, modelText = modelText)
-        }, title = VOICE_STEERING_TITLE, shown = rawText)
+        }, title = context.getString(R.string.runtime_voice_steering_title), shown = rawText)
     }
     /** A 连接应用 event (connected, tested, disconnected) as a visible line in the console, from any thread. */
     fun noteConnection(text: String) {
@@ -570,7 +578,8 @@ internal object RuntimeSession {
             // settling close together never replace one another on the card (owner 2026-10-12).
             reportQueue.withLock {
                 awaitIdleCar()
-                turnOrSteer(report.model, report.display, DELEGATION_REPORT_TITLE, asTurn) { A2aDelegations.markDelivered(report.taskId) }
+                val title = app.getString(R.string.runtime_delegation_report_title)
+                turnOrSteer(report.model, report.display, title, asTurn) { A2aDelegations.markDelivered(report.taskId) }
             }
             // Whoever asked for it may well answer the report.
             followUpOnceSpoken(app, since)
@@ -582,12 +591,13 @@ internal object RuntimeSession {
         scope.launch {
             if (status.parentSessionId != sessionCoordinator.activeSessionId) return@launch
             // A runtime row, not a status line: the console never shows ambient status.
+            val shown = BothySubagents.displayContext
             val detail = when (change) {
-                SubagentChange.STARTED -> "任务：${status.task}"
+                SubagentChange.STARTED -> shown.getString(R.string.console_subagent_task, status.task)
                 SubagentChange.FINISHED -> status.result.ifEmpty { status.error }.take(SUBAGENT_DETAIL_CHARS)
                 else -> status.latest
             }
-            transcript.appendRuntime(status.transcriptLine(change), detail)
+            transcript.appendRuntime(status.transcriptLine(change, shown), detail)
             notifyChanged()
         }
     }
@@ -601,9 +611,10 @@ internal object RuntimeSession {
                 awaitIdleCar(holdForReading = false)
                 // Read now, not when the report came: siblings may have finished while it waited.
                 val working = BothySubagents.instance.statuses(report.parentSessionId).filter { !it.state.finished && it.id !in report.statuses.map { s -> s.id } }
-                val turn = report.toReport(working)
+                val turn = report.toReport(working, context = app)
                 BothySubagents.reportDelivered(report)
-                turnOrSteer(turn.model, turn.display, SUBAGENT_REPORT_TITLE, { submitText(app, turn.display, backend = null, spoken = true, modelText = turn.model) })
+                val title = app.getString(R.string.runtime_subagent_report_title)
+                turnOrSteer(turn.model, turn.display, title, { submitText(app, turn.display, backend = null, spoken = true, modelText = turn.model) })
             }
             followUpOnceSpoken(app, since)
         }
@@ -625,10 +636,12 @@ internal object RuntimeSession {
                 val task = delivery.modelText
                 // A reminder already showed in the plan popup and is only spoken; a task opens the card 小博 works on.
                 if (task != null) OverlayControl.apply(app, OverlayCommand.SHOW)?.let { android.util.Log.w(PLAN_LOG_TAG, "plan card not shown: $it") }
-                val remind = { recordCompanionTurn(app, delivery.display, delivery.reply, PLAN_LABEL, scene = PLAN_SCENE, statusText = PLAN_LABEL) }
+                // The card's and the console's name for it; PLAN_LABEL stays for what the model reads.
+                val planLabel = app.getString(R.string.runtime_plan_label)
+                val remind = { recordCompanionTurn(app, delivery.display, delivery.reply, planLabel, scene = PLAN_SCENE, statusText = planLabel) }
                 when {
-                    task != null -> turnOrSteer(task, delivery.display, PLAN_LABEL, { submitText(app, delivery.display, backend = null, spoken = true, modelText = task) })
-                    runner.isRunning -> runner.postSteeringText(planReminderSteer(delivery.reply), notLanded = { remind() }, title = PLAN_LABEL, shown = delivery.display)
+                    task != null -> turnOrSteer(task, delivery.display, planLabel, { submitText(app, delivery.display, backend = null, spoken = true, modelText = task) })
+                    runner.isRunning -> runner.postSteeringText(planReminderSteer(delivery.reply), notLanded = { remind() }, title = planLabel, shown = delivery.display)
                     else -> remind()
                 }
             }
@@ -691,7 +704,7 @@ internal object RuntimeSession {
 
     /** Late answers to an ended run become a new turn in the selected session; the ended run never revives. */
     internal fun answerQuestion(context: Context, question: UserQuestion, text: String) =
-        runner.answerQuestion(question, text) { lateTurn -> submitText(context, lateTurn) }
+        runner.answerQuestion(question, text, context.resources) { lateTurn -> submitText(context, lateTurn) }
 
     suspend fun postExternalInput(sessionId: String, runId: String, requestId: String, text: String, questionId: String?) =
         runner.postInput(sessionId, runId, requestId, text, questionId)
@@ -763,7 +776,7 @@ internal object RuntimeSession {
             val profile = activeConfig.activeProfile
             if (!activeConfig.isReady(profile)) {
                 status = "Provider configuration incomplete"
-                transcript.appendMessage(TranscriptRole.ERROR, activeConfig.missingMessage(profile), collapsed = false)
+                transcript.appendMessage(TranscriptRole.ERROR, activeConfig.missingMessage(appContext, profile), collapsed = false)
                 notifyChanged()
                 return@launch
             }
@@ -984,15 +997,4 @@ private const val DEFAULT_TEST_API_KEY = "local"
 private const val DEFAULT_HOSTED_SEARCH_VALIDATION_PROMPT =
     "Use hosted web search. Find the DeepSeek API Docs page about Claude Code integration. Return the page title and one cited URL."
 
-/** A conversation with subagents still working, or results not delivered yet, is kept so the results land in it. */
-internal fun wakeStartsNewSession(
-    active: SessionSummary?,
-    nowMillis: Long,
-    backgroundWork: Boolean = false,
-    policy: SessionPolicy = SessionSettings.policy.value,
-): Boolean =
-    active != null && active.turnCount > 0 && !backgroundWork &&
-        (policy.everyWake || nowMillis - active.updatedAtEpochMillis >= policy.idleMillis)
-
-private const val SUBAGENT_REPORT_TITLE = "后台任务"
 private const val SUBAGENT_DETAIL_CHARS = 600

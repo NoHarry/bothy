@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.console
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aProfilesNavigationState
 import cc.noharry.bothy.app.a2a.A2aProfilesPage
 import org.junit.Assert.assertEquals
@@ -93,9 +94,9 @@ class SettingsNavigationTest {
     fun a2aBreadcrumbTracksListAndAddSteps() {
         val list = A2aProfilesNavigationState()
 
-        assertEquals("A2A clients", list.title())
-        assertEquals("Settings › A2A", list.breadcrumb())
-        assertEquals("Add A2A service", list.openAdd().title())
-        assertEquals("Settings › A2A › Add", list.openAdd().breadcrumb())
+        assertEquals(R.string.a2a_profiles_title, list.title())
+        assertEquals(R.string.a2a_breadcrumb, list.breadcrumb())
+        assertEquals(R.string.a2a_add_service_title, list.openAdd().title())
+        assertEquals(R.string.a2a_breadcrumb_add, list.openAdd().breadcrumb())
     }
 }

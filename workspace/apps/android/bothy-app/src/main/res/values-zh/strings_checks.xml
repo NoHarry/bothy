@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置 → 检查：各项检查、结果和修复入口。 -->
+<resources>
+    <string name="checks_title">一键检查</string>
+    <string name="checks_running">检查中…</string>
+    <string name="checks_start">开始检查</string>
+    <string name="checks_not_yet">还没检查</string>
+    <string name="checks_about">会调用一次当前对话模型和生图模型的模型列表、百炼、Jev（约 2k token）和 MiMo（合成两个字，不播放）；当前是 DeepSeek 模型时查官方余额，经中转的检测一次官方能力（可能搜一次，¥0.005）；并录 0.5 秒声音（只在内存里）。</string>
+    <plurals name="checks_count_ok">
+        <item quantity="other">%1$d 项正常</item>
+    </plurals>
+    <plurals name="checks_count_warn">
+        <item quantity="other">%1$d 项提醒</item>
+    </plurals>
+    <plurals name="checks_count_fail">
+        <item quantity="other">%1$d 项不可用</item>
+    </plurals>
+    <plurals name="checks_count_off">
+        <item quantity="other">%1$d 项没开</item>
+    </plurals>
+    <plurals name="checks_count_running">
+        <item quantity="other">%1$d 项检查中</item>
+    </plurals>
+
+    <string name="checks_group_models">模型</string>
+    <string name="checks_group_voice">语音</string>
+    <string name="checks_group_permissions">权限与服务</string>
+    <string name="checks_chat">对话模型</string>
+    <string name="checks_deepseek">DeepSeek 官方能力</string>
+    <string name="checks_image">生图模型</string>
+    <string name="checks_tools">工具目录</string>
+    <string name="checks_asr">语音识别</string>
+    <string name="checks_jev">Jev 对话判断</string>
+    <string name="checks_tts">语音播报</string>
+    <string name="checks_wake">语音唤醒</string>
+    <string name="checks_mic">录音</string>
+    <string name="checks_companion">陪聊</string>
+    <string name="checks_realtime">端到端演示</string>
+    <string name="checks_record_permission">麦克风权限</string>
+    <string name="checks_overlay">悬浮窗权限</string>
+    <string name="checks_accessibility">无障碍服务（操作屏幕）</string>
+    <string name="checks_notifications">通知权限</string>
+
+    <string name="checks_fix_models">去模型与服务</string>
+    <string name="checks_fix_image_model">去生图模型</string>
+    <string name="checks_fix_voice">去语音设置</string>
+    <string name="checks_fix_allow">授权</string>
+    <string name="checks_fix_allow_in_settings">去授权</string>
+    <string name="checks_fix_turn_on">去打开</string>
+    <string name="checks_fix_wake_on">打开唤醒</string>
+    <string name="checks_fix_overlay_start">打开悬浮窗</string>
+
+    <string name="checks_timeout">超时：%1$d 秒没有结果</string>
+    <string name="checks_service_available">%1$s · 服务可用</string>
+    <string name="checks_model_not_listed">%1$s · 服务可用，但当前选的 %2$s 不在它列出的模型里（可能已下线），请在输入框旁换一个：%3$s</string>
+    <string name="checks_listed_more">%1$s 等 %2$d 个</string>
+    <string name="checks_list_separator">、</string>
+    <string name="checks_not_deepseek">%1$s · %2$s 不是 DeepSeek 模型，没检测</string>
+    <string name="checks_label_no_key">%1$s · 缺少 API key</string>
+    <string name="checks_deepseek_features_messages">原生延迟工具、Search/Fetch</string>
+    <string name="checks_deepseek_official_ok">官方接口 · %1$s 自动可用 · 余额：%2$s</string>
+    <string name="checks_deepseek_official_balance">官方接口 · 余额：%1$s</string>
+    <string name="checks_deepseek_official_failed">官方接口 · 查余额失败：%1$s</string>
+    <string name="checks_deepseek_balance">余额</string>
+    <string name="checks_deepseek_native_tools">原生延迟工具</string>
+    <string name="checks_deepseek_none">%1$s；照常能用，只是没有 DeepSeek 专属能力</string>
+    <string name="checks_off">没打开</string>
+    <string name="checks_no_key">缺少 API key</string>
+    <string name="checks_no_model">没选模型</string>
+    <string name="checks_image_not_listed">%1$s · 服务可用，但它列出的模型里没有这个</string>
+    <string name="checks_asr_local_ok">本机识别 · 模型已装</string>
+    <string name="checks_asr_no_key">用百炼识别，但缺少百炼 key：到「密钥」页填写</string>
+    <string name="checks_asr_ok">百炼 · %1$s · key 可用</string>
+    <string name="checks_asr_failed">百炼 · %1$s</string>
+    <string name="checks_jev_not_set">没配置：语音的每句话直接交给 agent（到「密钥」页填 Jev key 可开启判断）</string>
+    <string name="checks_jev_off">已关闭：语音的每句话直接交给 agent</string>
+    <string name="checks_tts_off">播报回复已关闭</string>
+    <string name="checks_tts_ok">%1$s · 合成了 %2$d KB</string>
+    <string name="checks_wake_off">没打开：说「你好，小博」不会响应</string>
+    <string name="checks_wake_ok">正在听「你好，小博」和「OK Bothy」</string>
+    <string name="checks_wake_not_listening">已打开，但没在听：%1$s</string>
+    <string name="checks_mic_no_permission">没有麦克风权限</string>
+    <string name="checks_mic_busy">%1$s · 麦克风正被唤醒词或语音会话使用</string>
+    <string name="checks_mic_silent">%1$s · 录到的全是静音：录音可能被别的应用占用（如系统语音助手）或被系统静音</string>
+    <string name="checks_mic_ok">%1$s · 有声音（%2$s dBFS）</string>
+    <string name="checks_capture_mono_aec">单声道 · 系统回声消除</string>
+    <string name="checks_capture_mono">单声道</string>
+    <string name="checks_allowed">已授权</string>
+    <string name="checks_record_denied">没授权：语音和唤醒都用不了</string>
+    <string name="checks_overlay_denied">没授权：小博悬浮窗和语音唤醒都需要</string>
+    <string name="checks_accessibility_off">操作屏幕没打开（基础工具）</string>
+    <string name="checks_accessibility_connected">已连接</string>
+    <string name="checks_accessibility_repaired">系统没连上它（App 被强行停止后常见），已重新打开并连上</string>
+    <string name="checks_accessibility_stuck">已打开但系统一直没连上，重新打开也没用：小博不能操作屏幕</string>
+    <string name="checks_accessibility_disabled">没打开：小博不能操作屏幕</string>
+    <string name="checks_notifications_not_needed">这个系统版本不需要</string>
+    <string name="checks_notifications_denied">没授权：后台录音的通知不显示，不影响录音和唤醒</string>
+    <string name="checks_cannot_connect">连不上：%1$s</string>
+    <string name="checks_http_key">HTTP %1$d：key 不对或没有权限</string>
+    <string name="checks_http_404">HTTP 404：地址不对</string>
+    <string name="checks_http_429">HTTP 429：请求太多或额度用完</string>
+    <string name="checks_http_server">HTTP %1$d：服务出错</string>
+</resources>

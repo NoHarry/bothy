@@ -237,7 +237,7 @@ class OverlayBoardSummaryTest {
         assertEquals("正在处理", hidden.currentStep)
         assertEquals("好，帮你找餐厅。", hidden.resultText)
         assertTrue(hidden.planRows.isEmpty())
-        assertTrue(hidden.planEmptyText.orEmpty().contains("显示思考过程"))
+        assertTrue(hidden.thinkingHidden)
 
         // Streamed rounds run together in one line (bench 2026-10-14): the spoken parts are cut as the announcer does.
         val runTogether = state.copy(

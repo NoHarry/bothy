@@ -32,10 +32,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.runtime.SubagentStatus
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.ActivityDot
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
 import cc.noharry.bothy.app.console.ui.HtmlPreviewBox
@@ -44,6 +48,7 @@ import cc.noharry.bothy.app.console.ui.SectionLabel
 import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.formatTurnCount
+import cc.noharry.bothy.app.mcp.DEBUG_CONNECTORS
 import cc.noharry.bothy.app.mcp.McpProviderState
 import cc.noharry.bothy.app.runtime.RuntimeDemoState
 import cc.noharry.bothy.app.runtime.WorkspaceSelectionState
@@ -53,9 +58,8 @@ import cc.noharry.bothy.app.session.SessionBoardState
 import cc.noharry.bothy.app.session.SkillEntry
 import cc.noharry.bothy.app.session.TodoEntry
 import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.session.sessionTitleText
 import cc.noharry.bothy.app.skills.BothySubagents
-import cc.noharry.bothy.app.skills.chinese
-import cc.noharry.bothy.app.skills.logLine
 import cc.noharry.bothy.app.usage.TokenUsageState
 import kotlinx.coroutines.delay
 
@@ -70,7 +74,7 @@ internal fun BoardPane(
     val subagents = subagentBoard[state.activeSessionId].orEmpty()
     val sections = boardSections().filter { state.shouldShowBoardSection(it) }
         .filterNot { it == BoardSection.SUBAGENTS && subagents.isEmpty() }
-    PanelBox("Board", modifier) {
+    PanelBox(stringResource(R.string.console_board), modifier) {
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs),
@@ -117,9 +121,9 @@ private fun boardSectionOrder(): List<BoardSection> =
 @Composable
 private fun WorkspaceOneLiner(selection: WorkspaceSelectionState, actions: ConsoleActions) {
     val colors = ConsoleColors
-    BoardSectionCard("Workspace") {
+    BoardSectionCard(stringResource(R.string.console_workspace)) {
         Text(
-            selection.label,
+            if (selection.safEnabled) selection.label else stringResource(R.string.console_workspace_app_private),
             style = ConsoleType.meta,
             color = colors.text,
             fontWeight = FontWeight.SemiBold,
@@ -127,9 +131,9 @@ private fun WorkspaceOneLiner(selection: WorkspaceSelectionState, actions: Conso
             overflow = TextOverflow.Ellipsis,
         )
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = actions.pickSafWorkspace) { Text("Pick SAF") }
+            TextButton(onClick = actions.pickSafWorkspace) { Text(stringResource(R.string.console_pick_saf)) }
             if (selection.safEnabled) {
-                TextButton(onClick = actions.clearSafWorkspace) { Text("Clear") }
+                TextButton(onClick = actions.clearSafWorkspace) { Text(stringResource(R.string.console_clear_saf)) }
             }
         }
     }
@@ -139,10 +143,13 @@ private fun WorkspaceOneLiner(selection: WorkspaceSelectionState, actions: Conso
 private fun McpOneLiner(providers: List<McpProviderState>, onOpen: () -> Unit) {
     val colors = ConsoleColors
     val enabled = providers.filter { it.enabled }
-    val names = enabled.joinToString { it.label }.ifBlank { "none" }
+    // A catalog app's server is saved under its Chinese name, which the model reads; the board shows its title.
+    val names = enabled.map { provider ->
+        DEBUG_CONNECTORS.firstOrNull { it.name == provider.label }?.let { stringResource(it.title) } ?: provider.label
+    }.joinToString().ifBlank { stringResource(R.string.common_none) }
     BoardSectionCard("MCP", Modifier.clickable(onClick = onOpen)) {
         Text(
-            "${enabled.size}/${providers.size} loaded · $names",
+            stringResource(R.string.console_mcp_loaded, enabled.size, providers.size, names),
             style = ConsoleType.meta,
             color = colors.text,
             fontWeight = FontWeight.SemiBold,
@@ -151,7 +158,7 @@ private fun McpOneLiner(providers: List<McpProviderState>, onOpen: () -> Unit) {
         )
         Spacer(Modifier.height(Dimens.spaceXs))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Tap to manage", style = ConsoleType.meta, color = colors.muted)
+            Text(stringResource(R.string.console_tap_to_manage), style = ConsoleType.meta, color = colors.muted)
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
@@ -174,24 +181,37 @@ private fun SubagentCard(rows: List<SubagentStatus>) {
             delay(SUBAGENT_TICK_MS)
         }
     }
-    BoardSectionCard("Subagents") {
+    val resources = LocalResources.current
+    BoardSectionCard(stringResource(R.string.console_subagents)) {
         rows.forEach { row ->
             var open by remember(row.id) { mutableStateOf(false) }
             Column(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = Dimens.spaceXs)) {
                 Text(
-                    "● ${row.label} · ${row.state.chinese()}",
+                    "● ${row.label} · ${stringResource(row.state.labelRes())}",
                     style = ConsoleType.meta,
                     color = row.state.wireName.planStatusColor(),
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(row.logLine(now), style = ConsoleType.meta, color = colors.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    resources.subagentLogText(row, now),
+                    style = ConsoleType.meta,
+                    color = colors.muted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (!row.state.finished && row.latest.isNotEmpty()) {
-                    Text("最近：${row.latest}", style = ConsoleType.meta, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        stringResource(R.string.console_subagent_latest, row.latest),
+                        style = ConsoleType.meta,
+                        color = colors.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 if (open) {
-                    Text("任务：${row.task}", style = ConsoleType.meta, color = colors.text)
+                    Text(stringResource(R.string.console_subagent_task, row.task), style = ConsoleType.meta, color = colors.text)
                     val outcome = row.result.ifEmpty { row.error }
                     if (outcome.isNotEmpty()) {
                         Text(outcome.take(SUBAGENT_RESULT_PREVIEW_CHARS), style = ConsoleType.meta, color = colors.text)
@@ -206,9 +226,9 @@ private fun SubagentCard(rows: List<SubagentStatus>) {
 private fun RuntimeAlertCard(demo: RuntimeDemoState, actions: ConsoleActions) {
     val colors = ConsoleColors
     val pending = demo.pendingConfirmationActionIds()
-    BoardSectionCard("Needs attention") {
+    BoardSectionCard(stringResource(R.string.console_needs_attention)) {
         Text(
-            demo.status,
+            demoStatusText(demo.status),
             style = ConsoleType.meta,
             color = colors.text,
             fontWeight = FontWeight.SemiBold,
@@ -236,7 +256,7 @@ private fun RuntimeAlertCard(demo: RuntimeDemoState, actions: ConsoleActions) {
 private fun ArtifactPreviewCard(preview: ArtifactPreview?, actions: ConsoleActions) {
     val colors = ConsoleColors
     if (preview == null) return
-    BoardSectionCard("Artifact") {
+    BoardSectionCard(stringResource(R.string.console_artifact)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 preview.path,
@@ -250,12 +270,16 @@ private fun ArtifactPreviewCard(preview: ArtifactPreview?, actions: ConsoleActio
             Spacer(Modifier.width(Dimens.spaceSm))
             Icon(
                 imageVector = IconFullscreen,
-                contentDescription = "Open fullscreen preview",
+                contentDescription = stringResource(R.string.console_open_fullscreen_preview),
                 tint = colors.muted,
                 modifier = Modifier.size(MANAGE_CHEVRON_SIZE),
             )
         }
-        Text("${preview.bytes.formatCount()} bytes", style = ConsoleType.meta, color = colors.muted)
+        Text(
+            stringResource(R.string.console_bytes, preview.bytes.formatCount()),
+            style = ConsoleType.meta,
+            color = colors.muted,
+        )
         Spacer(Modifier.height(Dimens.spaceXsMd))
         HtmlPreviewBox(
             html = preview.html,
@@ -271,8 +295,8 @@ private fun ArtifactPreviewCard(preview: ArtifactPreview?, actions: ConsoleActio
 @Composable
 private fun SessionCard(board: SessionBoardState, state: UiState) {
     val session = board.activeSession
-    BoardSectionCard("Run") {
-        SessionStatusHeader(state = state, sessionTitle = session?.title)
+    BoardSectionCard(stringResource(R.string.console_run)) {
+        SessionStatusHeader(state = state, sessionTitle = session?.title?.let { sessionTitleText(it) })
         if ((session?.turnCount ?: 0) > 0) {
             Spacer(Modifier.height(Dimens.spaceXs))
             Text(
@@ -309,7 +333,8 @@ private fun SessionStatusHeader(state: UiState, sessionTitle: String?) {
                 ShimmerText(text = statusHeader(state), baseColor = colors.muted, highlightColor = colors.text)
             } else {
                 Text(
-                    text = state.lastRunSummary?.takeIf { it.isNotBlank() } ?: "Ready",
+                    text = state.lastRunSummary?.takeIf { it.isNotBlank() }?.let { runSummaryText(it) }
+                        ?: stringResource(R.string.console_ready),
                     style = ConsoleType.meta,
                     color = colors.text,
                     fontWeight = FontWeight.SemiBold,
@@ -318,7 +343,7 @@ private fun SessionStatusHeader(state: UiState, sessionTitle: String?) {
                 )
             }
             Text(
-                text = sessionTitle ?: "No active session",
+                text = sessionTitle ?: stringResource(R.string.console_no_active_session),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 maxLines = 1,
@@ -331,14 +356,14 @@ private fun SessionStatusHeader(state: UiState, sessionTitle: String?) {
 @Composable
 private fun TodoCard(items: List<TodoEntry>) {
     if (items.isEmpty()) return
-    BoardSectionCard("Plan") {
+    BoardSectionCard(stringResource(R.string.console_plan)) {
         items.take(MAX_PLAN_ROWS).forEach { item ->
             PlanStatusRow(item)
         }
         if (items.size > MAX_PLAN_ROWS) {
             Spacer(Modifier.height(Dimens.spaceXs))
             Text(
-                "+${items.size - MAX_PLAN_ROWS} more",
+                stringResource(R.string.console_more_rows, items.size - MAX_PLAN_ROWS),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
@@ -350,7 +375,7 @@ private fun TodoCard(items: List<TodoEntry>) {
 private fun TokenUsageCard(usage: TokenUsageState) {
     if (!usage.hasUsage) return
     val colors = ConsoleColors
-    BoardSectionCard("Usage") {
+    BoardSectionCard(stringResource(R.string.console_usage)) {
         Text(
             usage.compactUsageLine(),
             style = ConsoleType.meta,
@@ -364,12 +389,19 @@ private fun TokenUsageCard(usage: TokenUsageState) {
         UsageProgressBar(fraction = usage.cacheHitRate?.let { it / PERCENT_FLOAT } ?: 0f)
         if (usage.hasCacheActivity || usage.reasoningTokens > 0) {
             Spacer(Modifier.height(Dimens.spaceXs))
+            val resources = LocalContext.current.resources
             val detail = buildList {
-                if (usage.reasoningTokens > 0) add("reason ${usage.reasoningTokens.formatCompact()}")
-                if (usage.hasCacheActivity) {
-                    add("r/w ${usage.cachedInputTokens.formatCompact()}/${usage.cacheWriteTokens.formatCompact()}")
+                if (usage.reasoningTokens > 0) {
+                    add(resources.getString(R.string.console_usage_reasoning, usage.reasoningTokens.formatCompact()))
                 }
-                if (usage.requestCount > 1) add("${usage.requestCount} req")
+                if (usage.hasCacheActivity) {
+                    val read = usage.cachedInputTokens.formatCompact()
+                    val write = usage.cacheWriteTokens.formatCompact()
+                    add(resources.getString(R.string.console_usage_cache_rw, read, write))
+                }
+                if (usage.requestCount > 1) {
+                    add(resources.getString(R.string.console_usage_requests, usage.requestCount))
+                }
             }.joinToString(" · ")
             if (detail.isNotBlank()) {
                 Text(
@@ -402,9 +434,23 @@ private fun UsageProgressBar(fraction: Float) {
     }
 }
 
+@Composable
 private fun TokenUsageState.compactUsageLine(): String {
-    val cache = cacheHitRate?.let { " · cache $it%" }.orEmpty()
-    return "${inputTokens.formatCompact()} in · ${outputTokens.formatCompact()} out$cache"
+    val cache = cacheHitRate
+    return if (cache != null) {
+        val input = inputTokens.formatCompact()
+        stringResource(R.string.console_usage_line_cache, input, outputTokens.formatCompact(), cache)
+    } else {
+        stringResource(R.string.console_usage_line, inputTokens.formatCompact(), outputTokens.formatCompact())
+    }
+}
+
+/** The runtime's state words for the alert card; the ones it is shown for are put into the screen's language. */
+@Composable
+private fun demoStatusText(status: String): String = when (status) {
+    "Waiting confirmation" -> stringResource(R.string.console_demo_waiting_confirmation)
+    "Blocked" -> stringResource(R.string.console_status_blocked)
+    else -> status
 }
 
 @Composable
@@ -437,7 +483,7 @@ private fun PlanStatusRow(item: TodoEntry) {
 private fun MemoryCard(lessons: List<LessonEntry>) {
     if (lessons.isEmpty()) return
     val colors = ConsoleColors
-    BoardSectionCard("Memory") {
+    BoardSectionCard(stringResource(R.string.console_memory)) {
         lessons.take(MAX_MEMORY_ROWS).forEach { lesson ->
             Text(
                 lesson.content,
@@ -455,7 +501,7 @@ private fun MemoryCard(lessons: List<LessonEntry>) {
 private fun SkillCard(skills: List<SkillEntry>) {
     if (skills.isEmpty()) return
     val colors = ConsoleColors
-    BoardSectionCard("Skills") {
+    BoardSectionCard(stringResource(R.string.console_skills)) {
         Text(
             skills.take(MAX_SKILL_NAMES).joinToString { it.name },
             style = ConsoleType.meta,

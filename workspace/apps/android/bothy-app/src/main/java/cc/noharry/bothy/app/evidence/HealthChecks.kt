@@ -5,13 +5,15 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
+import androidx.annotation.StringRes
 import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.transport.HttpRequest
+import cc.noharry.bothy.app.voice.localAsrUnavailable
+import cc.noharry.bothy.app.voice.wakeModelUnavailable
 import cc.noharry.bothy.voice.JevTurnJudge
-import cc.noharry.bothy.voice.SherpaOnnxAsrEngine
 import cc.noharry.bothy.voice.VoiceJudgeRequest
 import cc.noharry.bothy.voice.VoiceTurnSnapshot
-import cc.noharry.bothy.voice.WakeWordListener
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.androiduse.loadAndroidUseEnabled
 import cc.noharry.bothy.app.androiduse.repairAndroidUse
 import cc.noharry.bothy.app.companion.checkCompanion
@@ -62,21 +64,27 @@ import kotlinx.coroutines.withTimeout
 internal enum class CheckState { RUNNING, OK, WARN, FAIL, OFF }
 
 /** What fixes a check: a Settings section, a system settings screen, or an action on the page. */
-internal enum class CheckFix(val label: String) {
-    MODELS("去模型与服务"),
-    IMAGE_MODEL("去生图模型"),
-    VOICE("去语音设置"),
-    RECORD_PERMISSION("授权"),
-    OVERLAY("去授权"),
-    ACCESSIBILITY("去打开"),
-    NOTIFICATIONS("授权"),
-    WAKE_ON("打开唤醒"),
-    OVERLAY_START("打开悬浮窗"),
+internal enum class CheckFix(@StringRes val label: Int) {
+    MODELS(R.string.checks_fix_models),
+    IMAGE_MODEL(R.string.checks_fix_image_model),
+    VOICE(R.string.checks_fix_voice),
+    RECORD_PERMISSION(R.string.checks_fix_allow),
+    OVERLAY(R.string.checks_fix_allow_in_settings),
+    ACCESSIBILITY(R.string.checks_fix_turn_on),
+    NOTIFICATIONS(R.string.checks_fix_allow),
+    WAKE_ON(R.string.checks_fix_wake_on),
+    OVERLAY_START(R.string.checks_fix_overlay_start),
 }
 
+/** [detail] is shown as it is: checks write it in the app's language. */
 internal data class CheckResult(val state: CheckState, val detail: String, val fix: CheckFix? = null)
 
-internal data class HealthCheck(val id: String, val group: String, val title: String, val run: suspend (Context) -> CheckResult)
+internal data class HealthCheck(
+    val id: String,
+    @StringRes val group: Int,
+    @StringRes val title: Int,
+    val run: suspend (Context) -> CheckResult,
+)
 
 /**
  * Settings → 检查: the selected models are asked once each (model lists, a Jev judgement, a short MiMo synthesis),
@@ -84,21 +92,23 @@ internal data class HealthCheck(val id: String, val group: String, val title: St
  * permissions and services are read.
  */
 internal val DEBUG_CHECKS: List<HealthCheck> = listOf(
-    HealthCheck("chat", "模型", "对话模型", ::checkChatModel),
-    HealthCheck("deepseek", "模型", "DeepSeek 官方能力", ::checkDeepSeek),
-    HealthCheck("image", "模型", "生图模型", ::checkImageModel),
-    HealthCheck("tools", "模型", "工具目录", ::checkToolCatalog),
-    HealthCheck("asr", "语音", "语音识别", ::checkRecognition),
-    HealthCheck("jev", "语音", "Jev 对话判断", ::checkJev),
-    HealthCheck("tts", "语音", "语音播报", ::checkTts),
-    HealthCheck("wake", "语音", "语音唤醒", ::checkWake),
-    HealthCheck("mic", "语音", "录音", ::checkRecording),
-    HealthCheck("companion", "语音", "陪聊", ::checkCompanion),
-    HealthCheck("realtime", "语音", "端到端演示", ::checkRealtime),
-    HealthCheck("record_permission", "权限与服务", "麦克风权限", ::checkRecordPermission),
-    HealthCheck("overlay", "权限与服务", "悬浮窗权限", ::checkOverlay),
-    HealthCheck("accessibility", "权限与服务", "无障碍服务（操作屏幕）", ::checkAccessibility),
-    HealthCheck("notifications", "权限与服务", "通知权限", ::checkNotifications),
+    HealthCheck("chat", R.string.checks_group_models, R.string.checks_chat, ::checkChatModel),
+    HealthCheck("deepseek", R.string.checks_group_models, R.string.checks_deepseek, ::checkDeepSeek),
+    HealthCheck("image", R.string.checks_group_models, R.string.checks_image, ::checkImageModel),
+    HealthCheck("tools", R.string.checks_group_models, R.string.checks_tools, ::checkToolCatalog),
+    HealthCheck("asr", R.string.checks_group_voice, R.string.checks_asr, ::checkRecognition),
+    HealthCheck("jev", R.string.checks_group_voice, R.string.checks_jev, ::checkJev),
+    HealthCheck("tts", R.string.checks_group_voice, R.string.checks_tts, ::checkTts),
+    HealthCheck("wake", R.string.checks_group_voice, R.string.checks_wake, ::checkWake),
+    HealthCheck("mic", R.string.checks_group_voice, R.string.checks_mic, ::checkRecording),
+    HealthCheck("companion", R.string.checks_group_voice, R.string.checks_companion, ::checkCompanion),
+    HealthCheck("realtime", R.string.checks_group_voice, R.string.checks_realtime, ::checkRealtime),
+    HealthCheck(
+        "record_permission", R.string.checks_group_permissions, R.string.checks_record_permission, ::checkRecordPermission,
+    ),
+    HealthCheck("overlay", R.string.checks_group_permissions, R.string.checks_overlay, ::checkOverlay),
+    HealthCheck("accessibility", R.string.checks_group_permissions, R.string.checks_accessibility, ::checkAccessibility),
+    HealthCheck("notifications", R.string.checks_group_permissions, R.string.checks_notifications, ::checkNotifications),
 )
 
 /** Runs [checks] at once, each within [CHECK_TIMEOUT_MS]; [onResult] hears each on the caller's thread as it ends. */
@@ -112,7 +122,8 @@ internal suspend fun runHealthChecks(
             val result = try {
                 withTimeout(CHECK_TIMEOUT_MS) { withContext(Dispatchers.IO) { check.run(context.applicationContext) } }
             } catch (_: TimeoutCancellationException) {
-                CheckResult(CheckState.FAIL, "超时：${CHECK_TIMEOUT_MS / 1000} 秒没有结果")
+                val seconds = (CHECK_TIMEOUT_MS / 1000).toInt()
+                CheckResult(CheckState.FAIL, context.getString(R.string.checks_timeout, seconds))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
@@ -131,11 +142,11 @@ internal suspend fun checkChatModel(context: Context): CheckResult {
     val config = ProviderConfig.load(context)
     val profile = config.activeProfile
     val name = "${profile.displayLabel} · ${profile.model}"
-    if (!config.isReady(profile)) return fail("$name · ${config.missingMessage(profile)}", CheckFix.MODELS)
+    if (!config.isReady(profile)) return fail("$name · ${config.missingMessage(context, profile)}", CheckFix.MODELS)
     val key = profile.apiKey.ifBlank { DEFAULT_LOCAL_API_KEY.takeIf { profile.baseUrl.isLocalBaseUrl() }.orEmpty() }
     return runCatching { ModelCatalogClient(BenchHttpTransport(context)).fetch(profile.provider, key, profile.baseUrl) }.fold(
-        onSuccess = { ids -> chatModelListed(name, profile.model, ids) },
-        onFailure = { fail("$name · ${requestProblem(it)}", CheckFix.MODELS) },
+        onSuccess = { ids -> chatModelListed(context, name, profile.model, ids) },
+        onFailure = { fail("$name · ${requestProblem(context, it)}", CheckFix.MODELS) },
     )
 }
 
@@ -143,10 +154,12 @@ internal suspend fun checkChatModel(context: Context): CheckResult {
  * The selected model against the service's list. Not listed reads as the selection being stale, with what is listed
  * (owner 2026-10-19 took 「列出的模型里没有 deepseek-v4-flash」 for the check having that model built in).
  */
-internal fun chatModelListed(name: String, model: String, ids: List<String>): CheckResult {
-    if (ids.isEmpty() || model in ids) return ok("$name · 服务可用")
-    val listed = ids.take(LISTED_MODELS).joinToString("、") + if (ids.size > LISTED_MODELS) " 等 ${ids.size} 个" else ""
-    return warn("$name · 服务可用，但当前选的 $model 不在它列出的模型里（可能已下线），请在输入框旁换一个：$listed", CheckFix.MODELS)
+internal fun chatModelListed(context: Context, name: String, model: String, ids: List<String>): CheckResult {
+    if (ids.isEmpty() || model in ids) return ok(context.getString(R.string.checks_service_available, name))
+    val shown = ids.take(LISTED_MODELS).joinToString(context.getString(R.string.checks_list_separator))
+    val listed = if (ids.size > LISTED_MODELS) context.getString(R.string.checks_listed_more, shown, ids.size)
+    else shown
+    return warn(context.getString(R.string.checks_model_not_listed, name, model, listed), CheckFix.MODELS)
 }
 
 /**
@@ -159,64 +172,89 @@ private suspend fun checkDeepSeek(context: Context): CheckResult {
     val profile = config.activeProfile
     val official = profile.isDeepSeek()
     if (!official && !profile.model.contains(DEEPSEEK_MODEL_MARK, ignoreCase = true)) {
-        return CheckResult(CheckState.OFF, "${profile.displayLabel} · ${profile.model} 不是 DeepSeek 模型，没检测")
+        val detail = context.getString(R.string.checks_not_deepseek, profile.displayLabel, profile.model)
+        return CheckResult(CheckState.OFF, detail)
     }
     val key = config.effectiveApiKey(profile)
-    if (key.isBlank()) return fail("${profile.displayLabel} · 缺少 API key", CheckFix.MODELS)
-    if (!official) return DeepSeekProbes.check(context, profile, key).checkResult(profile.displayLabel)
-    val features = if (profile.endpoint == ProviderEndpoint.MESSAGES) "原生延迟工具、Search/Fetch" else "Search/Fetch"
-    return fetchDeepSeekBalance(key).fold(
+    if (key.isBlank()) {
+        return fail(context.getString(R.string.checks_label_no_key, profile.displayLabel), CheckFix.MODELS)
+    }
+    if (!official) return DeepSeekProbes.check(context, profile, key).checkResult(context, profile.displayLabel)
+    val features = if (profile.endpoint == ProviderEndpoint.MESSAGES) {
+        context.getString(R.string.checks_deepseek_features_messages)
+    } else {
+        "Search/Fetch"
+    }
+    return fetchDeepSeekBalance(context, key).fold(
         onSuccess = { balance ->
-            if (balance.available) ok("官方接口 · $features 自动可用 · 余额：${balance.summary()}")
-            else warn("官方接口 · 余额：${balance.summary()}", CheckFix.MODELS)
+            val summary = balance.summary(context)
+            if (balance.available) ok(context.getString(R.string.checks_deepseek_official_ok, features, summary))
+            else warn(context.getString(R.string.checks_deepseek_official_balance, summary), CheckFix.MODELS)
         },
-        onFailure = { fail("官方接口 · 查余额失败：${it.message}", CheckFix.MODELS) },
+        onFailure = { fail(context.getString(R.string.checks_deepseek_official_failed, it.message), CheckFix.MODELS) },
     )
 }
 
 /** A relay's DeepSeek check as one line: what passed, and why the rest did not. */
-internal fun DeepSeekProbe.checkResult(label: String): CheckResult {
-    val checks = listOfNotNull("余额" to balance, "Search/Fetch" to tools, passthrough?.let { "原生延迟工具" to it })
+internal fun DeepSeekProbe.checkResult(context: Context, label: String): CheckResult {
+    val checks = listOfNotNull(
+        context.getString(R.string.checks_deepseek_balance) to balance,
+        "Search/Fetch" to tools,
+        passthrough?.let { context.getString(R.string.checks_deepseek_native_tools) to it },
+    )
     val detail = "$label · " + checks.joinToString(" · ") { (name, check) -> if (check.passed) "$name ✓" else "$name ✗ ${check.note}" }
-    return if (checks.any { it.second.passed }) ok(detail) else warn("$detail；照常能用，只是没有 DeepSeek 专属能力", CheckFix.MODELS)
+    return if (checks.any { it.second.passed }) {
+        ok(detail)
+    } else {
+        warn(context.getString(R.string.checks_deepseek_none, detail), CheckFix.MODELS)
+    }
 }
 
 private suspend fun checkImageModel(context: Context): CheckResult {
     val config = loadImageModelConfig(context)
     when {
-        !config.enabled -> return CheckResult(CheckState.OFF, "没打开", CheckFix.IMAGE_MODEL)
-        !config.hasApiKey -> return fail("缺少 API key", CheckFix.IMAGE_MODEL)
-        config.model.isBlank() -> return fail("没选模型", CheckFix.IMAGE_MODEL)
+        !config.enabled ->
+            return CheckResult(CheckState.OFF, context.getString(R.string.checks_off), CheckFix.IMAGE_MODEL)
+        !config.hasApiKey -> return fail(context.getString(R.string.checks_no_key), CheckFix.IMAGE_MODEL)
+        config.model.isBlank() -> return fail(context.getString(R.string.checks_no_model), CheckFix.IMAGE_MODEL)
     }
-    config.validationError()?.let { return fail(it, CheckFix.IMAGE_MODEL) }
+    config.validationProblem()?.let { return fail(context.getString(it.shown), CheckFix.IMAGE_MODEL) }
     return fetchImageModels(context, config.baseUrl).fold(
         onSuccess = { ids ->
-            if (ids.isEmpty() || config.model in ids) ok("${config.model} · 服务可用")
-            else warn("${config.model} · 服务可用，但它列出的模型里没有这个", CheckFix.IMAGE_MODEL)
+            if (ids.isEmpty() || config.model in ids) {
+                ok(context.getString(R.string.checks_service_available, config.model))
+            } else {
+                warn(context.getString(R.string.checks_image_not_listed, config.model), CheckFix.IMAGE_MODEL)
+            }
         },
-        onFailure = { fail("${config.model} · ${requestProblem(it)}", CheckFix.IMAGE_MODEL) },
+        onFailure = { fail("${config.model} · ${requestProblem(context, it)}", CheckFix.IMAGE_MODEL) },
     )
 }
 
 private suspend fun checkRecognition(context: Context): CheckResult {
     val config = loadVoiceConfig(context)
     if (config.engine == VoiceEngine.LOCAL) {
-        return SherpaOnnxAsrEngine.availabilityError(context.assets)?.let { fail(it) } ?: ok("本机识别 · 模型已装")
+        return localAsrUnavailable(context)?.let { fail(it) }
+            ?: ok(context.getString(R.string.checks_asr_local_ok))
     }
     val key = loadDashscopeKey(context)
-    if (key.isEmpty()) return fail("用百炼识别，但缺少百炼 key：到「密钥」页填写", CheckFix.VOICE)
+    if (key.isEmpty()) return fail(context.getString(R.string.checks_asr_no_key), CheckFix.VOICE)
     val status = BenchHttpTransport(context).execute(
         HttpRequest("GET", DASHSCOPE_MODELS_URL, mapOf("Authorization" to "Bearer $key")),
     ).statusCode
-    return if (status in SUCCESS) ok("百炼 · ${config.dashscopeModel} · key 可用")
-    else fail("百炼 · ${statusProblem(status)}", CheckFix.VOICE)
+    return if (status in SUCCESS) ok(context.getString(R.string.checks_asr_ok, config.dashscopeModel))
+    else fail(context.getString(R.string.checks_asr_failed, statusProblem(context, status)), CheckFix.VOICE)
 }
 
 private suspend fun checkJev(context: Context): CheckResult {
     val jev = loadJevConfig(context)
     val key = loadJevKey(context)
-    if (key.isEmpty()) return CheckResult(CheckState.OFF, "没配置：语音的每句话直接交给 agent（到「密钥」页填 Jev key 可开启判断）", CheckFix.VOICE)
-    if (!loadVoiceConfig(context).jevTurns) return CheckResult(CheckState.OFF, "已关闭：语音的每句话直接交给 agent", CheckFix.VOICE)
+    if (key.isEmpty()) {
+        return CheckResult(CheckState.OFF, context.getString(R.string.checks_jev_not_set), CheckFix.VOICE)
+    }
+    if (!loadVoiceConfig(context).jevTurns) {
+        return CheckResult(CheckState.OFF, context.getString(R.string.checks_jev_off), CheckFix.VOICE)
+    }
     val judge = JevTurnJudge(jev.endpoint, key, jev.model, jev.timeoutMillis, identity = XIAOBO_VOICE_IDENTITY, onUsage = { input, output ->
         UsageStore.record(jev.model, ModelUsage(1, input.toLong(), outputTokens = output.toLong()))
     })
@@ -231,33 +269,41 @@ private suspend fun checkJev(context: Context): CheckResult {
 
 private suspend fun checkTts(context: Context): CheckResult {
     val tts = ProviderConfig.load(context).ttsConfig()
-    if (!tts.enabled && tts.apiKey.isNotBlank()) return CheckResult(CheckState.OFF, "播报回复已关闭", CheckFix.VOICE)
-    if (!tts.ready) return fail(ttsStatusLine(tts), CheckFix.VOICE)
+    if (!tts.enabled && tts.apiKey.isNotBlank()) {
+        return CheckResult(CheckState.OFF, context.getString(R.string.checks_tts_off), CheckFix.VOICE)
+    }
+    if (!tts.ready) return fail(ttsStatusLine(context, tts), CheckFix.VOICE)
     return runCatching { ttsClient(BenchHttpTransport(context)).synthesize(tts, TTS_CHECK_TEXT) }.fold(
-        onSuccess = { audio -> ok("${tts.label} · 合成了 ${audio.bytes.size / 1024} KB") },
-        onFailure = { fail("${tts.label} · ${it.message}", CheckFix.VOICE) },
+        onSuccess = { audio -> ok(context.getString(R.string.checks_tts_ok, tts.label(context), audio.bytes.size / 1024)) },
+        onFailure = { fail("${tts.label(context)} · ${it.message}", CheckFix.VOICE) },
     )
 }
 
 private suspend fun checkWake(context: Context): CheckResult {
-    WakeWordListener.availabilityError(context.assets)?.let { return fail(it) }
-    if (!loadVoiceConfig(context).overlayWake) return warn("没打开：说「你好，小博」不会响应", CheckFix.WAKE_ON)
+    wakeModelUnavailable(context)?.let { return fail(it) }
+    if (!loadVoiceConfig(context).overlayWake) {
+        return warn(context.getString(R.string.checks_wake_off), CheckFix.WAKE_ON)
+    }
     // The listener lives on the main thread; reading the switch there also starts it when nothing blocks it.
     val status = withContext(Dispatchers.Main) {
         WakeWord.load(context)
         WakeWord.status.value
     }
-    return if (status.listening) ok("正在听「你好，小博」和「OK Bothy」") else warn("已打开，但没在听：${status.message}")
+    return if (status.listening) {
+        ok(context.getString(R.string.checks_wake_ok))
+    } else {
+        warn(context.getString(R.string.checks_wake_not_listening, status.message))
+    }
 }
 
 /** Half a second through the configured capture: silence everywhere means the source is held or muted elsewhere. */
 private suspend fun checkRecording(context: Context): CheckResult {
     if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-        return fail("没有麦克风权限", CheckFix.RECORD_PERMISSION)
+        return fail(context.getString(R.string.checks_mic_no_permission), CheckFix.RECORD_PERMISSION)
     }
     val config = loadVoiceConfig(context)
-    val capture = captureDescription(config)
-    if (!WakeWord.micLease.tryLock()) return ok("$capture · 麦克风正被唤醒词或语音会话使用")
+    val capture = captureDescription(context, config)
+    if (!WakeWord.micLease.tryLock()) return ok(context.getString(R.string.checks_mic_busy, capture))
     val frames = try {
         microphone(config).frames().take(RECORD_CHECK_FRAMES).toList()
     } finally {
@@ -266,49 +312,58 @@ private suspend fun checkRecording(context: Context): CheckResult {
     val samples = frames.sumOf { it.size }
     val energy = frames.sumOf { frame -> frame.sumOf { (it / FULL_SCALE) * (it / FULL_SCALE) } }
     if (samples == 0 || energy == 0.0) {
-        return fail("$capture · 录到的全是静音：录音可能被别的应用占用（如系统语音助手）或被系统静音")
+        return fail(context.getString(R.string.checks_mic_silent, capture))
     }
-    return ok("$capture · 有声音（${"%.0f".format(20 * log10(sqrt(energy / samples)))} dBFS）")
+    return ok(context.getString(R.string.checks_mic_ok, capture, "%.0f".format(20 * log10(sqrt(energy / samples)))))
 }
 
-private fun captureDescription(config: VoiceConfig): String = if (config.echoCancel) "单声道 · 系统回声消除" else "单声道"
+private fun captureDescription(context: Context, config: VoiceConfig): String =
+    context.getString(if (config.echoCancel) R.string.checks_capture_mono_aec else R.string.checks_capture_mono)
 
 private fun checkRecordPermission(context: Context): CheckResult =
-    if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) ok("已授权")
-    else fail("没授权：语音和唤醒都用不了", CheckFix.RECORD_PERMISSION)
+    if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+        ok(context.getString(R.string.checks_allowed))
+    } else {
+        fail(context.getString(R.string.checks_record_denied), CheckFix.RECORD_PERMISSION)
+    }
 
 private fun checkOverlay(context: Context): CheckResult =
-    if (Settings.canDrawOverlays(context)) ok("已授权") else fail("没授权：小博悬浮窗和语音唤醒都需要", CheckFix.OVERLAY)
+    if (Settings.canDrawOverlays(context)) ok(context.getString(R.string.checks_allowed))
+    else fail(context.getString(R.string.checks_overlay_denied), CheckFix.OVERLAY)
 
 /**
  * Connected is what counts: a service the system lists but never binds (after a force-stop, on some Android 11 devices) leaves 小博
  * unable to touch the screen. Such a service, or a missing one, is repaired here and the outcome reported.
  */
 private suspend fun checkAccessibility(context: Context): CheckResult = when {
-    !loadAndroidUseEnabled(context) -> CheckResult(CheckState.OFF, "操作屏幕没打开（基础工具）")
-    AndroidUseAccessibility.isConnected() -> ok("已连接")
-    repairAndroidUse(context) -> warn("系统没连上它（App 被强行停止后常见），已重新打开并连上")
-    AndroidUseAccessibility.isEnabled(context) -> fail("已打开但系统一直没连上，重新打开也没用：小博不能操作屏幕", CheckFix.ACCESSIBILITY)
-    else -> fail("没打开：小博不能操作屏幕", CheckFix.ACCESSIBILITY)
+    !loadAndroidUseEnabled(context) -> CheckResult(CheckState.OFF, context.getString(R.string.checks_accessibility_off))
+    AndroidUseAccessibility.isConnected() -> ok(context.getString(R.string.checks_accessibility_connected))
+    repairAndroidUse(context) -> warn(context.getString(R.string.checks_accessibility_repaired))
+    AndroidUseAccessibility.isEnabled(context) ->
+        fail(context.getString(R.string.checks_accessibility_stuck), CheckFix.ACCESSIBILITY)
+    else -> fail(context.getString(R.string.checks_accessibility_disabled), CheckFix.ACCESSIBILITY)
 }
 
 private fun checkNotifications(context: Context): CheckResult = when {
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> ok("这个系统版本不需要")
-    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> ok("已授权")
-    else -> warn("没授权：后台录音的通知不显示，不影响录音和唤醒", CheckFix.NOTIFICATIONS)
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ->
+        ok(context.getString(R.string.checks_notifications_not_needed))
+    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED ->
+        ok(context.getString(R.string.checks_allowed))
+    else -> warn(context.getString(R.string.checks_notifications_denied), CheckFix.NOTIFICATIONS)
 }
 
 /** A failed request in words; the message never carries the key, only the status or the connection error. */
-internal fun requestProblem(error: Throwable): String {
+internal fun requestProblem(context: Context, error: Throwable): String {
     val status = STATUS_IN_MESSAGE.find(error.message.orEmpty())?.groupValues?.get(1)?.toIntOrNull()
-    return status?.let(::statusProblem) ?: "连不上：${error.message ?: error.javaClass.simpleName}"
+    return status?.let { statusProblem(context, it) }
+        ?: context.getString(R.string.checks_cannot_connect, error.message ?: error.javaClass.simpleName)
 }
 
-internal fun statusProblem(status: Int): String = when (status) {
-    401, 403 -> "HTTP $status：key 不对或没有权限"
-    404 -> "HTTP 404：地址不对"
-    429 -> "HTTP 429：请求太多或额度用完"
-    in 500..599 -> "HTTP $status：服务出错"
+internal fun statusProblem(context: Context, status: Int): String = when (status) {
+    401, 403 -> context.getString(R.string.checks_http_key, status)
+    404 -> context.getString(R.string.checks_http_404)
+    429 -> context.getString(R.string.checks_http_429)
+    in 500..599 -> context.getString(R.string.checks_http_server, status)
     else -> "HTTP $status"
 }
 

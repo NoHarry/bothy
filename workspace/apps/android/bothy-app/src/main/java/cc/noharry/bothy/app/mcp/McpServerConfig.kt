@@ -1,5 +1,7 @@
 package cc.noharry.bothy.app.mcp
 import android.content.Context
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.plans.matches
 import java.io.File
@@ -22,8 +24,8 @@ import kotlinx.serialization.json.put
  * 设置 → 连接 → MCP: a standard MCP server is its Streamable HTTP endpoint, with an optional bearer token and request
  * headers.
  */
-internal enum class McpServerKind(val label: String) {
-    HTTP("标准 MCP（Streamable HTTP）"),
+internal enum class McpServerKind(@StringRes val label: Int) {
+    HTTP(R.string.mcp_kind_http),
 }
 
 internal data class McpServer(
@@ -74,9 +76,13 @@ internal sealed interface McpSaveResult {
 /** Adds or replaces the server [draft] describes. */
 internal fun saveMcpServerDraft(context: Context, draft: McpServerDraft): McpSaveResult {
     val servers = loadMcpServers(context)
-    val existing = draft.id?.let { id -> servers.firstOrNull { it.id == id } ?: return McpSaveResult.Rejected("这个 MCP 已经被删除了") }
-    validateMcpDraft(draft, existing)?.let { return McpSaveResult.Rejected(it) }
-    val headers = parseMcpHeaders(draft.headers).getOrElse { return McpSaveResult.Rejected(it.message.orEmpty()) }
+    val existing = draft.id?.let { id ->
+        servers.firstOrNull { it.id == id }
+            ?: return McpSaveResult.Rejected(context.getString(R.string.mcp_server_deleted))
+    }
+    validateMcpDraft(context, draft, existing)?.let { return McpSaveResult.Rejected(it) }
+    val headers = parseMcpHeaders(context, draft.headers)
+        .getOrElse { return McpSaveResult.Rejected(it.message.orEmpty()) }
     val server = McpServer(
         id = existing?.id ?: draft.preferredId?.takeIf { id -> servers.none { it.id == id } && id !in FIXED_PROVIDER_IDS }
             ?: newMcpServerId(draft.label, servers),
@@ -116,23 +122,24 @@ internal fun setMcpServerEnabled(context: Context, id: String, enabled: Boolean)
     return true
 }
 
-internal fun validateMcpDraft(draft: McpServerDraft, existing: McpServer?): String? = when {
-    draft.label.isBlank() -> "请填名称"
-    draft.label.trim().length > MAX_LABEL_CHARS -> "名称最多 $MAX_LABEL_CHARS 个字"
-    else -> validateMcpUrl(draft.url.trim())
+internal fun validateMcpDraft(context: Context, draft: McpServerDraft, existing: McpServer?): String? = when {
+    draft.label.isBlank() -> context.getString(R.string.mcp_name_required)
+    draft.label.trim().length > MAX_LABEL_CHARS -> context.getString(R.string.mcp_name_too_long, MAX_LABEL_CHARS)
+    else -> validateMcpUrl(context, draft.url.trim())
 }
 
-private fun validateMcpUrl(url: String): String? {
+private fun validateMcpUrl(context: Context, url: String): String? {
     val uri = try {
         URI(url)
     } catch (_: URISyntaxException) {
-        return "地址格式不对，比如 https://example.com/mcp"
+        return context.getString(R.string.mcp_url_invalid)
     }
     return when {
-        uri.scheme !in setOf("http", "https") -> "地址要以 https:// 或 http:// 开头"
-        uri.host.isNullOrBlank() -> "地址里没有主机名"
+        uri.scheme !in setOf("http", "https") -> context.getString(R.string.mcp_url_scheme)
+        uri.host.isNullOrBlank() -> context.getString(R.string.mcp_url_no_host)
         // network_security_config.xml permits cleartext only on loopback (a PC server through adb reverse).
-        uri.scheme == "http" && uri.host !in LOOPBACK_MCP_HOSTS -> "http:// 只能连本机（127.0.0.1 或 localhost，配合 adb reverse），其他地址请用 https://"
+        uri.scheme == "http" && uri.host !in LOOPBACK_MCP_HOSTS ->
+            context.getString(R.string.mcp_url_http_loopback_only)
         else -> null
     }
 }
@@ -140,12 +147,12 @@ private fun validateMcpUrl(url: String): String? {
 private val LOOPBACK_MCP_HOSTS = setOf("127.0.0.1", "localhost")
 
 /** `Name: value` per line. Names the client sets itself (content type, session, protocol version) are refused. */
-internal fun parseMcpHeaders(text: String): Result<Map<String, String>> = runCatching {
+internal fun parseMcpHeaders(context: Context, text: String): Result<Map<String, String>> = runCatching {
     text.lines().map(String::trim).filter(String::isNotEmpty).associate { line ->
         val name = line.substringBefore(':', "").trim()
         val value = line.substringAfter(':', "").trim()
-        require(HEADER_NAME.matches(name) && value.isNotEmpty()) { "请求头要写成「名称: 值」，一行一个：$line" }
-        require(name.lowercase() !in RESERVED_HEADERS) { "请求头 $name 由 App 自己设置，不能填" }
+        require(HEADER_NAME.matches(name) && value.isNotEmpty()) { context.getString(R.string.mcp_header_format, line) }
+        require(name.lowercase() !in RESERVED_HEADERS) { context.getString(R.string.mcp_header_reserved, name) }
         name to value
     }
 }
@@ -216,8 +223,10 @@ internal object McpSecrets {
 
     /** Returns why it could not be saved, or null. */
     fun save(context: Context, id: String, stored: Stored): String? {
-        if (stored.token.any(Char::isWhitespace)) return "令牌不能有空格"
-        if (stored.query.values.any { value -> value.any(Char::isWhitespace) }) return "密钥不能有空格"
+        if (stored.token.any(Char::isWhitespace)) return context.getString(R.string.mcp_token_spaces)
+        if (stored.query.values.any { value -> value.any(Char::isWhitespace) }) {
+            return context.getString(R.string.mcp_key_spaces)
+        }
         val json = buildJsonObject {
             put("token", stored.token)
             put("headers", JsonObject(stored.headers.mapValues { JsonPrimitive(it.value) }))
@@ -227,7 +236,7 @@ internal object McpSecrets {
             file(context, id).apply { parentFile?.mkdirs() }.writeText(json.toString(), Charsets.UTF_8)
             null
         } catch (_: IOException) {
-            "令牌没能保存"
+            context.getString(R.string.mcp_token_save_failed)
         }
     }
 

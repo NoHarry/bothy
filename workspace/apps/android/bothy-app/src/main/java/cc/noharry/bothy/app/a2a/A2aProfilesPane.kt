@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.a2a
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,11 +30,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -65,16 +69,18 @@ internal data class A2aProfilesNavigationState(
             A2aProfilesPage.ADD -> A2aProfilesNavigationState()
         }
 
-    fun title(): String =
+    @StringRes
+    fun title(): Int =
         when (page) {
-            A2aProfilesPage.LIST -> "A2A clients"
-            A2aProfilesPage.ADD -> "Add A2A service"
+            A2aProfilesPage.LIST -> R.string.a2a_profiles_title
+            A2aProfilesPage.ADD -> R.string.a2a_add_service_title
         }
 
-    fun breadcrumb(): String =
+    @StringRes
+    fun breadcrumb(): Int =
         when (page) {
-            A2aProfilesPage.LIST -> "Settings › A2A"
-            A2aProfilesPage.ADD -> "Settings › A2A › Add"
+            A2aProfilesPage.LIST -> R.string.a2a_breadcrumb
+            A2aProfilesPage.ADD -> R.string.a2a_breadcrumb_add
         }
 }
 
@@ -96,11 +102,11 @@ internal fun A2aProfilesPane(
     SettingsChildPanel(modifier, embedded) {
         if (!embedded || navigation.page == A2aProfilesPage.ADD) {
         SettingsNavBar(
-            title = navigation.title(),
-            breadcrumb = navigation.breadcrumb(),
-            backLabel = "Back",
+            title = stringResource(navigation.title()),
+            breadcrumb = stringResource(navigation.breadcrumb()),
+            backLabel = stringResource(R.string.common_back),
             onBack = goBack,
-            hint = "Toggles apply immediately · custom services persist on this device.",
+            hint = stringResource(R.string.a2a_profiles_hint),
         )
         Spacer(Modifier.height(Dimens.spaceSm))
         HorizontalDivider(color = ConsoleColors.borderSubtle)
@@ -133,10 +139,16 @@ private fun A2aProfileListContent(
     Column(modifier) {
         // The add button leads the row: the 小博 bubble rests on the top-right corner of the screen and covered it there.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onAdd) { Text("+ Add A2A service") }
+            TextButton(onClick = onAdd) { Text(stringResource(R.string.a2a_add_service)) }
+            val errors = state.errorsByProfileId.size
             Text(
-                "${state.enabledProfileIds.size} of ${state.profiles.size} enabled · " +
-                    "${state.loadedModuleIds.size} loaded · ${state.errorsByProfileId.size} errors",
+                stringResource(
+                    R.string.a2a_profiles_counts,
+                    state.enabledProfileIds.size,
+                    state.profiles.size,
+                    state.loadedModuleIds.size,
+                    pluralStringResource(R.plurals.a2a_error_count, errors, errors),
+                ),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 modifier = Modifier.weight(1f),
@@ -157,7 +169,7 @@ private fun A2aProfileListContent(
                 if (state.profiles.isEmpty()) {
                     item(key = "a2a-empty") {
                         Text(
-                            state.error ?: "No A2A client profiles",
+                            state.error ?: stringResource(R.string.a2a_no_profiles),
                             style = ConsoleType.meta,
                             color = if (state.error != null) colors.danger else colors.muted,
                             modifier = Modifier.padding(Dimens.spaceLg),
@@ -205,12 +217,12 @@ private fun A2aProfileRow(
         Spacer(Modifier.width(Dimens.spaceMd))
         if (profile.userDefined) {
             TextButton(onClick = { actions.deleteA2aProfile(profile.id) }) {
-                Text("Delete", color = colors.danger)
+                Text(stringResource(R.string.common_delete), color = colors.danger)
             }
             Spacer(Modifier.width(Dimens.spaceXs))
         }
         SettingsStatusChip(
-            label = a2aProfileStatusLabel(profile, loaded, profileError),
+            label = stringResource(a2aProfileStatusLabel(profile, loaded, profileError)),
             active = loaded,
             danger = profileError != null,
         )
@@ -234,7 +246,11 @@ private fun A2aProfileInfo(
     Column(modifier) {
         Text(profile.label, style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.Medium)
         Text(
-            listOfNotNull(profile.moduleId, profile.endpoint.toString(), "token set".takeIf { hasToken }).joinToString(" · "),
+            listOfNotNull(
+                profile.moduleId,
+                profile.endpoint.toString(),
+                stringResource(R.string.a2a_token_set).takeIf { hasToken },
+            ).joinToString(" · "),
             style = ConsoleType.meta,
             color = colors.muted,
             maxLines = 1,
@@ -249,11 +265,12 @@ private fun A2aProfileInfo(
     }
 }
 
-private fun a2aProfileStatusLabel(profile: A2aProfile, loaded: Boolean, error: String?): String = when {
-    loaded -> "Loaded"
-    error != null -> "Error"
-    profile.enabled -> "Enabled"
-    else -> "Disabled"
+@StringRes
+private fun a2aProfileStatusLabel(profile: A2aProfile, loaded: Boolean, error: String?): Int = when {
+    loaded -> R.string.a2a_status_loaded
+    error != null -> R.string.a2a_status_error
+    profile.enabled -> R.string.a2a_status_enabled
+    else -> R.string.a2a_status_disabled
 }
 
 /**
@@ -284,10 +301,10 @@ private fun A2aProfileAddForm(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            A2aFormField("Name", label) { label = it }
-            A2aFormField("Endpoint URL", endpoint) { endpoint = it }
-            A2aFormField("What it can do (shown to the model)", description) { description = it }
-            A2aFormField("Access token (optional, stored on this device only)", token, secret = true) { token = it }
+            A2aFormField(stringResource(R.string.a2a_form_name), label) { label = it }
+            A2aFormField(stringResource(R.string.a2a_form_endpoint), endpoint) { endpoint = it }
+            A2aFormField(stringResource(R.string.a2a_form_description), description) { description = it }
+            A2aFormField(stringResource(R.string.a2a_form_token), token, secret = true) { token = it }
             A2aModulePicker(moduleIds, moduleId) { moduleId = it }
             A2aLoopbackSwitchRow(allowLoopback) { allowLoopback = it }
             saveError?.let {
@@ -302,7 +319,7 @@ private fun A2aProfileAddForm(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onDone) { Text("Cancel") }
+            TextButton(onClick = onDone) { Text(stringResource(R.string.common_cancel)) }
             Spacer(Modifier.width(Dimens.spaceSm))
             Button(
                 onClick = {
@@ -310,7 +327,7 @@ private fun A2aProfileAddForm(
                     if (error == null) onDone() else saveError = error
                 },
                 shape = RoundedCornerShape(Dimens.radiusMd),
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.common_save)) }
         }
     }
 }
@@ -341,7 +358,7 @@ private fun A2aModulePicker(
     onSelect: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        Text("Module", style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(stringResource(R.string.a2a_form_module), style = ConsoleType.meta, color = ConsoleColors.muted)
         moduleIds.forEach { option ->
             SelectableOptionRow(
                 label = option,
@@ -360,9 +377,9 @@ private fun A2aLoopbackSwitchRow(
     val colors = ConsoleColors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("Allow loopback HTTP for debug", style = ConsoleType.body, color = colors.text)
+            Text(stringResource(R.string.a2a_form_loopback), style = ConsoleType.body, color = colors.text)
             Text(
-                "Required for http:// or 127.0.0.1 / localhost endpoints",
+                stringResource(R.string.a2a_form_loopback_hint),
                 style = ConsoleType.meta,
                 color = colors.muted,
             )

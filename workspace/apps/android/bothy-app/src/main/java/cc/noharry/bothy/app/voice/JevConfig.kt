@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.voice
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.model.buildConfigValues
 import cc.noharry.bothy.app.voice.tts.validationError
 import java.io.File
@@ -18,17 +20,19 @@ internal data class JevConfig(
     val mode: JevMode = JevMode.FLAT,
     val domainMinScore: Double = 0.35,
 ) {
-    fun validationError(): String? {
+    /** Null when usable, else the message saying what is wrong, shown with `getString`. */
+    @StringRes
+    fun validationError(): Int? {
         val uri = runCatching { URI(endpoint) }.getOrNull()
         return when {
-            uri?.scheme != "https" || uri.host.isNullOrBlank() -> "Jev 地址需为 https:// 地址。"
-            uri.userInfo != null || uri.query != null || uri.fragment != null -> "Jev 地址不能包含凭据、查询参数或片段。"
-            model.isBlank() || model.any(Char::isWhitespace) -> "请填写 Jev 模型 ID（不含空白）。"
-            timeoutMillis !in MIN_JEV_TIMEOUT_MS..MAX_JEV_TIMEOUT_MS -> "Jev 超时需为 500–15000 毫秒。"
-            !minScore.isFinite() || minScore !in 0.0..1.0 -> "最低相关度需在 0–1 之间。"
-            !domainMinScore.isFinite() || domainMinScore !in 0.0..1.0 -> "领域相关度需在 0–1 之间。"
-            maxTools !in 1..MAX_JEV_TOOLS -> "候选工具数需为 1–24。"
-            enabled && !hasApiKey -> "开启工具检索前，请先在 设置 → 语音 → 密钥 保存 Jev API key。"
+            uri?.scheme != "https" || uri.host.isNullOrBlank() -> R.string.voice_jev_endpoint_https
+            uri.userInfo != null || uri.query != null || uri.fragment != null -> R.string.voice_jev_endpoint_parts
+            model.isBlank() || model.any(Char::isWhitespace) -> R.string.voice_jev_model_required
+            timeoutMillis !in MIN_JEV_TIMEOUT_MS..MAX_JEV_TIMEOUT_MS -> R.string.voice_jev_timeout_range
+            !minScore.isFinite() || minScore !in 0.0..1.0 -> R.string.voice_jev_min_score_range
+            !domainMinScore.isFinite() || domainMinScore !in 0.0..1.0 -> R.string.voice_jev_domain_score_range
+            maxTools !in 1..MAX_JEV_TOOLS -> R.string.voice_jev_max_tools_range
+            enabled && !hasApiKey -> R.string.voice_jev_key_needed_for_search
             else -> null
         }
     }
@@ -58,13 +62,13 @@ internal fun saveJevConfig(
     clearKey: Boolean = false,
 ): String? {
     val key = if (clearKey) "" else replacementKey.trim().ifEmpty { loadJevKey(context) }
-    if (key.any(Char::isWhitespace)) return "API key 不能包含空白字符。"
+    if (key.any(Char::isWhitespace)) return context.getString(R.string.voice_key_whitespace)
     val saved = config.copy(endpoint = config.endpoint.trim(), model = config.model.trim(), hasApiKey = key.isNotEmpty())
-    saved.validationError()?.let { return it }
+    saved.validationError()?.let { return context.getString(it) }
     return try {
         val keyFile = File(context.noBackupFilesDir, JEV_KEY_FILE)
         if (clearKey) {
-            if (keyFile.exists() && !keyFile.delete()) return "无法删除已保存的 Jev key。"
+            if (keyFile.exists() && !keyFile.delete()) return context.getString(R.string.voice_jev_key_delete_failed)
         } else if (replacementKey.isNotBlank()) {
             context.noBackupFilesDir.mkdirs()
             keyFile.writeText(key, Charsets.UTF_8)
@@ -74,9 +78,9 @@ internal fun saveJevConfig(
             .putString("model", saved.model).putLong("timeout_ms", saved.timeoutMillis)
             .putString("min_score", saved.minScore.toString()).putInt("max_tools", saved.maxTools)
             .putString("mode", saved.mode.wireName).putString("domain_min_score", saved.domainMinScore.toString()).commit()
-        if (committed) null else "无法保存 Jev 设置。"
+        if (committed) null else context.getString(R.string.voice_jev_save_failed)
     } catch (_: IOException) {
-        "无法保存 Jev API key。"
+        context.getString(R.string.voice_jev_key_save_failed)
     }
 }
 
@@ -123,7 +127,8 @@ internal fun seedEmbeddedJev(context: Context, embedded: () -> Map<String, Strin
         val model = values[EMBEDDED_JEV_MODEL]?.trim()?.ifEmpty { null }
         val defaults = JevConfig()
         val problem = defaults.copy(endpoint = endpoint ?: defaults.endpoint, model = model ?: defaults.model).validationError()
-            ?: "API key 不能包含空白字符。".takeIf { key.any(Char::isWhitespace) }
+            ?.let { context.getString(it) }
+            ?: context.getString(R.string.voice_key_whitespace).takeIf { key.any(Char::isWhitespace) }
         try {
             if (problem == null) {
                 context.noBackupFilesDir.mkdirs()
@@ -142,10 +147,10 @@ internal fun seedEmbeddedJev(context: Context, embedded: () -> Map<String, Strin
     prefs.edit().putBoolean(KEY_SEEDED, true).apply()
 }
 
-internal enum class JevMode(val wireName: String, val label: String) {
-    FLAT("flat", "一次检索 · 在全部工具里选"),
-    TWO_STAGE("two_stage", "两段 · 先选领域，再选工具"),
-    TWO_STAGE_SUBDOMAINS("two_stage_subdomains", "两段 · 先选子领域，再选工具"),
+internal enum class JevMode(val wireName: String, @StringRes val label: Int) {
+    FLAT("flat", R.string.voice_jev_mode_flat),
+    TWO_STAGE("two_stage", R.string.voice_jev_mode_two_stage),
+    TWO_STAGE_SUBDOMAINS("two_stage_subdomains", R.string.voice_jev_mode_two_stage_subdomains),
 }
 
 private const val JEV_PREFS = "debug_jev_config"

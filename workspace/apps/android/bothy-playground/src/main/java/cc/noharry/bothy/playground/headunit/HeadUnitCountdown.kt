@@ -26,9 +26,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.link.closesAt
 import cc.noharry.bothy.playground.link.holdMs
 import kotlin.math.ceil
@@ -48,6 +50,7 @@ internal fun CloseCountdown(closesAt: Long, holdMs: Long, onClose: () -> Unit) {
     }
     // Recomposes once a second; the ring reads the animation while drawing.
     val seconds by remember(holdMs) { derivedStateOf { ceil(left.value * holdMs / 1000f).toInt() } }
+    val endVoice = stringResource(R.string.headunit_end_voice)
     Row(
         Modifier.clip(CircleShape).clickable(onClick = onClose),
         verticalAlignment = Alignment.CenterVertically,
@@ -69,7 +72,7 @@ internal fun CloseCountdown(closesAt: Long, holdMs: Long, onClose: () -> Unit) {
                     )
                 }
             }
-            Icon(Icons.Filled.Close, contentDescription = "退出语音", tint = UnitColors.muted, modifier = Modifier.size(20.dp))
+            Icon(Icons.Filled.Close, contentDescription = endVoice, tint = UnitColors.muted, modifier = Modifier.size(20.dp))
         }
     }
 }

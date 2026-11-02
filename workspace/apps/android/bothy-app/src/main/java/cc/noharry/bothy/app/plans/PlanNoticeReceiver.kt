@@ -3,6 +3,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.voice.PLAN_CHIME_PEAK
 import cc.noharry.bothy.app.voice.SoftNote
 import cc.noharry.bothy.app.voice.SoftTimbre
@@ -29,7 +30,8 @@ class PlanNoticeReceiver : BroadcastReceiver() {
         }
         val title = intent.getStringExtra(EXTRA_TITLE)?.trim()?.takeIf(String::isNotEmpty)
         if (intent.getBooleanExtra(EXTRA_POPUP, true)) {
-            PlanNotice.show(context, title?.let { SAMPLE_ENTRY.copy(title = it) } ?: SAMPLE_ENTRY, tried)
+            val sample = sampleEntry(context)
+            PlanNotice.show(context, title?.let { sample.copy(title = it) } ?: sample, tried)
         } else {
             PlanNotice.chime(tried)
         }
@@ -47,7 +49,13 @@ class PlanNoticeReceiver : BroadcastReceiver() {
     }
 }
 
-private val SAMPLE_ENTRY = PlanNoticeEntry("sample", "提醒", "示例计划", "提醒你：计划到点时就是这样", null)
+private fun sampleEntry(context: Context) = PlanNoticeEntry(
+    "sample",
+    context.getString(R.string.plans_kind_reminder),
+    context.getString(R.string.plans_notice_sample_title),
+    context.getString(R.string.plans_notice_sample_said),
+    null,
+)
 private const val PLAN_NOTICE_ACTION = "cc.noharry.bothy.DEBUG_PLAN_NOTICE"
 private const val EXTRA_NOTES = "notes"
 private const val EXTRA_TIMBRE = "timbre"

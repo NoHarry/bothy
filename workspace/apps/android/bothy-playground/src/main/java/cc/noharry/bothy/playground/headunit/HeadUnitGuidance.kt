@@ -25,15 +25,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.nav.Guide
 import cc.noharry.bothy.playground.nav.NavState
-import cc.noharry.bothy.playground.nav.km
 import com.amap.api.navi.model.AMapLaneInfo
 import com.amap.api.navi.view.DriveWayView
 
@@ -54,14 +55,16 @@ internal fun JunctionCard(nav: NavState, picture: Bitmap, modifier: Modifier = M
     Column(modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.card)) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(turnIcon(nav.turnIcon), contentDescription = null, tint = Color.White, modifier = Modifier.size(34.dp))
-            val (number, unit) = nav.stepMeters.stepDistanceParts()
+            val (number, unitName) = nav.stepMeters.stepDistanceParts()
+            val unit = stringResource(unitName)
             Text(number, color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text(unit, color = Color.White, fontSize = 15.sp, modifier = Modifier.padding(top = 6.dp))
-            Text(nav.nextRoad.ifEmpty { "前方道路" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val road = nav.nextRoad.ifEmpty { stringResource(R.string.headunit_road_ahead) }
+            Text(road, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Image(
             picture.asImageBitmap(),
-            contentDescription = "路口放大图",
+            contentDescription = stringResource(R.string.headunit_junction_view),
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxWidth().aspectRatio(picture.width.toFloat() / picture.height.coerceAtLeast(1)),
         )
@@ -74,8 +77,10 @@ internal fun RoadsideCard(guide: Guide, modifier: Modifier = Modifier) {
     UnitCard(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(if (guide.stopIsToll) Icons.Filled.Toll else Icons.Filled.LocalGasStation, contentDescription = null, tint = UnitColors.teal, modifier = Modifier.size(20.dp))
-            Text("${if (guide.stopIsToll) "收费站" else "服务区"} · ${guide.stopName}", color = Color.White, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
-            Text(guide.stopMeters.km(), color = UnitColors.muted, fontSize = 13.sp)
+            val kind =
+                stringResource(if (guide.stopIsToll) R.string.headunit_toll_station else R.string.headunit_service_area)
+            Text("$kind · ${guide.stopName}", color = Color.White, fontSize = 14.sp, maxLines = 1, modifier = Modifier.weight(1f))
+            Text(guide.stopMeters.distanceText(), color = UnitColors.muted, fontSize = 13.sp)
         }
     }
 }

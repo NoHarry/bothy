@@ -40,6 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -113,8 +115,8 @@ internal fun OnboardingScreen(onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(Modifier.widthIn(max = ONBOARDING_WIDTH), verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-            Text("你好，我是小博", style = ConsoleType.hero, color = ConsoleColors.text)
-            Text("填一个模型 key 就能开始，其余的都可以跳过、以后再在设置里补。", style = ConsoleType.body, color = ConsoleColors.muted)
+            Text(stringResource(R.string.onboarding_hello), style = ConsoleType.hero, color = ConsoleColors.text)
+            Text(stringResource(R.string.onboarding_intro), style = ConsoleType.body, color = ConsoleColors.muted)
             ModelKeyStep()
             DoubaoKeyStep()
             PermissionsStep()
@@ -127,25 +129,35 @@ internal fun OnboardingScreen(onDone: () -> Unit) {
 @Composable
 private fun ModelKeyStep() {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var key by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<Pair<String, Color>?>(null) }
     val good = ConsoleColors.success
     val bad = ConsoleColors.danger
     val waiting = ConsoleColors.muted
-    OnboardingStep("1 · 模型 key（必填）", done = status?.second == good) {
-        Text("小博用 DeepSeek 思考和办事，按量计费、很便宜。到 DeepSeek 开放平台创建一个 API key，粘贴到下面。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-        LinkButton("去 DeepSeek 开放平台申请", DEEPSEEK_KEYS_URL)
+    val checking = stringResource(R.string.onboarding_checking)
+    OnboardingStep(stringResource(R.string.onboarding_step_model_key), done = status?.second == good) {
+        Text(
+            stringResource(R.string.onboarding_model_key_note),
+            style = ConsoleType.bodySmall,
+            color = ConsoleColors.muted,
+        )
+        LinkButton(stringResource(R.string.onboarding_deepseek_link), DEEPSEEK_KEYS_URL)
         KeyField("DeepSeek API key", key) { key = it }
         Button(enabled = key.isNotBlank(), onClick = {
-            status = "正在检查…" to waiting
+            status = checking to waiting
             scope.launch {
                 val profile = ProviderConfig.load(context).activeProfile
                 RuntimeSession.saveProviderOverride(context, profile.provider, key.trim(), profile.model, profile.baseUrl, profile.endpoint)
                 val result = withContext(Dispatchers.IO) { checkChatModel(context) }
-                status = if (result.state == CheckState.OK) "可以用了 · ${result.detail}" to good else result.detail to bad
+                status = if (result.state == CheckState.OK) {
+                    resources.getString(R.string.onboarding_model_ready, result.detail) to good
+                } else {
+                    result.detail to bad
+                }
             }
-        }) { Text("保存并检查") }
+        }) { Text(stringResource(R.string.onboarding_save_and_check)) }
         status?.let { (text, color) -> Text(text, style = ConsoleType.bodySmall, color = color) }
     }
 }
@@ -157,22 +169,21 @@ private fun DoubaoKeyStep() {
     var key by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(loadDoubaoTtsKey(context).isNotEmpty()) }
     var problem by remember { mutableStateOf<String?>(null) }
-    OnboardingStep("2 · 豆包语音 key（推荐，可跳过）", done = saved) {
+    OnboardingStep(stringResource(R.string.onboarding_step_doubao_key), done = saved) {
         Text(
-            "有了它，小博用豆包的声音说话，还能打开「端到端」语音模式，像打电话一样连续对话。不填也能用：小博用设备自带的系统语音说话。" +
-                "在火山引擎豆包语音控制台的「开通管理」里开通「语音合成2.0」和「端到端实时语音」，再到左侧「API Key」创建一个 key，粘贴到下面。",
+            stringResource(R.string.onboarding_doubao_key_note),
             style = ConsoleType.bodySmall,
             color = ConsoleColors.muted,
         )
-        LinkButton("去豆包语音控制台开通", DOUBAO_CONSOLE_URL)
-        KeyField("豆包语音 API key", key) { key = it }
+        LinkButton(stringResource(R.string.onboarding_doubao_link), DOUBAO_CONSOLE_URL)
+        KeyField(stringResource(R.string.onboarding_doubao_key_label), key) { key = it }
         Button(enabled = key.isNotBlank(), onClick = {
             problem = saveDoubaoTtsKey(context, key)
             saved = problem == null
-        }) { Text("保存") }
+        }) { Text(stringResource(R.string.common_save)) }
         when {
             problem != null -> Text(problem.orEmpty(), style = ConsoleType.bodySmall, color = ConsoleColors.danger)
-            saved -> Text("已保存：小博会用豆包的声音说话", style = ConsoleType.bodySmall, color = ConsoleColors.success)
+            saved -> Text(stringResource(R.string.onboarding_doubao_saved), style = ConsoleType.bodySmall, color = ConsoleColors.success)
         }
     }
 }
@@ -185,23 +196,43 @@ private fun PermissionsStep() {
     ReadAgainOnResume { round++ }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { round++ }
     val packageUri = Uri.fromParts("package", context.packageName, null)
-    OnboardingStep("3 · 权限", done = false) {
+    OnboardingStep(stringResource(R.string.onboarding_step_permissions), done = false) {
         // Read again after each return from a settings screen.
         key(round) {
-            PermissionRow("麦克风（必需）", "说「你好小博」唤醒、语音对话", context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            PermissionRow(
+                stringResource(R.string.onboarding_permission_microphone),
+                stringResource(R.string.onboarding_permission_microphone_note),
+                context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED,
+            ) {
                 ask.launch(Manifest.permission.RECORD_AUDIO)
             }
-            PermissionRow("悬浮窗（必需）", "小博浮在其它 App 上面，随时唤醒", Settings.canDrawOverlays(context)) {
+            PermissionRow(
+                stringResource(R.string.onboarding_permission_overlay),
+                stringResource(R.string.onboarding_permission_overlay_note),
+                Settings.canDrawOverlays(context),
+            ) {
                 openSystemScreen(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri))
             }
-            PermissionRow("通知使用权（推荐）", "看到并控制网易云等 App 在放的音乐", DeviceMediaMcpProvider.notificationAccessGranted(context)) {
+            PermissionRow(
+                stringResource(R.string.onboarding_permission_notifications),
+                stringResource(R.string.onboarding_permission_notifications_note),
+                DeviceMediaMcpProvider.notificationAccessGranted(context),
+            ) {
                 openSystemScreen(context, DeviceMediaMcpProvider.notificationAccessIntent())
             }
-            PermissionRow("无障碍（可选）", "让小博帮你操作其它 App（打开、点按、输入）", AndroidUseAccessibility.isEnabled(context)) {
+            PermissionRow(
+                stringResource(R.string.onboarding_permission_accessibility),
+                stringResource(R.string.onboarding_permission_accessibility_note),
+                AndroidUseAccessibility.isEnabled(context),
+            ) {
                 saveAndroidUseEnabled(context, true)
                 openSystemScreen(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
-            PermissionRow("后台运行（可选）", "不被系统省电清理；有的系统还要在这里打开「自启动」", ignoresBatteryLimits(context)) {
+            PermissionRow(
+                stringResource(R.string.onboarding_permission_background),
+                stringResource(R.string.onboarding_permission_background_note),
+                ignoresBatteryLimits(context),
+            ) {
                 openSystemScreen(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri))
             }
         }
@@ -213,14 +244,28 @@ private fun PermissionsStep() {
 private fun FirstWordsStep(onDone: () -> Unit) {
     val context = LocalContext.current
     val playground = remember { context.packageManager.getLaunchIntentForPackage(PLAYGROUND_PACKAGE) }
-    OnboardingStep("4 · 试试这样说", done = false) {
-        Text("说「你好小博」或「OK Bothy」，也可以点悬浮的小博，然后：", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-        FIRST_WORDS.forEach { Text("· $it", style = ConsoleType.body, color = ConsoleColors.text) }
+    OnboardingStep(stringResource(R.string.onboarding_step_first_words), done = false) {
+        Text(
+            stringResource(R.string.onboarding_first_words_note),
+            style = ConsoleType.bodySmall,
+            color = ConsoleColors.muted,
+        )
+        FIRST_WORDS.forEach { Text("· ${stringResource(it)}", style = ConsoleType.body, color = ConsoleColors.text) }
         if (playground != null) {
-            Text("装了 Bothy Playground：打开它放在前台，小博就在虚拟车机里，可以开空调、开车窗、导航。", style = ConsoleType.bodySmall, color = ConsoleColors.muted)
-            TextButton(onClick = { runCatching { context.startActivity(playground.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }) { Text("打开 Bothy Playground") }
+            Text(
+                stringResource(R.string.onboarding_playground_note),
+                style = ConsoleType.bodySmall,
+                color = ConsoleColors.muted,
+            )
+            TextButton(onClick = {
+                runCatching { context.startActivity(playground.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }) {
+                Text(stringResource(R.string.onboarding_open_playground))
+            }
         }
-        Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("开始使用") }
+        Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.onboarding_get_started))
+        }
     }
 }
 
@@ -266,7 +311,11 @@ private fun PermissionRow(title: String, what: String, granted: Boolean, onGrant
             Text(title, style = ConsoleType.body, color = ConsoleColors.text)
             Text(what, style = ConsoleType.meta, color = ConsoleColors.muted)
         }
-        if (granted) Text("已开启", style = ConsoleType.meta, color = ConsoleColors.success) else TextButton(onClick = onGrant) { Text("去开启") }
+        if (granted) {
+            Text(stringResource(R.string.onboarding_permission_granted), style = ConsoleType.meta, color = ConsoleColors.success)
+        } else {
+            TextButton(onClick = onGrant) { Text(stringResource(R.string.onboarding_permission_grant)) }
+        }
     }
 }
 
@@ -287,8 +336,8 @@ private val ONBOARDING_WIDTH = 640.dp
 private const val DEEPSEEK_KEYS_URL = "https://platform.deepseek.com/api_keys"
 private const val DOUBAO_CONSOLE_URL = "https://console.volcengine.com/speech/new/setting/activate?projectName=default"
 private val FIRST_WORDS = listOf(
-    "明天深圳天气怎么样",
-    "明早八点提醒我带伞",
-    "现在在放什么歌（要先开通知使用权）",
-    "打开计算器算一下 23 乘以 47（要先开无障碍）",
+    R.string.onboarding_try_weather,
+    R.string.onboarding_try_reminder,
+    R.string.onboarding_try_song,
+    R.string.onboarding_try_calculator,
 )

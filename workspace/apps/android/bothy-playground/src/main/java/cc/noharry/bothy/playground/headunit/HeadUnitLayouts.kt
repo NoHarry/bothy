@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -48,6 +49,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import cc.noharry.bothy.playground.CallRecord
 import cc.noharry.bothy.playground.PlaygroundStore
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.ServerStatus
 import cc.noharry.bothy.playground.home.World
@@ -181,7 +183,7 @@ private fun RealStatus(server: ServerState, weather: WeatherReport?, now: Long, 
     ) {
         ModeSwitch()
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
-        weather?.let { StatusLabel("${it.weather} ${it.temperature}°") }
+        weather?.let { StatusLabel("${weatherText(it.weather)} ${it.temperature}°") }
         StatusLabel(clockText(now, now))
     }
 }
@@ -209,7 +211,9 @@ private fun RealBar(assistant: AssistantView, playing: MediaNow, controls: Media
         ) {
             VoiceDock(assistant, voiceWidth, onClose)
             // While 小博 listens or talks the corner and its light need the room (owner: 「这个引导不要和光效叠一起」).
-            if (!assistant.listening && !assistant.speaking) SuggestionTicker(REAL_SUGGESTIONS) { Assistant.say(context, it) }
+            if (!assistant.listening && !assistant.speaking) {
+                SuggestionTicker(REAL_SUGGESTIONS.map { stringResource(it) }) { Assistant.say(context, it) }
+            }
             Spacer(Modifier.weight(1f))
             PlayStrip(playing, controls)
             PlainIcon(Icons.Filled.Settings, size = 24, onClick = onSettings)
@@ -250,9 +254,11 @@ private fun PlayStrip(now: MediaNow, controls: MediaControls) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Icon(Icons.Filled.MusicNote, contentDescription = null, tint = if (now.playing) UnitColors.teal else UnitColors.muted, modifier = Modifier.size(20.dp))
+        val enable = stringResource(R.string.headunit_enable_playback)
+        val nothing = stringResource(R.string.headunit_nothing_playing)
         when {
-            !now.access -> Text("点此开启播放控制", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
-            !now.any -> Text("没有在放", color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
+            !now.access -> Text(enable, color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
+            !now.any -> Text(nothing, color = UnitColors.muted, fontSize = 13.sp, maxLines = 1)
             else -> {
                 Column(Modifier.widthIn(max = PLAY_TEXT_WIDTH)) {
                     Text(now.title.ifBlank { now.app }, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -281,8 +287,11 @@ private val DEVICE_MEDIA = MediaControls({ NowPlaying.previous() }, { NowPlaying
  * what real navigation can do with the device alone, the places nearby, the weather, music and video, reminders, apps.
  */
 private val REAL_SUGGESTIONS = listOf(
-    "附近有充电站吗", "明天天气怎么样", "放点轻松的音乐", "找一下附近的停车场", "明早八点提醒我带伞", "现在放的是什么歌",
-    "这周末附近有什么活动", "找个加油站", "打开哔哩哔哩", "下一首", "附近有什么好吃的", "音量调小一点", "今天有什么新闻",
+    R.string.headunit_say_charging_nearby, R.string.headunit_say_weather_tomorrow, R.string.headunit_say_relaxing_music,
+    R.string.headunit_say_find_parking, R.string.headunit_say_umbrella_reminder, R.string.headunit_say_what_song,
+    R.string.headunit_say_weekend_events, R.string.headunit_say_gas_station, R.string.headunit_say_open_bilibili,
+    R.string.headunit_say_next_song, R.string.headunit_say_food_nearby, R.string.headunit_say_volume_down,
+    R.string.headunit_say_news_today,
 )
 
 

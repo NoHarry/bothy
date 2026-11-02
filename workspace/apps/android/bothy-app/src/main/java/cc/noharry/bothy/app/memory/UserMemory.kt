@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.memory
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.saveFileAtomically
 import cc.noharry.bothy.app.console.setAsideUnreadable
 import cc.noharry.bothy.app.console.singleLine
@@ -19,15 +21,23 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
-/** The kinds of things 小博 remembers about the user, in the order 设置 → 记忆 shows them. */
-internal enum class MemoryCategory(val id: String, val label: String, val hint: String) {
-    IDENTITY("identity", "称呼与身份", "怎么称呼你、职业、生日"),
-    PLACES("places", "常去地点", "家、公司、常去的店"),
-    HOME("home", "设备与家居偏好", "温度、灯光、音量、亮度"),
-    MEDIA("media", "娱乐", "喜欢的歌手、电台、节目"),
-    TRAVEL("travel", "出行习惯", "通勤时间、路线偏好、充电加油"),
-    PEOPLE("people", "家人朋友", "家人、朋友和他们的事"),
-    OTHER("other", "其他", "别的长期信息"),
+/**
+ * The kinds of things 小博 remembers about the user, in the order 设置 → 记忆 shows them. [label] is the model's (the
+ * facts, the chat prompts, a refusal's reason); the page shows [title] and [hint].
+ */
+internal enum class MemoryCategory(
+    val id: String,
+    val label: String,
+    @StringRes val title: Int,
+    @StringRes val hint: Int,
+) {
+    IDENTITY("identity", "称呼与身份", R.string.memory_category_identity, R.string.memory_category_identity_hint),
+    PLACES("places", "常去地点", R.string.memory_category_places, R.string.memory_category_places_hint),
+    HOME("home", "设备与家居偏好", R.string.memory_category_home, R.string.memory_category_home_hint),
+    MEDIA("media", "娱乐", R.string.memory_category_media, R.string.memory_category_media_hint),
+    TRAVEL("travel", "出行习惯", R.string.memory_category_travel, R.string.memory_category_travel_hint),
+    PEOPLE("people", "家人朋友", R.string.memory_category_people, R.string.memory_category_people_hint),
+    OTHER("other", "其他", R.string.memory_category_other, R.string.memory_category_other_hint),
     ;
 
     companion object {
@@ -36,9 +46,9 @@ internal enum class MemoryCategory(val id: String, val label: String, val hint: 
 }
 
 /** Who wrote a memory: 小博, from the user's own words, or someone typing on 设置 → 记忆. */
-internal enum class MemorySource(val id: String, val label: String) {
-    SAID("said", "你说的"),
-    TYPED("typed", "手动添加"),
+internal enum class MemorySource(val id: String, @StringRes val label: Int) {
+    SAID("said", R.string.memory_source_said),
+    TYPED("typed", R.string.memory_source_typed),
     ;
 
     companion object {
@@ -57,11 +67,28 @@ internal data class UserMemory(
     val updatedAtMillis: Long,
 )
 
-/** How a write went: the memory as stored, or why nothing changed, in words for the user. */
+/**
+ * How a write went: the memory as stored, or why nothing changed, in words for 小博's tool result ([Refused.reason])
+ * and as [MemoryRefusal] for the page to word in its own language.
+ */
 internal sealed interface MemoryWrite {
     data class Saved(val memory: UserMemory, val created: Boolean) : MemoryWrite
     data class Removed(val memory: UserMemory) : MemoryWrite
-    data class Refused(val reason: String) : MemoryWrite
+    data class Refused(val reason: String, val why: MemoryRefusal) : MemoryWrite
+}
+
+/** Why a write changed nothing, as data for 设置 → 记忆. */
+internal sealed interface MemoryRefusal {
+    data object Empty : MemoryRefusal
+    data object TooLong : MemoryRefusal
+    data object Secret : MemoryRefusal
+    data object LongNumber : MemoryRefusal
+    data object Full : MemoryRefusal
+    data class CategoryFull(val category: MemoryCategory) : MemoryRefusal
+    data class Missing(val id: String) : MemoryRefusal
+    data object NotSaved : MemoryRefusal
+    /** The tool was called wrong; only 小博 sees it. */
+    data object Arguments : MemoryRefusal
 }
 
 /**
@@ -80,11 +107,16 @@ internal class UserMemoryBook(
     @Synchronized
     fun remember(category: MemoryCategory, content: String, source: MemorySource, said: String? = null): MemoryWrite {
         val text = singleLine(content)
-        memoryContentError(text)?.let { return MemoryWrite.Refused(it) }
+        memoryContentRefusal(text)?.let { return it }
         memories.firstOrNull { it.category == category && sameWords(it.content, text) }?.let { return MemoryWrite.Saved(it, created = false) }
-        if (memories.size >= MAX_MEMORIES) return MemoryWrite.Refused("已经记了 $MAX_MEMORIES 件事，记满了：先在 设置 → 记忆 删掉一些")
+        if (memories.size >= MAX_MEMORIES) {
+            return MemoryWrite.Refused("已经记了 $MAX_MEMORIES 件事，记满了：先在 设置 → 记忆 删掉一些", MemoryRefusal.Full)
+        }
         if (memories.count { it.category == category } >= MAX_PER_CATEGORY) {
-            return MemoryWrite.Refused("「${category.label}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的")
+            return MemoryWrite.Refused(
+                "「${category.label}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的",
+                MemoryRefusal.CategoryFull(category),
+            )
         }
         val stamp = now()
         val memory = UserMemory(newId(), category, text, source, keptWords(said), stamp, stamp)
@@ -94,12 +126,15 @@ internal class UserMemoryBook(
     /** New words (and, if given, a new kind) for the memory [id]; the source becomes whoever changed it. */
     @Synchronized
     fun update(id: String, content: String, category: MemoryCategory?, source: MemorySource, said: String? = null): MemoryWrite {
-        val old = memories.firstOrNull { it.id == id } ?: return MemoryWrite.Refused("没有这条记忆（$id）")
+        val old = memories.firstOrNull { it.id == id } ?: return missing(id)
         val text = singleLine(content)
-        memoryContentError(text)?.let { return MemoryWrite.Refused(it) }
+        memoryContentRefusal(text)?.let { return it }
         val kind = category ?: old.category
         if (kind != old.category && memories.count { it.category == kind } >= MAX_PER_CATEGORY) {
-            return MemoryWrite.Refused("「${kind.label}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的")
+            return MemoryWrite.Refused(
+                "「${kind.label}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的",
+                MemoryRefusal.CategoryFull(kind),
+            )
         }
         val memory = old.copy(
             category = kind,
@@ -113,9 +148,11 @@ internal class UserMemoryBook(
 
     @Synchronized
     fun forget(id: String): MemoryWrite {
-        val old = memories.firstOrNull { it.id == id } ?: return MemoryWrite.Refused("没有这条记忆（$id）")
+        val old = memories.firstOrNull { it.id == id } ?: return missing(id)
         return save(memories.filterNot { it.id == id }) ?: MemoryWrite.Removed(old)
     }
+
+    private fun missing(id: String) = MemoryWrite.Refused("没有这条记忆（$id）", MemoryRefusal.Missing(id))
 
     /** False when the disk took nothing (the memories stay). */
     @Synchronized fun clear(): Boolean = save(emptyList()) == null
@@ -131,7 +168,7 @@ internal class UserMemoryBook(
         null
     } catch (e: IOException) {
         Log.w(TAG, "memories not saved: ${e.javaClass.simpleName}")
-        MemoryWrite.Refused("没存上：设备存储出错了")
+        MemoryWrite.Refused("没存上：设备存储出错了", MemoryRefusal.NotSaved)
     }
 
     /** A file that cannot be read is set aside rather than written over by the next save. */
@@ -212,16 +249,21 @@ internal fun memoriesInUse(all: List<UserMemory>): List<UserMemory> {
 }
 
 /** Why [content] cannot be a memory, or null when it can. */
-internal fun memoryContentError(content: String): String? = when {
-    content.isBlank() -> "内容是空的"
-    content.length > MAX_MEMORY_CHARS -> "太长了：一条记忆不超过 $MAX_MEMORY_CHARS 个字"
-    else -> sensitiveTextError(content)
+internal fun memoryContentError(content: String): String? = memoryContentRefusal(content)?.reason
+
+/** [memoryContentError] as a refused write. */
+internal fun memoryContentRefusal(content: String): MemoryWrite.Refused? = when {
+    content.isBlank() -> MemoryWrite.Refused("内容是空的", MemoryRefusal.Empty)
+    content.length > MAX_MEMORY_CHARS -> MemoryWrite.Refused("太长了：一条记忆不超过 $MAX_MEMORY_CHARS 个字", MemoryRefusal.TooLong)
+    else -> sensitiveRefusal(content)
 }
 
 /** Why [text] holds what is never kept (a password or code, a card or ID number), or null. 计划 keeps the 原话 out too. */
-internal fun sensitiveTextError(text: String): String? = when {
-    SECRET_WORDS.any { it in text } -> "不记密码、验证码这类信息"
-    LONG_NUMBER.containsMatchIn(text) -> "不记身份证号、银行卡号这类长号码"
+internal fun sensitiveTextError(text: String): String? = sensitiveRefusal(text)?.reason
+
+private fun sensitiveRefusal(text: String): MemoryWrite.Refused? = when {
+    SECRET_WORDS.any { it in text } -> MemoryWrite.Refused("不记密码、验证码这类信息", MemoryRefusal.Secret)
+    LONG_NUMBER.containsMatchIn(text) -> MemoryWrite.Refused("不记身份证号、银行卡号这类长号码", MemoryRefusal.LongNumber)
     else -> null
 }
 

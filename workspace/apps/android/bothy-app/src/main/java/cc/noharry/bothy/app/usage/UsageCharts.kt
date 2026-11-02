@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -94,6 +97,7 @@ internal fun UsageHeatmap(daily: Map<LocalDate, Long>, today: LocalDate, mode: H
         val columns = remember(daily, today, mode, weeks) { heatmapColumns(daily, today, mode, weeks) }
         val start = heatmapStart(today, weeks)
         val max = columns.maxOf { week -> week.maxOf { it ?: 0L } }
+        val description = pluralStringResource(R.plurals.usage_heatmap_description, weeks, weeks)
         Column {
             Canvas(
                 Modifier.fillMaxWidth().height(pitch * DAYS_PER_WEEK)
@@ -105,7 +109,7 @@ internal fun UsageHeatmap(daily: Map<LocalDate, Long>, today: LocalDate, mode: H
                             if (!date.isAfter(today)) pick(date)
                         }
                     }
-                    .semantics { contentDescription = "Token 活动，近 $weeks 周" },
+                    .semantics { contentDescription = description },
             ) { drawHeatCells(columns, max, chart, start, picked, ring) }
             HeatMonthLabels(today, weeks, pitch)
         }
@@ -131,7 +135,8 @@ private fun DrawScope.drawHeatCells(columns: List<List<Long?>>, max: Long, chart
 
 @Composable
 private fun HeatMonthLabels(today: LocalDate, weeks: Int, pitch: Dp) {
-    val months = remember(today, weeks) { heatmapMonths(today, weeks) }
+    val locale = screenLocale()
+    val months = remember(today, weeks, locale) { heatmapMonths(today, weeks, locale) }
     Box(Modifier.fillMaxWidth().height(HEAT_LABEL_HEIGHT)) {
         months.forEach { (week, label) ->
             Text(label, Modifier.offset(x = pitch * week).padding(top = Dimens.spaceXsMd), style = ConsoleType.meta, color = ConsoleColors.tertiary, maxLines = 1, softWrap = false)
@@ -144,9 +149,9 @@ private fun HeatMonthLabels(today: LocalDate, weeks: Int, pitch: Dp) {
 internal fun UsageHeatLegend() {
     val chart = usageChartColors()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs + 1.dp)) {
-        Text("少", style = ConsoleType.meta, color = ConsoleColors.tertiary)
+        Text(stringResource(R.string.usage_less), style = ConsoleType.meta, color = ConsoleColors.tertiary)
         (listOf(chart.empty) + chart.ramp).forEach { Box(Modifier.size(LEGEND_SWATCH).background(it, RoundedCornerShape(LEGEND_CORNER))) }
-        Text("多", style = ConsoleType.meta, color = ConsoleColors.tertiary)
+        Text(stringResource(R.string.usage_more), style = ConsoleType.meta, color = ConsoleColors.tertiary)
     }
 }
 
@@ -162,10 +167,17 @@ internal fun UsageTrendBars(series: List<Pair<LocalDate, Double>>, metric: Trend
     val valueStyle = ConsoleType.meta.copy(color = ConsoleColors.text, fontWeight = FontWeight.SemiBold)
     val peak = series.maxOf { it.second }
     val top = niceCeiling(peak)
-    val axis = remember(top, metric, labelStyle) { trendAxis(top, metric).map { it to measurer.measure(metric.format(it), labelStyle) } }
+    val locale = screenLocale()
+    val axis = remember(top, metric, labelStyle, locale) {
+        trendAxis(top, metric).map { it to measurer.measure(metric.format(it, locale), labelStyle) }
+    }
     val gutter = with(LocalDensity.current) { axis.maxOf { it.second.size.width } + AXIS_GAP.toPx() }
     val pick by rememberUpdatedState(onPick)
     val shown = picked ?: series.maxBy { it.second }.first
+    val description = pluralStringResource(
+        R.plurals.usage_trend_description, series.size,
+        stringResource(metric.title), series.size, metric.format(peak, locale),
+    )
     Canvas(
         Modifier.fillMaxWidth().height(TREND_HEIGHT)
             .pointerInput(series, gutter) {
@@ -174,7 +186,7 @@ internal fun UsageTrendBars(series: List<Pair<LocalDate, Double>>, metric: Trend
                     pick(series[((offset.x - gutter) / slot).toInt().coerceIn(0, series.lastIndex)].first)
                 }
             }
-            .semantics { contentDescription = "${metric.title}，${series.size} 天，峰值 ${metric.format(peak)}" },
+            .semantics { contentDescription = description },
     ) {
         val labelHeight = axis.first().second.size.height
         val plot = Rect(gutter, labelHeight + AXIS_GAP.toPx(), size.width, size.height - labelHeight - AXIS_GAP.toPx())
@@ -182,7 +194,8 @@ internal fun UsageTrendBars(series: List<Pair<LocalDate, Double>>, metric: Trend
         drawTrendBars(series, plot, top, picked, chart.bar)
         drawTrendDates(series, plot, measurer, labelStyle)
         series.indexOfFirst { it.first == shown }.takeIf { it >= 0 && series[it].second > 0 }?.let { index ->
-            drawBarValue(measurer.measure(metric.format(series[index].second), valueStyle), plot, series.size, index, series[index].second, top)
+            val label = measurer.measure(metric.format(series[index].second, locale), valueStyle)
+            drawBarValue(label, plot, series.size, index, series[index].second, top)
         }
     }
 }

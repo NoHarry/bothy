@@ -24,12 +24,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -65,8 +67,13 @@ internal fun TrajectoryInspector(
     ) {
         Column(Modifier.fillMaxWidth().padding(Dimens.spaceSm)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(record.title, style = ConsoleType.panelTitle, color = colors.text, modifier = Modifier.weight(1f))
-                TrajectoryTextButton("Close", onClose)
+                Text(
+                    record.displayTitle(),
+                    style = ConsoleType.panelTitle,
+                    color = colors.text,
+                    modifier = Modifier.weight(1f),
+                )
+                TrajectoryTextButton(stringResource(R.string.common_close), onClose)
             }
             Spacer(Modifier.height(Dimens.spaceXs))
             Row(
@@ -146,7 +153,7 @@ private fun SummaryTab(record: TrajectoryRecord, health: TrajectoryHealth?, dura
     TrajectoryMetaRow(trajectoryInspectorSummaryEntries(record, health, durationMs))
     if (record.safeMetadata.isNotEmpty()) {
         Spacer(Modifier.height(Dimens.spaceSm))
-        TrajectorySectionHeader("SAFE METADATA")
+        TrajectorySectionHeader(stringResource(R.string.trajectory_safe_metadata))
         TrajectoryMetaRow(record.safeMetadata.toList())
     }
 }
@@ -169,7 +176,7 @@ private fun SourceTab(record: TrajectoryRecord) {
 private fun HealthTab(record: TrajectoryRecord, health: TrajectoryHealth?) {
     if (health == null) {
         Text(
-            text = "No EventLog health for this record.",
+            text = stringResource(R.string.trajectory_no_health),
             style = ConsoleType.meta,
             color = ConsoleColors.muted,
         )
@@ -197,14 +204,14 @@ private fun PreviewTab(preview: String?, hashKeys: List<String>, record: Traject
     val hashes = record.contentHashes.filterKeys { it in hashKeys }
     if (preview.isNullOrBlank() && hashes.isEmpty()) {
         Text(
-            text = "Not recorded by durable EventLog.",
+            text = stringResource(R.string.trajectory_not_recorded),
             style = ConsoleType.meta,
             color = colors.muted,
         )
         return
     }
     preview?.takeIf { it.isNotBlank() }?.let { body ->
-        TrajectorySectionHeader("CANONICAL · ${record.sources.joinToString { it.name }}")
+        TrajectorySectionHeader(stringResource(R.string.trajectory_canonical, record.sources.joinToString { it.name }))
         Spacer(Modifier.height(Dimens.spaceXxs))
         Text(
             text = body,
@@ -218,7 +225,7 @@ private fun PreviewTab(preview: String?, hashKeys: List<String>, record: Traject
         Spacer(Modifier.height(Dimens.spaceSm))
     }
     if (hashes.isNotEmpty()) {
-        TrajectorySectionHeader("CONTENT HASHES")
+        TrajectorySectionHeader(stringResource(R.string.trajectory_content_hashes))
         TrajectoryMetaRow(hashes.toList())
     }
 }
@@ -229,7 +236,7 @@ private fun RawTab(record: TrajectoryRecord) {
     val raw = record.rich?.rawText.orEmpty()
     if (raw.isBlank()) {
         Text(
-            text = "No canonical payload for this record.",
+            text = stringResource(R.string.trajectory_no_payload),
             style = ConsoleType.meta,
             color = colors.muted,
         )
@@ -238,12 +245,14 @@ private fun RawTab(record: TrajectoryRecord) {
     val pages = remember(raw) { paginateRawText(raw) }
     var page by remember(record.id) { mutableIntStateOf(0) }
     val safePage = page.coerceIn(0, pages.lastIndex)
-    TrajectorySectionHeader("RAW ${safePage + 1}/${pages.size} · ${raw.length} chars")
+    TrajectorySectionHeader(stringResource(R.string.trajectory_raw_header, safePage + 1, pages.size, raw.length))
     Spacer(Modifier.height(Dimens.spaceXxs))
     if (pages.size > 1) {
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-            TrajectoryTextButton("Prev") { page = (safePage - 1).coerceAtLeast(0) }
-            TrajectoryTextButton("Next") { page = (safePage + 1).coerceAtMost(pages.lastIndex) }
+            TrajectoryTextButton(stringResource(R.string.trajectory_prev)) { page = (safePage - 1).coerceAtLeast(0) }
+            TrajectoryTextButton(stringResource(R.string.trajectory_next)) {
+                page = (safePage + 1).coerceAtMost(pages.lastIndex)
+            }
         }
         Spacer(Modifier.height(Dimens.spaceXs))
     }
@@ -335,6 +344,7 @@ private const val MILLIS_PER_MINUTE = 60_000L
 @Composable
 private fun InspectorTabChip(tab: TrajectoryInspectorTab, selected: Boolean, onClick: () -> Unit) {
     val colors = ConsoleColors
+    val label = stringResource(tab.labelRes())
     Surface(
         shape = RoundedCornerShape(Dimens.radiusFull),
         color = if (selected) colors.accentSoft else colors.elevated,
@@ -342,13 +352,13 @@ private fun InspectorTabChip(tab: TrajectoryInspectorTab, selected: Boolean, onC
         modifier = Modifier
             .clickable(onClick = onClick)
             .semantics {
-                contentDescription = tab.name
+                contentDescription = label
                 role = Role.Tab
                 this.selected = selected
             },
     ) {
         Text(
-            text = tab.name.lowercase().replaceFirstChar { it.uppercase() },
+            text = label,
             style = ConsoleType.label,
             color = if (selected) colors.accent else colors.muted,
             modifier = Modifier.padding(horizontal = Dimens.spaceSm, vertical = Dimens.spaceXxs),

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- AMap's privacy terms, before the navigation can start -->
+    <string name="nav_consent_title">Navigate with AMap</string>
+    <string name="nav_consent_text">The Playground\'s car navigation uses the AMap SDK to plan routes, navigate and search for places. Before using it you need to agree to the AMap Open Platform Privacy Policy; AMap processes location and network information to provide these services. If you don\'t agree, navigation is unavailable and everything else works as usual.</string>
+    <string name="nav_consent_agree">Agree</string>
+    <string name="nav_consent_view_policy">View privacy policy</string>
+    <!-- The AMap key typed in -->
+    <string name="nav_key_blank">The key can\'t be empty or contain spaces</string>
+    <string name="nav_key_shape">This doesn\'t look like an AMap Android key (32 letters and digits)</string>
+    <string name="nav_key_save_failed">Couldn\'t save</string>
+    <!-- The destination's badge, on the map's pin and in the route's list -->
+    <string name="nav_end_badge">End</string>
+</resources>

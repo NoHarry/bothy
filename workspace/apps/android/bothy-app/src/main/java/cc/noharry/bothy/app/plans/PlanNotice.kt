@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.UiScale
 import cc.noharry.bothy.app.overlay.AssistantSurface
@@ -65,18 +66,25 @@ internal data class PlanNoticeEntry(
 
 /**
  * The popup's entry for [plan] coming due, [reply] being what it says out loud: a task as handed to 小博, a reminder's
- * words, and its controls as being run until [PlanNotice.ran] has their outcome.
+ * words, and its controls as being run until [PlanNotice.ran] has their outcome. The labels are in the app's language;
+ * [reply] stays as spoken.
  */
-internal fun planNoticeEntry(plan: Plan, reply: String?): PlanNoticeEntry = PlanNoticeEntry(
+internal fun planNoticeEntry(context: Context, plan: Plan, reply: String?): PlanNoticeEntry = PlanNoticeEntry(
     planId = plan.id,
-    kind = when {
-        plan.actions.isNotEmpty() -> "自动"
-        plan.instruction != null -> "去办"
-        else -> "提醒"
-    },
+    kind = context.getString(
+        when {
+            plan.actions.isNotEmpty() -> R.string.plans_kind_auto
+            plan.instruction != null -> R.string.plans_kind_task
+            else -> R.string.plans_kind_reminder
+        },
+    ),
     title = plan.title,
-    said = plan.instruction?.let { "交给小博：$it" } ?: reply?.takeIf(String::isNotBlank),
-    doing = plan.actions.takeIf { it.isNotEmpty() }?.joinToString("、", prefix = "执行：") { it.label },
+    said = plan.instruction?.let { context.getString(R.string.plans_notice_handed, it) }
+        ?: reply?.takeIf(String::isNotBlank),
+    doing = plan.actions.takeIf { it.isNotEmpty() }?.let { actions ->
+        val labels = actions.joinToString(context.getString(R.string.plans_list_separator)) { it.label }
+        context.getString(R.string.plans_notice_running, labels)
+    },
 )
 
 /** The newest first; the same plan firing again replaces its entry; at most [MAX_NOTICE_ENTRIES]. */
@@ -124,12 +132,12 @@ internal object PlanNotice {
         main.post { VoiceFeedback.planDue(tried) }
     }
 
-    /** [planId]'s controls are done: their outcome replaces 「执行：…」 while its entry is still up. */
-    fun ran(planId: String, lines: List<String>) {
-        if (lines.isEmpty()) return
+    /** [planId]'s controls are done: their [outcome] replaces 「执行：…」 while its entry is still up. */
+    fun ran(planId: String, outcome: String) {
+        if (outcome.isEmpty()) return
         main.post {
             val shown = window ?: return@post
-            shown.entries = shown.entries.map { if (it.planId == planId) it.copy(doing = lines.joinToString("；")) else it }
+            shown.entries = shown.entries.map { if (it.planId == planId) it.copy(doing = outcome) else it }
         }
     }
 

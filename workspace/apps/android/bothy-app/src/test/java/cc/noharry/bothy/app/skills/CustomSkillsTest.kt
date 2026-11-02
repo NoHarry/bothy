@@ -15,8 +15,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/** The form's findings are checked in Chinese. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@Config(sdk = [28], qualifiers = "zh")
 class CustomSkillsTest {
     private lateinit var context: Context
 
@@ -30,7 +31,7 @@ class CustomSkillsTest {
     @Test
     fun theTemplateAndAFullHeaderPass() {
         val template = checkCustomSkill(CUSTOM_SKILL_TEMPLATE, emptySet())
-        assertEquals(emptyList<String>(), template.errors)
+        assertEquals(emptyList<SkillIssue>(), template.errors)
         assertEquals("my-skill", template.name)
 
         val full = checkCustomSkill(
@@ -38,7 +39,7 @@ class CustomSkillsTest {
                 "metadata:\r\n  author: me\r\n  version: \"1.0\"\r\nscenes: [\"asr\", \"debug-console\"]\r\n---\r\n\r\n# 记要点\r\n先复述再记。\r\n",
             emptySet(),
         )
-        assertEquals(emptyList<String>(), full.errors)
+        assertEquals(emptyList<SkillIssue>(), full.errors)
         assertEquals("trip-notes", full.name)
         assertEquals("记下行程里的要点，用户说「记一下」时用。", full.description)
         assertFalse("saved with LF line ends", '\r' in full.normalized)
@@ -46,7 +47,8 @@ class CustomSkillsTest {
 
     @Test
     fun eachBrokenRuleIsNamed() {
-        fun errors(text: String, taken: Set<String> = emptySet()) = checkCustomSkill(text, taken).errors.joinToString("\n")
+        fun errors(text: String, taken: Set<String> = emptySet()) =
+            checkCustomSkill(text, taken).errors.joinToString("\n") { it.text(context.resources) }
         fun skill(header: String, body: String = "# 做法\n照做。") = "---\n$header\n---\n$body\n"
 
         assertTrue(errors("").contains("空的"))
@@ -56,7 +58,8 @@ class CustomSkillsTest {
         listOf("My-Skill", "my_skill", "-skill", "skill-", "my--skill", "a".repeat(65)).forEach { name ->
             assertTrue(name, errors(skill("name: $name\ndescription: 做一件事的时候用")).contains("只能用小写英文字母"))
         }
-        assertTrue(errors(skill("name: android-use\ndescription: 做一件事的时候用"), builtinRuntimeSkillIds()).contains("已经有叫「android-use」"))
+        val builtin = skill("name: android-use\ndescription: 做一件事的时候用")
+        assertTrue(errors(builtin, builtinRuntimeSkillIds(context)).contains("已经有叫「android-use」"))
         assertTrue(errors(skill("name: a")).contains("缺少 description"))
         assertTrue(errors(skill("name: a\ndescription: >\n  做一件事的时候用")).contains("同一行"))
         assertTrue(errors(skill("name: a\ndescription: 用 <tool> 的时候用")).contains("尖括号"))
@@ -75,9 +78,22 @@ class CustomSkillsTest {
     }
 
     @Test
+    @Config(qualifiers = "en")
+    fun inEnglishAFindingListsTheFieldsItAllows() {
+        val text = "---\nname: a\ndescription: 做一件事的时候用\nversion: 1\n---\n照做。\n"
+        val found = checkCustomSkill(text, emptySet()).errors.single().text(context.resources)
+
+        assertEquals(
+            "Line 4: unknown field “version”; use only name, description, license, compatibility, metadata, " +
+                "allowed-tools, scenes.",
+            found,
+        )
+    }
+
+    @Test
     fun warningsDoNotKeepASkillFromBeingSaved() {
         val check = checkCustomSkill("---\nname: a\ndescription: 短\n---\n" + "照做。\n".repeat(600), emptySet())
-        assertEquals(emptyList<String>(), check.errors)
+        assertEquals(emptyList<SkillIssue>(), check.errors)
         assertEquals(2, check.warnings.size)
     }
 

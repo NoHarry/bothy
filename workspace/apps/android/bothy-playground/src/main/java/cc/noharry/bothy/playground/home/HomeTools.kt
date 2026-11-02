@@ -1,5 +1,7 @@
 package cc.noharry.bothy.playground.home
+import androidx.annotation.StringRes
 import cc.noharry.bothy.playground.Highlight
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.ToolOutcome
 import cc.noharry.bothy.playground.cabin.ALL_WORDS
 import cc.noharry.bothy.playground.cabin.ClimateMode
@@ -153,7 +155,10 @@ private fun sceneTool() = McpTool(
     ToolOutcome(world.copy(home = home), "已切到「${scene.label}」场景：${scene.effect}。", scene.highlights)
 }
 
-/** The scenes [sceneTool] runs: each a few settings at once, as a smart-home app's would. */
+/**
+ * The scenes [sceneTool] runs: each a few settings at once, as a smart-home app's would. [label] is what the model
+ * reads, [labelRes] what screens show.
+ */
 internal enum class HomeScene(val id: String, val label: String, val aliases: List<String>, val effect: String) {
     HOME("home", "回家", listOf("到家", "回来"), "客厅和厨房开暖光，客厅空调 26°C") {
         override fun apply(home: Home) = home.lights(80, LightTone.WARM, Room.LIVING, Room.KITCHEN).climate(Room.LIVING, 26.0)
@@ -174,6 +179,14 @@ internal enum class HomeScene(val id: String, val label: String, val aliases: Li
     };
 
     abstract fun apply(home: Home): Home
+
+    @get:StringRes val labelRes: Int get() = when (this) {
+        HOME -> R.string.home_scene_home
+        AWAY -> R.string.home_scene_away
+        SLEEP -> R.string.home_scene_sleep
+        MOVIE -> R.string.home_scene_movie
+        MORNING -> R.string.home_scene_morning
+    }
 
     val highlights: Set<String> get() = Room.entries.flatMapTo(mutableSetOf()) { listOf(Highlight.room(it), Highlight.curtain(it)) } + Highlight.DOOR
 }

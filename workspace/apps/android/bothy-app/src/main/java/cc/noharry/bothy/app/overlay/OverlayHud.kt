@@ -11,7 +11,7 @@ import cc.noharry.bothy.app.a2ui.OfferStore
 import cc.noharry.bothy.app.a2ui.WidgetCard
 import cc.noharry.bothy.app.a2ui.displayChoiceReply
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.console.statusHeader
+import cc.noharry.bothy.app.console.statusHeaderWords
 import cc.noharry.bothy.app.image.GENERATED_IMAGES_DIR
 import cc.noharry.bothy.app.image.IMAGE_GENERATE_TOOL
 import cc.noharry.bothy.app.model.summary
@@ -75,6 +75,8 @@ internal data class OverlayHud(
     val planTitle: String = "Plan",
     /** Shown when [planRows] is empty; null keeps the plan card's own fallback. */
     val planEmptyText: String? = null,
+    /** 显示思考过程 is off, so the plan card says where to turn it on instead of [planEmptyText]. */
+    val thinkingHidden: Boolean = false,
     /** Tappable picks offered by the finished reply; [resultText] then omits their lines. */
     val choices: List<DisplayChoice> = emptyList(),
     /** Icons of the picks that have one (an icon list), by label. */
@@ -162,7 +164,7 @@ internal fun UiState.overlayHud(nowEpochMillis: Long = System.currentTimeMillis(
         activeTodo != null && showThinking -> activeTodo.content.overlayHudLine(HUD_STEP_MAX)
         // A tool's name reads as the kind of work (see stepPhrase), never as what the model wrote.
         runningTool != null -> "Running ${shortToolName(runningTool.toolName)}"
-        isRunning && showThinking -> statusHeader(this).overlayHudLine(HUD_STEP_MAX)
+        isRunning && showThinking -> statusHeaderWords(status).overlayHudLine(HUD_STEP_MAX)
         isRunning -> HIDDEN_THINKING_STEP
         else -> null
     }
@@ -205,7 +207,7 @@ internal fun UiState.overlayHud(nowEpochMillis: Long = System.currentTimeMillis(
             )
         },
         resultText = choiceReply?.text?.overlayHudMultiline(HUD_RESULT_MAX) ?: overlayResultText(showThinking),
-        planEmptyText = HIDDEN_THINKING_PLAN.takeUnless { showThinking },
+        thinkingHidden = !showThinking,
         // Wall-clock run time is the demo truth; do not sum concurrent tool durations.
         timingLine = buildTimingLine(elapsedLabel, tools.size, businessDone),
         toolLines = tools.takeLast(HUD_MAX_TOOL_LINES),
@@ -405,7 +407,7 @@ private fun UiState.overlayResultText(showThinking: Boolean = true): String {
         assistant != null -> assistant.content.overlayHudMultiline(HUD_RESULT_MAX)
         error != null -> error.content.overlayHudMultiline(HUD_RESULT_MAX)
         !lastRunSummary.isNullOrBlank() -> lastRunSummary
-        else -> "Waiting for a run — send a prompt to start the demo"
+        else -> WAITING_FOR_RUN_TEXT
     }
 }
 
@@ -516,8 +518,10 @@ private val SKILL_SECTION_LABELS = setOf("说", "看", "说：", "看：", "说:
 // Anywhere in a line, as the announcer finds it: streamed rounds run together ("…temperature.TTS: 先查…").
 internal val TTS_PROGRESS_PREFIX = Regex("""(?i)(?<![A-Za-z0-9_])TTS:\s*""")
 
-private const val HIDDEN_THINKING_STEP = "正在处理"
-private const val HIDDEN_THINKING_PLAN = "思考过程已隐藏（设置 → 通用 → 显示思考过程）"
+/** The step while 显示思考过程 is off; the card shows it in its own language ([stepPhrase]). */
+internal const val HIDDEN_THINKING_STEP = "正在处理"
+/** The idle card's text in the projection; the card shows it in its own language ([overlayShownText]). */
+internal const val WAITING_FOR_RUN_TEXT = "Waiting for a run — send a prompt to start the demo"
 
 internal const val HUD_MAX_PLAN_ROWS = 8
 internal const val HUD_MAX_TOOL_LINES = 10

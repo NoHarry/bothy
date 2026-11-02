@@ -40,9 +40,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.initialValue
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -129,7 +132,7 @@ internal fun ApproveDenyRow(
             contentPadding = PaddingValues(horizontal = Dimens.spaceLg, vertical = Dimens.spaceXs),
             modifier = Modifier.height(ACTION_BUTTON_HEIGHT),
         ) {
-            Text("Deny")
+            Text(stringResource(R.string.console_deny))
         }
         Button(
             onClick = onApprove,
@@ -141,7 +144,7 @@ internal fun ApproveDenyRow(
             contentPadding = PaddingValues(horizontal = Dimens.spaceLg, vertical = Dimens.spaceXs),
             modifier = Modifier.height(ACTION_BUTTON_HEIGHT),
         ) {
-            Text("Approve")
+            Text(stringResource(R.string.console_approve))
         }
     }
 }
@@ -248,8 +251,9 @@ internal fun SelectorChip(
 }
 
 /** "1 turn" / "N turns" — one pluralization for session lists and board cards. */
+@Composable
 internal fun formatTurnCount(turnCount: Int): String =
-    if (turnCount == 1) "1 turn" else "$turnCount turns"
+    pluralStringResource(R.plurals.console_turn_count, turnCount, turnCount)
 
 /** Uppercase label-style section header, shared by board rail sections and settings groups. */
 @Composable
@@ -315,6 +319,7 @@ internal fun HtmlPreviewBox(
     modifier: Modifier = Modifier,
 ) {
     val colors = ConsoleColors
+    val openLabel = stringResource(R.string.console_open_fullscreen_preview)
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(Dimens.radiusSm),
@@ -348,7 +353,7 @@ internal fun HtmlPreviewBox(
             Box(
                 Modifier
                     .matchParentSize()
-                    .clickable(onClickLabel = "Open fullscreen preview") { onOpen() },
+                    .clickable(onClickLabel = openLabel) { onOpen() },
             )
         }
     }

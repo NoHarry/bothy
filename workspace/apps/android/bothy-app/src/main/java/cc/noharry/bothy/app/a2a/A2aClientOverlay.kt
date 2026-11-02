@@ -1,8 +1,10 @@
 @file:OptIn(ExperimentalA2aClientApi::class)
 
 package cc.noharry.bothy.app.a2a
+import android.content.res.Resources
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionAnswerMode
 import cc.noharry.bothy.app.a2ui.pickableDisplay
 import cc.noharry.bothy.app.a2ui.questionCards
@@ -22,8 +24,15 @@ import cc.noharry.bothy.app.overlay.overlayHudMultiline
 import cc.noharry.bothy.app.runtime.formatWorkedDuration
 import java.net.URI
 
-/** Overlay stage for client mode, built only from wire items of the current (or latest) task. */
-internal fun A2aClientState.overlayHud(nowEpochMillis: Long = System.currentTimeMillis()): OverlayHud {
+/**
+ * Overlay stage for client mode, built only from wire items of the current (or latest) task. [texts] words what only
+ * the card shows (the empty speech card, a question row, the missing TTS) in the screen's language; without it those
+ * go without words of their own.
+ */
+internal fun A2aClientState.overlayHud(
+    nowEpochMillis: Long = System.currentTimeMillis(),
+    texts: Resources? = null,
+): OverlayHud {
     val turn = currentTurnItems()
     val terminal = turn.lastOrNull { it is A2aClientItem.Terminal } as? A2aClientItem.Terminal
     val live = running || mirrors.isNotEmpty()
@@ -55,7 +64,8 @@ internal fun A2aClientState.overlayHud(nowEpochMillis: Long = System.currentTime
         OverlayBoardRow("🔊 ${it.text}".overlayHudLine(SPEECH_LINE_MAX), OverlayPlanStatus.DONE)
     }
     val questionRows = listOfNotNull(pendingQuestion).map {
-        OverlayBoardRow("问：${it.text}".overlayHudLine(SPEECH_LINE_MAX), OverlayPlanStatus.ACTIVE)
+        val row = texts?.getString(R.string.a2a_hud_question, it.text) ?: it.text
+        OverlayBoardRow(row.overlayHudLine(SPEECH_LINE_MAX), OverlayPlanStatus.ACTIVE)
     }
     val display = (turn.lastOrNull { it is A2aClientItem.Display } as? A2aClientItem.Display)?.text
     val lastSpeech = (turn.lastOrNull { it is A2aClientItem.Speech } as? A2aClientItem.Speech)?.text
@@ -74,7 +84,8 @@ internal fun A2aClientState.overlayHud(nowEpochMillis: Long = System.currentTime
         phase = phase,
         phaseLabel = if (phase == OverlayPhase.IDLE) "READY" else phase.name,
         elapsedLabel = elapsedLabel,
-        providerLabel = "A2A · ${endpointLabel()}${if (speechReady) "" else " · TTS 未配置"}",
+        providerLabel = texts?.takeUnless { speechReady }?.getString(R.string.a2a_hud_provider_no_tts, endpointLabel())
+            ?: "A2A · ${endpointLabel()}",
         requestPreview = (turn.firstOrNull { it is A2aClientItem.User } as? A2aClientItem.User)?.text?.overlayHudLine(REQUEST_MAX),
         progressDone = 0,
         progressTotal = 0,
@@ -93,7 +104,7 @@ internal fun A2aClientState.overlayHud(nowEpochMillis: Long = System.currentTime
         headline = headline.overlayHudLine(HEADLINE_MAX),
         planTitle = "Speech",
         // Status lines are never spoken; an empty speech card must not borrow them.
-        planEmptyText = "暂无播报（只播报 channel=speech）",
+        planEmptyText = texts?.getString(R.string.a2a_hud_plan_empty),
         choices = choiceReply?.choices.orEmpty(),
         choiceIcons = pickable?.icons.orEmpty(),
         cards = pickable?.cards.orEmpty(),

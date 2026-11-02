@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置 → 记忆：用户画像、单条记忆页、手动添加和操作经验。 -->
+<resources>
+    <string name="memory_title">记忆</string>
+    <string name="memory_tab_profile">用户画像</string>
+    <string name="memory_tab_lessons">操作经验</string>
+    <string name="memory_off_note">记忆已关闭：小博不会再记新的事，也不会用已经记住的；记下的内容都还在，打开后照常使用。</string>
+    <string name="memory_empty">还没有记住什么。对小博说「记住我家在望京花园」「我开空调一般 22 度」「叫我老王」，或者在下面手动添加。</string>
+    <string name="memory_avatar_you">你</string>
+    <string name="memory_name_fallback">小博记得的你</string>
+    <string name="memory_switch_label">让小博记住你说的事</string>
+    <string name="memory_add_button">+ 添加</string>
+    <string name="memory_footer">小博只记你亲口说过、关于你自己的事，不记密码、验证码、证件号和银行卡号；最多 %1$d 件，每类 %2$d 件。记忆只存在这台设备上，记忆本身不写进日志（对话里说到的话和其他对话一样会记下），「清除运行数据」不会删掉它。「只清除记忆」保留以前的对话，小博翻看历史对话时仍可能看到你说过的话；设备换了人用，用「清除记忆和对话记录」。</string>
+    <string name="memory_clear_memories">只清除记忆</string>
+    <string name="memory_clear_all">清除记忆和对话记录</string>
+    <string name="memory_clear_title">%1$s？</string>
+    <plurals name="memory_clear_memories_text">
+        <item quantity="other">小博会忘掉记住的 %1$d 件事，不能恢复。以前的对话记录保留，小博翻看历史对话时仍可能看到你说过的话。</item>
+    </plurals>
+    <plurals name="memory_clear_all_text">
+        <item quantity="other">会删除记住的 %1$d 件事和全部对话记录，连同操作经验、生成的图片和运行日志（和「清除运行数据」一样），正在进行的任务会停止。模型服务、密钥和各项设置保留。不能恢复。</item>
+    </plurals>
+    <string name="memory_clearing">正在停止任务并清除…</string>
+    <string name="memory_cleared_all">已清除记忆和对话记录</string>
+    <string name="memory_clear_all_failed">没清除完：有任务没停下来或存储出错，请再试一次</string>
+    <string name="memory_cleared">已清除记忆</string>
+    <string name="memory_clear_failed">没清除：设备存储出错了</string>
+
+    <string name="memory_summary_empty">还没有记住什么</string>
+    <plurals name="memory_summary_count">
+        <item quantity="other">小博记住了 %1$d 件事</item>
+    </plurals>
+    <plurals name="memory_summary_days">
+        <item quantity="other">认识你 %1$d 天</item>
+    </plurals>
+    <string name="memory_metric_count">记住的事</string>
+    <string name="memory_metric_said">你说的</string>
+    <string name="memory_metric_kinds">涉及方面</string>
+    <string name="memory_metric_latest">最近更新</string>
+
+    <string name="memory_category_identity">称呼与身份</string>
+    <string name="memory_category_identity_hint">怎么称呼你、职业、生日</string>
+    <string name="memory_category_places">常去地点</string>
+    <string name="memory_category_places_hint">家、公司、常去的店</string>
+    <string name="memory_category_home">设备与家居偏好</string>
+    <string name="memory_category_home_hint">温度、灯光、音量、亮度</string>
+    <string name="memory_category_media">娱乐</string>
+    <string name="memory_category_media_hint">喜欢的歌手、电台、节目</string>
+    <string name="memory_category_travel">出行习惯</string>
+    <string name="memory_category_travel_hint">通勤时间、路线偏好、充电加油</string>
+    <string name="memory_category_people">家人朋友</string>
+    <string name="memory_category_people_hint">家人、朋友和他们的事</string>
+    <string name="memory_category_other">其他</string>
+    <string name="memory_category_other_hint">别的长期信息</string>
+    <string name="memory_source_said">你说的</string>
+    <string name="memory_source_typed">手动添加</string>
+
+    <string name="memory_back">‹ 记忆</string>
+    <string name="memory_info_source">来源</string>
+    <string name="memory_info_said">原话</string>
+    <string name="memory_quoted">「%1$s」</string>
+    <string name="memory_info_created">记下时间</string>
+    <string name="memory_info_updated">最后修改</string>
+    <string name="memory_edit_title">修改</string>
+    <string name="memory_save_changes">保存修改</string>
+    <string name="memory_delete">删除这条记忆</string>
+    <string name="memory_delete_title">删除这条记忆？</string>
+    <string name="memory_delete_text">「%1$s」\n小博会忘掉这件事。</string>
+    <string name="memory_add_title">添加记忆</string>
+    <string name="memory_add_note">写一句完整的话，比如「家在望京花园 3 号楼」「开空调一般 22 度」。小博之后每次对话都会知道。</string>
+    <string name="memory_content_label">内容（%1$d/%2$d）</string>
+    <string name="memory_note_added">已添加</string>
+    <string name="memory_note_saved">已保存</string>
+    <string name="memory_note_deleted">已删除</string>
+    <string name="memory_refused_empty">内容是空的</string>
+    <string name="memory_refused_too_long">太长了：一条记忆不超过 %1$d 个字</string>
+    <string name="memory_refused_secret">不记密码、验证码这类信息</string>
+    <string name="memory_refused_long_number">不记身份证号、银行卡号这类长号码</string>
+    <string name="memory_refused_full">已经记了 %1$d 件事，记满了：先在 设置 → 记忆 删掉一些</string>
+    <string name="memory_refused_category_full">「%1$s」已经记了 %2$d 件事：先改掉或删掉一条旧的</string>
+    <string name="memory_refused_missing">没有这条记忆（%1$s）</string>
+    <string name="memory_refused_not_saved">没存上：设备存储出错了</string>
+
+    <string name="memory_lessons_note">小博办完事后总结的操作经验，比如某类请求用哪个接口最快、哪个接口一直失败。同一条经验在几次任务里都得到验证才会生效，只用来把事办得更快更稳，和你的个人信息无关。</string>
+    <string name="memory_lessons_loading">正在读取…</string>
+    <string name="memory_lessons_empty">还没有操作经验</string>
+    <string name="memory_lessons_active">已生效 · %1$d</string>
+    <string name="memory_lessons_pending">待验证 · %1$d</string>
+    <plurals name="memory_lesson_meta">
+        <item quantity="other">%1$s · 可信度 %2$d%% · 验证 %3$d 次</item>
+    </plurals>
+</resources>

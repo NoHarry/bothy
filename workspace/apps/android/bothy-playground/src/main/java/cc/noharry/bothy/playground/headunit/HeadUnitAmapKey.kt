@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.playground.BuildConfig
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.link.open
 import cc.noharry.bothy.playground.nav.AmapKey
 
@@ -48,9 +50,18 @@ internal fun AmapKeyPrompt(modifier: Modifier) {
     var open by remember { mutableStateOf(false) }
     Box(modifier.background(UnitColors.panel), contentAlignment = Alignment.Center) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("地图和导航需要你自己的高德 key", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
-            Text("免费申请，大约 5 分钟。虚拟车、虚拟家和小博现在就能用。", color = UnitColors.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
-            TextButton(onClick = { open = true }) { Text("填写高德 key", color = UnitColors.teal, fontSize = 15.sp) }
+            Text(
+                stringResource(R.string.headunit_amap_key_needed),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            )
+            val free = stringResource(R.string.headunit_amap_key_free)
+            Text(free, color = UnitColors.muted, fontSize = 13.sp, textAlign = TextAlign.Center)
+            TextButton(onClick = { open = true }) {
+                Text(stringResource(R.string.headunit_amap_key_enter), color = UnitColors.teal, fontSize = 15.sp)
+            }
         }
     }
     if (open) AmapKeyDialog { open = false }
@@ -62,16 +73,18 @@ internal fun AmapKeyRow() {
     val context = LocalContext.current
     var open by remember { mutableStateOf(false) }
     val state = when {
-        AmapKey.saved(context).isNotEmpty() -> "已填写"
-        BuildConfig.AMAP_CONFIGURED -> "用打包时的 key"
-        else -> "未填写：地图和导航不可用"
+        AmapKey.saved(context).isNotEmpty() -> stringResource(R.string.headunit_amap_key_entered)
+        BuildConfig.AMAP_CONFIGURED -> stringResource(R.string.headunit_amap_key_built_in)
+        else -> stringResource(R.string.headunit_amap_key_missing)
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text("高德 key", color = PlaygroundColors.text, fontSize = 14.sp)
+            Text(stringResource(R.string.headunit_amap_key), color = PlaygroundColors.text, fontSize = 14.sp)
             Text(state, color = UnitColors.muted, fontSize = 12.sp)
         }
-        TextButton(onClick = { open = true }) { Text(if (AmapKey.configured(context)) "更换" else "填写") }
+        val action =
+            if (AmapKey.configured(context)) R.string.headunit_amap_key_change else R.string.headunit_amap_key_fill
+        TextButton(onClick = { open = true }) { Text(stringResource(action)) }
     }
     if (open) AmapKeyDialog { open = false }
 }
@@ -84,37 +97,38 @@ internal fun AmapKeyRow() {
 internal fun AmapKeyDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     var key by remember { mutableStateOf("") }
-    var problem by remember { mutableStateOf<String?>(null) }
+    var problem by remember { mutableStateOf<Int?>(null) }
     val sha1 = remember { AmapKey.sha1(context) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("填写高德 key") },
+        title = { Text(stringResource(R.string.headunit_amap_key_enter)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Step("1. 打开高德开放平台控制台并登录（个人开发者就行）。")
-                TextButton(onClick = { openUrl(context, AmapKey.CONSOLE_URL) }) { Text("打开高德控制台 ↗") }
-                Step("2. 「应用管理」→「我的应用」→ 创建新应用，再「添加 Key」：服务平台选「Android 平台」。")
-                Step("3. 按下面填写（发布版和调试版安全码都填这个 SHA1）：")
+                Step(stringResource(R.string.headunit_amap_key_step1))
+                TextButton(onClick = { openUrl(context, AmapKey.CONSOLE_URL) }) { Text(stringResource(R.string.headunit_amap_key_open_console)) }
+                Step(stringResource(R.string.headunit_amap_key_step2))
+                Step(stringResource(R.string.headunit_amap_key_step3))
                 CopyLine(context, "PackageName", AmapKey.packageName(context))
-                CopyLine(context, "安全码 SHA1", sha1.ifEmpty { "读不到签名" })
-                Step("4. 提交后把生成的 Key 粘贴到这里：")
+                val sha1Shown = sha1.ifEmpty { stringResource(R.string.headunit_amap_key_no_signature) }
+                CopyLine(context, stringResource(R.string.headunit_amap_key_sha1), sha1Shown)
+                Step(stringResource(R.string.headunit_amap_key_step4))
                 OutlinedTextField(
                     value = key,
                     onValueChange = { key = it; problem = null },
-                    label = { Text("高德 Android key") },
+                    label = { Text(stringResource(R.string.headunit_amap_key_field)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                problem?.let { Text(it, color = Color(0xFFE5483C), fontSize = 13.sp) }
-                Text("保存后车机会重新启动一次。", color = UnitColors.muted, fontSize = 12.sp)
+                problem?.let { Text(stringResource(it), color = Color(0xFFE5483C), fontSize = 13.sp) }
+                Text(stringResource(R.string.headunit_amap_key_restart_note), color = UnitColors.muted, fontSize = 12.sp)
             }
         },
         confirmButton = {
             TextButton(enabled = key.isNotBlank(), onClick = {
                 problem = AmapKey.save(context, key)
                 if (problem == null) (context as? Activity)?.let(AmapKey::restart)
-            }) { Text("保存并重启") }
+            }) { Text(stringResource(R.string.headunit_amap_key_save_restart)) }
         },
         dismissButton = {
             Row {
@@ -122,9 +136,9 @@ internal fun AmapKeyDialog(onDismiss: () -> Unit) {
                     TextButton(onClick = {
                         AmapKey.clear(context)
                         (context as? Activity)?.let(AmapKey::restart)
-                    }) { Text("清除") }
+                    }) { Text(stringResource(R.string.headunit_amap_key_clear)) }
                 }
-                TextButton(onClick = onDismiss) { Text("取消") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }
             }
         },
     )
@@ -142,13 +156,13 @@ private fun CopyLine(context: Context, label: String, value: String) {
             Text(label, fontSize = 12.sp, color = UnitColors.muted)
             Text(value, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
         }
-        TextButton(onClick = { copy(context, label, value) }) { Text("复制") }
+        TextButton(onClick = { copy(context, label, value) }) { Text(stringResource(R.string.common_copy)) }
     }
 }
 
 private fun copy(context: Context, label: String, value: String) {
     context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, value))
-    Toast.makeText(context, "已复制$label", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, context.getString(R.string.headunit_copied_label, label), Toast.LENGTH_SHORT).show()
 }
 
 private fun openUrl(context: Context, url: String) {

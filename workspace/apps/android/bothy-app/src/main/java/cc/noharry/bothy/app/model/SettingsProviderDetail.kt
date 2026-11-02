@@ -28,11 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -61,6 +64,7 @@ internal fun ProviderDetail(
     onCreated: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val form = remember(initial.id) {
         ProviderFormState(
             initial,
@@ -71,7 +75,11 @@ internal fun ProviderDetail(
     LaunchedEffect(initial.id, initial.modelOptions) { form.syncModelOptions(initial) }
     var notice by remember(initial.id) { mutableStateOf("") }
     Column(modifier.fillMaxSize()) {
-        Text(if (isNew) "添加服务" else initial.label, style = ConsoleType.panelTitle, color = ConsoleColors.text)
+        Text(
+            if (isNew) stringResource(R.string.model_add_service) else initial.label,
+            style = ConsoleType.panelTitle,
+            color = ConsoleColors.text,
+        )
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
             item { ProviderConnectionFields(form, isNew, initial.id) }
             item {
@@ -92,7 +100,7 @@ internal fun ProviderDetail(
                 saveModelImageInput(context, editor.copy(model = model), form.imageInputs[model] ?: true)
             }
             actions.saveProviderModels(editor, draft.modelOptions)
-            notice = "已保存；使用的模型请在输入框旁选择。"
+            notice = resources.getString(R.string.model_saved_choose_model)
             if (isNew) onCreated(id)
         }
     }
@@ -107,7 +115,7 @@ private fun saveProviderConnection(draft: ProviderDraft, actions: ConsoleActions
 @Composable
 private fun ProviderConnectionFields(form: ProviderFormState, isNew: Boolean, profileId: String) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        if (isNew) ConfigField("服务名称", form.label) { form.label = it }
+        if (isNew) ConfigField(stringResource(R.string.model_service_name), form.label) { form.label = it }
         ProviderKindSelector(form.provider, form::selectProvider)
         EndpointSelector(form.provider, form.endpoint) { form.endpoint = it }
         ConfigField("Base URL", form.baseUrl, onValueChange = form::updateBaseUrl)
@@ -126,12 +134,13 @@ private fun ProviderConnectionFields(form: ProviderFormState, isNew: Boolean, pr
 @Composable
 private fun DeepSeekBalanceRow(apiKey: String, url: String? = null) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var asking by remember { mutableStateOf(false) }
     var shown by remember(apiKey, url) { mutableStateOf("") }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Text(
-            shown.ifBlank { "DeepSeek 官方 key 可查询余额" },
+            shown.ifBlank { stringResource(R.string.model_deepseek_balance_hint) },
             style = ConsoleType.meta,
             color = if (shown.isBlank()) ConsoleColors.muted else ConsoleColors.text,
             modifier = Modifier.weight(1f),
@@ -140,14 +149,18 @@ private fun DeepSeekBalanceRow(apiKey: String, url: String? = null) {
             asking = true
             scope.launch {
                 val balance = if (url == null) {
-                    fetchDeepSeekBalance(apiKey)
+                    fetchDeepSeekBalance(context, apiKey)
                 } else {
-                    fetchDeepSeekBalance(apiKey, withContext(Dispatchers.IO) { deepSeekRelayClient(context) }, url)
+                    val relay = withContext(Dispatchers.IO) { deepSeekRelayClient(context) }
+                    fetchDeepSeekBalance(context, apiKey, relay, url)
                 }
-                shown = balance.fold({ "余额：${it.summary()}" }, { "查询失败：${it.message ?: it.javaClass.simpleName}" })
+                shown = balance.fold(
+                    { resources.getString(R.string.model_balance, it.summary(context)) },
+                    { resources.getString(R.string.model_balance_failed, it.message ?: it.javaClass.simpleName) },
+                )
                 asking = false
             }
-        }) { Text(if (asking) "正在查询…" else "查询余额") }
+        }) { Text(stringResource(if (asking) R.string.model_balance_checking else R.string.model_balance_check)) }
     }
 }
 
@@ -168,12 +181,16 @@ private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             Column(Modifier.weight(1f)) {
-                Text("DeepSeek 官方能力", style = ConsoleType.body, color = ConsoleColors.text)
+                Text(
+                    stringResource(R.string.model_deepseek_features),
+                    style = ConsoleType.body,
+                    color = ConsoleColors.text,
+                )
                 Text(
                     when {
-                        probe == null -> "中转后面是 DeepSeek 官方接口时，检测通过的余额、Search/Fetch、原生延迟工具会走这个服务的地址和 key（检测搜索一次 ¥0.005）"
-                        current == null -> "地址、端点或 key 和上次检测时不同，需要重新检测"
-                        else -> "按当前填写的地址和 key 检测；有改动要保存后才生效"
+                        probe == null -> stringResource(R.string.model_deepseek_probe_intro)
+                        current == null -> stringResource(R.string.model_deepseek_probe_stale)
+                        else -> stringResource(R.string.model_deepseek_probe_current)
                     },
                     style = ConsoleType.meta,
                     color = ConsoleColors.muted,
@@ -185,13 +202,17 @@ private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
                     probe = DeepSeekProbes.check(context, profile, key)
                     checking = false
                 }
-            }) { Text(if (checking) "正在检测…" else "检测") }
+            }) { Text(stringResource(if (checking) R.string.model_probe_checking else R.string.model_probe_check)) }
         }
         current?.let { result ->
-            ProbeLine("余额接口", result.balance)
-            ProbeLine("Search/Fetch 接口", result.tools)
-            result.passthrough?.let { ProbeLine("原生延迟工具", it) }
-                ?: Text("原生延迟工具：只有 Messages 端点有", style = ConsoleType.meta, color = ConsoleColors.muted)
+            ProbeLine(stringResource(R.string.model_probe_balance), result.balance)
+            ProbeLine(stringResource(R.string.model_probe_tools), result.tools)
+            result.passthrough?.let { ProbeLine(stringResource(R.string.model_probe_passthrough), it) }
+                ?: Text(
+                    stringResource(R.string.model_probe_passthrough_messages_only),
+                    style = ConsoleType.meta,
+                    color = ConsoleColors.muted,
+                )
             result.balance.url?.let { DeepSeekBalanceRow(key, it) }
         }
     }
@@ -200,7 +221,9 @@ private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
 @Composable
 private fun ProbeLine(name: String, check: DeepSeekCheck) {
     Text(
-        "$name：${if (check.passed) "✓ ${check.note}" else "✗ ${check.note}"}",
+        stringResource(
+            if (check.passed) R.string.model_probe_line_passed else R.string.model_probe_line_failed, name, check.note,
+        ),
         style = ConsoleType.meta,
         color = if (check.passed) ConsoleColors.success else ConsoleColors.danger,
     )
@@ -208,11 +231,15 @@ private fun ProbeLine(name: String, check: DeepSeekCheck) {
 
 @Composable
 private fun ProviderModelFields(form: ProviderFormState, actions: ConsoleActions) {
+    val resources = LocalContext.current.resources
     var fetching by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("模型列表 · ${form.modelOptions.size}", style = ConsoleType.body, color = ConsoleColors.text, modifier = Modifier.weight(1f))
+            Text(
+                stringResource(R.string.model_models_count, form.modelOptions.size),
+                style = ConsoleType.body, color = ConsoleColors.text, modifier = Modifier.weight(1f),
+            )
             OutlinedButton(enabled = !fetching && form.baseUrl.isNotBlank(), onClick = {
                 fetching = true
                 val connection = form.connectionIdentity()
@@ -221,21 +248,32 @@ private fun ProviderModelFields(form: ProviderFormState, actions: ConsoleActions
                     if (connection == form.connectionIdentity()) {
                         result.onSuccess { fetched ->
                             val unselected = form.useFetchedModels(fetched)
+                            val count = form.modelOptions.size
                             message = when {
-                                fetched.none { it.isNotBlank() } -> "上游没有列出模型，已有列表保留，仍可手动添加。"
-                                unselected != null -> "已拉取 ${form.modelOptions.size} 个模型，替换了原来的列表；原来选的 $unselected 上游已不再提供，保存后请在输入框旁重新选择模型。"
-                                else -> "已拉取 ${form.modelOptions.size} 个模型，替换了原来的列表，保存后可在输入框旁选择。"
+                                fetched.none { it.isNotBlank() } -> resources.getString(R.string.model_fetch_empty)
+                                unselected != null -> resources.getQuantityString(
+                                    R.plurals.model_fetched_unselected, count, count, unselected,
+                                )
+                                else -> resources.getQuantityString(R.plurals.model_fetched, count, count)
                             }
-                        }.onFailure { message = "拉取失败，已有列表保留，仍可手动添加。" }
-                    } else message = "连接已修改，请重新拉取模型。"
+                        }.onFailure { message = resources.getString(R.string.model_fetch_failed) }
+                    } else message = resources.getString(R.string.model_fetch_connection_changed)
                 }
-            }) { Text(if (fetching) "正在拉取…" else "从上游拉取模型") }
+            }) { Text(stringResource(if (fetching) R.string.model_fetching else R.string.model_fetch)) }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            Box(Modifier.weight(1f)) { ConfigField("手动添加模型名", form.pendingModel) { form.pendingModel = it } }
-            TextButton(enabled = form.pendingModel.isNotBlank(), onClick = form::addPendingModel) { Text("添加模型") }
+            Box(Modifier.weight(1f)) {
+                ConfigField(stringResource(R.string.model_add_by_hand), form.pendingModel) { form.pendingModel = it }
+            }
+            TextButton(enabled = form.pendingModel.isNotBlank(), onClick = form::addPendingModel) {
+                Text(stringResource(R.string.model_add_model))
+            }
         }
-        Text(message.ifBlank { "在此管理模型列表和上下文上限；使用的模型在输入框旁选择。" }, style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(
+            message.ifBlank { stringResource(R.string.model_list_hint) },
+            style = ConsoleType.meta,
+            color = ConsoleColors.muted,
+        )
     }
 }
 
@@ -243,14 +281,23 @@ private fun ProviderModelFields(form: ProviderFormState, actions: ConsoleActions
 private fun ProviderModelRow(form: ProviderFormState, model: String) {
     val text = form.windowInputs[model].orEmpty()
     val valid = text.isBlank() || parseContextWindow(text) != null
+    val defaultWindow = formatContextTokens(defaultContextWindow(model))
     Column {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
             Text(model, modifier = Modifier.weight(1f), style = ConsoleType.body, color = ConsoleColors.text)
             OutlinedTextField(
                 value = text, onValueChange = { form.windowInputs[model] = it },
-                label = { Text("上下文上限（tokens）") },
-                placeholder = { Text("默认 ${formatContextTokens(defaultContextWindow(model))}") },
-                supportingText = { Text(if (valid) "默认 ${formatContextTokens(defaultContextWindow(model))} · 80% 自动压缩" else "请输入正整数或 K / M 数值") },
+                label = { Text(stringResource(R.string.model_context_limit)) },
+                placeholder = { Text(stringResource(R.string.model_context_default, defaultWindow)) },
+                supportingText = {
+                    Text(
+                        if (valid) {
+                            stringResource(R.string.model_context_default_compacts, defaultWindow)
+                        } else {
+                            stringResource(R.string.model_context_invalid)
+                        },
+                    )
+                },
                 modifier = Modifier.width(260.dp), singleLine = true, isError = !valid,
                 colors = outlinedTextFieldColors(),
             )
@@ -264,21 +311,26 @@ private fun ProviderModelRow(form: ProviderFormState, model: String) {
 @Composable
 private fun ModelImageInputSwitch(form: ProviderFormState, model: String) {
     val enabled = form.imageInputs[model] ?: true
+    val description = stringResource(R.string.model_image_input_description, model)
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Switch(
             checked = enabled,
             onCheckedChange = { form.imageInputs[model] = it },
-            modifier = Modifier.semantics { contentDescription = "$model 图片输入" },
+            modifier = Modifier.semantics { contentDescription = description },
             colors = switchColors(),
         )
-        Text(if (enabled) "文本+图片" else "仅文本", style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(
+            stringResource(if (enabled) R.string.model_text_and_images else R.string.model_text_only),
+            style = ConsoleType.meta,
+            color = ConsoleColors.muted,
+        )
     }
 }
 
 @Composable
 private fun ProviderKindSelector(selected: ModelProvider, onSelected: (ModelProvider) -> Unit) {
     SettingsChoiceMenu(
-        label = "Type",
+        label = stringResource(R.string.model_type),
         selected = selected,
         options = ModelProvider.entries,
         optionLabel = { it.label },
@@ -293,7 +345,7 @@ private fun EndpointSelector(
     onSelected: (ProviderEndpoint) -> Unit,
 ) {
     SettingsChoiceMenu(
-        label = "Endpoint",
+        label = stringResource(R.string.model_endpoint),
         selected = selected,
         options = ProviderEndpoint.options(provider),
         optionLabel = { it.label },
@@ -352,11 +404,16 @@ private fun ProviderDetailActions(
 ) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
         if (!isNew) TextButton(onClick = { actions.deleteProfile(draft.id); onDone() }, enabled = draft.canDelete) {
-            Text("删除服务", color = if (draft.canDelete) ConsoleColors.danger else ConsoleColors.muted)
+            Text(
+                stringResource(R.string.model_delete_service),
+                color = if (draft.canDelete) ConsoleColors.danger else ConsoleColors.muted,
+            )
         }
         Spacer(Modifier.weight(1f))
-        if (isNew) TextButton(onClick = onDone) { Text("取消") }
-        Button(onClick = onSave, enabled = canSave, shape = RoundedCornerShape(Dimens.radiusMd)) { Text("保存") }
+        if (isNew) TextButton(onClick = onDone) { Text(stringResource(R.string.common_cancel)) }
+        Button(onClick = onSave, enabled = canSave, shape = RoundedCornerShape(Dimens.radiusMd)) {
+            Text(stringResource(R.string.common_save))
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.model.describe
 import cc.noharry.bothy.app.runtime.RuntimeSession
@@ -102,7 +103,7 @@ internal object PlanRunner {
                 target.plans().forEach { plan ->
                     when (val due = plan.dueAt(now, zone())) {
                         is PlanDue.Fire -> fire(app, target, plan, due.dueAtMillis, due.late, reading = null)
-                        is PlanDue.Miss -> miss(target, plan, due)
+                        is PlanDue.Miss -> miss(app, target, plan, due)
                         null -> Unit
                     }
                 }
@@ -139,21 +140,24 @@ internal object PlanRunner {
         }
         Log.i(TAG, "fired ${plan.id} (${plan.trigger.kind()}, late=$late, actions=${plan.actions.size})")
         val delivery = if (plan.message.isBlank() && plan.instruction == null) null else planDelivery(plan, dueAt, late, reading, now, zone())
-        PlanNotice.show(app, planNoticeEntry(plan, delivery?.reply))
+        PlanNotice.show(app, planNoticeEntry(app, plan, delivery?.reply))
         // Its own controls run without the model; their outcome is a history line of its own when they are done.
         if (plan.actions.isNotEmpty()) {
             PlanActionRunner.run(app, plan) { lines ->
-                PlanNotice.ran(plan.id, lines)
-                logFailure("record ${plan.id}") { write(app) { it.record(PlanFiring(plan.id, plan.title, now, lines.joinToString("；"))) } }
+                val outcome = lines.joinToString(app.getString(R.string.plans_clause_separator))
+                PlanNotice.ran(plan.id, outcome)
+                logFailure("record ${plan.id}") { write(app) { it.record(PlanFiring(plan.id, plan.title, now, outcome)) } }
             }
         }
         if (delivery == null) return
         // Delivered once marked fired, before the history line: a history that cannot be saved loses only its line.
+        // History lines are kept in the language the screens had when they were written.
         RuntimeSession.deliverPlan(app, delivery)
+        val lateMinutes = ((now - dueAt) / MILLIS_PER_MINUTE).toInt()
         val note = when {
-            plan.instruction != null -> "交给小博去办"
-            late -> "晚了 ${(now - dueAt) / MILLIS_PER_MINUTE} 分钟提醒（设备当时没开）"
-            else -> "已提醒"
+            plan.instruction != null -> app.getString(R.string.plans_note_handed)
+            late -> app.resources.getQuantityString(R.plurals.plans_note_late, lateMinutes, lateMinutes)
+            else -> app.getString(R.string.plans_note_reminded)
         }
         target.record(PlanFiring(plan.id, plan.title, now, note))
     }
@@ -162,17 +166,19 @@ internal object PlanRunner {
     fun pauseRunaway(context: Context, planId: String) = logFailure("pause $planId") {
         write(context) { book ->
             val plan = book.update(planId) { it.copy(enabled = false) } ?: return@write
-            book.record(PlanFiring(planId, plan.title, System.currentTimeMillis(), "触发太频繁，已暂停：看看是不是它的动作又触发了它自己"))
+            val note = context.getString(R.string.plans_note_runaway)
+            book.record(PlanFiring(planId, plan.title, System.currentTimeMillis(), note))
         }
         Log.w(TAG, "paused runaway $planId")
     }
 
-    private fun miss(target: PlanBook, plan: Plan, due: PlanDue.Miss) {
+    private fun miss(app: Context, target: PlanBook, plan: Plan, due: PlanDue.Miss) {
         val dueAt = due.dueAtMillis
         target.update(plan.id) {
             if (it.trigger is PlanTrigger.Once) it.copy(end = PlanEnd.MISSED, lastDueAtMillis = dueAt) else it.copy(lastDueAtMillis = dueAt)
         }
-        target.record(PlanFiring(plan.id, plan.title, dueAt, if (due.paused) "暂停期间到点，没有提醒" else "设备没开，错过了"))
+        val note = app.getString(if (due.paused) R.string.plans_note_paused_due else R.string.plans_note_missed)
+        target.record(PlanFiring(plan.id, plan.title, dueAt, note))
         Log.i(TAG, "missed ${plan.id} (${plan.trigger.kind()})")
     }
 

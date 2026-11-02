@@ -17,8 +17,10 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh")
 class ConnectorsTest {
     private lateinit var context: Context
     private val server = MockWebServer()
@@ -42,7 +44,7 @@ class ConnectorsTest {
         context,
         relayUrl = { relay },
         profiles = profiles,
-        clientFor = { RelayConnectClient(server.url("/")) },
+        clientFor = { RelayConnectClient(context, server.url("/")) },
         carLabel = "TB323FU",
         note = { notes += it },
     )

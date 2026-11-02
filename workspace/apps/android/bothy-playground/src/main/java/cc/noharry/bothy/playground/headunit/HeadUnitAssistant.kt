@@ -54,6 +54,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -77,9 +78,6 @@ import cc.noharry.bothy.playground.nav.NavController
 import cc.noharry.bothy.playground.nav.NavState
 import cc.noharry.bothy.playground.nav.UnavailableNavEngine
 import cc.noharry.bothy.playground.nav.appNavigationTool
-import cc.noharry.bothy.playground.nav.clockText
-import cc.noharry.bothy.playground.nav.duration
-import cc.noharry.bothy.playground.nav.km
 import cc.noharry.bothy.playground.nav.navTools
 import cc.noharry.bothy.playground.nav.place
 
@@ -107,12 +105,21 @@ internal fun AssistantChatPanel(
     // Any touch, a scroll's or a tap's, holds the card open ([AssistantView.open]); seen before what it lands on.
     val touched = Modifier.pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial); onTouched() } }
     Column(modifier.then(touched).clip(RoundedCornerShape(22.dp)).background(UnitColors.panel).padding(16.dp)) {
-        val line = if (voiceInBar) view.request.ifBlank { "你好，我是小博" } else view.heard.ifBlank { view.request.ifBlank { view.voiceText().ifBlank { "你好，我是小博" } } }
+        val greeting = stringResource(R.string.headunit_greeting)
+        val line = if (voiceInBar) {
+            view.request.ifBlank { greeting }
+        } else {
+            view.heard.ifBlank { view.request.ifBlank { view.voiceText().ifBlank { greeting } } }
+        }
         AssistantHeader(view, line, !voiceInBar && view.heard.isNotBlank(), onClose, 17.sp, closesAt = closesAt, voice = !voiceInBar)
         Spacer(Modifier.height(12.dp))
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (view.request.isNotBlank()) {
-                Text(if (view.request.startsWith(PLAN_PREFIX)) "小博的计划" else speaker?.label ?: "你", color = UnitColors.muted, fontSize = 12.sp)
+                val who = when {
+                    view.request.startsWith(PLAN_PREFIX) -> stringResource(R.string.headunit_plan_of_xiaobo)
+                    else -> stringResource(speaker?.labelRes ?: R.string.headunit_you)
+                }
+                Text(who, color = UnitColors.muted, fontSize = 12.sp)
                 UserBubble(view.request)
             }
             Process(view)
@@ -145,7 +152,7 @@ private fun AssistantHeader(
         if (voice) {
             Icon(
                 Icons.Filled.Mic,
-                contentDescription = "唤醒小博",
+                contentDescription = stringResource(R.string.headunit_wake_xiaobo),
                 tint = if (view.listening) UnitColors.teal else UnitColors.muted,
                 modifier = Modifier.size(22.dp).clickable { Assistant.wake(context) },
             )
@@ -195,7 +202,8 @@ internal fun Mascot(view: AssistantView, size: Dp, modifier: Modifier = Modifier
     val alive = view.listening || view.speaking
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         if (alive) Box(Modifier.size(size).scale(breath).clip(CircleShape).background(UnitColors.teal.copy(alpha = 0.22f)))
-        Image(painterResource(R.drawable.bothy_mark), contentDescription = "小博", modifier = Modifier.size(size * 0.9f))
+        val name = stringResource(R.string.headunit_xiaobo)
+        Image(painterResource(R.drawable.bothy_mark), contentDescription = name, modifier = Modifier.size(size * 0.9f))
     }
 }
 
@@ -216,12 +224,16 @@ internal fun TailText(text: String, color: Color, size: TextUnit, modifier: Modi
 }
 
 /** What the voice line says now: the words heard, 聆听中… while nothing is, Bothy's own word otherwise; empty when not listening. */
+@Composable
 internal fun AssistantView.voiceText(): String = when {
     !listening -> ""
     heard.isNotBlank() -> heard
-    voiceLine.isBlank() || voiceLine == "我在听，请说" -> "聆听中…"
+    voiceLine.isBlank() || voiceLine in BOTHY_LISTENING_LINES -> stringResource(R.string.headunit_listening)
     else -> voiceLine
 }
+
+/** Bothy's waiting line in either of its languages, which the head unit words in its own. */
+private val BOTHY_LISTENING_LINES = setOf("我在听，请说", "I'm listening, go ahead")
 
 @Composable
 private fun UserBubble(text: String) {
@@ -264,7 +276,7 @@ private fun Process(view: AssistantView) {
 @Composable
 private fun CalledLine(calls: List<TurnEntry.Called>) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("小博 调用", color = UnitColors.muted, fontSize = 12.sp)
+        Text(stringResource(R.string.headunit_xiaobo_calls), color = UnitColors.muted, fontSize = 12.sp)
         AnimatedContent(
             targetState = calls.size to calls.last(),
             contentKey = { it.first },
@@ -300,7 +312,7 @@ private fun Called(entry: TurnEntry.Called) {
 private fun Thinking() {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Dots()
-        Text("小博 正在思考", color = UnitColors.teal, fontSize = 12.sp)
+        Text(stringResource(R.string.headunit_xiaobo_thinking), color = UnitColors.teal, fontSize = 12.sp)
     }
 }
 
@@ -316,25 +328,59 @@ private fun Dots() {
     }
 }
 
-/** A tool's name as the panel shows it: the head unit's own titles, else the name without its server prefix. */
+/**
+ * A tool's name as the panel shows it: the head unit's own titles, else the title this app's servers give it, else the
+ * name without its server prefix.
+ */
+@Composable
 internal fun stepTitle(tool: String): String {
     val bare = tool.substringAfterLast("__")
-    return TOOL_TITLES[bare] ?: bare
+    return TOOL_TITLES[bare]?.let { stringResource(it) } ?: SERVED_TITLES[bare] ?: bare
 }
 
-private val TOOL_TITLES: Map<String, String> by lazy {
+/** The head unit's own titles for the tools 小博 calls: this app's servers', then Bothy's. */
+private val TOOL_TITLES: Map<String, Int> = mapOf(
+    "get_cabin_status" to R.string.headunit_tool_get_cabin_status, "set_climate" to R.string.headunit_tool_set_climate,
+    "set_seat" to R.string.headunit_tool_set_seat, "set_window" to R.string.headunit_tool_set_window,
+    "set_ambient_light" to R.string.headunit_tool_set_ambient_light, "play_music" to R.string.headunit_tool_play_music,
+    "set_door_lock" to R.string.headunit_tool_set_door_lock, "set_door" to R.string.headunit_tool_set_door,
+    "set_trunk" to R.string.headunit_tool_set_trunk, "set_screen" to R.string.headunit_tool_set_screen,
+    "set_volume" to R.string.headunit_tool_set_volume, "get_home_status" to R.string.headunit_tool_get_home_status,
+    "set_light" to R.string.headunit_tool_set_light, "set_curtain" to R.string.headunit_tool_set_curtain,
+    "control_vacuum" to R.string.headunit_tool_control_vacuum, "run_scene" to R.string.headunit_tool_run_scene,
+    "search_places" to R.string.headunit_tool_search_places,
+    "start_navigation" to R.string.headunit_tool_start_navigation,
+    "navigate_in_amap_app" to R.string.headunit_tool_navigate_in_amap_app,
+    "begin_navigation" to R.string.headunit_tool_begin_navigation,
+    "add_waypoint" to R.string.headunit_tool_add_waypoint, "remove_waypoint" to R.string.headunit_tool_remove_waypoint,
+    "replace_waypoint" to R.string.headunit_tool_replace_waypoint,
+    "reorder_waypoints" to R.string.headunit_tool_reorder_waypoints,
+    "change_destination" to R.string.headunit_tool_change_destination,
+    "set_route_preference" to R.string.headunit_tool_set_route_preference,
+    "get_route" to R.string.headunit_tool_get_route, "search_along_route" to R.string.headunit_tool_search_along_route,
+    "stop_navigation" to R.string.headunit_tool_stop_navigation, "web_search" to R.string.headunit_tool_web_search,
+    "web_fetch" to R.string.headunit_tool_web_fetch, "spawn_agent" to R.string.headunit_tool_spawn_agent,
+    "wait_agent" to R.string.headunit_tool_wait_agent, "search_tools" to R.string.headunit_tool_search_tools,
+    "show_card" to R.string.headunit_tool_show_card, "ask_user" to R.string.headunit_tool_ask_user,
+    "read_file" to R.string.headunit_tool_read_file, "list_dir" to R.string.headunit_tool_list_dir,
+    "write_file" to R.string.headunit_tool_write_file, "todo_write" to R.string.headunit_tool_todo_write,
+    "update_todo" to R.string.headunit_tool_update_todo, "create_plan" to R.string.headunit_tool_set_reminder,
+    "update_plan" to R.string.headunit_tool_update_plan, "android_use" to R.string.headunit_tool_android_use,
+    "finish" to R.string.headunit_tool_finish, "plan_manage" to R.string.headunit_tool_set_reminder,
+    "plan_list" to R.string.headunit_tool_plan_list, "user_memory" to R.string.headunit_tool_user_memory,
+    "offer_options" to R.string.headunit_tool_offer_choice, "offer_choice" to R.string.headunit_tool_offer_choice,
+    "offer_slider" to R.string.headunit_tool_offer_slider, "offer_switch" to R.string.headunit_tool_offer_switch,
+    // Bothy's own media tools (the runtime's device media provider): what plays on the tablet, wherever it is
+    // shown.
+    "media.status" to R.string.headunit_tool_media_status, "media.control" to R.string.headunit_tool_media_control,
+    "media.volume" to R.string.headunit_tool_media_volume,
+    "media.play_from_search" to R.string.headunit_tool_media_play_from_search,
+)
+
+/** A tool of this app's servers that [TOOL_TITLES] does not name yet: the title it is served with. */
+private val SERVED_TITLES: Map<String, String> by lazy {
     val nav = NavController(PlaygroundStore(), UnavailableNavEngine(""))
-    (CABIN_TOOLS + HOME_TOOLS + navTools(nav) + appNavigationTool(nav)).associate { it.name to it.title } +
-        mapOf(
-            "web_search" to "联网搜索", "web_fetch" to "打开网页", "spawn_agent" to "派子任务", "wait_agent" to "等子任务",
-            "search_tools" to "找工具", "show_card" to "出卡片", "ask_user" to "问你", "read_file" to "读资料", "list_dir" to "翻资料", "write_file" to "记下来",
-            "todo_write" to "列待办", "update_todo" to "更新待办", "create_plan" to "设提醒", "update_plan" to "改提醒",
-            "android_use" to "操作屏幕", "finish" to "整理结果", "plan_manage" to "设提醒", "plan_list" to "看提醒",
-            "user_memory" to "记住你的习惯", "offer_options" to "给你选", "offer_choice" to "给你选",
-            "offer_slider" to "出调节条", "offer_switch" to "出开关",
-            // Bothy's own media tools (the runtime's device media provider): what plays on the tablet, wherever it is shown.
-            "media.status" to "看在放什么", "media.control" to "控制播放", "media.volume" to "调音量", "media.play_from_search" to "搜歌播放",
-        )
+    (CABIN_TOOLS + HOME_TOOLS + navTools(nav) + appNavigationTool(nav)).associate { it.name to it.title }
 }
 
 /**
@@ -351,15 +397,22 @@ internal fun AssistantMiniCard(city: String, view: AssistantView, onClose: () ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Mascot(view, 46.dp, Modifier.clickable { Assistant.wake(context) })
                 Column(Modifier.weight(1f)) {
-                    Text("你好，我是小博", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("说「你好小博」或点我", color = UnitColors.muted, fontSize = 12.sp, maxLines = 1)
+                    val greeting = stringResource(R.string.headunit_greeting)
+                    Text(greeting, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    val hint = stringResource(R.string.headunit_wake_hint)
+                    Text(hint, color = UnitColors.muted, fontSize = 12.sp, maxLines = 1)
                 }
-                Icon(Icons.Filled.Mic, contentDescription = "唤醒小博", tint = UnitColors.muted, modifier = Modifier.size(22.dp).clickable { Assistant.wake(context) })
+                val wake = stringResource(R.string.headunit_wake_xiaobo)
+                Icon(Icons.Filled.Mic, contentDescription = wake, tint = UnitColors.muted, modifier = Modifier.size(22.dp).clickable { Assistant.wake(context) })
             }
         }
         Spacer(Modifier.weight(1f))
         Text(
-            if (city.isEmpty()) "正在定位…" else "当前位置 · $city",
+            if (city.isEmpty()) {
+                stringResource(R.string.headunit_locating)
+            } else {
+                stringResource(R.string.headunit_current_location_in, city)
+            },
             color = Color.White,
             fontSize = 12.sp,
             modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(UnitColors.card).padding(horizontal = 10.dp, vertical = 6.dp),
@@ -387,7 +440,8 @@ private const val ROLL_MS = 260
 @Composable
 internal fun SuggestionsCard(lines: List<String>, onSay: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.clip(RoundedCornerShape(22.dp)).background(UnitColors.panel).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("试试对小博说", color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+        val title = stringResource(R.string.headunit_try_saying_to)
+        Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             lines.forEachIndexed { i, line ->
                 Row(
@@ -406,23 +460,27 @@ internal fun SuggestionsCard(lines: List<String>, onSay: (String) -> Unit, modif
 @Composable
 internal fun RouteDetails(nav: NavState, now: Long, modifier: Modifier = Modifier) {
     Column(modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.card).padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text("路线详情", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
+        val title = stringResource(R.string.headunit_route_details)
+        Text(title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 6.dp))
         nav.waypoints.forEachIndexed { i, stop ->
             val left = nav.toWaypoints.getOrNull(i)
-            StopRow("途${i + 1}", stop.name, left?.seconds, left?.meters, now)
+            StopRow(stringResource(R.string.headunit_stop_badge, i + 1), stop.name, left?.seconds, left?.meters, now)
         }
-        StopRow("终", nav.destination?.name.orEmpty(), nav.remainingSeconds, nav.remainingMeters, now)
+        val end = stringResource(R.string.nav_end_badge)
+        StopRow(end, nav.destination?.name.orEmpty(), nav.remainingSeconds, nav.remainingMeters, now, isEnd = true)
     }
 }
 
 @Composable
-private fun StopRow(badge: String, name: String, seconds: Int?, meters: Int?, now: Long) {
+private fun StopRow(badge: String, name: String, seconds: Int?, meters: Int?, now: Long, isEnd: Boolean = false) {
     Row(Modifier.fillMaxWidth().padding(vertical = 7.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(badge, color = if (badge == "终") PlaygroundColors.ember else UnitColors.teal, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(26.dp))
+        Text(badge, color = if (isEnd) PlaygroundColors.ember else UnitColors.teal, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(26.dp))
         Column(Modifier.weight(1f)) {
             Text(name, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (seconds != null && meters != null) {
-                Text("${seconds.duration()} · ${meters.km()} · ${clockText(now + seconds * 1000L, now)}到", color = UnitColors.muted, fontSize = 12.sp)
+                val eta = etaText(now + seconds * 1000L, now)
+                val left = "${seconds.durationText()} · ${meters.distanceText()} · $eta"
+                Text(left, color = UnitColors.muted, fontSize = 12.sp)
             }
         }
     }

@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.overlay
+import android.content.res.Resources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,10 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.DelegationStage
 import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.console.color
@@ -36,8 +40,18 @@ internal fun OverlayResultChips(ui: OverlayUi, actions: OverlayActions) {
     val previous = ui.previousResult
     if (last == null && previous == null) return
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        last?.let { TrayChip("上次：$it", actions.onLastResult) }
-        previous?.let { TrayChip(if (ui.showingPrevious) "回到当前" else "上一个结果：$it", actions.onPreviousResult) }
+        val resources = LocalContext.current.resources
+        last?.let {
+            TrayChip(stringResource(R.string.overlay_last_result, resources.overlayShownText(it)), actions.onLastResult)
+        }
+        previous?.let {
+            val text = if (ui.showingPrevious) {
+                stringResource(R.string.overlay_back_to_current)
+            } else {
+                stringResource(R.string.overlay_previous_result, resources.overlayShownText(it))
+            }
+            TrayChip(text, actions.onPreviousResult)
+        }
     }
 }
 
@@ -48,6 +62,7 @@ internal fun OverlayResultChips(ui: OverlayUi, actions: OverlayActions) {
 @Composable
 internal fun OverlayDelegationTray(views: List<DelegationView>, nowMillis: Long, onRelease: () -> Unit) {
     if (views.isEmpty()) return
+    val resources = LocalContext.current.resources
     Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
         views.takeLast(MAX_TRAY_ROWS).forEach { view ->
             val waiting = view.stage == DelegationStage.REPORTING
@@ -65,7 +80,11 @@ internal fun OverlayDelegationTray(views: List<DelegationView>, nowMillis: Long,
                 Box(Modifier.size(8.dp).clip(CircleShape).background(view.stage.dot()))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        if (waiting) "${view.agentLabel} 有新结果" else "${view.agentLabel} · ${view.stage.label} · ${delegationElapsed(nowMillis, view.startedAtEpochMillis)}${view.stepsLabel()}",
+                        if (waiting) {
+                            resources.getString(R.string.overlay_delegation_new_result, view.agentLabel)
+                        } else {
+                            resources.trayHeader(view, nowMillis)
+                        },
                         color = OverlayPalette.text,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
@@ -73,14 +92,14 @@ internal fun OverlayDelegationTray(views: List<DelegationView>, nowMillis: Long,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        view.trayDetail(),
+                        resources.trayDetail(view),
                         color = OverlayPalette.secondary,
                         fontSize = 13.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (waiting) Text("查看", color = OverlayPalette.glow, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                if (waiting) Text(stringResource(R.string.overlay_view), color = OverlayPalette.glow, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -103,26 +122,30 @@ private fun TrayChip(text: String, onClick: () -> Unit) {
     )
 }
 
-/** What a tray line says under its header: the agent's latest words, else what was asked. */
-private fun DelegationView.trayDetail(): String = when (stage) {
-    DelegationStage.REPORTING -> outcome?.substringAfter('：')?.ifBlank { null } ?: request
-    DelegationStage.STALLED -> statusText.ifBlank { "已送达，它还没开始处理" }
-    else -> statusText.takeIf { it.isNotBlank() && stage == DelegationStage.WORKING } ?: "「$request」"
+/** A tray line's header: who, where it stands, for how long and how far through its steps. */
+private fun Resources.trayHeader(view: DelegationView, nowMillis: Long): String {
+    val stage = getString(view.stage.overlayLabel())
+    val elapsed = delegationElapsed(nowMillis, view.startedAtEpochMillis)
+    return if (view.steps.isEmpty()) {
+        getString(R.string.overlay_tray_header, view.agentLabel, stage, elapsed)
+    } else {
+        val done = view.steps.count { it.status == "done" }
+        getString(R.string.overlay_tray_header_steps, view.agentLabel, stage, elapsed, done, view.steps.size)
+    }
 }
 
-private fun DelegationView.stepsLabel(): String =
-    if (steps.isEmpty()) "" else " · ${steps.count { it.status == "done" }}/${steps.size} 步"
+/** What a tray line says under its header: the agent's latest words, else what was asked. */
+private fun Resources.trayDetail(view: DelegationView): String = when (view.stage) {
+    DelegationStage.REPORTING -> view.outcome?.substringAfter('：')?.ifBlank { null } ?: view.request
+    DelegationStage.STALLED -> view.statusText.ifBlank { getString(R.string.overlay_delegation_not_started) }
+    else -> view.statusText.takeIf { it.isNotBlank() && view.stage == DelegationStage.WORKING }
+        ?: getString(R.string.overlay_quoted_request, view.request)
+}
 
 private fun DelegationStage.dot(): Color = when (this) {
     DelegationStage.STALLED, DelegationStage.FAILED, DelegationStage.LOST -> Color(0xFFFFB454)
     DelegationStage.REPORTING, DelegationStage.DONE -> Color(0xFF5CE1A0)
     else -> OverlayPalette.glow
-}
-
-/** "0:42" under an hour, else "1 小时 5 分". */
-internal fun delegationElapsed(nowMillis: Long, sinceMillis: Long): String {
-    val seconds = ((nowMillis - sinceMillis) / 1000).coerceAtLeast(0)
-    return if (seconds < 3600) "%d:%02d".format(seconds / 60, seconds % 60) else "${seconds / 3600} 小时 ${seconds % 3600 / 60} 分"
 }
 
 private val TrayShape = RoundedCornerShape(12.dp)

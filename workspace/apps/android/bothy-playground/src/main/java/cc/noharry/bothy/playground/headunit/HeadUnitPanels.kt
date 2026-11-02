@@ -1,4 +1,6 @@
 package cc.noharry.bothy.playground.headunit
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,12 +41,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.playground.Highlight
 import cc.noharry.bothy.playground.PlaygroundStore
+import cc.noharry.bothy.playground.R
 import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.ServerStatus
 import cc.noharry.bothy.playground.cabin.Cabin
@@ -52,10 +58,11 @@ import cc.noharry.bothy.playground.cabin.CabinScene
 import cc.noharry.bothy.playground.cabin.Media
 import cc.noharry.bothy.playground.cabin.Seat
 import cc.noharry.bothy.playground.cabin.SeatComfort
-import cc.noharry.bothy.playground.cabin.comfortLine
 import cc.noharry.bothy.playground.cabin.deg
 import cc.noharry.bothy.playground.cabin.played
+import cc.noharry.bothy.playground.cabin.seatComfortLog
 import cc.noharry.bothy.playground.cabin.seats
+import cc.noharry.bothy.playground.home.UserPlace
 import cc.noharry.bothy.playground.home.World
 import cc.noharry.bothy.playground.link.open
 import cc.noharry.bothy.playground.nav.clockText
@@ -71,7 +78,7 @@ internal fun GearStrip(cabin: Cabin) {
                 Text(gear, color = if (gear == cabin.gear()) Color.White else UnitColors.muted.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
             }
         }
-        Text("续航 ${cabin.rangeKm}km", color = UnitColors.muted, fontSize = 12.sp)
+        Text(stringResource(R.string.headunit_range, cabin.rangeKm), color = UnitColors.muted, fontSize = 12.sp)
         Box(Modifier.width(34.dp).height(10.dp).clip(RoundedCornerShape(5.dp)).background(UnitColors.raised)) {
             Box(Modifier.fillMaxHeight().fillMaxWidth((cabin.drive.batteryPct / 100).toFloat()).background(UnitColors.teal))
         }
@@ -87,22 +94,41 @@ internal fun Cabin.gear(): String = if (nav.speedKmh > 0 || drive.speedKmh > 0.5
  */
 @Composable
 internal fun CarColumn(cabin: Cabin, flash: Flash, store: PlaygroundStore, listening: Boolean, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
     Column(modifier) {
         Text(cabin.gear(), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
         Row(Modifier.weight(1f).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             DoorPills(listOf(Seat.DRIVER, Seat.REAR_LEFT), cabin, store)
-            CabinScene(cabin, flash, Modifier.weight(1f).fillMaxHeight(), store::tapCabin, store::holdCabin, compact = true, speaking = listening)
+            CabinScene(
+                cabin,
+                flash,
+                Modifier.weight(1f).fillMaxHeight(),
+                { store.tapCabin(context, it) },
+                { store.holdCabin(context, it) },
+                compact = true,
+                speaking = listening,
+            )
             DoorPills(listOf(Seat.PASSENGER, Seat.REAR_RIGHT), cabin, store)
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            RoundToggle(Icons.Filled.Sensors, "后备箱", cabin.trunkOpen) { store.toggleTrunk() }
-            RoundToggle(if (cabin.doorsLocked) Icons.Filled.Lock else Icons.Filled.LockOpen, if (cabin.doorsLocked) "已锁" else "未锁", !cabin.doorsLocked) {
-                store.cabin(if (cabin.doorsLocked) "车门解锁" else "车门上锁", Highlight.DOOR) { it.copy(doorsLocked = !it.doorsLocked) }
+            val trunk = stringResource(R.string.headunit_trunk)
+            RoundToggle(Icons.Filled.Sensors, trunk, cabin.trunkOpen) { store.toggleTrunk(context) }
+            val lock = stringResource(if (cabin.doorsLocked) R.string.headunit_locked else R.string.headunit_unlocked)
+            RoundToggle(if (cabin.doorsLocked) Icons.Filled.Lock else Icons.Filled.LockOpen, lock, !cabin.doorsLocked) {
+                val line = if (cabin.doorsLocked) R.string.cabin_log_doors_unlocked else R.string.cabin_log_doors_locked
+                val summary = resources.getString(line)
+                store.cabin(summary, Highlight.DOOR) { it.copy(doorsLocked = !it.doorsLocked) }
             }
             val anyOpen = cabin.windows.values.any { it > 0 }
-            RoundToggle(Icons.Filled.Window, if (anyOpen) "关窗" else "开窗", anyOpen) {
+            val windows =
+                stringResource(if (anyOpen) R.string.headunit_close_windows else R.string.headunit_open_windows)
+            RoundToggle(Icons.Filled.Window, windows, anyOpen) {
                 val open = if (anyOpen) 0 else 100
-                store.cabin(if (open == 0) "车窗全部关上" else "车窗全部打开", *Seat.entries.map(Highlight::window).toTypedArray()) { it.copy(windows = Seat.entries.associateWith { open }) }
+                val line = if (open == 0) R.string.headunit_log_windows_all_closed else R.string.headunit_log_windows_all_opened
+                store.cabin(resources.getString(line), *Seat.entries.map(Highlight::window).toTypedArray()) {
+                    it.copy(windows = Seat.entries.associateWith { open })
+                }
             }
         }
         MediaCard(cabin.media, store)
@@ -112,13 +138,23 @@ internal fun CarColumn(cabin: Cabin, flash: Flash, store: PlaygroundStore, liste
 /** Two doors on one side, front above rear, level with them; lit while the door is open. */
 @Composable
 private fun DoorPills(seats: List<Seat>, cabin: Cabin, store: PlaygroundStore) {
+    val context = LocalContext.current
     Column(Modifier.fillMaxHeight(), verticalArrangement = Arrangement.Center) {
         Spacer(Modifier.weight(0.3f))
-        UnitPill(seats[0].label, seats[0] in cabin.doorsOpen) { store.toggleDoor(seats[0]) }
+        UnitPill(stringResource(seats[0].pillLabel()), seats[0] in cabin.doorsOpen) { store.toggleDoor(context, seats[0]) }
         Spacer(Modifier.weight(0.25f))
-        UnitPill(seats[1].label, seats[1] in cabin.doorsOpen) { store.toggleDoor(seats[1]) }
+        UnitPill(stringResource(seats[1].pillLabel()), seats[1] in cabin.doorsOpen) { store.toggleDoor(context, seats[1]) }
         Spacer(Modifier.weight(0.45f))
     }
+}
+
+/** A door's pill beside the car picture: short, so English leaves the picture its room. */
+@StringRes
+private fun Seat.pillLabel(): Int = when (this) {
+    Seat.DRIVER -> R.string.headunit_pill_driver
+    Seat.PASSENGER -> R.string.headunit_pill_passenger
+    Seat.REAR_LEFT -> R.string.headunit_pill_rear_left
+    Seat.REAR_RIGHT -> R.string.headunit_pill_rear_right
 }
 
 @Composable
@@ -144,6 +180,7 @@ private fun RoundToggle(icon: ImageVector, label: String, on: Boolean, onClick: 
 /** What is playing, with previous, play or pause, next. */
 @Composable
 private fun MediaCard(media: Media, store: PlaygroundStore) {
+    val context = LocalContext.current
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(UnitColors.panel).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -154,18 +191,27 @@ private fun MediaCard(media: Media, store: PlaygroundStore) {
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Filled.MusicNote, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp)) }
         Column(Modifier.weight(1f)) {
-            Text(media.title.ifEmpty { "没有在放" }, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(media.artist.ifEmpty { "音量 ${media.volume}" }, color = UnitColors.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            val title = media.title.ifEmpty { stringResource(R.string.headunit_nothing_playing) }
+            val under = media.artist.ifEmpty { stringResource(R.string.headunit_volume, media.volume) }
+            Text(title, color = Color.White, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(under, color = UnitColors.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        PlainIcon(Icons.Filled.SkipPrevious) { store.playMedia("previous") }
-        PlainIcon(if (media.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow) { store.playMedia(if (media.playing) "pause" else "resume") }
-        PlainIcon(Icons.Filled.SkipNext) { store.playMedia("next") }
+        PlainIcon(Icons.Filled.SkipPrevious) { store.playMedia(context, "previous") }
+        PlainIcon(if (media.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow) {
+            store.playMedia(context, if (media.playing) "pause" else "resume")
+        }
+        PlainIcon(Icons.Filled.SkipNext) { store.playMedia(context, "next") }
     }
 }
 
-internal fun PlaygroundStore.playMedia(action: String) {
+internal fun PlaygroundStore.playMedia(context: Context, action: String) {
     val media = read().cabin.media.played(action, null)
-    cabin(if (media.playing) "播放《${media.title}》" else "音乐暂停", Highlight.SCREEN) { it.copy(media = media) }
+    val summary = if (media.playing) {
+        context.getString(R.string.cabin_log_playing, media.title)
+    } else {
+        context.getString(R.string.cabin_log_music_paused)
+    }
+    cabin(summary, Highlight.SCREEN) { it.copy(media = media) }
 }
 
 @Composable
@@ -191,30 +237,57 @@ internal fun Dock(onHome: () -> Unit, onControls: () -> Unit, onMap: () -> Unit,
 /** The climate strip under the car and the assistant: temperature, A/C, fan, seat heating, ambient light, volume. */
 @Composable
 internal fun ClimateBar(cabin: Cabin, store: PlaygroundStore, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val resources = LocalResources.current
     val climate = cabin.climate
     Row(
         modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.panel).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        fun temp(to: Double) = store.cabin("空调设到 ${to.deg()}", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = true, driverTemp = to, passengerTemp = to)) }
+        fun temp(to: Double) {
+            store.cabin(resources.getString(R.string.cabin_log_climate_temp, to.deg()), Highlight.CLIMATE) {
+                it.copy(climate = it.climate.copy(on = true, driverTemp = to, passengerTemp = to))
+            }
+        }
         BarText("‹", 22) { temp((climate.driverTemp - 0.5).coerceAtLeast(16.0)) }
         Text(if (climate.on) "%.1f".format(java.util.Locale.ROOT, climate.driverTemp) else "OFF", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
         BarText("›", 22) { temp((climate.driverTemp + 0.5).coerceAtMost(30.0)) }
-        BarToggle("A/C", climate.on) { store.cabin(if (climate.on) "空调关闭" else "空调打开", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = !it.climate.on)) } }
-        BarToggle("风 ${climate.fan}", false) { store.cabin("风量 ${climate.fan % 7 + 1}", Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = true, fan = it.climate.fan % 7 + 1)) } }
+        BarToggle("A/C", climate.on) {
+            val line = if (climate.on) R.string.cabin_log_climate_off else R.string.cabin_log_climate_on
+            store.cabin(resources.getString(line), Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = !it.climate.on)) }
+        }
+        val fan = stringResource(R.string.headunit_fan, climate.fan)
+        BarToggle(fan, false) {
+            store.cabin(resources.getString(R.string.cabin_log_fan, climate.fan % 7 + 1), Highlight.CLIMATE) {
+                it.copy(climate = it.climate.copy(on = true, fan = it.climate.fan % 7 + 1))
+            }
+        }
         SeatHeat(Seat.DRIVER, cabin, store)
         SeatHeat(Seat.PASSENGER, cabin, store)
-        BarToggle("氛围灯", cabin.ambient.on) { store.cabin(if (cabin.ambient.on) "氛围灯关闭" else "氛围灯打开", Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = !it.ambient.on)) } }
+        val ambient = stringResource(R.string.headunit_ambient)
+        BarToggle(ambient, cabin.ambient.on) {
+            val line = if (cabin.ambient.on) R.string.cabin_log_ambient_off else R.string.cabin_log_ambient_on
+            store.cabin(resources.getString(line), Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = !it.ambient.on)) }
+        }
     }
 }
 
 @Composable
 private fun SeatHeat(seat: Seat, cabin: Cabin, store: PlaygroundStore) {
+    val context = LocalContext.current
     val heat = cabin.seat(seat).heat
-    BarToggle("${seat.label}${if (heat > 0) "热$heat" else "加热"}", heat > 0) {
+    val name = stringResource(seat.labelRes)
+    val label = if (heat > 0) {
+        stringResource(R.string.headunit_seat_heat_level, name, heat)
+    } else {
+        stringResource(R.string.headunit_seat_heat, name)
+    }
+    BarToggle(label, heat > 0) {
         val next = SeatComfort(heat = (heat + 1) % 4)
-        store.cabin("${seat.label}座椅${next.comfortLine()}", Highlight.seat(seat)) { it.copy(seats = it.seats + (seat to next)) }
+        store.cabin(context.seatComfortLog(seat, next), Highlight.seat(seat)) {
+            it.copy(seats = it.seats + (seat to next))
+        }
     }
 }
 
@@ -248,7 +321,9 @@ internal fun StatusCluster(world: World, server: ServerState, now: Long, onMore:
     ) {
         ModeSwitch()
         SceneSwitch(onHome)
-        StatusText("你在${world.userAt.label}")
+        val where =
+            if (world.userAt == UserPlace.HOME) R.string.headunit_user_at_home else R.string.headunit_user_in_cabin
+        StatusText(stringResource(where))
         Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(if (server.status == ServerStatus.RUNNING) PlaygroundColors.sage else PlaygroundColors.ember))
         StatusText("MCP")
         StatusText(world.cabin.drive.outsideTempC.deg())

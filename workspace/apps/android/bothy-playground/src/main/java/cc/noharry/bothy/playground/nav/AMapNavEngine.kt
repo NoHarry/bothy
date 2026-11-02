@@ -224,7 +224,8 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
             weather = live.weather.orEmpty(),
             temperature = live.temperature.orEmpty(),
             humidity = live.humidity.orEmpty(),
-            wind = "${live.windDirection.orEmpty()}风 ${live.windPower.orEmpty()}级",
+            windDirection = live.windDirection.orEmpty(),
+            windForce = live.windPower.orEmpty(),
             days = days.map { DayWeather(it.week.orEmpty(), it.dayWeather.orEmpty(), it.dayTemp.orEmpty(), it.nightTemp.orEmpty()) },
         ).also { cachedWeather = it }
     }
@@ -482,8 +483,8 @@ class AMapNavEngine(context: Context, private val store: PlaygroundStore, privat
         /** After stopping a drive, before planning the next: the native navigator winds down on its own threads. */
         const val STOP_SETTLE_MS = 700L
         const val WEATHER_CACHE_MS = 20 * 60 * 1000L
-        /** The weather card's place without a key, which could name the city. */
-        const val KEYLESS_PLACE = "当前位置"
+        /** The weather card's place without a key, which could name the city: none, the card says 当前位置. */
+        const val KEYLESS_PLACE = ""
         const val WEATHER_WAIT_S = 10L
         const val REGEOCODE_RADIUS_M = 200f
         const val PREFS = "playground_nav"

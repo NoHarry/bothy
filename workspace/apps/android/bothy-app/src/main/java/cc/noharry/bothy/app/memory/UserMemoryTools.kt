@@ -73,7 +73,10 @@ internal class UserMemoryToolProvider(
             action == "update" && id != null && content != null ->
                 write { it.update(id, content, category, MemorySource.SAID, said) }
             action == "forget" && id != null -> write { it.forget(id) }
-            else -> MemoryWrite.Refused(action?.let(MISSING_ARGUMENTS::get) ?:"action 只能是 remember、update 或 forget")
+            else -> MemoryWrite.Refused(
+                action?.let(MISSING_ARGUMENTS::get) ?:"action 只能是 remember、update 或 forget",
+                MemoryRefusal.Arguments,
+            )
         }
         return outcome(result)
     }

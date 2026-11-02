@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
+@Config(sdk = [28], qualifiers = "zh")
 class ProviderModelCatalogTest {
     @Test fun catalogPersistsForComposerAndNeverSelectsAModelByItself() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -19,7 +19,7 @@ class ProviderModelCatalogTest {
         val editor = config.editState(config.activeProfile)
         assertEquals("", editor.model)
         assertFalse(config.isReady(config.activeProfile))
-        assertTrue(config.missingMessage(config.activeProfile).contains("选择模型"))
+        assertTrue(config.missingMessage(context, config.activeProfile).contains("选择模型"))
         saveProviderModelList(context, editor, listOf(" fetched ", "manual", "fetched", ""))
         val restored = ProviderConfig.load(context)
         val controller = ModelOptionsController {}

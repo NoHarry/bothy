@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The virtual cabin's screens: its controls, the picture's chips and the log lines of changes made by hand. -->
+<resources>
+    <!-- Seats, modes and colours as screens name them; the model keeps the Chinese names in the code. -->
+    <string name="cabin_seat_driver">主驾</string>
+    <string name="cabin_seat_passenger">副驾</string>
+    <string name="cabin_seat_rear_left">左后</string>
+    <string name="cabin_seat_rear_right">右后</string>
+    <string name="cabin_mode_auto">自动</string>
+    <string name="cabin_mode_cool">制冷</string>
+    <string name="cabin_mode_heat">制热</string>
+    <string name="cabin_mode_vent">通风</string>
+    <string name="cabin_color_warm_white">暖白</string>
+    <string name="cabin_color_warm_orange">暖橙</string>
+    <string name="cabin_color_forest_green">森林绿</string>
+    <string name="cabin_color_ice_blue">冰蓝</string>
+    <string name="cabin_color_lavender">薰衣草紫</string>
+    <string name="cabin_color_rose_red">玫瑰红</string>
+    <string name="cabin_color_champagne_gold">香槟金</string>
+
+    <!-- The controls by hand. -->
+    <string name="cabin_passengers">乘客</string>
+    <string name="cabin_row_seated">有人</string>
+    <string name="cabin_row_speaker">说话</string>
+    <string name="cabin_climate">空调</string>
+    <string name="cabin_row_temp">温度</string>
+    <string name="cabin_fan_level">风 %1$d</string>
+    <string name="cabin_row_mode">模式</string>
+    <string name="cabin_seats">座椅</string>
+    <string name="cabin_level_heat">热%1$d</string>
+    <string name="cabin_level_vent">风%1$d</string>
+    <string name="cabin_windows">车窗</string>
+    <string name="cabin_doors_and_trunk">车门和后备箱</string>
+    <string name="cabin_locked">已锁</string>
+    <string name="cabin_unlocked">没锁</string>
+    <string name="cabin_row_open_doors">开门</string>
+    <string name="cabin_row_trunk">后备箱</string>
+    <string name="cabin_trunk_open">开着</string>
+    <string name="cabin_trunk_shut">关着</string>
+    <string name="cabin_screen_and_sound">屏幕和声音</string>
+    <string name="cabin_row_brightness">亮度</string>
+    <string name="cabin_slider_screen_off">熄屏</string>
+    <string name="cabin_row_volume">音量</string>
+    <string name="cabin_muted">静音</string>
+    <string name="cabin_ambient">氛围灯</string>
+    <string name="cabin_row_color">颜色</string>
+    <string name="cabin_music">音乐</string>
+    <string name="cabin_pause">暂停</string>
+    <string name="cabin_play">播放</string>
+    <string name="cabin_next_track">下一首</string>
+    <string name="cabin_readings">车辆读数</string>
+    <string name="cabin_row_battery">电量</string>
+    <string name="cabin_row_inside">车内</string>
+    <string name="cabin_row_outside">车外</string>
+
+    <!-- The log lines of changes made by hand. -->
+    <string name="cabin_log_got_in">%1$s坐上一个人</string>
+    <string name="cabin_log_got_out">%1$s的人下车了</string>
+    <string name="cabin_log_speaker">现在是%1$s在说话</string>
+    <string name="cabin_log_climate_on">空调打开</string>
+    <string name="cabin_log_climate_off">空调关闭</string>
+    <string name="cabin_log_climate_temp">空调设到 %1$s</string>
+    <string name="cabin_log_fan">风量 %1$d</string>
+    <string name="cabin_log_climate_mode">空调%1$s</string>
+    <string name="cabin_log_seat_heat">%1$s座椅加热 %2$d 档</string>
+    <string name="cabin_log_seat_vent">%1$s座椅通风 %2$d 档</string>
+    <string name="cabin_log_seat_off">%1$s座椅加热和通风都关着</string>
+    <string name="cabin_log_window_closed">%1$s车窗关上</string>
+    <string name="cabin_log_window_open">%1$s车窗开到 %2$d%%</string>
+    <string name="cabin_log_doors_locked">车门上锁</string>
+    <string name="cabin_log_doors_unlocked">车门解锁</string>
+    <string name="cabin_log_screen_off">中控屏熄屏</string>
+    <string name="cabin_log_screen_brightness">中控屏亮度 %1$d%%</string>
+    <string name="cabin_log_volume">音量 %1$d</string>
+    <string name="cabin_log_ambient_on">氛围灯打开</string>
+    <string name="cabin_log_ambient_off">氛围灯关闭</string>
+    <string name="cabin_log_ambient_color">氛围灯换成%1$s</string>
+    <string name="cabin_log_ambient_brightness">氛围灯亮度 %1$d%%</string>
+    <string name="cabin_log_music_paused">音乐暂停</string>
+    <string name="cabin_log_playing">播放《%1$s》</string>
+    <string name="cabin_log_battery">电量设为 %1$d%%</string>
+    <string name="cabin_log_inside_temp">车内温度设为 %1$s</string>
+    <string name="cabin_log_outside_temp">车外温度设为 %1$s</string>
+
+    <!-- The chips on the cabin picture. -->
+    <string name="cabin_speaking">说话中</string>
+    <string name="cabin_chip_locked">车门已锁</string>
+    <string name="cabin_chip_unlocked">车门未锁</string>
+    <string name="cabin_chip_window_open">开 %1$d%%</string>
+    <string name="cabin_chip_heat">加热 %1$d 档</string>
+    <string name="cabin_chip_vent">通风 %1$d 档</string>
+    <string name="cabin_chip_screen_off">熄屏</string>
+    <string name="cabin_chip_brightness">亮度 %1$d%%</string>
+    <string name="cabin_chip_levels">%1$s · 音量 %2$d</string>
+    <string name="cabin_chip_climate">空调 %1$s %2$s</string>
+    <string name="cabin_chip_climate_off">空调关</string>
+    <string name="cabin_chip_console">车内 %1$s · %2$s</string>
+    <string name="cabin_chip_driving">行驶中 %1$d km/h · 电量 %2$d%% · 续航 %3$d km</string>
+    <string name="cabin_chip_parked">停车 · 电量 %1$d%% · 续航 %2$d km</string>
+    <string name="cabin_screen_route_m">→ %1$s %2$d 米</string>
+    <string name="cabin_screen_route_km">→ %1$s %2$s 公里</string>
+</resources>

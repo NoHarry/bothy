@@ -273,7 +273,7 @@ internal fun resolvePlanWatch(ask: PlanWatchAsk, repeatByDefault: Boolean): Resu
     PlanTrigger.Watch(watch, hold, ask.repeat ?: repeatByDefault)
 }
 
-/** The trigger in words, as the page and the model see it: 「今天 16:30」「工作日 08:00」「最低价低于 800 元」. */
+/** The trigger in words, as the model sees it: 「今天 16:30」「工作日 08:00」「最低价低于 800 元」; the page has [describeOnScreen]. */
 internal fun PlanTrigger.describe(now: Long, zone: ZoneId): String = when (this) {
     is PlanTrigger.Once -> describeMoment(atMillis, now, zone)
     is PlanTrigger.Repeat -> "${describeDays(days)} ${clock(minuteOfDay)}"

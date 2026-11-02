@@ -70,9 +70,6 @@ private fun PostUserInputResult.toSteeringUiResult(text: String, title: String):
 
 private const val MAX_STEERING_PREVIEW_CHARS = 240
 private const val STEERING_TITLE = "Runtime steering input"
-/** Transcript title for words the voice session appended to a running task. */
-internal const val VOICE_STEERING_TITLE = "语音追加"
-internal const val DELEGATION_REPORT_TITLE = "委托回报"
 internal const val DELEGATION_REPORT_WAIT_MS = 120_000L
 internal const val DELEGATION_REPORT_POLL_MS = 1_000L
 /** A report's turn has this long to start before the next report is considered. */

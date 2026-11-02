@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Plans tab, the plan popup and the plans' history lines. What the model reads stays in the code. -->
+<resources>
+    <string name="plans_title">Plans</string>
+    <string name="plans_none_active">No active plans</string>
+    <plurals name="plans_active_count">
+        <item quantity="one">%1$d active</item>
+        <item quantity="other">%1$d active</item>
+    </plurals>
+    <string name="plans_next_plan">Next: %1$s %2$s</string>
+    <plurals name="plans_watching_count">
+        <item quantity="one">%1$d watching a status</item>
+        <item quantity="other">%1$d watching statuses</item>
+    </plurals>
+    <string name="plans_active">Active</string>
+    <string name="plans_paused">Paused</string>
+    <string name="plans_ended">Ended</string>
+    <string name="plans_delete_title">Delete this plan?</string>
+    <string name="plans_delete_text">“%1$s” · %2$s</string>
+    <string name="plans_delete_plan">Delete plan</string>
+    <string name="plans_empty_title">No plans yet</string>
+    <string name="plans_empty_hint">Just tell Xiao Bo. When a plan comes due, Xiao Bo pops up a card and reads it out to you:</string>
+    <string name="plans_example_parcel">“Remind me to pick up the parcel in two hours”</string>
+    <string name="plans_example_badge">“Remind me to bring my badge at 8 every weekday morning”</string>
+    <string name="plans_example_fare">“Tell me when flights from Shenzhen to Chengdu drop below 800 yuan”</string>
+    <string name="plans_example_weather">“Read me the weather at 8 every morning”</string>
+    <string name="plans_example_umbrella">“Remind me to take an umbrella when it rains”</string>
+    <string name="plans_example_air">“Remind me to open the windows when the air gets better”</string>
+    <string name="plans_footer">When a plan comes due, Xiao Bo pops up a card and reads the reminder out; a “Task” plan has Xiao Bo run a turn; an “Auto” plan runs its actions directly, without the model. What status plans can watch depends on the MCP services loaded now (Settings → Connections → MCP or Connect apps): resources are read at the set interval, and services that only offer query tools are called at the interval (at most once every 5 minutes); this happens only while Xiao Bo is running. A one-off reminder missed while the device was off is caught up if it starts within 2 hours; after that it is marked missed.</string>
+
+    <string name="plans_kind_auto">Auto</string>
+    <string name="plans_kind_once">Once</string>
+    <string name="plans_kind_repeat">Repeat</string>
+    <string name="plans_kind_watch">Status</string>
+    <string name="plans_kind_task">Task</string>
+    <string name="plans_kind_reminder">Reminder</string>
+
+    <string name="plans_history_title">Recent activity</string>
+    <string name="plans_does_auto_due">When due, runs: %1$s</string>
+    <string name="plans_does_auto_triggered">When triggered, runs: %1$s</string>
+    <string name="plans_does_task_due">When due, Xiao Bo does: %1$s</string>
+    <string name="plans_does_task_triggered">When triggered, Xiao Bo does: %1$s</string>
+    <string name="plans_does_remind_due">When due, reminds: %1$s</string>
+    <string name="plans_does_remind_triggered">When triggered, reminds: %1$s</string>
+    <string name="plans_list_separator">", "</string>
+    <string name="plans_clause_separator">"; "</string>
+
+    <string name="plans_state_last">Last %1$s</string>
+    <string name="plans_state_done">Done</string>
+    <string name="plans_state_missed">Missed · was due %1$s</string>
+    <plurals name="plans_state_poll">
+        <item quantity="one">Read every %1$d second</item>
+        <item quantity="other">Read every %1$d seconds</item>
+    </plurals>
+    <plurals name="plans_state_fired">
+        <item quantity="one">Fired %1$d time</item>
+        <item quantity="other">Fired %1$d times</item>
+    </plurals>
+    <string name="plans_state_next">Next: %1$s · %2$s</string>
+    <string name="plans_until_now">now</string>
+    <plurals name="plans_until_minutes">
+        <item quantity="one">in %1$d minute</item>
+        <item quantity="other">in %1$d minutes</item>
+    </plurals>
+    <plurals name="plans_until_hours">
+        <item quantity="one">in %1$d hour</item>
+        <item quantity="other">in %1$d hours</item>
+    </plurals>
+    <string name="plans_until_hours_minutes">in %1$d h %2$d min</string>
+    <plurals name="plans_until_days">
+        <item quantity="one">in %1$d day</item>
+        <item quantity="other">in %1$d days</item>
+    </plurals>
+
+    <string name="plans_feed_offline">Not connected</string>
+    <string name="plans_feed_pending">Subscribing</string>
+    <string name="plans_feed_live">Live</string>
+    <string name="plans_feed_refused">No push support</string>
+    <string name="plans_feed_polled">Read on a timer</string>
+
+    <string name="plans_moment_today">Today %1$s</string>
+    <string name="plans_moment_tomorrow">Tomorrow %1$s</string>
+    <string name="plans_moment_day_after">Day after tomorrow %1$s</string>
+    <string name="plans_moment_yesterday">Yesterday %1$s</string>
+    <!-- Month, day, weekday, time. -->
+    <string name="plans_moment_date">%3$s %1$d/%2$d %4$s</string>
+    <string name="plans_weekday_mon">Mon</string>
+    <string name="plans_weekday_tue">Tue</string>
+    <string name="plans_weekday_wed">Wed</string>
+    <string name="plans_weekday_thu">Thu</string>
+    <string name="plans_weekday_fri">Fri</string>
+    <string name="plans_weekday_sat">Sat</string>
+    <string name="plans_weekday_sun">Sun</string>
+    <string name="plans_days_daily">Every day</string>
+    <string name="plans_days_weekdays">Weekdays</string>
+    <string name="plans_days_weekends">Weekends</string>
+    <string name="plans_days_some">Every %1$s</string>
+    <string name="plans_repeat_at">%1$s at %2$s</string>
+    <plurals name="plans_watch_hold">
+        <item quantity="one">%1$s for %2$d second</item>
+        <item quantity="other">%1$s for %2$d seconds</item>
+    </plurals>
+    <string name="plans_watch_every_time">%1$s, every time</string>
+    <string name="plans_watch_once">%1$s, once</string>
+
+    <string name="plans_notice_handed">Handed to Xiao Bo: %1$s</string>
+    <string name="plans_notice_running">Running: %1$s</string>
+    <string name="plans_notice_sample_title">Sample plan</string>
+    <string name="plans_notice_sample_said">Reminder: this is what a plan coming due looks like</string>
+
+    <string name="plans_note_handed">Handed to Xiao Bo</string>
+    <plurals name="plans_note_late">
+        <item quantity="one">Reminded %1$d minute late (the device was off)</item>
+        <item quantity="other">Reminded %1$d minutes late (the device was off)</item>
+    </plurals>
+    <string name="plans_note_reminded">Reminded</string>
+    <string name="plans_note_paused_due">Came due while paused; no reminder</string>
+    <string name="plans_note_missed">Missed: the device was off</string>
+    <string name="plans_note_runaway">Fired too often, paused: check whether its own action sets it off again</string>
+    <string name="plans_action_done">Done: %1$s</string>
+    <string name="plans_action_failed">%1$s failed (%2$s)</string>
+    <string name="plans_action_denied">%1$s not run (the current policy doesn\'t allow running it automatically)</string>
+    <string name="plans_problem_offline">%1$s is off or unreachable</string>
+    <string name="plans_problem_no_answer">The service didn\'t answer</string>
+    <string name="plans_problem_no_result">No result</string>
+    <string name="plans_problem_error">Error</string>
+    <string name="plans_problem_refused">Refused</string>
+</resources>

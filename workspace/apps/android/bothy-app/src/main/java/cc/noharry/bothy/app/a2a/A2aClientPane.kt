@@ -30,10 +30,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.a2ui.QuestionAnswerMode
 import cc.noharry.bothy.app.a2ui.pickableDisplay
@@ -60,13 +62,15 @@ internal data class A2aClientActions(
     val setSpeakExternal: (Boolean) -> Unit = {},
 )
 
+@Composable
 internal fun a2aClientStatusLine(state: A2aClientState): String {
     val run = when {
-        state.running || state.mirrors.isNotEmpty() -> "Running"
+        state.running || state.mirrors.isNotEmpty() -> stringResource(R.string.a2a_status_running)
         state.lastOutcome != null -> state.lastOutcome
-        else -> "Ready"
+        else -> stringResource(R.string.a2a_status_ready)
     }
-    return "$run · A2A ${state.endpointLabel()} · ${if (state.speechReady) "TTS 播报" else "TTS 未配置，仅显示"}"
+    val speech = stringResource(if (state.speechReady) R.string.a2a_tts_speaks else R.string.a2a_tts_not_set_up)
+    return stringResource(R.string.a2a_client_status_line, run, state.endpointLabel(), speech)
 }
 
 @Composable
@@ -84,20 +88,24 @@ internal fun A2aClientPane(
             if (state.running) actions.steer(text) else actions.send(text)
         }
     }
-    PanelBox("A2A 客户端", modifier) {
+    PanelBox(stringResource(R.string.a2a_client_title), modifier) {
         header()
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "经 A2A 发送到 ${state.endpoint}；其他客户端发来的 A2A 任务也在这里和悬浮窗显示，回复仍发回原客户端。" +
-                    if (state.speakExternal) "收到的任务也会播报。" else "收到的任务只显示不播报（本机输入和 PC 调试照常播报）。",
+                stringResource(
+                    if (state.speakExternal) R.string.a2a_client_intro_speaking else R.string.a2a_client_intro_silent,
+                    state.endpoint,
+                ),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
                 modifier = Modifier.weight(1f),
             )
-            Text("收到 A2A 播报", style = ConsoleType.meta, color = ConsoleColors.text)
+            Text(stringResource(R.string.a2a_speak_received), style = ConsoleType.meta, color = ConsoleColors.text)
             Switch(state.speakExternal, actions.setSpeakExternal, colors = switchColors())
-            TextButton(onClick = actions.newConversation, enabled = !state.running) { Text("新对话") }
-            TextButton(onClick = actions.openOverlay) { Text("悬浮窗") }
+            TextButton(onClick = actions.newConversation, enabled = !state.running) {
+                Text(stringResource(R.string.a2a_new_conversation))
+            }
+            TextButton(onClick = actions.openOverlay) { Text(stringResource(R.string.a2a_floating_card)) }
         }
         Spacer(Modifier.height(Dimens.spaceXs))
         val listState = rememberLazyListState()
@@ -108,7 +116,7 @@ internal fun A2aClientPane(
         if (items.isEmpty()) {
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Text(
-                    "这里就是一个 A2A 客户端：输入框、悬浮窗、adb 和 ASR 的文字都会经 A2A 发出。",
+                    stringResource(R.string.a2a_client_empty),
                     style = ConsoleType.bodySmall,
                     color = ConsoleColors.muted,
                 )
@@ -140,12 +148,16 @@ internal fun A2aClientPane(
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },
-                label = { Text(if (state.running) "补充要求（原任务继续执行）" else "经 A2A 发送") },
+                label = {
+                    Text(stringResource(if (state.running) R.string.a2a_steer_label else R.string.a2a_send_label))
+                },
                 modifier = Modifier.weight(1f),
                 maxLines = 4,
             )
-            TextButton(onClick = submit, enabled = input.isNotBlank()) { Text(if (state.running) "补充" else "发送") }
-            if (state.running) TextButton(onClick = actions.cancel) { Text("停止") }
+            TextButton(onClick = submit, enabled = input.isNotBlank()) {
+                Text(stringResource(if (state.running) R.string.a2a_steer else R.string.a2a_send))
+            }
+            if (state.running) TextButton(onClick = actions.cancel) { Text(stringResource(R.string.a2a_stop)) }
         }
     }
 }
@@ -164,18 +176,27 @@ private fun A2aClientRow(
         is A2aClientItem.Tool -> {
             val duration = item.finishedAtEpochMillis?.let { " · ${formatWorkedDuration((it - item.startedAtEpochMillis).coerceAtLeast(0L))}" }.orEmpty()
             Text(
-                "工具 ${item.name} · ${item.phase.ifBlank { "running" }}$duration",
+                stringResource(R.string.a2a_tool_row, item.name, item.phase.ifBlank { "running" }, duration),
                 style = ConsoleType.bodySmall,
                 color = if (item.phase == "failed") colors.danger else colors.muted,
             )
         }
         is A2aClientItem.Speech -> Column {
-            Text("播报 · ${if (item.final) "final" else "progress"}", style = ConsoleType.meta, color = colors.activity)
+            Text(
+                stringResource(R.string.a2a_speech_row, if (item.final) "final" else "progress"),
+                style = ConsoleType.meta,
+                color = colors.activity,
+            )
             Text(item.text, style = ConsoleType.body, color = colors.text)
         }
         is A2aClientItem.Display -> A2aDisplayRow(item, pickable, onReply)
         is A2aClientItem.Question -> Text(
-            "问题 · ${item.phase}：${item.text}${if (item.options.isEmpty()) "" else "（${item.options.joinToString(" / ")}）"}",
+            if (item.options.isEmpty()) {
+                stringResource(R.string.a2a_question_row, item.phase, item.text)
+            } else {
+                val options = item.options.joinToString(" / ")
+                stringResource(R.string.a2a_question_row_options, item.phase, item.text, options)
+            },
             style = ConsoleType.bodySmall,
             color = colors.accent,
         )
@@ -199,12 +220,13 @@ private fun A2aUserRow(item: A2aClientItem.User) {
                 .background(colors.userBubble, RoundedCornerShape(Dimens.radiusMd))
                 .padding(Dimens.spaceSm),
         ) {
-            val prefix = when (item.kind) {
-                A2aClientItem.User.Kind.MESSAGE -> ""
-                A2aClientItem.User.Kind.STEER -> "补充 · "
-                A2aClientItem.User.Kind.ANSWER -> "回答 · "
+            val source = stringResource(item.source.label)
+            val header = when (item.kind) {
+                A2aClientItem.User.Kind.MESSAGE -> source
+                A2aClientItem.User.Kind.STEER -> stringResource(R.string.a2a_user_steer, source)
+                A2aClientItem.User.Kind.ANSWER -> stringResource(R.string.a2a_user_answer, source)
             }
-            Text("$prefix${item.source.label}", style = ConsoleType.meta, color = colors.muted)
+            Text(header, style = ConsoleType.meta, color = colors.muted)
             Text(item.text, style = ConsoleType.body, color = colors.text)
         }
     }
@@ -214,7 +236,7 @@ private fun A2aUserRow(item: A2aClientItem.User) {
 private fun A2aDisplayRow(item: A2aClientItem.Display, pickable: PickableReply?, onReply: (String) -> Unit) {
     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(Dimens.radiusMd), color = ConsoleColors.elevated) {
         Column(Modifier.padding(Dimens.spaceSm)) {
-            Text("展示 · 不播报", style = ConsoleType.meta, color = ConsoleColors.muted)
+            Text(stringResource(R.string.a2a_display_row), style = ConsoleType.meta, color = ConsoleColors.muted)
             if (pickable == null) {
                 Markdown(item.text)
             } else {
@@ -233,7 +255,7 @@ private fun A2aTerminalRow(item: A2aClientItem.Terminal, taskHasDisplay: Boolean
     Column(Modifier.fillMaxWidth()) {
         val elapsed = item.elapsedMillis?.let { " · ${formatWorkedDuration(it)}" }.orEmpty()
         Text(
-            "结束 · ${item.state.wireLabel()}$elapsed",
+            stringResource(R.string.a2a_terminal_row, item.state.wireLabel(), elapsed),
             style = ConsoleType.meta,
             fontWeight = FontWeight.SemiBold,
             color = when (item.state) {
@@ -260,15 +282,29 @@ private fun A2aQuestionCards(state: A2aClientState, actions: A2aClientActions) {
                 Column(Modifier.padding(Dimens.spaceSm)) {
                     Text(question.text, style = ConsoleType.body)
                     Text(
-                        if (mode == QuestionAnswerMode.ACTIVE) "任务继续执行中，可随时回答" else "任务已结束，回答将作为同会话新消息发送",
+                        stringResource(
+                            if (mode == QuestionAnswerMode.ACTIVE) {
+                                R.string.a2a_question_active
+                            } else {
+                                R.string.a2a_question_late
+                            },
+                        ),
                         style = ConsoleType.meta,
                         color = ConsoleColors.muted,
                     )
                     question.options.forEach { option ->
                         TextButton(onClick = { actions.answer(question.questionId, option) }) { Text(option) }
                     }
-                    OutlinedTextField(draft, { draft = it }, label = { Text("也可以直接输入回答") }, modifier = Modifier.fillMaxWidth())
-                    TextButton(onClick = { actions.answer(question.questionId, draft.trim()) }, enabled = draft.isNotBlank()) { Text("提交回答") }
+                    OutlinedTextField(
+                        draft,
+                        { draft = it },
+                        label = { Text(stringResource(R.string.a2a_answer_field)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TextButton(
+                        onClick = { actions.answer(question.questionId, draft.trim()) },
+                        enabled = draft.isNotBlank(),
+                    ) { Text(stringResource(R.string.a2a_submit_answer)) }
                 }
             }
         }

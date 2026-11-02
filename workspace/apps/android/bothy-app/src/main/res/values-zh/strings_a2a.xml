@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 设置 → A2A：客户端配置 -->
+    <string name="a2a_profiles_title">A2A 客户端</string>
+    <string name="a2a_add_service_title">添加 A2A 服务</string>
+    <string name="a2a_breadcrumb">设置 › A2A</string>
+    <string name="a2a_breadcrumb_add">设置 › A2A › 添加</string>
+    <string name="a2a_profiles_hint">开关立即生效 · 自定义服务保存在这台设备上。</string>
+    <string name="a2a_add_service">+ 添加 A2A 服务</string>
+    <string name="a2a_profiles_counts">已启用 %1$d / %2$d · 已加载 %3$d · %4$s</string>
+    <plurals name="a2a_error_count">
+        <item quantity="other">%1$d 个错误</item>
+    </plurals>
+    <string name="a2a_no_profiles">还没有 A2A 客户端配置</string>
+    <string name="a2a_token_set">已设置令牌</string>
+    <string name="a2a_status_loaded">已加载</string>
+    <string name="a2a_status_error">出错</string>
+    <string name="a2a_status_enabled">已启用</string>
+    <string name="a2a_status_disabled">已停用</string>
+    <string name="a2a_form_name">名称</string>
+    <string name="a2a_form_endpoint">端点地址</string>
+    <string name="a2a_form_description">能做什么（会给模型看）</string>
+    <string name="a2a_form_token">访问令牌（可不填，只存在本机）</string>
+    <string name="a2a_form_module">模块</string>
+    <string name="a2a_form_loopback">允许调试用的本机 HTTP</string>
+    <string name="a2a_form_loopback_hint">http:// 或 127.0.0.1 / localhost 地址需要打开</string>
+    <string name="a2a_label_required">请填名称</string>
+    <string name="a2a_unknown_module">未知的 A2A 模块：%1$s</string>
+    <string name="a2a_endpoint_invalid">端点要是有效的 http(s) 地址</string>
+    <string name="a2a_endpoint_credentials">端点地址里不能带用户名和密码</string>
+    <string name="a2a_endpoint_loopback">http 或本机地址要先打开「允许调试用的本机 HTTP」</string>
+    <string name="a2a_token_spaces">访问令牌要是一个词，不能有空格。</string>
+    <string name="a2a_token_save_failed">访问令牌没能保存。</string>
+
+    <!-- A2A 客户端控制台 -->
+    <string name="a2a_status_running">运行中</string>
+    <string name="a2a_status_ready">就绪</string>
+    <string name="a2a_tts_speaks">TTS 播报</string>
+    <string name="a2a_tts_not_set_up">TTS 未配置，仅显示</string>
+    <string name="a2a_client_status_line">%1$s · A2A %2$s · %3$s</string>
+    <string name="a2a_client_title">A2A 客户端</string>
+    <string name="a2a_client_intro_speaking">经 A2A 发送到 %1$s；其他客户端发来的 A2A 任务也在这里和悬浮窗显示，回复仍发回原客户端。收到的任务也会播报。</string>
+    <string name="a2a_client_intro_silent">经 A2A 发送到 %1$s；其他客户端发来的 A2A 任务也在这里和悬浮窗显示，回复仍发回原客户端。收到的任务只显示不播报（本机输入和 PC 调试照常播报）。</string>
+    <string name="a2a_speak_received">收到 A2A 播报</string>
+    <string name="a2a_new_conversation">新对话</string>
+    <string name="a2a_floating_card">悬浮窗</string>
+    <string name="a2a_client_empty">这里就是一个 A2A 客户端：输入框、悬浮窗、adb 和 ASR 的文字都会经 A2A 发出。</string>
+    <string name="a2a_steer_label">补充要求（原任务继续执行）</string>
+    <string name="a2a_send_label">经 A2A 发送</string>
+    <string name="a2a_steer">补充</string>
+    <string name="a2a_send">发送</string>
+    <string name="a2a_stop">停止</string>
+    <string name="a2a_tool_row">工具 %1$s · %2$s%3$s</string>
+    <string name="a2a_speech_row">播报 · %1$s</string>
+    <string name="a2a_question_row">问题 · %1$s：%2$s</string>
+    <string name="a2a_question_row_options">问题 · %1$s：%2$s（%3$s）</string>
+    <string name="a2a_user_steer">补充 · %1$s</string>
+    <string name="a2a_user_answer">回答 · %1$s</string>
+    <string name="a2a_display_row">展示 · 不播报</string>
+    <string name="a2a_terminal_row">结束 · %1$s%2$s</string>
+    <string name="a2a_question_active">任务继续执行中，可随时回答</string>
+    <string name="a2a_question_late">任务已结束，回答将作为同会话新消息发送</string>
+    <string name="a2a_answer_field">也可以直接输入回答</string>
+    <string name="a2a_submit_answer">提交回答</string>
+    <string name="a2a_source_console">输入框</string>
+    <string name="a2a_source_overlay">悬浮窗</string>
+    <string name="a2a_source_adb">adb</string>
+    <string name="a2a_source_asr">ASR</string>
+    <string name="a2a_source_pc">PC 调试</string>
+    <string name="a2a_source_external">外部 A2A</string>
+    <string name="a2a_answer_item">回答「%1$s」：%2$s</string>
+    <string name="a2a_notice_busy_ignored">上一条仍在执行，已忽略来自%1$s的输入；可停止后再发。</string>
+    <string name="a2a_notice_no_active_task">没有可补充要求的活跃任务。</string>
+    <string name="a2a_notice_answer_after_end">原任务已结束；等待其收尾后作为同会话新消息发送。</string>
+    <string name="a2a_notice_cancel_pending">正在等待服务端分配任务 ID，随后取消。</string>
+    <string name="a2a_notice_wait_or_stop">请先等待当前任务结束或停止。</string>
+    <string name="a2a_notice_new_conversation">已新建会话；下条消息不携带历史。</string>
+    <string name="a2a_notice_input_delivered">[输入] 已送达，原任务继续执行。</string>
+    <string name="a2a_notice_input_failed">[输入失败] %1$s</string>
+    <string name="a2a_notice_busy_answer">上一条仍在执行，请等待或停止后再回答。</string>
+    <string name="a2a_notice_late_answer">原任务已结束；回答作为同会话新消息发送。</string>
+    <string name="a2a_notice_cancelled">[取消] %1$s</string>
+    <string name="a2a_notice_cancel_failed">[取消失败] %1$s</string>
+    <string name="a2a_notice_error">A2A 错误：%1$s</string>
+    <string name="a2a_notice_incomplete">连接已结束，但未收到任务终态；结果未知，不会自动重试。</string>
+    <string name="a2a_notice_unknown_output">[未知输出 %1$s] %2$s</string>
+    <string name="a2a_notice_question">[问题] %1$s</string>
+    <string name="a2a_hud_plan_empty">暂无播报（只播报 channel=speech）</string>
+    <string name="a2a_hud_question">问：%1$s</string>
+    <string name="a2a_hud_provider_no_tts">A2A · %1$s · TTS 未配置</string>
+</resources>

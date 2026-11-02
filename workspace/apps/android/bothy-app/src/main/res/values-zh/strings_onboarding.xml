@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_hello">你好，我是小博</string>
+    <string name="onboarding_intro">填一个模型 key 就能开始，其余的都可以跳过、以后再在设置里补。</string>
+    <string name="onboarding_checking">正在检查…</string>
+    <string name="onboarding_step_model_key">1 · 模型 key（必填）</string>
+    <string name="onboarding_model_key_note">小博用 DeepSeek 思考和办事，按量计费、很便宜。到 DeepSeek 开放平台创建一个 API key，粘贴到下面。</string>
+    <string name="onboarding_deepseek_link">去 DeepSeek 开放平台申请</string>
+    <string name="onboarding_model_ready">可以用了 · %1$s</string>
+    <string name="onboarding_save_and_check">保存并检查</string>
+    <string name="onboarding_step_doubao_key">2 · 豆包语音 key（推荐，可跳过）</string>
+    <string name="onboarding_doubao_key_note">有了它，小博用豆包的声音说话，还能打开「端到端」语音模式，像打电话一样连续对话。不填也能用：小博用设备自带的系统语音说话。在火山引擎豆包语音控制台的「开通管理」里开通「语音合成2.0」和「端到端实时语音」，再到左侧「API Key」创建一个 key，粘贴到下面。</string>
+    <string name="onboarding_doubao_link">去豆包语音控制台开通</string>
+    <string name="onboarding_doubao_key_label">豆包语音 API key</string>
+    <string name="onboarding_doubao_saved">已保存：小博会用豆包的声音说话</string>
+    <string name="onboarding_step_permissions">3 · 权限</string>
+    <string name="onboarding_permission_microphone">麦克风（必需）</string>
+    <string name="onboarding_permission_microphone_note">说「你好小博」唤醒、语音对话</string>
+    <string name="onboarding_permission_overlay">悬浮窗（必需）</string>
+    <string name="onboarding_permission_overlay_note">小博浮在其它 App 上面，随时唤醒</string>
+    <string name="onboarding_permission_notifications">通知使用权（推荐）</string>
+    <string name="onboarding_permission_notifications_note">看到并控制网易云等 App 在放的音乐</string>
+    <string name="onboarding_permission_accessibility">无障碍（可选）</string>
+    <string name="onboarding_permission_accessibility_note">让小博帮你操作其它 App（打开、点按、输入）</string>
+    <string name="onboarding_permission_background">后台运行（可选）</string>
+    <string name="onboarding_permission_background_note">不被系统省电清理；有的系统还要在这里打开「自启动」</string>
+    <string name="onboarding_permission_granted">已开启</string>
+    <string name="onboarding_permission_grant">去开启</string>
+    <string name="onboarding_step_first_words">4 · 试试这样说</string>
+    <string name="onboarding_first_words_note">说「你好小博」或「OK Bothy」，也可以点悬浮的小博，然后：</string>
+    <string name="onboarding_playground_note">装了 Bothy Playground：打开它放在前台，小博就在虚拟车机里，可以开空调、开车窗、导航。</string>
+    <string name="onboarding_open_playground">打开 Bothy Playground</string>
+    <string name="onboarding_get_started">开始使用</string>
+    <string name="onboarding_try_weather">明天深圳天气怎么样</string>
+    <string name="onboarding_try_reminder">明早八点提醒我带伞</string>
+    <string name="onboarding_try_song">现在在放什么歌（要先开通知使用权）</string>
+    <string name="onboarding_try_calculator">打开计算器算一下 23 乘以 47（要先开无障碍）</string>
+</resources>

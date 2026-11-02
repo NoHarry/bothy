@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalA2aClientApi::class)
 
 package cc.noharry.bothy.app.a2a
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import cc.noharry.agent.a2a.A2aClient
 import cc.noharry.agent.a2a.A2aClientError
 import cc.noharry.agent.a2a.A2aMessage
@@ -11,6 +13,7 @@ import cc.noharry.agent.a2a.A2aStreamEvent
 import cc.noharry.agent.a2a.A2aValue
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.RemoteAgentRef
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.model.describe
 import cc.noharry.bothy.app.plans.describe
@@ -31,9 +34,10 @@ import kotlinx.coroutines.withTimeoutOrNull
  * message in the same context.
  *
  * State changes run on [scope] (Main in the app). The direct adapter reads SSE in the collector context,
- * so streams are always collected through [ioDispatcher].
+ * so streams are always collected through [ioDispatcher]. [texts] words the notices shown on screen.
  */
 internal class A2aClientSession(
+    private val texts: Resources,
     private val client: A2aClient,
     private val remote: RemoteAgentRef,
     private val scope: CoroutineScope,
@@ -57,7 +61,7 @@ internal class A2aClientSession(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return false
         if (state.running) {
-            update { it.notice("上一条仍在执行，已忽略来自${source.label}的输入；可停止后再发。") }
+            update { it.notice(string(R.string.a2a_notice_busy_ignored, texts.getString(source.label))) }
             return false
         }
         start(trimmed, source, A2aClientItem.User.Kind.MESSAGE)
@@ -83,7 +87,7 @@ internal class A2aClientSession(
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
         if (!state.running || state.activeTaskId == null) {
-            update { it.notice("没有可补充要求的活跃任务。") }
+            update { it.notice(string(R.string.a2a_notice_no_active_task)) }
             return
         }
         update { it.append { id -> A2aClientItem.User(id, trimmed, source, A2aClientItem.User.Kind.STEER) } }
@@ -100,11 +104,12 @@ internal class A2aClientSession(
             lateAnswer(question, trimmed, source)
             return
         }
-        update { it.append { id -> A2aClientItem.User(id, "回答「${question.text}」：$trimmed", source, A2aClientItem.User.Kind.ANSWER) } }
+        val shown = string(R.string.a2a_answer_item, question.text, trimmed)
+        update { it.append { id -> A2aClientItem.User(id, shown, source, A2aClientItem.User.Kind.ANSWER) } }
         scope.launch {
             if (!postInput(trimmed, questionId)) return@launch
             // The server refused because the task already ended; never revive it.
-            update { it.notice("原任务已结束；等待其收尾后作为同会话新消息发送。") }
+            update { it.notice(string(R.string.a2a_notice_answer_after_end)) }
             activeJob?.join()
             state.question(questionId)?.let { lateAnswer(it, trimmed, source) }
         }
@@ -116,7 +121,7 @@ internal class A2aClientSession(
         val taskId = state.activeTaskId
         if (taskId == null) {
             cancelRequested = true
-            update { it.notice("正在等待服务端分配任务 ID，随后取消。") }
+            update { it.notice(string(R.string.a2a_notice_cancel_pending)) }
             return
         }
         requestCancel(taskId)
@@ -124,7 +129,7 @@ internal class A2aClientSession(
 
     fun newConversation() {
         if (state.running) {
-            update { it.notice("请先等待当前任务结束或停止。") }
+            update { it.notice(string(R.string.a2a_notice_wait_or_stop)) }
             return
         }
         // Mirrors keep streaming into the new view, but none may hand its context over: the next message starts fresh.
@@ -134,7 +139,7 @@ internal class A2aClientSession(
             A2aClientState(
                 enabled = it.enabled, speakExternal = it.speakExternal, endpoint = it.endpoint, speechReady = it.speechReady,
                 mirrors = it.mirrors, nextItemId = it.nextItemId,
-            ).notice("已新建会话；下条消息不携带历史。")
+            ).notice(string(R.string.a2a_notice_new_conversation))
         }
     }
 
@@ -161,7 +166,7 @@ internal class A2aClientSession(
     /** A PC debug task's speech is played like this client's own `channel=speech`; an external task's only when allowed. */
     fun mirrorEvent(taskId: String, event: A2aStreamEvent) {
         val startedAt = state.mirrors[taskId] ?: return
-        val reduction = state.reduce(event, clock(), startedAt, bindTask = false)
+        val reduction = state.reduce(texts, event, clock(), startedAt, bindTask = false)
         update { reduction.state }
         if (taskId !in silentMirrors) reduction.speech?.let(onSpeech)
     }
@@ -197,7 +202,7 @@ internal class A2aClientSession(
         val job = scope.launch {
             try {
                 client.streamMessage(remote, A2aSendMessageRequest(message)).flowOn(ioDispatcher).collect { event ->
-                    val reduction = state.reduce(event, clock())
+                    val reduction = state.reduce(texts, event, clock())
                     update { reduction.state }
                     reduction.speech?.let(onSpeech)
                     val taskId = state.activeTaskId
@@ -233,12 +238,15 @@ internal class A2aClientSession(
         )
         return when (val result = withContext(ioDispatcher) { client.sendMessage(remote, A2aSendMessageRequest(message)) }) {
             is A2aResult.Success -> {
-                update { it.notice("[输入] 已送达，原任务继续执行。") }
+                update { it.notice(string(R.string.a2a_notice_input_delivered)) }
                 false
             }
             is A2aResult.Failure -> {
                 val ended = questionId != null && (result.error as? A2aClientError.Rpc)?.code == TASK_NOT_ACTIVE
-                if (!ended) update { it.notice("[输入失败] ${result.error.describe()}", error = true) }
+                if (!ended) {
+                    val failed = string(R.string.a2a_notice_input_failed, result.error.describe())
+                    update { it.notice(failed, error = true) }
+                }
                 ended
             }
         }
@@ -246,21 +254,30 @@ internal class A2aClientSession(
 
     private fun lateAnswer(question: A2aClientItem.Question, text: String, source: A2aInputSource) {
         if (state.running) {
-            update { it.notice("上一条仍在执行，请等待或停止后再回答。") }
+            update { it.notice(string(R.string.a2a_notice_busy_answer)) }
             return
         }
-        update { it.replaceItem(question, question.copy(phase = QUESTION_LATE_ANSWERED)).notice("原任务已结束；回答作为同会话新消息发送。") }
+        update {
+            it.replaceItem(question, question.copy(phase = QUESTION_LATE_ANSWERED))
+                .notice(string(R.string.a2a_notice_late_answer))
+        }
         start("关于你之前的问题「${question.text}」，我的回答是：$text", source, A2aClientItem.User.Kind.MESSAGE)
     }
 
     private fun requestCancel(taskId: String) {
         scope.launch {
             when (val result = withContext(ioDispatcher) { client.cancelTask(remote, taskId) }) {
-                is A2aResult.Success -> update { it.notice("[取消] ${result.value.status.wireLabel()}") }
-                is A2aResult.Failure -> update { it.notice("[取消失败] ${result.error.describe()}", error = true) }
+                is A2aResult.Success -> update {
+                    it.notice(string(R.string.a2a_notice_cancelled, result.value.status.wireLabel()))
+                }
+                is A2aResult.Failure -> update {
+                    it.notice(string(R.string.a2a_notice_cancel_failed, result.error.describe()), error = true)
+                }
             }
         }
     }
+
+    private fun string(@StringRes id: Int, vararg args: Any): String = texts.getString(id, *args)
 
     private fun update(transform: (A2aClientState) -> A2aClientState) {
         state = transform(state)

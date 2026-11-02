@@ -1,4 +1,8 @@
 package cc.noharry.bothy.app.overlay
+import android.app.Application
+import android.content.Context
+import android.content.res.Resources
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.app.a2a.DelegationStage
 import cc.noharry.bothy.app.a2a.DelegationStep
 import cc.noharry.bothy.app.a2a.DelegationView
@@ -6,21 +10,27 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** What the folded 小博 shows for delegations: the most pressing one, as ring and capsule. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class OverlayTaskSignalTest {
     private val now = 100_000L
+    private val resources: Resources = ApplicationProvider.getApplicationContext<Context>().resources
 
     @Test
     fun nothingUnderWayShowsNothing() {
-        assertNull(overlayTaskSignal(emptyList(), now))
-        assertNull(overlayTaskSignal(listOf(view("a", DelegationStage.DONE)), now))
+        assertNull(overlayTaskSignal(resources, emptyList(), now))
+        assertNull(overlayTaskSignal(resources, listOf(view("a", DelegationStage.DONE)), now))
     }
 
     @Test
     fun stepsShowAsProgressWithTheStepUnderWay() {
         val steps = listOf(DelegationStep("查天气", "done"), DelegationStep("比较哪边更适合出游", "doing"), DelegationStep("给建议", "todo"))
-        val signal = overlayTaskSignal(listOf(view("a", DelegationStage.WORKING, steps = steps)), now)!!
+        val signal = overlayTaskSignal(resources, listOf(view("a", DelegationStage.WORKING, steps = steps)), now)!!
 
         assertEquals(OverlayTaskTone.WORKING, signal.tone)
         assertEquals(1 to 3, signal.stepsDone to signal.stepsTotal)
@@ -30,7 +40,7 @@ class OverlayTaskSignalTest {
 
     @Test
     fun withoutStepsTheStageAndTimeShow() {
-        val signal = overlayTaskSignal(listOf(view("a", DelegationStage.STARTED, startedAt = now - 72_000)), now)!!
+        val signal = overlayTaskSignal(resources, listOf(view("a", DelegationStage.STARTED, startedAt = now - 72_000)), now)!!
         assertEquals("Grok Bot · 已开始 1:12", signal.title)
         assertEquals("「查明天的天气」", signal.detail)
         assertEquals(0, signal.stepsTotal)
@@ -42,21 +52,21 @@ class OverlayTaskSignalTest {
         val stalled = view("b", DelegationStage.STALLED, startedAt = now - 90_000)
         val result = view("c", DelegationStage.REPORTING)
 
-        val first = overlayTaskSignal(listOf(result, stalled, working), now)!!
+        val first = overlayTaskSignal(resources, listOf(result, stalled, working), now)!!
         assertEquals(OverlayTaskTone.RESULT, first.tone)
         assertEquals("Grok Bot 有新结果", first.title)
         assertEquals(2, first.more)
 
-        val second = overlayTaskSignal(listOf(working, stalled), now)!!
+        val second = overlayTaskSignal(resources, listOf(working, stalled), now)!!
         assertEquals(OverlayTaskTone.STALLED, second.tone)
         assertEquals("已送达 1:30，可能在等审批", second.detail)
     }
 
     @Test
     fun aStepDoneOrANewStageChangesTheKeySoTheCapsuleOpensAgain() {
-        val before = overlayTaskSignal(listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "doing")))), now)!!
-        val later = overlayTaskSignal(listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "doing")))), now + 5_000)!!
-        val done = overlayTaskSignal(listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "done")))), now)!!
+        val before = overlayTaskSignal(resources, listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "doing")))), now)!!
+        val later = overlayTaskSignal(resources, listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "doing")))), now + 5_000)!!
+        val done = overlayTaskSignal(resources, listOf(view("a", DelegationStage.WORKING, steps = listOf(DelegationStep("一", "done")))), now)!!
 
         assertEquals("time alone does not reopen it", before.key, later.key)
         assertNotEquals(before.key, done.key)

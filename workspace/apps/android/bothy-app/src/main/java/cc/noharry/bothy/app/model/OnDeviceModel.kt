@@ -30,11 +30,11 @@ internal const val ON_DEVICE_PROFILE_ID = "on-device"
 /**
  * The on-device profile: OpenAI chat to [OnDeviceModel]'s llama-server, running [model] (one of the offered models,
  * picked like any profile's model beside the composer). The base URL is a placeholder; each start of the server picks
- * its own port and key, which [OnDeviceModelClient] reads when it calls.
+ * its own port and key, which [OnDeviceModelClient] reads when it calls. [label] is its name in the screen's language.
  */
-internal fun onDeviceProfile(model: String? = null): ProviderProfile = ProviderProfile(
+internal fun onDeviceProfile(model: String?, label: String): ProviderProfile = ProviderProfile(
     id = ON_DEVICE_PROFILE_ID,
-    label = "本机模型",
+    label = label,
     provider = ModelProvider.OPENAI,
     apiKey = "",
     model = OnDeviceModel.spec(model).id,
@@ -51,9 +51,9 @@ internal fun ProviderProfile.isOnDevice(): Boolean = id == ON_DEVICE_PROFILE_ID
  * The list with the built-in on-device profile last. A saved override of it (choosing its model saves one, keyed
  * `on_device`, which comes back as a profile of that id) keeps only the model: the rest is fixed.
  */
-internal fun List<ProviderProfile>.withOnDeviceProfile(): List<ProviderProfile> {
+internal fun List<ProviderProfile>.withOnDeviceProfile(label: String): List<ProviderProfile> {
     val saved = filter { it.id.preferenceKey() == ON_DEVICE_PROFILE_ID.preferenceKey() }
-    return (this - saved.toSet()) + onDeviceProfile(saved.firstOrNull()?.model)
+    return (this - saved.toSet()) + onDeviceProfile(saved.firstOrNull()?.model, label)
 }
 
 /**
@@ -158,6 +158,10 @@ internal object OnDeviceModel {
         if (profile.isOnDevice()) warmUp(spec(profile.model)) else if (server.state.value !is LlamaServer.State.Stopped) stop()
     }
 
+    /**
+     * The run's error when [spec] is not downloaded. It stays in Chinese: a failed run's message is kept as the turn's
+     * reply, which the model reads back. The screens say it with `model_on_device_missing`.
+     */
     fun missingMessage(spec: LocalModelSpec): String =
         "本机模型 ${spec.label} 还没下载：设置 → 模型与服务 → 本机模型 → ${spec.label} → 下载（约 ${"%.1f".format(spec.sizeBytes / 1e9)} GB）。"
 

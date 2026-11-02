@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.voice.CLOUD_TRANSCRIPT_NOTES
 import cc.noharry.bothy.voice.DashScopeAsrEngine
 import cc.noharry.bothy.voice.DashScopeAsrModel
@@ -113,6 +114,8 @@ internal object VoiceController {
     private var injected: InjectedAudio? = null
     private var origin = VoiceOrigin.BUTTON
     private var appContext: Context? = null
+    /** The Jev session's recognizer as the voice strip names it ([engineLabel]), in the app's language. */
+    private var sessionEngineLabel = ""
     private var watchers: Job? = null
     private var detachRuntime: (() -> Unit)? = null
     private var detachClient: (() -> Unit)? = null
@@ -186,22 +189,26 @@ internal object VoiceController {
     /** Why listening cannot start, known before a wake is answered (the microphone, the settings); null when it may. */
     fun cannotListen(context: Context): String? {
         val appContext = context.applicationContext
-        if (appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "需要麦克风权限"
-        return if (loadRealtimeConfig(appContext).enabled) null else loadVoiceConfig(appContext).validationError()
+        if (appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            return appContext.getString(R.string.voice_mic_permission_needed)
+        }
+        if (loadRealtimeConfig(appContext).enabled) return null
+        return loadVoiceConfig(appContext).validationError(appContext)
     }
 
     /** Null when listening started, else why it could not. */
     fun start(context: Context, origin: VoiceOrigin = VoiceOrigin.BUTTON): String? {
         if (listening) return null
         val appContext = context.applicationContext
-        if (appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) return "需要麦克风权限"
+        val micGranted = appContext.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (!micGranted) return appContext.getString(R.string.voice_mic_permission_needed)
         if (origin == VoiceOrigin.WAKE) startFreshAfterQuiet(appContext)
         loadRealtimeConfig(appContext).takeIf { it.enabled }?.let { return startRealtime(appContext, origin, it) }
         val config = loadVoiceConfig(appContext)
-        config.validationError()?.let { return it }
-        val jev = loadJevConfig(appContext)
+        config.validationError(appContext)?.let { return it }
         val jevKey = loadJevKey(appContext).takeIf { config.jevTurns }.orEmpty()
         val engine = createEngine(appContext, config).getOrElse { return it.message }
+        sessionEngineLabel = engineLabel(appContext, config)
         val nearGate = nearGate(appContext, config)
         lateinit var created: VoiceSession
         // The mic opens after start(), by which time the session exists, and once the wake word has let it go.
@@ -209,7 +216,7 @@ internal object VoiceController {
         created = VoiceSession(
             engine = engine,
             // Without Jev every sentence the recognizer closes goes to the agent.
-            judge = if (jevKey.isNotEmpty()) createJudge(jev, jevKey, engine.punctuates) else DirectTurnJudge(),
+            judge = if (jevKey.isNotEmpty()) createJudge(loadJevConfig(appContext), jevKey, engine.punctuates) else DirectTurnJudge(),
             audio = InjectedAudio(recording).also { injected = it },
             thresholds = config.thresholds,
             autoSubmit = config.autoSubmit,
@@ -262,7 +269,7 @@ internal object VoiceController {
      */
     private fun startRealtime(appContext: Context, origin: VoiceOrigin, config: RealtimeConfig): String? {
         val key = realtimeKey(appContext)
-        if (key.isEmpty()) return "端到端演示要用豆包语音 key：请先在 设置 → 语音 → 密钥 保存"
+        if (key.isEmpty()) return appContext.getString(R.string.voice_realtime_key_needed)
         lateinit var created: RealtimeVoice
         val voice = loadVoiceConfig(appContext)
         val recording = sessionRecording(voice) { effects -> created.reportAudioEffects(effects) }
@@ -317,7 +324,7 @@ internal object VoiceController {
     /** The configured recognizer, or why it cannot run. */
     /** The recognizer Settings → 语音 picked; also what 问题反馈's dictation transcribes with. */
     internal fun createEngine(context: Context, config: VoiceConfig): Result<StreamingAsrEngine> = when (config.engine) {
-        VoiceEngine.LOCAL -> SherpaOnnxAsrEngine.availabilityError(context.assets)
+        VoiceEngine.LOCAL -> localAsrUnavailable(context)
             ?.let { Result.failure(IllegalStateException(it)) }
             ?: Result.success(SherpaOnnxAsrEngine(context.assets, numThreads = config.localThreads))
         VoiceEngine.DASHSCOPE -> loadDashscopeKey(context).takeIf(String::isNotEmpty)
@@ -330,7 +337,7 @@ internal object VoiceController {
                 }
                 Result.success(DashScopeAsrEngine(config.dashscopeEndpoint, key, model.id, model.languageHints, vocabularyId = vocabulary))
             }
-            ?: Result.failure(IllegalStateException("请先保存百炼 API key"))
+            ?: Result.failure(IllegalStateException(context.getString(R.string.voice_dashscope_key_missing)))
     }
 
     /** Ends listening; [resumeWake] hands the microphone back to the wake word (a restart keeps it for the next session). */
@@ -351,7 +358,7 @@ internal object VoiceController {
         // Words of a turn that never ended go with the session (「退出」 right after a wake, 2026-10-20): logged to read back.
         active.state.value.liveText.takeIf(String::isNotBlank)?.let { VoiceLog.i(TAG, "session ended mid-turn: $it") }
         active.stop()
-        mutableState.value = active.state.value
+        mutableState.value = appContext?.let { shown(it, active.state.value) } ?: active.state.value
         mutableActive.value = false
         SpeechFocus.ended(SpeechFocus.LISTENING)
         // The session's recording closes first; the wake word's opens after it.
@@ -416,12 +423,19 @@ internal object VoiceController {
         return stopped.isNotEmpty()
     }
 
+    /** A Jev session's state as the screens show it: the recognizer named and its problem worded in the app's language. */
+    private fun shown(context: Context, state: VoiceSessionState): VoiceSessionState = state.copy(
+        engineLabel = sessionEngineLabel,
+        message = state.problem?.let { describeVoiceProblem(context, it) } ?: state.message,
+    )
+
     private fun watch(context: Context, active: VoiceSession) {
         runtimeRunning = false
         clientRunning = false
         watchers = scope.launch {
             launch {
-                active.state.collect { next ->
+                active.state.collect { state ->
+                    val next = shown(context, state)
                     logChanges(mutableState.value, next)
                     mutableState.value = next
                     // The session ends itself on a microphone or recognizer failure.

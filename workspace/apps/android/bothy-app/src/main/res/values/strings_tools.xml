@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Checks → Tool catalog. values-zh holds the Chinese. -->
+<resources>
+    <string name="tools_list_separator">", "</string>
+    <plurals name="tools_count">
+        <item quantity="one">%1$d tool</item>
+        <item quantity="other">%1$d tools</item>
+    </plurals>
+    <string name="tools_no_sources">No tool sources switched on</string>
+    <plurals name="tools_groups">
+        <item quantity="one">In %1$d group: %2$s</item>
+        <item quantity="other">In %1$d groups: %2$s</item>
+    </plurals>
+    <string name="tools_groups_more">%1$s and more</string>
+    <string name="tools_no_prompt_yet">No conversation yet, so the fixed prompt size is unknown</string>
+    <string name="tools_source_unreachable">Can\'t connect, or no tools</string>
+    <string name="tools_source_unknown">Unknown source</string>
+    <plurals name="tools_prompt_stats">
+        <item quantity="one">Last conversation\'s fixed prompt: %1$d/%2$d bytes (tools %3$d bytes, %4$d group)</item>
+        <item quantity="other">Last conversation\'s fixed prompt: %1$d/%2$d bytes (tools %3$d bytes, %4$d groups)</item>
+    </plurals>
+    <plurals name="tools_prompt_stats_shortened">
+        <item quantity="one">Last conversation\'s fixed prompt: %1$d/%2$d bytes (tools %3$d bytes, %4$d group, shortened automatically)</item>
+        <item quantity="other">Last conversation\'s fixed prompt: %1$d/%2$d bytes (tools %3$d bytes, %4$d groups, shortened automatically)</item>
+    </plurals>
+</resources>

@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.annotation.StringRes
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.status
 import java.io.File
 import java.io.IOException
@@ -38,7 +40,7 @@ internal object SystemTts : TtsClient {
 
     override suspend fun synthesize(config: TtsConfig, text: String): TtsAudio {
         val context = app ?: throw IOException("系统语音还没准备好")
-        val tts = engine(context) ?: throw IOException(NO_ENGINE)
+        val tts = engine(context) ?: throw IOException(context.getString(R.string.tts_system_no_engine))
         val file = File(File(context.cacheDir, CACHE_DIR).apply { mkdirs() }, "${UUID.randomUUID()}.wav")
         try {
             val id = file.nameWithoutExtension
@@ -46,7 +48,7 @@ internal object SystemTts : TtsClient {
                 pending[id] = continuation
                 continuation.invokeOnCancellation { pending.remove(id) }
                 if (tts.synthesizeToFile(text, Bundle(), file, id) != TextToSpeech.SUCCESS) {
-                    pending.remove(id)?.resumeWithException(IOException("系统语音合成失败"))
+                    pending.remove(id)?.resumeWithException(IOException(context.getString(R.string.tts_system_failed)))
                 }
             }
             return TtsAudio(file.readBytes(), WAV_FORMAT)
@@ -57,8 +59,11 @@ internal object SystemTts : TtsClient {
 
     /** Never asked for: the device's voice is not streamed ([TtsConfig.stream] is off with it). */
     override fun stream(config: TtsConfig, text: String): Flow<TtsAudioChunk> = flow {
-        throw IOException("系统语音不支持流式播放")
+        throw IOException(appText(R.string.tts_system_no_stream))
     }
+
+    /** [id] in the app's language; [app] is set before anything is spoken. */
+    private fun appText(@StringRes id: Int, vararg args: Any): String = app?.getString(id, *args).orEmpty()
 
     /** Android's page for the speech engine and its language, where a Chinese voice is installed or picked. */
     fun settingsIntent(): Intent = Intent(TTS_SETTINGS_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -97,16 +102,16 @@ internal object SystemTts : TtsClient {
 
         @Deprecated("Deprecated in Java")
         override fun onError(utteranceId: String?) {
-            utteranceId?.let { pending.remove(it) }?.resumeWithException(IOException("系统语音合成出错"))
+            utteranceId?.let { pending.remove(it) }?.resumeWithException(IOException(appText(R.string.tts_system_error)))
         }
 
         override fun onError(utteranceId: String?, errorCode: Int) {
-            utteranceId?.let { pending.remove(it) }?.resumeWithException(IOException("系统语音合成出错（$errorCode）"))
+            val error = IOException(appText(R.string.tts_system_error_code, errorCode))
+            utteranceId?.let { pending.remove(it) }?.resumeWithException(error)
         }
     }
 
     private const val WAV_FORMAT = "wav"
     private const val CACHE_DIR = "system-tts"
     private const val TTS_SETTINGS_ACTION = "com.android.settings.TTS_SETTINGS"
-    private const val NO_ENGINE = "这台设备没有可用的系统语音：到系统设置的「文字转语音」装一个中文语音，或者在「密钥」页填豆包语音 key"
 }

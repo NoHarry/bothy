@@ -36,9 +36,9 @@ internal class CompanionChat(private val http: HttpTransport) {
                     HttpEvent.Done -> Unit
                 }
             }
-            if (status !in 200..299) throw IOException(companionHttpProblem(status, lines.raw()))
+            if (status !in 200..299) throw CompanionHttpException(status, serviceErrorMessage(lines.raw()))
             text.toString().ifEmpty { wholeReply(lines.raw()) }.trim()
-        } ?: throw IOException("陪聊服务 ${COMPANION_TIMEOUT_MILLIS / 1000} 秒没有回应")
+        } ?: throw CompanionTimeoutException((COMPANION_TIMEOUT_MILLIS / 1000).toInt())
 
     private fun request(endpoint: CompanionEndpoint, key: String, messages: List<Pair<String, String>>): HttpRequest {
         val extra = endpoint.extraBody.takeIf { it.isNotBlank() }?.let { Json.parseToJsonElement(it) as? JsonObject }.orEmpty()
@@ -97,14 +97,29 @@ private fun wholeReply(body: String): String {
     return ((choice?.get("message") as? JsonObject)?.get("content") as? JsonPrimitive)?.contentOrNull.orEmpty()
 }
 
-internal fun companionHttpProblem(status: Int, body: String): String {
-    val message = ((jsonObjectOrNull(body)?.get("error") as? JsonObject)?.get("message") as? JsonPrimitive)?.contentOrNull
+/**
+ * The service answered [status], with its own [serviceMessage]; [message] (for the log) says what to check, and the
+ * screen words it with [companionFailureText].
+ */
+internal class CompanionHttpException(val status: Int, val serviceMessage: String?) :
+    IOException(companionHttpProblem(status, serviceMessage))
+
+/** The service said nothing for [seconds]. */
+internal class CompanionTimeoutException(val seconds: Int) : IOException("陪聊服务 $seconds 秒没有回应")
+
+/** The `error.message` of an error body, cut short. */
+private fun serviceErrorMessage(body: String): String? {
+    val error = jsonObjectOrNull(body)?.get("error") as? JsonObject
+    return (error?.get("message") as? JsonPrimitive)?.contentOrNull?.take(MAX_ERROR_CHARS)
+}
+
+internal fun companionHttpProblem(status: Int, message: String?): String {
     val hint = when (status) {
         401, 403 -> "，检查 API key（千问的 sk-ws- 工作空间 key 要用工作空间地址）"
         404 -> "，检查地址和模型名"
         else -> ""
     }
-    return "HTTP $status${message?.let { "：${it.take(MAX_ERROR_CHARS)}" } ?: ""}$hint"
+    return "HTTP $status${message?.let { "：$it" } ?: ""}$hint"
 }
 
 private fun jsonObjectOrNull(text: String): JsonObject? =
@@ -128,8 +143,31 @@ internal fun companionMessages(persona: String, recent: List<Pair<String, String
         recent.takeLast(MAX_HISTORY_EXCHANGES).flatMap { (user, assistant) -> listOf("user" to user, "assistant" to assistant) } +
         ("user" to "$words\n$HANDOFF_REMINDER")
 
-/** Where a voice turn goes, and why: logged for every turn while the companion is on. */
-internal data class CompanionDecision(val toCompanion: Boolean, val reason: String)
+/** Where a voice turn goes, and why: logged for every turn while the companion is on, and listed in 设置 → 陪聊. */
+internal data class CompanionDecision(val toCompanion: Boolean, val why: CompanionRouteReason) {
+    /** [why] for the log. */
+    val reason: String
+        get() = when (val cause = why) {
+            CompanionRouteReason.Off -> "off"
+            CompanionRouteReason.NotScored -> "not scored"
+            is CompanionRouteReason.BelowThreshold -> "small_talk %.2f < %.2f".format(cause.score, cause.threshold)
+            is CompanionRouteReason.TaskWord -> "task word 「${cause.word}」"
+            CompanionRouteReason.AnswersAgent -> "answers the agent's question"
+            is CompanionRouteReason.Observing -> "observe: would chat (%.2f)".format(cause.score)
+            is CompanionRouteReason.SmallTalk -> "small_talk %.2f".format(cause.score)
+        }
+}
+
+/** Why a voice turn went where it did. */
+internal sealed interface CompanionRouteReason {
+    data object Off : CompanionRouteReason
+    data object NotScored : CompanionRouteReason
+    data class BelowThreshold(val score: Double, val threshold: Double) : CompanionRouteReason
+    data class TaskWord(val word: String) : CompanionRouteReason
+    data object AnswersAgent : CompanionRouteReason
+    data class Observing(val score: Double) : CompanionRouteReason
+    data class SmallTalk(val score: Double) : CompanionRouteReason
+}
 
 /**
  * Small talk goes to the companion only when Jev scored it so, nothing in the words asks for something the agent does,
@@ -145,13 +183,14 @@ internal fun decideCompanionRoute(
     val taskWord = COMPANION_TASK_WORDS.firstOrNull { it in words }
     val answering = !lastWasCompanion && lastAssistant?.trimEnd()?.let { it.endsWith('？') || it.endsWith('?') } == true
     return when {
-        !config.enabled -> CompanionDecision(false, "off")
-        smallTalk == null -> CompanionDecision(false, "not scored")
-        smallTalk < config.threshold -> CompanionDecision(false, "small_talk %.2f < %.2f".format(smallTalk, config.threshold))
-        taskWord != null -> CompanionDecision(false, "task word 「$taskWord」")
-        answering -> CompanionDecision(false, "answers the agent's question")
-        config.mode == CompanionMode.OBSERVE -> CompanionDecision(false, "observe: would chat (%.2f)".format(smallTalk))
-        else -> CompanionDecision(true, "small_talk %.2f".format(smallTalk))
+        !config.enabled -> CompanionDecision(false, CompanionRouteReason.Off)
+        smallTalk == null -> CompanionDecision(false, CompanionRouteReason.NotScored)
+        smallTalk < config.threshold ->
+            CompanionDecision(false, CompanionRouteReason.BelowThreshold(smallTalk, config.threshold))
+        taskWord != null -> CompanionDecision(false, CompanionRouteReason.TaskWord(taskWord))
+        answering -> CompanionDecision(false, CompanionRouteReason.AnswersAgent)
+        config.mode == CompanionMode.OBSERVE -> CompanionDecision(false, CompanionRouteReason.Observing(smallTalk))
+        else -> CompanionDecision(true, CompanionRouteReason.SmallTalk(smallTalk))
     }
 }
 

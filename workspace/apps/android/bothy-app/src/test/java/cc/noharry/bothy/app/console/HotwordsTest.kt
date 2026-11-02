@@ -68,6 +68,6 @@ class HotwordsTest {
     fun hotwordsAreTypedWithAnySeparator() {
         assertEquals(listOf("小博", "你好小博", "高德地图"), parseHotwords("小博，你好小博、高德地图\n小博"))
         assertEquals(DEFAULT_HOTWORDS, VoiceConfig().hotwords)
-        assertTrue(VoiceConfig(hotwords = listOf("一二三四五六七八九十一二三四五六")).validationError()!!.contains("15"))
+        assertTrue(VoiceConfig(hotwords = listOf("一二三四五六七八九十一二三四五六")).validationError(context)!!.contains("15"))
     }
 }

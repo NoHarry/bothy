@@ -31,12 +31,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.vfs.VfsEntry
 import cc.noharry.agent.vfs.VfsFileSystem
 import cc.noharry.agent.vfs.VfsListResult
 import cc.noharry.agent.vfs.VfsReadResult
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.initialValue
 import cc.noharry.bothy.app.console.ui.IconFile
 import cc.noharry.bothy.app.console.ui.IconFolder
@@ -105,7 +107,7 @@ internal fun FilesPane(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = "Refresh",
+                text = stringResource(R.string.common_refresh),
                 style = ConsoleType.meta,
                 color = colors.accent,
                 modifier = Modifier
@@ -116,15 +118,15 @@ internal fun FilesPane(
         }
         Spacer(Modifier.height(Dimens.spaceXs))
         when (val result = listing) {
-            null -> Text("Loading…", style = ConsoleType.meta, color = colors.muted)
+            null -> Text(stringResource(R.string.common_loading), style = ConsoleType.meta, color = colors.muted)
             is VfsListResult.Error -> Text(
-                "Unavailable: ${result.message}",
+                stringResource(R.string.console_files_unavailable, result.message),
                 style = ConsoleType.meta,
                 color = colors.danger,
             )
             VfsListResult.InvalidPath,
             VfsListResult.NotFound,
-            -> Text("Nothing here.", style = ConsoleType.meta, color = colors.muted)
+            -> Text(stringResource(R.string.console_files_empty), style = ConsoleType.meta, color = colors.muted)
             is VfsListResult.Entries -> {
                 val directories = result.entries.filter { it.type == VFS_DIR_TYPE }
                 val files = result.entries.filter { it.type != VFS_DIR_TYPE }

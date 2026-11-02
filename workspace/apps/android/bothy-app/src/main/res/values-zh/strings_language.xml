@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_note">默认跟随系统，也可以在这里选定。不影响小博说的话。</string>
+    <string name="settings_language_system">跟随系统</string>
+</resources>

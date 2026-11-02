@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.overlay
 import android.content.Context
+import android.content.res.Resources
 import android.graphics.PixelFormat
 import android.view.Gravity
 import android.view.View
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.DelegationStage
 import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.console.color
@@ -73,27 +75,37 @@ internal data class OverlayTaskSignal(
  * The most pressing delegation among [views] at [now]: a result waiting to be seen, then one that has not started,
  * then the latest under way; null when none is.
  */
-internal fun overlayTaskSignal(views: List<DelegationView>, now: Long): OverlayTaskSignal? {
+internal fun overlayTaskSignal(resources: Resources, views: List<DelegationView>, now: Long): OverlayTaskSignal? {
     val live = views.filter { !it.stage.settled || it.stage == DelegationStage.REPORTING }
     val view = live.lastOrNull { it.stage == DelegationStage.REPORTING }
         ?: live.lastOrNull { it.stage == DelegationStage.STALLED }
         ?: live.lastOrNull()
         ?: return null
     val done = view.steps.count { it.status == "done" }
-    val elapsed = delegationElapsed(now, view.startedAtEpochMillis)
+    val elapsed = resources.delegationElapsed(now, view.startedAtEpochMillis)
     val (tone, title, detail) = when {
-        view.stage == DelegationStage.REPORTING -> Triple(OverlayTaskTone.RESULT, "${view.agentLabel} 有新结果", "点一下查看")
-        view.stage == DelegationStage.STALLED ->
-            Triple(OverlayTaskTone.STALLED, "${view.agentLabel} · 还没开始", "已送达 $elapsed，可能在等审批")
+        view.stage == DelegationStage.REPORTING -> Triple(
+            OverlayTaskTone.RESULT,
+            resources.getString(R.string.overlay_delegation_new_result, view.agentLabel),
+            resources.getString(R.string.overlay_tap_to_view),
+        )
+        view.stage == DelegationStage.STALLED -> Triple(
+            OverlayTaskTone.STALLED,
+            resources.getString(R.string.overlay_signal_not_started, view.agentLabel),
+            resources.getString(R.string.overlay_signal_delivered, elapsed),
+        )
         view.steps.isNotEmpty() -> Triple(
             OverlayTaskTone.WORKING,
-            "${view.agentLabel} · $done/${view.steps.size} 步",
+            resources.getString(R.string.overlay_signal_steps, view.agentLabel, done, view.steps.size),
             view.steps.firstOrNull { it.status == "doing" }?.title ?: view.statusText.ifBlank { view.request },
         )
         else -> Triple(
             OverlayTaskTone.WORKING,
-            "${view.agentLabel} · ${view.stage.label} $elapsed",
-            view.statusText.takeIf { it.isNotBlank() && view.stage == DelegationStage.WORKING } ?: "「${view.request}」",
+            resources.getString(
+                R.string.overlay_signal_stage, view.agentLabel, resources.getString(view.stage.overlayLabel()), elapsed,
+            ),
+            view.statusText.takeIf { it.isNotBlank() && view.stage == DelegationStage.WORKING }
+                ?: resources.getString(R.string.overlay_quoted_request, view.request),
         )
     }
     return OverlayTaskSignal(tone, done, view.steps.size, title, detail, live.size - 1, "${view.taskId}|$tone|$done|${view.stage}")

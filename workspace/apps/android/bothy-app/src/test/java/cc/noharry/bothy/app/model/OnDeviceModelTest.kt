@@ -2,6 +2,9 @@
 
 package cc.noharry.bothy.app.model
 
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.model.ModelClient
 import cc.noharry.agent.kernel.api.model.ModelClientException
@@ -9,6 +12,7 @@ import cc.noharry.agent.kernel.api.model.ModelEvent
 import cc.noharry.agent.kernel.api.model.ModelMessage
 import cc.noharry.agent.kernel.api.model.ModelRequest
 import cc.noharry.agent.kernel.api.model.ModelTool
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.session.ModelProvider
 import cc.noharry.bothy.llm.LlamaDevice
 import cc.noharry.bothy.llm.LlamaServer
@@ -22,13 +26,21 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class OnDeviceModelTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val label: String get() = context.getString(R.string.model_on_device)
+
     @Test
     fun theOnDeviceProfileIsAddedOnceToAnyList() {
         val cloud = ProviderProfile("deepseek-api", "deepseek api", ModelProvider.OPENAI, "", "deepseek-flash", "https://api.deepseek.com/v1")
 
-        val profiles = listOf(cloud).withOnDeviceProfile().withOnDeviceProfile()
+        val profiles = listOf(cloud).withOnDeviceProfile(label).withOnDeviceProfile(label)
 
         assertEquals(listOf("deepseek-api", ON_DEVICE_PROFILE_ID), profiles.map { it.id })
         val onDevice = profiles.last()
@@ -47,7 +59,7 @@ class OnDeviceModelTest {
             ),
         )
 
-        val onDevice = emptyList<ProviderProfile>().withSavedProfiles(overrides).withOnDeviceProfile().single()
+        val onDevice = emptyList<ProviderProfile>().withSavedProfiles(overrides).withOnDeviceProfile(label).single()
 
         assertEquals(ON_DEVICE_PROFILE_ID, onDevice.id)
         assertEquals(QWEN3_4B_2507.id, onDevice.model)
@@ -65,10 +77,10 @@ class OnDeviceModelTest {
 
     @Test
     fun anOnDeviceProfileWithoutItsModelIsNotReadyAndSaysHowToGetIt() {
-        val config = config(onDeviceProfile(QWEN3_4B_2507.id))
+        val config = config(onDeviceProfile(QWEN3_4B_2507.id, label))
 
         assertFalse(config.isReady(config.activeProfile))
-        val message = config.missingMessage(config.activeProfile)
+        val message = config.missingMessage(context, config.activeProfile)
         assertTrue(message.contains(QWEN3_4B_2507.label) && message.contains("下载"))
         assertTrue(config.client(config.activeProfile, stream = true) is OnDeviceModelClient)
     }

@@ -7,6 +7,7 @@ import cc.noharry.agent.model.AnthropicModelClient
 import cc.noharry.agent.model.ModelVariantRegistry
 import cc.noharry.agent.model.OpenAiModelClient
 import cc.noharry.agent.transport.OkHttpHttpTransport
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.evidence.AppDiagnostics
 import cc.noharry.bothy.app.session.ModelProvider
 import cc.noharry.bothy.app.voice.tts.savedTtsValues
@@ -118,15 +119,19 @@ internal data class ProviderConfig(
     fun modelRef(provider: ModelProvider): ModelRef =
         modelRef(profileForProvider(provider))
 
-    fun missingMessage(profile: ProviderProfile): String {
-        if (profile.isOnDevice()) return OnDeviceModel.missingMessage(OnDeviceModel.spec(profile.model))
-        if (profile.model.isBlank()) return "请在输入框旁选择模型；可先在设置中拉取或添加模型。"
+    /** What [profile] lacks before it can run, for the screens (the transcript, 检查). */
+    fun missingMessage(context: Context, profile: ProviderProfile): String {
+        if (profile.isOnDevice()) {
+            val spec = OnDeviceModel.spec(profile.model)
+            return context.getString(R.string.model_on_device_missing, spec.label, "%.1f".format(spec.sizeBytes / 1e9))
+        }
+        if (profile.model.isBlank()) return context.getString(R.string.model_choose_model_first)
         val paths = expectedPaths.joinToString(separator = "\n")
-        return "Missing API key for ${profile.displayLabel}. Set it in Config or provide one of:\n$paths"
+        return context.getString(R.string.model_missing_api_key, profile.displayLabel, paths)
     }
 
-    fun missingMessage(provider: ModelProvider): String =
-        missingMessage(profileForProvider(provider))
+    fun missingMessage(context: Context, provider: ModelProvider): String =
+        missingMessage(context, profileForProvider(provider))
 
     fun profileForProvider(provider: ModelProvider): ProviderProfile =
         if (activeProfile.provider == provider) {
@@ -168,7 +173,7 @@ internal data class ProviderConfig(
             val profiles = providerProfiles(baseValues)
                 .withSavedProfiles(savedProfileState.overrides)
                 .withSharedDeepSeekApiKeys()
-                .withOnDeviceProfile()
+                .withOnDeviceProfile(context.getString(R.string.model_on_device))
             val selection = resolveProviderSelection(
                 values = baseValues,
                 profiles = profiles,

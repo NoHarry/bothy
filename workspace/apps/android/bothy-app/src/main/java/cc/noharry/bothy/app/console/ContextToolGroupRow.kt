@@ -22,8 +22,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.Disclosure
 import cc.noharry.bothy.app.console.ui.HtmlPreviewBox
 import cc.noharry.bothy.app.console.ui.IconFile
@@ -88,7 +91,7 @@ private fun HtmlArtifactRow(preview: ArtifactPreview, actions: ConsoleActions) {
             )
             Spacer(Modifier.width(Dimens.spaceSm))
             Text(
-                text = "${preview.bytes.formatCount()} bytes",
+                text = stringResource(R.string.console_bytes, preview.bytes.formatCount()),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 maxLines = 1,
@@ -96,7 +99,7 @@ private fun HtmlArtifactRow(preview: ArtifactPreview, actions: ConsoleActions) {
             Spacer(Modifier.width(Dimens.spaceSm))
             Icon(
                 imageVector = IconFullscreen,
-                contentDescription = "Open fullscreen preview",
+                contentDescription = stringResource(R.string.console_open_fullscreen_preview),
                 tint = colors.muted,
                 modifier = Modifier
                     .width(ARTIFACT_ROW_ICON_SIZE)
@@ -125,9 +128,9 @@ private fun ContextToolGroupRow(group: ConversationRenderItem.ContextToolGroup) 
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     TimelineRow(status.color(), null) {
         GroupHeader(
-            summary = group.summaryLabel(),
+            summary = group.summaryLabel(LocalContext.current.resources),
             expanded = expanded,
-            meta = listOfNotNull(status.name.lowercase(), elapsed).joinToString(" · "),
+            meta = listOfNotNull(stringResource(status.labelRes()), elapsed).joinToString(" · "),
             onToggle = { expanded = !expanded },
         )
         if (expanded) {
@@ -149,7 +152,7 @@ private fun BusinessToolGroupRow(
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     val running = status == ToolCallStatus.RUNNING
     GroupCard(
-        summary = group.summaryLabel(),
+        summary = group.summaryLabel(LocalContext.current.resources),
         expanded = expanded,
         elapsed = elapsed,
         statusColor = if (running) ConsoleColors.activity else status.color(),
@@ -169,7 +172,7 @@ private fun RuntimePhaseGroupRow(
 ) {
     var expanded by remember(group.key) { mutableStateOf(false) }
     GroupCard(
-        summary = group.summaryLabel(),
+        summary = group.summaryLabel(LocalContext.current.resources),
         expanded = expanded,
         elapsed = null,
         statusColor = ConsoleColors.muted,
@@ -184,7 +187,13 @@ private fun RuntimePhaseGroupRow(
 
 @Composable
 private fun TurnDividerRow(turnNumber: Int) {
-    TurnDividerLine(label = if (turnNumber > 0) "turn $turnNumber" else "turn")
+    TurnDividerLine(
+        label = if (turnNumber > 0) {
+            stringResource(R.string.console_turn_divider, turnNumber)
+        } else {
+            stringResource(R.string.console_turn_divider_unnumbered)
+        },
+    )
 }
 
 /** Group card aligned with the collapsed ToolRow: same container, ramp, and status dot. */
@@ -279,7 +288,7 @@ private fun ContextToolLine(item: ConversationItem.ToolCallItem) {
             Disclosure(expanded = expanded)
             Spacer(Modifier.width(Dimens.spaceXs))
             Text(
-                text = item.contextLookupLabel(),
+                text = item.contextLookupLabel(LocalContext.current.resources),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 maxLines = 1,
@@ -288,7 +297,8 @@ private fun ContextToolLine(item: ConversationItem.ToolCallItem) {
             )
             Spacer(Modifier.width(Dimens.spaceSm))
             Text(
-                text = listOfNotNull(item.status.name.lowercase(), toolElapsedLabel(item)).joinToString(" · "),
+                text = listOfNotNull(stringResource(item.status.labelRes()), toolElapsedLabel(item))
+                    .joinToString(" · "),
                 style = ConsoleType.meta,
                 color = colors.muted,
                 maxLines = 1,
@@ -305,8 +315,10 @@ private fun ContextToolDetails(item: ConversationItem.ToolCallItem) {
         Modifier.fillMaxWidth().padding(start = Dimens.spaceMd),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceXsMd),
     ) {
-        item.argumentsJson?.let { ToolDetailDisclosure("Arguments", it, defaultExpanded = true) }
-        item.resultJson?.let { ToolDetailDisclosure("Result", it, defaultExpanded = true) }
+        val arguments = stringResource(R.string.console_tool_arguments)
+        val result = stringResource(R.string.console_tool_result)
+        item.argumentsJson?.let { ToolDetailDisclosure(arguments, it, defaultExpanded = true) }
+        item.resultJson?.let { ToolDetailDisclosure(result, it, defaultExpanded = true) }
     }
 }
 
@@ -327,15 +339,8 @@ private fun groupElapsedLabel(
     }
     val start = tools.minOfOrNull { it.startedAt } ?: return null
     val end = if (status == ToolCallStatus.RUNNING) now else tools.mapNotNull { it.finishedAt }.maxOrNull()
-    return end?.let { formatGroupElapsed((it - start).coerceAtLeast(0L)) }
+    val resources = LocalContext.current.resources
+    return end?.let { resources.shortElapsedText((it - start).coerceAtLeast(0L)) }
 }
 
-private fun formatGroupElapsed(millis: Long): String =
-    if (millis < GROUP_MILLIS_PER_SECOND) {
-        "${millis}ms"
-    } else {
-        "%.1fs".format(millis / GROUP_MILLIS_PER_SECOND.toDouble())
-    }
-
-private const val GROUP_MILLIS_PER_SECOND = 1000L
 private const val GROUP_ELAPSED_TICK_MS = 1000L

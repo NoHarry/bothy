@@ -46,8 +46,10 @@ A bothy is a small mountain shelter, open to any traveller; Xiao Bo lives in one
 
 ## Try it in 5 minutes
 
-No development setup, one model key. Both apps show and speak Mandarin Chinese; this README gives their on-screen
-labels, and what is said to Xiao Bo in the demos, in English translation.
+No development setup, one model key. Both apps show English or Chinese, following the system language unless one is
+chosen (Bothy: **Settings → General → Language**; the Playground: its settings). What Xiao Bo says on its own stays in
+Mandarin Chinese, and the demos below were recorded in Chinese; what is said to Xiao Bo in them is given here in English
+translation.
 
 1. **Install**: download the latest `bothy-*.apk` (Xiao Bo) and `bothy-playground-*.apk` (the virtual head unit,
    optional) from [Releases](https://github.com/NoHarry/bothy/releases) onto an Android tablet or phone (Android 7.0 or
