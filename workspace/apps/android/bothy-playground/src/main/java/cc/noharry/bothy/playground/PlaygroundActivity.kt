@@ -36,7 +36,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -85,9 +85,6 @@ import cc.noharry.bothy.playground.nav.place
 
 /** The playground's one screen; it also starts [PlaygroundService], which serves the world to Bothy. */
 class PlaygroundActivity : ComponentActivity() {
-    /** Read during composition. Updated from [onConfigurationChanged], which this activity handles itself. */
-    internal lateinit var scaleSource: PlaygroundScaleSource
-
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(AppLanguages.wrap(newBase))
     }
@@ -96,7 +93,6 @@ class PlaygroundActivity : ComponentActivity() {
         HeadUnitModes.load(this)
         AmapKey.apply(this)
         super.onCreate(savedInstanceState)
-        scaleSource = PlaygroundScaleSource(resources.configuration)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
@@ -118,16 +114,11 @@ class PlaygroundActivity : ComponentActivity() {
             ViewCompat.onApplyWindowInsets(view, insets)
         }
         PlaygroundService.start(this)
-        // configChanges includes orientation, so a turn does not recreate this activity. The scale is read again
-        // inside composition, which follows that change; the scene extra is applied once per launch.
-        setContent { PlaygroundPhoneScale(scaleSource) { PlaygroundApp(Playground.store) } }
+        // configChanges includes orientation, so a turn does not recreate this activity. LocalConfiguration still
+        // updates, and the scale is read from it. The scene extra is applied once per launch.
+        setContent { PlaygroundPhoneScale { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
         if (savedInstanceState == null) askedScene(intent)
-    }
-
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        if (::scaleSource.isInitialized) scaleSource.update(newConfig)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -190,22 +181,13 @@ internal fun playgroundScaleFor(smallestWidthDp: Int, orientation: Int): Float =
     )
 
 /**
- * The head unit's scale. Composition locals do not move when this activity handles orientation itself, so the
- * activity writes the new configuration here and composition reads it.
+ * The head unit's scale. This activity handles orientation itself, and [LocalConfiguration] still updates when it
+ * does, so the scale follows a rotation without a second copy of the configuration.
  */
-internal class PlaygroundScaleSource(config: Configuration) {
-    var smallestWidthDp by mutableIntStateOf(config.smallestScreenWidthDp)
-    var orientation by mutableIntStateOf(config.orientation)
-
-    fun update(config: Configuration) {
-        smallestWidthDp = config.smallestScreenWidthDp
-        orientation = config.orientation
-    }
-}
-
 @Composable
-internal fun PlaygroundPhoneScale(source: PlaygroundScaleSource, content: @Composable () -> Unit) {
-    PhoneScale(playgroundScaleFor(source.smallestWidthDp, source.orientation), content)
+internal fun PlaygroundPhoneScale(content: @Composable () -> Unit) {
+    val config = LocalConfiguration.current
+    PhoneScale(playgroundScaleFor(config.smallestScreenWidthDp, config.orientation), content)
 }
 
 @Composable
