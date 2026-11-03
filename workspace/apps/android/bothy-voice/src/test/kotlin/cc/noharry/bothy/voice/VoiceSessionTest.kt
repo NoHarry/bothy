@@ -505,6 +505,21 @@ class VoiceSessionTest {
         assertEquals(listOf("去公司"), handed)
     }
 
+    @Test
+    fun aFailureWhileFlushingAHoldStillSendsWhatWasSaid() = test.runTest {
+        val engine = ScriptedEngine(mapOf(2 to "去公司"), failOnFinish = true)
+        val session = session(engine, addressed = 0.9, hold = true)
+        session.start()
+        advanceTimeBy(500)
+        runCurrent()
+
+        session.commit()
+        advanceTimeBy(200)
+        runCurrent()
+        assertEquals(listOf("去公司"), handed)
+        assertEquals(VoiceSessionStatus.ERROR, session.state.value.status)
+    }
+
     private fun session(engine: ScriptedEngine, addressed: Double, calledAtStart: Boolean = true, hold: Boolean = false) = VoiceSession(
         engine = engine,
         judge = { VoiceJudgment(turnComplete = 0.95, holdingFloor = 0.0, addressedToAgent = addressed, latencyMillis = 1) },
@@ -522,6 +537,7 @@ class VoiceSessionTest {
         private val failAt: Int? = null,
         private val finals: Map<Int, String> = emptyMap(),
         private val trailingFinal: String? = null,
+        private val failOnFinish: Boolean = false,
     ) : StreamingAsrEngine {
         override val label = "scripted"
         override val punctuates = false
@@ -543,6 +559,10 @@ class VoiceSessionTest {
         }
 
         override fun finish(onDrained: () -> Unit) {
+            if (failOnFinish) {
+                listener?.onError(VoiceProblem.RecognitionFailed("CLIENT_ERROR", "timeout"))
+                return
+            }
             trailingFinal?.let { listener?.onFinal(it) }
             onDrained()
         }

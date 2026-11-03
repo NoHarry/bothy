@@ -132,25 +132,7 @@ private fun RegularConversationPane(
     modifier: Modifier,
 ) {
     PanelBox(stringResource(R.string.console_conversation), modifier) {
-        val context = LocalContext.current
-        var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
-        if (wakeNote) {
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    stringResource(R.string.voice_wake_migrated_off),
-                    style = ConsoleType.bodySmall,
-                    color = ConsoleColors.text,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = {
-                    clearWakeMigrationNotice(context)
-                    wakeNote = false
-                }) { Text(stringResource(R.string.common_ok)) }
-            }
-        }
+        WakeMigrationNote()
         ConversationStatus(state)
         Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()
@@ -222,8 +204,9 @@ private fun RegularConversationPane(
         val steps = state.contextPanel.todo.count { !it.status.isCompletedPlanStatus() }
         if (openPlans != null && steps > 0) {
             Spacer(Modifier.height(Dimens.spaceSm))
+            val stepsLabel = if (state.isRunning) R.plurals.console_plan_steps else R.plurals.console_plan_steps_unfinished
             Text(
-                text = pluralStringResource(R.plurals.console_plan_steps, steps, steps),
+                text = pluralStringResource(stepsLabel, steps, steps),
                 style = ConsoleType.body,
                 color = ConsoleColors.accent,
                 modifier = Modifier
@@ -278,6 +261,28 @@ private fun ConversationEmptyState(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+private fun WakeMigrationNote() {
+    val context = LocalContext.current
+    var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
+    if (!wakeNote) return
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.voice_wake_migrated_off),
+            style = ConsoleType.bodySmall,
+            color = ConsoleColors.text,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = {
+            clearWakeMigrationNotice(context)
+            wakeNote = false
+        }) { Text(stringResource(R.string.common_ok)) }
+    }
+}
+
 private val WELCOME_MAX_WIDTH = 560.dp
 private const val WELCOME_ASPECT = 2f
 
@@ -302,6 +307,7 @@ private fun CondensedConversationPane(
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 4.dp)) {
             val showStatus = maxHeight >= CONDENSED_STATUS_MIN_HEIGHT
             Column(Modifier.fillMaxSize()) {
+                WakeMigrationNote()
                 if (showStatus) {
                     ConversationStatus(state)
                     Spacer(Modifier.height(2.dp))

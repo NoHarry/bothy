@@ -106,6 +106,10 @@
         <item quantity="one">%1$d step left</item>
         <item quantity="other">%1$d steps left</item>
     </plurals>
+    <plurals name="console_plan_steps_unfinished">
+        <item quantity="one">%1$d step unfinished</item>
+        <item quantity="other">%1$d steps unfinished</item>
+    </plurals>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">
         <item quantity="one">Read %1$d file</item>

@@ -206,9 +206,10 @@ internal fun pressOutcome(slidUp: Boolean, heldMillis: Long): PressOutcome =
 internal enum class PressOutcome { SEND, CANCEL }
 
 /** What a finger-down does when another session may already be listening. */
-internal enum class HoldDown { STOP_OTHER, ALREADY, START }
+internal enum class HoldDown { STOP_OTHER, ALREADY, START, FINISHING }
 
-internal fun holdDown(listening: Boolean, holding: Boolean): HoldDown = when {
+internal fun holdDown(listening: Boolean, holding: Boolean, finishing: Boolean = false): HoldDown = when {
+    finishing -> HoldDown.FINISHING
     listening && !holding -> HoldDown.STOP_OTHER
     listening -> HoldDown.ALREADY
     else -> HoldDown.START
@@ -236,7 +237,12 @@ private fun Modifier.pressToTalk(
         var started = false
         var send = false
         try {
-            when (holdDown(VoiceController.listening, VoiceController.holding)) {
+            when (holdDown(VoiceController.listening, VoiceController.holding, VoiceController.finishingHold)) {
+                // The previous hold is already being sent. Cancelling here would drop that utterance.
+                HoldDown.FINISHING -> {
+                    VoiceController.notice(ctx.getString(R.string.voice_hold_still_sending))
+                    return@awaitEachGesture
+                }
                 HoldDown.STOP_OTHER -> {
                     VoiceController.stop()
                     return@awaitEachGesture

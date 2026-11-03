@@ -104,9 +104,12 @@ internal data class VoiceConfig(
     }
 }
 
-internal fun loadVoiceConfig(context: Context): VoiceConfig {
-    migrateOverlayWakeDefault(context)
-    seedEmbeddedVoice(context)
+internal fun loadVoiceConfig(
+    context: Context,
+    embedded: () -> Map<String, String> = ::buildConfigValues,
+): VoiceConfig {
+    migrateOverlayWakeDefault(context, embedded)
+    seedEmbeddedVoice(context, embedded)
     val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
     val defaults = VoiceConfig()
     val t = defaults.thresholds
@@ -206,12 +209,35 @@ internal fun saveOverlayWake(context: Context, enabled: Boolean): Boolean =
  * Wake word is off unless the person turned it on, or this build embedded an explicit choice.
  * Older installs were switched on when setup finished; that value is turned off once. A later
  * [saveOverlayWake] is kept.
+ *
+ * A build that already seeded [EMBEDDED_OVERLAY_WAKE] on, before [OVERLAY_WAKE_FROM_BUILD] existed,
+ * keeps wake on. If that migration already turned it off and the notice is still up, wake is put back.
+ * Dismissing the notice leaves it off.
  */
-internal fun migrateOverlayWakeDefault(context: Context) {
+internal fun migrateOverlayWakeDefault(
+    context: Context,
+    embedded: () -> Map<String, String> = ::buildConfigValues,
+) {
     val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
+    val packagedOn = embedded()[EMBEDDED_OVERLAY_WAKE]?.trim()?.lowercase() in TRUE_WORDS
+    val userSet = prefs.getBoolean(OVERLAY_WAKE_USER_SET, false)
+    val seededPackagedOn = packagedOn && prefs.getBoolean(KEY_SEEDED, false) && !userSet
+    if (seededPackagedOn && !prefs.getBoolean(OVERLAY_WAKE_FROM_BUILD, false)) {
+        val stillOn = prefs.getBoolean(OVERLAY_WAKE_KEY, false)
+        val noticeStillUp = prefs.getBoolean(WAKE_MIGRATION_NOTICE, false)
+        if (stillOn || noticeStillUp) {
+            prefs.edit()
+                .putBoolean(OVERLAY_WAKE_FROM_BUILD, true)
+                .putBoolean(OVERLAY_WAKE_KEY, true)
+                .putBoolean(WAKE_DEFAULT_MIGRATED, true)
+                .putBoolean(WAKE_MIGRATION_NOTICE, false)
+                .apply()
+            return
+        }
+    }
     if (prefs.getBoolean(WAKE_DEFAULT_MIGRATED, false)) return
     val edit = prefs.edit().putBoolean(WAKE_DEFAULT_MIGRATED, true)
-    val explicit = prefs.getBoolean(OVERLAY_WAKE_USER_SET, false) || prefs.getBoolean(OVERLAY_WAKE_FROM_BUILD, false)
+    val explicit = userSet || prefs.getBoolean(OVERLAY_WAKE_FROM_BUILD, false)
     if (!explicit && prefs.getBoolean(OVERLAY_WAKE_KEY, false)) {
         edit.putBoolean(OVERLAY_WAKE_KEY, false)
         edit.putBoolean(WAKE_MIGRATION_NOTICE, true)

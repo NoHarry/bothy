@@ -148,6 +148,48 @@ class VoiceServicesTest {
     }
 
     @Test
+    fun anUpgradeThatAlreadySeededPackagedWakeKeepsItOn() {
+        voicePrefs().edit().clear()
+            .putBoolean("embedded_seeded", true)
+            .putBoolean("overlay_wake", true)
+            .commit()
+        assertTrue(loadVoiceConfig(context) { mapOf("VOICE_OVERLAY_WAKE" to "on") }.overlayWake)
+        assertFalse(wakeMigrationNotice(context))
+        assertTrue(voicePrefs().getBoolean("overlay_wake_from_build", false))
+    }
+
+    @Test
+    fun aMistakenMigrationOfPackagedWakeIsRestoredWhileTheNoticeIsUp() {
+        voicePrefs().edit().clear()
+            .putBoolean("embedded_seeded", true)
+            .putBoolean("overlay_wake", false)
+            .putBoolean("overlay_wake_default_migrated", true)
+            .putBoolean("overlay_wake_migration_notice", true)
+            .commit()
+        assertTrue(loadVoiceConfig(context) { mapOf("VOICE_OVERLAY_WAKE" to "on") }.overlayWake)
+        assertFalse(wakeMigrationNotice(context))
+        assertTrue(voicePrefs().getBoolean("overlay_wake_from_build", false))
+    }
+
+    @Test
+    fun aDismissedWakeNoticeStaysOff() {
+        voicePrefs().edit().clear()
+            .putBoolean("embedded_seeded", true)
+            .putBoolean("overlay_wake", false)
+            .putBoolean("overlay_wake_default_migrated", true)
+            .commit()
+        assertFalse(loadVoiceConfig(context) { mapOf("VOICE_OVERLAY_WAKE" to "on") }.overlayWake)
+        assertFalse(wakeMigrationNotice(context))
+    }
+
+    @Test
+    fun aSeededBuildWhosePackageTurnsWakeOffStillMigrates() {
+        voicePrefs().edit().clear().putBoolean("embedded_seeded", true).putBoolean("overlay_wake", true).commit()
+        assertFalse(loadVoiceConfig(context) { mapOf("VOICE_OVERLAY_WAKE" to "off") }.overlayWake)
+        assertTrue(wakeMigrationNotice(context))
+    }
+
+    @Test
     fun bailianIsNotPickedWithoutAKey() {
         seedEmbeddedVoice(context) { mapOf("VOICE_ASR_ENGINE" to "dashscope", "DASHSCOPE_ASR_MODEL" to "not-a-model") }
         val config = loadVoiceConfig(context)

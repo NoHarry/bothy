@@ -115,6 +115,8 @@ internal object VoiceController {
     /** The Jev session's hearing, which adb's `voice_pcm` adds recorded words to ([injectAudio]). */
     private var injected: InjectedAudio? = null
     private var origin = VoiceOrigin.BUTTON
+    /** [releasePress] committed a hold; cleared when that session stops. */
+    @Volatile private var sendingHold = false
     private var appContext: Context? = null
     /** The Jev session's recognizer as the voice strip names it ([engineLabel]), in the app's language. */
     private var sessionEngineLabel = ""
@@ -147,6 +149,12 @@ internal object VoiceController {
     /** True while the active session is a press-to-talk hold, not a wake or a follow-up. */
     val holding: Boolean get() = listening && origin == VoiceOrigin.PRESS
 
+    /**
+     * The finger already lifted to send, and the recognizer has not finished flushing.
+     * Another press in that window must not cancel the utterance.
+     */
+    val finishingHold: Boolean get() = sendingHold && holding
+
     /** Press-to-talk: buffer while held. Null when listening started, else why it could not. */
     fun beginPress(context: Context): String? {
         if (listening) return null
@@ -156,12 +164,17 @@ internal object VoiceController {
     /** Finger up: send what was said, including the utterance still open, then close the mic. */
     fun releasePress() {
         val active = session
-        if (active != null && origin == VoiceOrigin.PRESS && active.commit()) return
+        if (active != null && origin == VoiceOrigin.PRESS && active.commit()) {
+            sendingHold = true
+            return
+        }
+        sendingHold = false
         stop()
     }
 
     /** Slide up, or the gesture was cancelled: drop everything said during the hold. */
     fun cancelPress() {
+        if (sendingHold) return
         stop()
     }
 
@@ -376,6 +389,7 @@ internal object VoiceController {
 
     /** Ends listening; [resumeWake] hands the microphone back to the wake word (a restart keeps it for the next session). */
     fun stop(resumeWake: Boolean = true) {
+        sendingHold = false
         // A small-talk reply still on its way is not said once the session is over.
         SmallTalkCompanion.cancel()
         realtime?.let { return stopRealtime(it, resumeWake) }

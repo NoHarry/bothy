@@ -104,6 +104,9 @@
     <plurals name="console_plan_steps">
         <item quantity="other">还有 %1$d 步</item>
     </plurals>
+    <plurals name="console_plan_steps_unfinished">
+        <item quantity="other">%1$d 步未完成</item>
+    </plurals>
     <string name="console_expand_board">展开看板</string>
     <plurals name="console_read_files">
         <item quantity="other">读取了 %1$d 个文件</item>

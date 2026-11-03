@@ -16,8 +16,10 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * PlaygroundActivity handles orientation itself. [androidx.compose.ui.platform.LocalConfiguration] still changes,
- * because the application notifies the callbacks Compose registered, and the scale is read from that.
+ * PlaygroundActivity handles orientation itself, so it is not recreated. Compose reads
+ * [androidx.compose.ui.platform.LocalConfiguration] from the decor view. Robolectric does not
+ * deliver an activity configuration change to that view, so the test calls
+ * [View.dispatchConfigurationChanged] on it directly.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], qualifiers = "w411dp-h891dp-port")
@@ -40,11 +42,7 @@ class PlaygroundRotationScaleTest {
         next.screenWidthDp = 891
         next.screenHeightDp = 411
         next.smallestScreenWidthDp = 411
-        // The framework delivers this to the decor view. Robolectric's Activity.onConfigurationChanged does not, so the
-        // test dispatches it the same way ViewGroup would.
-        val dispatch = View::class.java.getDeclaredMethod("dispatchConfigurationChanged", Configuration::class.java)
-        dispatch.isAccessible = true
-        dispatch.invoke(activity.window.decorView, next)
+        activity.window.decorView.dispatchConfigurationChanged(next)
         shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals(portrait * 0.75f, seen.last(), 0.02f)

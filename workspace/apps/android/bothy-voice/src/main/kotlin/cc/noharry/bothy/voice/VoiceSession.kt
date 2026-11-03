@@ -328,7 +328,8 @@ class VoiceSession(
             is Event.History -> remember(event.message)
             is Event.Failed -> {
                 mutableState.update { it.copy(status = VoiceSessionStatus.ERROR, problem = event.problem) }
-                stop()
+                // A release already asked the recognizer to finish: keep the utterance instead of dropping it with the socket.
+                if (drainingHold) handOverHold() else stop()
                 return
             }
             Event.Commit -> {

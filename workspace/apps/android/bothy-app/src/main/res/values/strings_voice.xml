@@ -54,6 +54,7 @@
     <string name="voice_mic_start">Start voice</string>
     <string name="voice_mic_hold">Hold to talk</string>
     <string name="voice_hold_to_talk">Hold to talk, let go to send. Slide up to cancel.</string>
+    <string name="voice_hold_still_sending">Still sending the last phrase</string>
     <string name="voice_wake_migrated_off">Voice wake is off. Turn it on here if you still want “OK Bothy”.</string>
     <string name="voice_handover_new_turn_notice">The task had ended; started a new turn</string>
     <string name="voice_handover_append_notice">+ Added to the current task</string>

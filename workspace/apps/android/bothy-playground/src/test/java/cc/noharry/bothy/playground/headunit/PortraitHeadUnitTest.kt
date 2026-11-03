@@ -12,7 +12,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.performTouchInput
 import cc.noharry.bothy.playground.PlaygroundStore
 import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.cabin.Seat
@@ -47,7 +46,8 @@ class PortraitHeadUnitTest {
                 initialTab = PortraitTab.CABIN,
             )
         }
-        compose.onNodeWithTag("seat-DRIVER").performSemanticsAction(SemanticsActions.OnClick) { it() }
+        val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+        compose.onNodeWithTag("seat-DRIVER").assert(button).performSemanticsAction(SemanticsActions.OnClick) { it() }
         assertTrue(store.calls.value.joinToString { it.summary }, Seat.DRIVER !in store.read().cabin.occupants)
 
         compose.onNodeWithTag("portrait-cabin").performTouchInput {

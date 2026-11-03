@@ -19,7 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,8 +63,8 @@ internal fun PortraitHeadUnit(
     onHome: () -> Unit,
     initialTab: PortraitTab = PortraitTab.ROUTE,
 ) {
-    var tab by remember { mutableStateOf(initialTab) }
-    var sheet by remember { mutableStateOf(false) }
+    var tab by rememberSaveable(initialTab) { mutableStateOf(initialTab) }
+    var sheet by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val assistant by Assistant.state.collectAsState()
     val nav = world.cabin.nav
@@ -154,7 +154,7 @@ internal fun PortraitHeadUnit(
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(PlaygroundColors.bg)
                                         .testTag("seat-${seat.name}")
-                                        .clickable { store.tapCabin(context, CabinSpots.seats.getValue(seat)) }
+                                        .clickable(role = Role.Button) { store.tapCabin(context, CabinSpots.seats.getValue(seat)) }
                                         .padding(12.dp),
                                 )
                             }

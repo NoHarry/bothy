@@ -16,5 +16,6 @@ class PressToTalkTest {
         assertEquals(HoldDown.STOP_OTHER, holdDown(listening = true, holding = false))
         assertEquals(HoldDown.ALREADY, holdDown(listening = true, holding = true))
         assertEquals(HoldDown.START, holdDown(listening = false, holding = false))
+        assertEquals(HoldDown.FINISHING, holdDown(listening = true, holding = true, finishing = true))
     }
 }
