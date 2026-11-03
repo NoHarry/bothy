@@ -65,6 +65,23 @@ class PeopleAndManualTest {
     }
 
     @Test
+    fun aPortraitHotspotOnTheDriverDoorOpensIt() {
+        val window = CabinSpots.windows.getValue(Seat.DRIVER)
+        val at = androidx.compose.ui.geometry.Offset(window.first.x, (window.first.y + window.second.y) / 2)
+        assertEquals(Seat.DRIVER, CabinSpots.windowAt(at))
+        store.tapCabin(context, at)
+        assertEquals(100, store.read().cabin.window(Seat.DRIVER))
+        store.holdCabin(context, CabinSpots.seats.getValue(Seat.DRIVER))
+        assertEquals(Seat.DRIVER, store.read().cabin.speaker)
+    }
+
+    @Test
+    fun aDistanceUnderAKilometreStaysInMetres() {
+        assertEquals("800" to cc.noharry.bothy.playground.R.string.headunit_unit_meters, 800.stepDistanceParts())
+        assertEquals("1.2" to cc.noharry.bothy.playground.R.string.headunit_unit_kilometers, 1200.stepDistanceParts())
+    }
+
+    @Test
     fun tapsOnThePicturesChangeTheWorldAndAreLoggedAsManual() {
         store.tapCabin(context, CabinSpots.seats.getValue(Seat.PASSENGER))
         assertTrue(Seat.PASSENGER in store.read().cabin.occupants)
