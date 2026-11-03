@@ -113,7 +113,7 @@ internal fun PhoneDrawer(
     val grouped = remember(sessions, query) { groupDrawerSessions(sessions, query) }
     val searchLabel = stringResource(R.string.console_search_sessions)
     Column(Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        DrawerRow(stringResource(R.string.console_nav_chat), onConversation, selected = conversationSelected)
+        DrawerRow(stringResource(R.string.console_nav_chat), onConversation, selected = conversationSelected, tab = true)
         DrawerRow(stringResource(R.string.console_new_chat), onNewChat) {
             Icon(Icons.Filled.Add, contentDescription = null, tint = colors.accent)
         }
@@ -147,6 +147,7 @@ internal fun PhoneDrawer(
                         label = session.title.ifBlank { stringResource(R.string.console_nav_chat) },
                         onClick = { onSelectSession(session.sessionId) },
                         selected = session.sessionId == activeSessionId,
+                        tab = true,
                     )
                 }
             }
@@ -178,14 +179,20 @@ private fun DrawerRow(
     label: String,
     onClick: () -> Unit,
     selected: Boolean = false,
+    tab: Boolean = false,
     leading: (@Composable () -> Unit)? = null,
 ) {
     val colors = ConsoleColors
+    val activate = if (tab) {
+        Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick)
+    } else {
+        Modifier.clickable(role = Role.Button, onClick = onClick)
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .then(activate)
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

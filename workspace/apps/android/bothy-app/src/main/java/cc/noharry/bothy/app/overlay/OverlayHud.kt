@@ -482,10 +482,15 @@ private fun TokenUsageState.overlayUsageLines(): List<String> {
 private fun textOverlaySection(title: String, lines: List<String>): OverlayBoardSection =
     OverlayBoardSection(title, lines.map { OverlayBoardRow(it) })
 
+/** A plan step the person has finished. Shared with the conversation's "steps left" count. */
+internal fun String.isCompletedPlanStatus(): Boolean = lowercase() in COMPLETED_PLAN_STATUS
+
+private val COMPLETED_PLAN_STATUS = setOf("completed", "done", "success")
+
 internal fun String.toOverlayPlanStatus(): OverlayPlanStatus =
     when {
         isOverlayPlanActive() -> OverlayPlanStatus.ACTIVE
-        lowercase() in setOf("completed", "done", "success") -> OverlayPlanStatus.DONE
+        isCompletedPlanStatus() -> OverlayPlanStatus.DONE
         lowercase().contains("fail") -> OverlayPlanStatus.FAILED
         else -> OverlayPlanStatus.WAITING
     }

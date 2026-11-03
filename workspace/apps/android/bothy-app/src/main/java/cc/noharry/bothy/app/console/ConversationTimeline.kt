@@ -79,24 +79,31 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
     ) {
         Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
         Spacer(Modifier.height(Dimens.spaceXs))
-        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        UserTurnBubble(body, collapsed = item.collapsed) {
+            actions.toggleItem(item.copy(collapsed = !item.collapsed))
+        }
+    }
+}
+
+/** A user turn, right-aligned, no wider than 86% of the row. The same bubble is used on a phone and a tablet. */
+@Composable
+internal fun UserTurnBubble(text: String, collapsed: Boolean = false, onClick: () -> Unit = {}) {
+    val colors = ConsoleColors
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Surface(
-            modifier = Modifier
-                .widthIn(max = maxWidth * 0.86f)
-                .clickable { actions.toggleItem(item.copy(collapsed = !item.collapsed)) },
+            modifier = Modifier.widthIn(max = maxWidth * 0.86f).clickable(onClick = onClick),
             shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
             color = colors.userBubble,
             border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.45f)),
         ) {
             Text(
-                text = body,
+                text = text,
                 style = ConsoleType.body,
                 color = colors.text,
-                maxLines = if (item.collapsed) 2 else Int.MAX_VALUE,
+                maxLines = if (collapsed) 2 else Int.MAX_VALUE,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(Dimens.spaceMd),
             )
-        }
         }
     }
 }

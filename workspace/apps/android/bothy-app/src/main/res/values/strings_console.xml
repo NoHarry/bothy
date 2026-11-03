@@ -102,10 +102,9 @@
     <string name="console_drawer_earlier">Earlier</string>
     <string name="console_drawer_features">More</string>
     <string name="console_open_playground">Head unit</string>
-    <string name="console_plan_card">Plan ready · %1$d steps</string>
     <plurals name="console_plan_steps">
-        <item quantity="one">Plan ready · %1$d step</item>
-        <item quantity="other">Plan ready · %1$d steps</item>
+        <item quantity="one">%1$d step left</item>
+        <item quantity="other">%1$d steps left</item>
     </plurals>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">

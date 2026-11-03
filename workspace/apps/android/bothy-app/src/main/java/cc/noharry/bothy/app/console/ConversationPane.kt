@@ -71,6 +71,7 @@ import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
+import cc.noharry.bothy.app.overlay.isCompletedPlanStatus
 import cc.noharry.bothy.app.overlay.pickableReply
 import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
 import cc.noharry.bothy.app.runtime.variantChoices
@@ -197,7 +198,7 @@ private fun RegularConversationPane(
             }
         }
         val openPlans = LocalOpenPlans.current
-        val steps = state.contextPanel.todo.count { it.status.lowercase() !in COMPLETED_PLAN_STATUS }
+        val steps = state.contextPanel.todo.count { !it.status.isCompletedPlanStatus() }
         if (openPlans != null && steps > 0) {
             Spacer(Modifier.height(Dimens.spaceSm))
             Text(
@@ -674,7 +675,6 @@ private val APPROVAL_MENU_MIN_WIDTH = 260.dp
 private val APPROVAL_MENU_MAX_WIDTH = 340.dp
 private val COMPACT_COMPOSER_WIDTH = 560.dp
 
-private val COMPLETED_PLAN_STATUS = setOf("completed", "done", "success")
 /** Under this the conversation pane takes the two-row composer: a phone held sideways gives it about 330 dp. */
 private val SHORT_PANE_HEIGHT = 420.dp
 private val CONDENSED_INPUT_HEIGHT = 52.dp

@@ -176,10 +176,8 @@ internal fun ConsoleScreen(
                 null
             }
         }
-        when (phoneBack(policy.showPhoneDrawer, drawerState.isOpen, view)) {
-            PhoneBack.CLOSE_DRAWER -> BackHandler { closeDrawer() }
-            PhoneBack.SHOW_CONVERSATION -> BackHandler { setView(ConsoleView.DEBUG) }
-            PhoneBack.SYSTEM -> Unit
+        if (phoneBack(policy.showPhoneDrawer, drawerState.isOpen, view) == PhoneBack.SHOW_CONVERSATION) {
+            BackHandler { setView(ConsoleView.DEBUG) }
         }
         val home: @Composable () -> Unit = {
         CompositionLocalProvider(
@@ -505,12 +503,14 @@ internal enum class ConsoleView(@StringRes val label: Int) {
     PLANS(R.string.console_view_plans),
 }
 
-/** What the system back key does on a portrait phone. [SYSTEM] leaves the event to the activity. */
-internal enum class PhoneBack { CLOSE_DRAWER, SHOW_CONVERSATION, SYSTEM }
+/**
+ * What an extra back handler does on a portrait phone. An open drawer is [SYSTEM]: the sheet's own predictive back
+ * closes it, and a second handler would take that gesture.
+ */
+internal enum class PhoneBack { SHOW_CONVERSATION, SYSTEM }
 
 internal fun phoneBack(showPhoneDrawer: Boolean, drawerOpen: Boolean, view: ConsoleView): PhoneBack = when {
-    !showPhoneDrawer -> PhoneBack.SYSTEM
-    drawerOpen -> PhoneBack.CLOSE_DRAWER
+    !showPhoneDrawer || drawerOpen -> PhoneBack.SYSTEM
     view != ConsoleView.DEBUG -> PhoneBack.SHOW_CONVERSATION
     else -> PhoneBack.SYSTEM
 }

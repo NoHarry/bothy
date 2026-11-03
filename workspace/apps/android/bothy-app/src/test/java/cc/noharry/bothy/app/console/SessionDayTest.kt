@@ -25,8 +25,8 @@ class SessionDayTest {
     }
 
     @Test
-    fun backClosesAnOpenDrawerBeforeLeavingAPlan() {
-        assertEquals(PhoneBack.CLOSE_DRAWER, phoneBack(showPhoneDrawer = true, drawerOpen = true, view = ConsoleView.PLANS))
+    fun backLeavesPlansForTheConversationAndLeavesAnOpenDrawerToTheSheet() {
+        assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = true, drawerOpen = true, view = ConsoleView.PLANS))
         assertEquals(PhoneBack.SHOW_CONVERSATION, phoneBack(showPhoneDrawer = true, drawerOpen = false, view = ConsoleView.TRAJECTORY))
         assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = true, drawerOpen = false, view = ConsoleView.DEBUG))
         assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = false, drawerOpen = true, view = ConsoleView.PLANS))

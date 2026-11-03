@@ -101,9 +101,8 @@
     <string name="console_drawer_earlier">更早</string>
     <string name="console_drawer_features">功能</string>
     <string name="console_open_playground">车机</string>
-    <string name="console_plan_card">已生成 %1$d 步计划</string>
     <plurals name="console_plan_steps">
-        <item quantity="other">还有 %1$d 步计划</item>
+        <item quantity="other">还有 %1$d 步</item>
     </plurals>
     <string name="console_expand_board">展开看板</string>
     <plurals name="console_read_files">
