@@ -38,7 +38,8 @@ import cc.noharry.bothy.playground.ServerState
 import cc.noharry.bothy.playground.ServerStatus
 import cc.noharry.bothy.playground.cabin.CabinScene
 import cc.noharry.bothy.playground.cabin.Seat
-import cc.noharry.bothy.playground.cabin.climateLine
+import cc.noharry.bothy.playground.cabin.Cabin
+import cc.noharry.bothy.playground.cabin.deg
 import cc.noharry.bothy.playground.home.World
 import cc.noharry.bothy.playground.link.Assistant
 
@@ -82,12 +83,10 @@ internal fun PortraitHeadUnit(
                         speaking = assistant.listening,
                         gestureTag = "portrait-cabin",
                     )
-                    PortraitTab.CLIMATE -> Text(
-                        world.cabin.climateLine(),
-                        color = PlaygroundColors.text,
-                        fontSize = 22.sp,
-                        modifier = Modifier.padding(12.dp),
-                    )
+                    PortraitTab.CLIMATE -> Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(world.cabin.climateSummary(), color = PlaygroundColors.text, fontSize = 22.sp)
+                        ClimatePanel(world.cabin, store, Modifier.fillMaxWidth())
+                    }
                     PortraitTab.ROUTE -> Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             nav.destination?.name ?: stringResource(R.string.headunit_where_to),
@@ -166,6 +165,15 @@ internal fun PortraitHeadUnit(
         if (sheet) SettingsSheet(world, calls, server, flashLevel, store) { sheet = false }
     }
 }
+
+/** The climate as the screen words it; [cc.noharry.bothy.playground.cabin.climateLine] is what the model reads. */
+@Composable
+private fun Cabin.climateSummary(): String =
+    if (climate.on) {
+        stringResource(R.string.cabin_chip_climate, climate.driverTemp.deg(), stringResource(climate.mode.labelRes))
+    } else {
+        stringResource(R.string.cabin_chip_climate_off)
+    }
 
 @Composable
 private fun ServerState.portraitLine(): String = when (status) {

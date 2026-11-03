@@ -40,6 +40,7 @@ class ConsoleAppearanceTest {
     @Test
     fun finishingSetupLeavesTheWakeWordOff() {
         Onboarding.finish(context)
-        assertFalse(cc.noharry.bothy.app.voice.loadVoiceConfig(context).overlayWake)
+        // As a released build: a local build may package VOICE_OVERLAY_WAKE=on, which keeps the wake word on.
+        assertFalse(cc.noharry.bothy.app.voice.loadVoiceConfig(context) { emptyMap() }.overlayWake)
     }
 }

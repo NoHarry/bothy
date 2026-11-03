@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -95,6 +100,7 @@ internal fun playgroundInstalled(context: Context): Boolean =
 internal fun PhoneDrawer(
     sessions: List<SessionSummary>,
     activeSessionId: String,
+    open: Boolean,
     showA2a: Boolean,
     conversationSelected: Boolean,
     onConversation: () -> Unit,
@@ -111,31 +117,12 @@ internal fun PhoneDrawer(
     val context = LocalContext.current
     val showPlayground = remember(context) { playgroundInstalled(context) }
     val grouped = remember(sessions, query) { groupDrawerSessions(sessions, query) }
-    val searchLabel = stringResource(R.string.console_search_sessions)
     Column(Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
         DrawerRow(stringResource(R.string.console_nav_chat), onConversation, selected = conversationSelected, tab = true)
         DrawerRow(stringResource(R.string.console_new_chat), onNewChat) {
             Icon(Icons.Filled.Add, contentDescription = null, tint = colors.accent)
         }
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = colors.muted)
-            BasicTextField(
-                value = query,
-                onValueChange = { query = it },
-                textStyle = ConsoleType.body.copy(color = colors.text),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 8.dp)
-                    .semantics { contentDescription = searchLabel },
-                decorationBox = { inner ->
-                    if (query.isEmpty()) {
-                        Text(searchLabel, style = ConsoleType.body, color = colors.muted)
-                    }
-                    inner()
-                },
-            )
-        }
+        DrawerSearch(query, open) { query = it }
         LazyColumn(Modifier.weight(1f)) {
             grouped.forEach { (day, rows) ->
                 item(key = "day-$day") {
@@ -164,6 +151,47 @@ internal fun PhoneDrawer(
         DrawerRow(stringResource(R.string.common_settings), onSettings) {
             Icon(Icons.Filled.Settings, contentDescription = null, tint = colors.accent)
         }
+    }
+}
+
+/**
+ * Search is a row until it is tapped: a field would take the focus the drawer hands its content when it opens, and the
+ * keyboard would come up over the list. Closing the drawer ends the search and puts the keyboard away.
+ */
+@Composable
+private fun DrawerSearch(query: String, open: Boolean, onQueryChange: (String) -> Unit) {
+    val colors = ConsoleColors
+    val label = stringResource(R.string.console_search_sessions)
+    var searching by rememberSaveable { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(open) {
+        if (open || !searching && query.isEmpty()) return@LaunchedEffect
+        focusManager.clearFocus()
+        onQueryChange("")
+        searching = false
+    }
+    if (!searching && query.isEmpty()) {
+        DrawerRow(label, onClick = { searching = true }) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = colors.muted)
+        }
+        return
+    }
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { if (open) focus.requestFocus() }
+    Row(Modifier.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Search, contentDescription = null, tint = colors.muted)
+        BasicTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            singleLine = true,
+            textStyle = ConsoleType.body.copy(color = colors.text),
+            cursorBrush = SolidColor(colors.accent),
+            modifier = Modifier.weight(1f).padding(start = 8.dp).focusRequester(focus).semantics { contentDescription = label },
+            decorationBox = { inner ->
+                if (query.isEmpty()) Text(label, style = ConsoleType.body, color = colors.muted)
+                inner()
+            },
+        )
     }
 }
 

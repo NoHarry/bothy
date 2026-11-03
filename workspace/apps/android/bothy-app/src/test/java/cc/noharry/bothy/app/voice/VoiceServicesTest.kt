@@ -2,6 +2,8 @@ package cc.noharry.bothy.app.voice
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.bothy.app.console.markEmbeddedSeedsDone
+import cc.noharry.bothy.app.voice.realtime.loadRealtimeConfig
+import cc.noharry.bothy.app.voice.realtime.saveRealtimeConfig
 import cc.noharry.bothy.app.voice.tts.MIMO_TTS_API_KEY
 import cc.noharry.bothy.app.voice.tts.MIMO_TTS_ENABLED
 import cc.noharry.bothy.app.voice.tts.MIMO_TTS_MODEL
@@ -127,16 +129,16 @@ class VoiceServicesTest {
     @Test
     fun aSeededBuildWithoutAPackagedWakeStillTurnsAnOldWakeOff() {
         voicePrefs().edit().clear().putBoolean("embedded_seeded", true).putBoolean("overlay_wake", true).commit()
-        assertFalse(loadVoiceConfig(context).overlayWake)
+        assertFalse(loadVoiceConfig(context, NO_PACKAGED_WAKE).overlayWake)
         assertTrue(wakeMigrationNotice(context))
     }
 
     @Test
     fun anOldWakeThatWasNeverToggledIsTurnedOffOnce() {
         voicePrefs().edit().clear().putBoolean("overlay_wake", true).commit()
-        assertFalse(loadVoiceConfig(context).overlayWake)
+        assertFalse(loadVoiceConfig(context, NO_PACKAGED_WAKE).overlayWake)
         assertTrue(wakeMigrationNotice(context))
-        assertFalse(loadVoiceConfig(context).overlayWake)
+        assertFalse(loadVoiceConfig(context, NO_PACKAGED_WAKE).overlayWake)
     }
 
     @Test
@@ -187,6 +189,13 @@ class VoiceServicesTest {
         voicePrefs().edit().clear().putBoolean("embedded_seeded", true).putBoolean("overlay_wake", true).commit()
         assertFalse(loadVoiceConfig(context) { mapOf("VOICE_OVERLAY_WAKE" to "off") }.overlayWake)
         assertTrue(wakeMigrationNotice(context))
+    }
+
+    @Test
+    fun anEndToEndConversationIsTappedEvenOnAPortraitPhone() {
+        assertTrue(VoiceController.holdsToTalk(context))
+        saveRealtimeConfig(context, loadRealtimeConfig(context).copy(enabled = true))
+        assertFalse(VoiceController.holdsToTalk(context))
     }
 
     @Test
@@ -295,3 +304,6 @@ class VoiceServicesTest {
 
     private fun voicePrefs() = context.getSharedPreferences("debug_voice", Context.MODE_PRIVATE)
 }
+
+/** A released build: a local one may package VOICE_OVERLAY_WAKE=on, which keeps the wake word on by design. */
+private val NO_PACKAGED_WAKE: () -> Map<String, String> = { emptyMap() }

@@ -63,9 +63,10 @@ translation.
    Without it, Xiao Bo speaks with the device's own voice.
 4. **Grant permissions** from the same screen: microphone and overlay are needed; notification access (to control
    music) and accessibility (to let Xiao Bo operate other apps) are optional.
-5. **Say "OK Bothy"** and ask for tomorrow's weather in Shenzhen, a reminder at eight tomorrow to take an umbrella, or
-   the next song. With Bothy Playground in front, ask it to turn on the air conditioning, open a window or plan a route
-   in the virtual car.
+5. **Turn on the wake word** under Settings → Voice (it starts off), then **say "OK Bothy"** and ask for tomorrow's
+   weather in Shenzhen, a reminder at eight tomorrow to take an umbrella, or the next song. Tapping the floating Xiao Bo
+   or the console's mic works too; on a phone held upright, hold the mic while you talk. With Bothy Playground in
+   front, ask it to turn on the air conditioning, open a window or plan a route in the virtual car.
 
 ### Which key does what
 
@@ -205,7 +206,7 @@ passenger seat heating already off, sets the ambient light warm and checks the d
 - **Plans**: reminders and timed tasks, and watches on a server's state, either an MCP resource or a read-only tool
   polled on a schedule, e.g. "remind me when the cheapest Shenzhen–Chengdu flight on 7 Nov drops below 800 yuan" runs on
   Kiwi.com's open search.
-- **Voice**: on-device wake word ("OK Bothy") and recognition, turn taking (an optional judge decides when you have
+- **Voice**: on-device wake word ("OK Bothy", off until you turn it on) and recognition, turn taking (an optional judge decides when you have
   finished and whether you are talking to Xiao Bo), barge-in, TTS; optionally an end-to-end speech model.
 - **Your own cloud agent**: pair a personal agent (such as Grok Bot) through the self-hosted relay in
   `workspace/apps/android/tools/agent-relay`, then hand it tasks that need your accounts.
@@ -303,11 +304,14 @@ The on-device chat model's llama.cpp libraries are committed in `bothy-llm`; the
 - Demo app: `minSdk 24`, `compileSdk 37` (core library desugaring with `desugar_jdk_libs_nio`, since the runtime uses
   `java.nio.file`)
 - JDK 17, Gradle 9.6, Android Gradle Plugin 9.4, Kotlin 2.4
-- Tablets first; phones work held sideways. On a phone (smallest width under 600 dp) both apps turn landscape: Bothy's
-  console takes its compact layout with the destinations in a rail, the head unit draws at three quarters of its size,
-  and Xiao Bo's floating card fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs
-  both apps; AMap's map needs software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when
-  the map opens.
+- Tablets first; phones work too, the way they are held. Upright (smallest width under 600 dp), Bothy shows one page at
+  a time with a side drawer for chats, plans, the trajectory, A2A, the head unit and settings, and its mic is held to
+  talk (in end-to-end mode it is still tapped on and off). The head unit, upright, switches between Route, Cabin and
+  Climate from a panel at the bottom; the map shows once the phone is turned sideways. Sideways, Bothy's console takes
+  its compact layout with the destinations in a rail and the head unit draws at three quarters of its size. Xiao Bo's
+  floating card fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs both apps;
+  AMap's map needs software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when the map
+  opens.
 
 ## Friends
 

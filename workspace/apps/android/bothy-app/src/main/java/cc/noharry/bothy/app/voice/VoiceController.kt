@@ -155,6 +155,12 @@ internal object VoiceController {
      */
     val finishingHold: Boolean get() = sendingHold && holding
 
+    /**
+     * Whether the mic is held to talk on a portrait phone. A 端到端 conversation is tapped on and off instead: 豆包
+     * answers after the words, and letting go would end the conversation before it replied.
+     */
+    fun holdsToTalk(context: Context): Boolean = !loadRealtimeConfig(context.applicationContext).enabled
+
     /** Press-to-talk: buffer while held. Null when listening started, else why it could not. */
     fun beginPress(context: Context): String? {
         if (listening) return null
@@ -245,7 +251,6 @@ internal object VoiceController {
         val jevKey = loadJevKey(appContext).takeIf { config.jevTurns }.orEmpty()
         val engine = createEngine(appContext, config).getOrElse { return it.message }
         sessionEngineLabel = engineLabel(appContext, config)
-        val nearGate = nearGate(appContext, config)
         lateinit var created: VoiceSession
         // The mic opens after start(), by which time the session exists, and once the wake word has let it go.
         val recording = sessionRecording(config) { effects -> created.reportAudioEffects(effects) }
@@ -259,17 +264,7 @@ internal object VoiceController {
             historyLimit = config.historyMessages,
             fullDuplex = fullDuplexActive(config),
             onInterrupt = { main.post(TtsActivity::interrupt) },
-            onAgentTurn = { handOver ->
-                main.post {
-                    val ctx = this.appContext ?: return@post
-                    if (origin == VoiceOrigin.PRESS) {
-                        if (handOver.text.isNotBlank()) this.handOver(ctx, handOver)
-                        stop()
-                    } else {
-                        this.handOver(ctx, handOver)
-                    }
-                }
-            },
+            onAgentTurn = agentTurns(origin),
             hold = origin == VoiceOrigin.PRESS,
             // Only a hands-free session may be dismissed by voice; the console's mic is tapped off.
             onDismiss = if (origin.handsFree) ({ main.post(::dismissed) }) else null,
@@ -278,7 +273,7 @@ internal object VoiceController {
             dismissal = ::dismisses,
             // A wake or a tap is the speaker calling the assistant; a follow-up is the assistant's own doing.
             calledAtStart = origin != VoiceOrigin.FOLLOW_UP,
-            nearGate = nearGate,
+            nearGate = nearGate(appContext, config),
             // 陪聊: Jev also scores small talk while the companion is on (read for each turn, so the switch applies at once).
             askSmallTalk = { !A2aClientConsole.isEnabled(appContext) && SmallTalkCompanion.scoring(appContext) },
         )
@@ -293,6 +288,19 @@ internal object VoiceController {
         watch(appContext, created)
         created.start()
         return null
+    }
+
+    /** Where the session's turns go. A press-to-talk hold hands over what it heard, if anything, and closes the mic. */
+    private fun agentTurns(origin: VoiceOrigin): (VoiceHandOver) -> Unit = { turn ->
+        main.post {
+            val ctx = appContext ?: return@post
+            if (origin != VoiceOrigin.PRESS) {
+                handOver(ctx, turn)
+            } else {
+                if (turn.text.isNotBlank()) handOver(ctx, turn)
+                stop()
+            }
+        }
     }
 
     /** Before the session seeds the previous exchange: a wake after a long quiet starts with a clean conversation. */

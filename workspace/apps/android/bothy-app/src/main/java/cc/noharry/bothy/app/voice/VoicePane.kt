@@ -126,18 +126,21 @@ internal fun VoiceStrip() {
 }
 
 /**
- * The mic beside Send, as in Codex: tap to wake, tap again to end. Off: a soft mic. Listening: a red stop button
- * whose ring breathes while the mic hears speech; amber while half duplex waits for the agent. Asks for the mic the
- * first time.
+ * The mic beside Send, as in Codex: tap to wake, tap again to end; a portrait phone holds it to talk instead
+ * ([holdToTalk]). Off: a soft mic. Listening: a red stop button whose ring breathes while the mic hears speech; amber
+ * while half duplex waits for the agent. Asks for the mic the first time.
  */
 @Composable
 internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false) {
     val context = LocalContext.current
     val state by VoiceController.state.collectAsState()
+    val on = state.status.isOn
+    // 端到端 is tapped on and off here too: 豆包 answers after the words, and letting go would end the conversation.
+    val hold = holdToTalk && remember(on) { VoiceController.holdsToTalk(context) }
     val denied = stringResource(R.string.voice_mic_denied)
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         // A hold is already over by the time the dialog returns, so granting only records the permission.
-        if (!granted) VoiceController.notice(denied) else if (!holdToTalk) VoiceController.toggle(context)
+        if (!granted) VoiceController.notice(denied) else if (!hold) VoiceController.toggle(context)
     }
     val contextState = rememberUpdatedState(context)
     val permissionState = rememberUpdatedState(permission)
@@ -145,7 +148,6 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
     val holdDescription = stringResource(R.string.voice_mic_hold)
     val view = LocalView.current
     val colors = ConsoleColors
-    val on = state.status.isOn
     val description = stringResource(if (on) R.string.voice_mic_stop else R.string.voice_mic_start)
     val fill = when {
         !on -> colors.accentSoft
@@ -154,6 +156,11 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
     }
     // The ring grows with loudness, drawn outside the button so the row never shifts.
     val level by animateFloatAsState(if (on) state.micLevels.takeLast(LEVEL_RING_SLICES).maxOrNull() ?: 0f else 0f, tween(LEVEL_EASE_MILLIS), label = "micLevel")
+    val gesture = if (hold) {
+        Modifier.pressToTalk(contextState, permissionState, hint) { view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP) }
+    } else {
+        Modifier.tapToTalk(context, permission, denied, on)
+    }
     Box(contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
@@ -163,29 +170,24 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
                 }
                 .clip(CircleShape)
                 .background(fill)
-                .then(
-                    if (holdToTalk) {
-                        Modifier.pressToTalk(contextState, permissionState, hint) {
-                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        }
-                    } else {
-                        Modifier.tapToTalk(context, permission, denied, on)
-                    },
-                )
+                .then(gesture)
                 .semantics {
                     role = Role.Button
-                    contentDescription = if (holdToTalk && !on) holdDescription else description
-                    if (holdToTalk) onClick { VoiceController.toggle(contextState.value); true }
+                    contentDescription = if (hold && !on) holdDescription else description
+                    if (hold) onClick { VoiceController.toggle(contextState.value); true }
                 },
             contentAlignment = Alignment.Center,
-        ) {
-            if (on) {
-                // A stop square: tapping ends listening.
-                Box(Modifier.size(iconSize * STOP_SQUARE_SHARE).clip(RoundedCornerShape(2.dp)).background(Color.White))
-            } else {
-                Icon(IconMic, contentDescription = null, tint = colors.accent, modifier = Modifier.size(iconSize))
-            }
-        }
+        ) { MicFace(on, iconSize) }
+    }
+}
+
+/** A stop square while listening (tapping ends it), else the mic. */
+@Composable
+private fun MicFace(on: Boolean, iconSize: Dp) {
+    if (on) {
+        Box(Modifier.size(iconSize * STOP_SQUARE_SHARE).clip(RoundedCornerShape(2.dp)).background(Color.White))
+    } else {
+        Icon(IconMic, contentDescription = null, tint = ConsoleColors.accent, modifier = Modifier.size(iconSize))
     }
 }
 

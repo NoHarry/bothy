@@ -303,20 +303,7 @@ class VoiceSession(
             }
             is Event.Partial -> tracker.onPartial(event.text, now)
             is Event.Final -> tracker.onFinal(event.text, now)
-            is Event.Mic -> {
-                tracker.onMic(event.active, now)
-                event.levelDb?.let { level ->
-                    heardLevels.addLast(now to level)
-                    while (heardLevels.first().first < now - LEVELS_LOG_MILLIS) heardLevels.removeFirst()
-                }
-                mutableState.update {
-                    it.copy(
-                        micActive = event.active,
-                        micLevels = (it.micLevels + event.levels.toList()).takeLast(LEVELS_KEPT),
-                        nearGate = event.gate ?: it.nearGate,
-                    )
-                }
-            }
+            is Event.Mic -> heard(event, now)
             is Event.JudgeDone -> judged(event)
             is Event.JudgeFailed -> {
                 tracker.onJudgmentFailed(event.version)
@@ -332,13 +319,7 @@ class VoiceSession(
                 if (drainingHold) handOverHold() else stop()
                 return
             }
-            Event.Commit -> {
-                if (!drainingHold) {
-                    drainingHold = true
-                    drainDeadline = now + HOLD_FLUSH_MILLIS
-                    finishRequested = true
-                }
-            }
+            Event.Commit -> commitHold(now)
             Event.EngineDrained -> {
                 handOverHold()
                 return
@@ -356,6 +337,29 @@ class VoiceSession(
             null -> Unit
         }
         publishLive()
+    }
+
+    private fun heard(event: Event.Mic, now: Long) {
+        tracker.onMic(event.active, now)
+        event.levelDb?.let { level ->
+            heardLevels.addLast(now to level)
+            while (heardLevels.first().first < now - LEVELS_LOG_MILLIS) heardLevels.removeFirst()
+        }
+        mutableState.update {
+            it.copy(
+                micActive = event.active,
+                micLevels = (it.micLevels + event.levels.toList()).takeLast(LEVELS_KEPT),
+                nearGate = event.gate ?: it.nearGate,
+            )
+        }
+    }
+
+    /** The finger lifted: no more audio goes to the recognizer, and the hold is handed over once it drains. */
+    private fun commitHold(now: Long) {
+        if (drainingHold) return
+        drainingHold = true
+        drainDeadline = now + HOLD_FLUSH_MILLIS
+        finishRequested = true
     }
 
     private fun judged(event: Event.JudgeDone) {
@@ -481,23 +485,22 @@ class VoiceSession(
             )
         if (hold) {
             if (end.text.isNotBlank()) held.addLast(end.text.trim())
-            val segment = VoiceSegment(
-                id = ++segmentIds,
-                text = end.text,
-                label = end.label,
-                judgment = end.judgment,
-                reason = end.reason,
-                endedAtEpochMillis = System.currentTimeMillis(),
-                submitted = false,
-                handOver = null,
-                dismissed = false,
-                peakDb = peakDb,
-            )
-            mutableState.update { it.copy(segments = (it.segments + segment).takeLast(MAX_SEGMENTS)) }
+            addSegment(end, peakDb, handOver = null, dismissed = false)
             return
         }
         val submit = autoSubmit && end.label == VoiceSegmentLabel.AGENT && !dismissed
         val mode = if (submit) handOverMode(end.judgment) else null
+        addSegment(end, peakDb, handOver = mode, dismissed = dismissed)
+        if (dismissed) onDismiss?.invoke()
+        if (mode == null) return
+        remember(VoiceHistoryMessage("user", end.text))
+        if (!fullDuplex) handedOverAt = clock()
+        updateBusy(clock())
+        onAgentTurn(VoiceHandOver(end.text, mode, end.judgment?.smallTalk))
+    }
+
+    /** Shows the ended turn; it was submitted when it has a [handOver] mode. */
+    private fun addSegment(end: VoiceTurnAction.End, peakDb: Double?, handOver: VoiceHandOverMode?, dismissed: Boolean) {
         val segment = VoiceSegment(
             id = ++segmentIds,
             text = end.text,
@@ -505,18 +508,12 @@ class VoiceSession(
             judgment = end.judgment,
             reason = end.reason,
             endedAtEpochMillis = System.currentTimeMillis(),
-            submitted = submit,
-            handOver = mode,
+            submitted = handOver != null,
+            handOver = handOver,
             dismissed = dismissed,
             peakDb = peakDb,
         )
         mutableState.update { it.copy(segments = (it.segments + segment).takeLast(MAX_SEGMENTS)) }
-        if (dismissed) onDismiss?.invoke()
-        if (mode == null) return
-        remember(VoiceHistoryMessage("user", end.text))
-        if (!fullDuplex) handedOverAt = clock()
-        updateBusy(clock())
-        onAgentTurn(VoiceHandOver(end.text, mode, end.judgment?.smallTalk))
     }
 
     /** The loudest frame since shortly before the turn's first words (the recognizer runs behind the audio). */

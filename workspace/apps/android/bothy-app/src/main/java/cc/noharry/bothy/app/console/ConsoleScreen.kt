@@ -301,6 +301,7 @@ internal fun ConsoleScreen(
                         PhoneDrawer(
                             sessions = state.sessions,
                             activeSessionId = state.activeSessionId,
+                            open = drawerState.isOpen,
                             showA2a = a2aActions != null,
                             conversationSelected = view == ConsoleView.DEBUG,
                             onConversation = {
