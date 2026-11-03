@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -123,21 +127,19 @@ private val ARTIFACT_ROW_PREVIEW_HEIGHT = 200.dp
 
 @Composable
 private fun ContextToolGroupRow(group: ConversationRenderItem.ContextToolGroup) {
-    var manual by remember(group.key) { mutableStateOf<Boolean?>(null) }
     val status = group.status()
-    val expanded = manual ?: (status == ToolCallStatus.RUNNING)
+    val expanded = rememberToolGroupExpanded(group.key, status)
     val openTrajectory = LocalOpenTrajectory.current
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     TimelineRow(status.color(), null) {
         GroupHeader(
             summary = group.summaryLabel(LocalContext.current.resources),
-            expanded = expanded,
+            expanded = expanded.value,
             meta = listOfNotNull(stringResource(status.labelRes()), elapsed).joinToString(" · "),
-            onToggle = {
-                if (openTrajectory != null) openTrajectory() else manual = !expanded
-            },
+            onToggle = { expanded.value = !expanded.value },
+            onOpen = openTrajectory,
         )
-        if (expanded) {
+        if (expanded.value) {
             Spacer(Modifier.height(Dimens.spaceXsMd))
             Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
                 group.tools.forEach { tool -> ContextToolLine(tool) }
@@ -151,21 +153,19 @@ private fun BusinessToolGroupRow(
     group: ConversationRenderItem.BusinessToolGroup,
     actions: ConsoleActions,
 ) {
-    var manual by remember(group.key) { mutableStateOf<Boolean?>(null) }
     val status = group.status()
-    val expanded = manual ?: (status == ToolCallStatus.RUNNING)
+    val expanded = rememberToolGroupExpanded(group.key, status)
     val openTrajectory = LocalOpenTrajectory.current
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     val running = status == ToolCallStatus.RUNNING
     GroupCard(
         summary = group.summaryLabel(LocalContext.current.resources),
-        expanded = expanded,
+        expanded = expanded.value,
         elapsed = elapsed,
         statusColor = if (running) ConsoleColors.activity else status.color(),
         pulsing = running,
-        onToggle = {
-            if (openTrajectory != null) openTrajectory() else manual = !expanded
-        },
+        onToggle = { expanded.value = !expanded.value },
+        onOpen = openTrajectory,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
             group.tools.forEach { tool -> ConversationItemView(tool, actions) }
@@ -213,6 +213,7 @@ private fun GroupCard(
     statusColor: Color,
     pulsing: Boolean,
     onToggle: () -> Unit,
+    onOpen: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val colors = ConsoleColors
@@ -248,6 +249,7 @@ private fun GroupCard(
                 }
                 Spacer(Modifier.width(Dimens.spaceSm))
                 StatusDot(color = statusColor, pulsing = pulsing)
+                TrajectoryShortcut(onOpen)
             }
         }
         if (expanded) {
@@ -263,6 +265,7 @@ private fun GroupHeader(
     expanded: Boolean,
     meta: String,
     onToggle: () -> Unit,
+    onOpen: (() -> Unit)? = null,
 ) {
     val colors = ConsoleColors
     Row(
@@ -281,7 +284,32 @@ private fun GroupHeader(
         )
         Spacer(Modifier.width(Dimens.spaceSm))
         Text(meta, style = ConsoleType.meta, color = colors.muted, maxLines = 1)
+        TrajectoryShortcut(onOpen)
     }
+}
+
+/** A running group opens on a portrait phone, and stays as the person left it afterwards. Wide layouts stay collapsed. */
+internal fun toolGroupAutoExpands(onPhone: Boolean, running: Boolean): Boolean = onPhone && running
+
+@Composable
+private fun rememberToolGroupExpanded(key: Any, status: ToolCallStatus): MutableState<Boolean> {
+    val expanded = remember(key) { mutableStateOf(false) }
+    val onPhone = LocalOpenTrajectory.current != null
+    val auto = toolGroupAutoExpands(onPhone, status == ToolCallStatus.RUNNING)
+    LaunchedEffect(auto) { if (auto) expanded.value = true }
+    return expanded
+}
+
+@Composable
+private fun TrajectoryShortcut(onOpen: (() -> Unit)?) {
+    if (onOpen == null) return
+    Spacer(Modifier.width(Dimens.spaceSm))
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = stringResource(R.string.console_view_trajectory),
+        tint = ConsoleColors.muted,
+        modifier = Modifier.size(24.dp).clickable(onClick = onOpen),
+    )
 }
 
 @Composable

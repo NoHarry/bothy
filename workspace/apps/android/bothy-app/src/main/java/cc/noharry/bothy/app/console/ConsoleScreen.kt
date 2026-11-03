@@ -44,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -143,43 +144,50 @@ internal fun ConsoleScreen(
         },
     )
     val colors = ConsoleColors
-    BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
-            .background(colors.bg)
-            .windowInsetsPadding(WindowInsets.displayCutout)
-            .imePadding()
-            .padding(Dimens.spaceMd),
-    ) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(colors.bg)) {
         val policy = consoleLayoutPolicy(maxWidth.value, maxHeight.value)
         val context = LocalContext.current
         val drawerState = rememberDrawerState(DrawerValue.Closed)
         val drawerScope = rememberCoroutineScope()
         val openDrawer: () -> Unit = { drawerScope.launch { drawerState.open() } }
         val closeDrawer: () -> Unit = { drawerScope.launch { drawerState.close() } }
+        val screenPadding = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).imePadding().padding(Dimens.spaceMd)
         if (page != ConsolePage.CONVERSATION) {
             BackHandler(onBack = showConversation)
             MainPane(
                 page, state, pendingInput, onPendingInputConsumed, screenActions,
                 showConversation, showMcpProvidersFromSettings, leaveMcpProviders,
-                showA2aProfilesFromSettings, leaveA2aProfiles, Modifier.fillMaxSize(),
+                showA2aProfilesFromSettings, leaveA2aProfiles, screenPadding,
             )
             return@BoxWithConstraints
         }
+        val setViewState = rememberUpdatedState(setView)
+        val openTrajectory = remember(policy.showPhoneDrawer) {
+            if (policy.showPhoneDrawer) {
+                { setViewState.value(ConsoleView.TRAJECTORY) }
+            } else {
+                null
+            }
+        }
+        val openPlans = remember(policy.showPhoneDrawer) {
+            if (policy.showPhoneDrawer) {
+                { setViewState.value(ConsoleView.PLANS) }
+            } else {
+                null
+            }
+        }
+        when (phoneBack(policy.showPhoneDrawer, drawerState.isOpen, view)) {
+            PhoneBack.CLOSE_DRAWER -> BackHandler { closeDrawer() }
+            PhoneBack.SHOW_CONVERSATION -> BackHandler { setView(ConsoleView.DEBUG) }
+            PhoneBack.SYSTEM -> Unit
+        }
         val home: @Composable () -> Unit = {
         CompositionLocalProvider(
-            LocalOpenTrajectory provides if (policy.showPhoneDrawer) {
-                { setView(ConsoleView.TRAJECTORY) }
-            } else {
-                null
-            },
-            LocalOpenPlans provides if (policy.showPhoneDrawer) {
-                { setView(ConsoleView.PLANS) }
-            } else {
-                null
-            },
+            LocalOpenTrajectory provides openTrajectory,
+            LocalOpenPlans provides openPlans,
+            LocalHoldToTalk provides policy.showPhoneDrawer,
         ) {
-        Column(Modifier.fillMaxSize()) {
+        Column(screenPadding) {
             if (!policy.useRailChrome) {
                 HostChrome(
                     state = state,
@@ -189,7 +197,7 @@ internal fun ConsoleScreen(
                     showA2aTab = a2aActions != null,
                     onMenu = if (policy.showPhoneDrawer) openDrawer else null,
                 )
-                if (policy.showPhoneDrawer && view != ConsoleView.DEBUG && state.isRunning) {
+                if (policy.showPhoneDrawer && view != ConsoleView.DEBUG && view != ConsoleView.TRAJECTORY && state.isRunning) {
                     TextButton(onClick = { setView(ConsoleView.TRAJECTORY) }) {
                         Text(stringResource(R.string.console_status_running), color = colors.activity)
                     }
@@ -291,11 +299,16 @@ internal fun ConsoleScreen(
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = {
-                    ModalDrawerSheet(drawerContainerColor = colors.bg) {
+                    ModalDrawerSheet(drawerState = drawerState, drawerContainerColor = colors.bg) {
                         PhoneDrawer(
-                            state = state,
+                            sessions = state.sessions,
                             activeSessionId = state.activeSessionId,
                             showA2a = a2aActions != null,
+                            conversationSelected = view == ConsoleView.DEBUG,
+                            onConversation = {
+                                setView(ConsoleView.DEBUG)
+                                closeDrawer()
+                            },
                             onNewChat = {
                                 screenActions.newSession()
                                 setView(ConsoleView.DEBUG)
@@ -490,6 +503,16 @@ internal enum class ConsoleView(@StringRes val label: Int) {
     TRAJECTORY(R.string.console_view_trajectory),
     A2A(R.string.console_view_a2a),
     PLANS(R.string.console_view_plans),
+}
+
+/** What the system back key does on a portrait phone. [SYSTEM] leaves the event to the activity. */
+internal enum class PhoneBack { CLOSE_DRAWER, SHOW_CONVERSATION, SYSTEM }
+
+internal fun phoneBack(showPhoneDrawer: Boolean, drawerOpen: Boolean, view: ConsoleView): PhoneBack = when {
+    !showPhoneDrawer -> PhoneBack.SYSTEM
+    drawerOpen -> PhoneBack.CLOSE_DRAWER
+    view != ConsoleView.DEBUG -> PhoneBack.SHOW_CONVERSATION
+    else -> PhoneBack.SYSTEM
 }
 
 internal val DEFAULT_DEBUG_CONSOLE_VIEW: ConsoleView = ConsoleView.DEBUG

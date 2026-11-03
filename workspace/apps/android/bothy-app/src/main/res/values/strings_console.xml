@@ -103,6 +103,10 @@
     <string name="console_drawer_features">More</string>
     <string name="console_open_playground">Head unit</string>
     <string name="console_plan_card">Plan ready · %1$d steps</string>
+    <plurals name="console_plan_steps">
+        <item quantity="one">Plan ready · %1$d step</item>
+        <item quantity="other">Plan ready · %1$d steps</item>
+    </plurals>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">
         <item quantity="one">Read %1$d file</item>

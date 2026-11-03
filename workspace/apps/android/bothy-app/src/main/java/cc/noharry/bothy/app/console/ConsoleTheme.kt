@@ -78,7 +78,7 @@ internal val LightConsoleColors = ConsoleThemeColors(
     danger = Color(0xFFC8372D),
     success = Color(0xFF2E9C63),
     warning = Color(0xFFB7791F),
-    userBubble = Color(0xFFE7F3EC),
+    userBubble = Color(0xFFD3E6DA),
     codeBg = Color(0xFFF1ECE3),
     isDark = false,
 )

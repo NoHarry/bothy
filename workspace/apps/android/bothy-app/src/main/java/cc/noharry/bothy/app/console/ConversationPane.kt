@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,8 +50,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -193,14 +197,19 @@ private fun RegularConversationPane(
             }
         }
         val openPlans = LocalOpenPlans.current
-        val steps = state.contextPanel.todo.size
+        val steps = state.contextPanel.todo.count { it.status.lowercase() !in COMPLETED_PLAN_STATUS }
         if (openPlans != null && steps > 0) {
             Spacer(Modifier.height(Dimens.spaceSm))
             Text(
-                text = stringResource(R.string.console_plan_card, steps),
+                text = pluralStringResource(R.plurals.console_plan_steps, steps, steps),
                 style = ConsoleType.body,
                 color = ConsoleColors.accent,
-                modifier = Modifier.fillMaxWidth().clickable { openPlans() }.padding(vertical = Dimens.spaceXs),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable { openPlans() }
+                    .semantics { role = Role.Button }
+                    .padding(vertical = Dimens.spaceXs),
             )
         }
         Spacer(Modifier.height(Dimens.spaceSm))
@@ -664,6 +673,8 @@ private val VARIANT_MENU_MAX_WIDTH = 180.dp
 private val APPROVAL_MENU_MIN_WIDTH = 260.dp
 private val APPROVAL_MENU_MAX_WIDTH = 340.dp
 private val COMPACT_COMPOSER_WIDTH = 560.dp
+
+private val COMPLETED_PLAN_STATUS = setOf("completed", "done", "success")
 /** Under this the conversation pane takes the two-row composer: a phone held sideways gives it about 330 dp. */
 private val SHORT_PANE_HEIGHT = 420.dp
 private val CONDENSED_INPUT_HEIGHT = 52.dp
