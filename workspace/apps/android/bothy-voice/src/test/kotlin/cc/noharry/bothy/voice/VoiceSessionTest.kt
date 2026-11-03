@@ -451,11 +451,49 @@ class VoiceSessionTest {
         dispatchers = dispatchers,
     ).also { engine.handedOver = { handed.isNotEmpty() } }
 
-    private fun session(engine: ScriptedEngine, addressed: Double, calledAtStart: Boolean = true) = VoiceSession(
+    @Test
+    fun aHoldBuffersUntilRelease() = test.runTest {
+        val session = session(ScriptedEngine(mapOf(3 to "打开窗帘")), addressed = 0.9, hold = true)
+        session.start()
+        advanceTimeBy(3_000)
+        runCurrent()
+
+        assertTrue(handed.isEmpty())
+        assertTrue(session.commit())
+        runCurrent()
+        assertEquals(listOf("打开窗帘"), handed)
+    }
+
+    @Test
+    fun cancellingAHoldDropsWhatWasSaid() = test.runTest {
+        val session = session(ScriptedEngine(mapOf(3 to "打开窗帘")), addressed = 0.9, hold = true)
+        session.start()
+        advanceTimeBy(3_000)
+        runCurrent()
+        session.stop()
+        runCurrent()
+        assertTrue(handed.isEmpty())
+    }
+
+    @Test
+    fun releasingAHoldSendsTheUtteranceStillOpen() = test.runTest {
+        val session = session(ScriptedEngine(mapOf(2 to "去公司")), addressed = 0.9, hold = true)
+        session.start()
+        advanceTimeBy(500)
+        runCurrent()
+
+        assertTrue(handed.isEmpty())
+        session.commit()
+        runCurrent()
+        assertEquals(listOf("去公司"), handed)
+    }
+
+    private fun session(engine: ScriptedEngine, addressed: Double, calledAtStart: Boolean = true, hold: Boolean = false) = VoiceSession(
         engine = engine,
         judge = { VoiceJudgment(turnComplete = 0.95, holdingFloor = 0.0, addressedToAgent = addressed, latencyMillis = 1) },
         audio = { flow { repeat(FRAMES) { index -> delay(100); emit(frame(voiced = index in 1..6)) } } },
         onAgentTurn = { handed += it.text },
+        hold = hold,
         calledAtStart = calledAtStart,
         clock = { dispatcher.scheduler.currentTime },
         dispatchers = dispatchers,

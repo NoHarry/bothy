@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,8 +22,11 @@ internal object ConsoleAppearance {
         private set
 
     fun load(context: Context) {
-        val saved = prefs(context).getString(KEY, Mode.SYSTEM.name)
+        val prefs = prefs(context)
+        val saved = prefs.getString(KEY, null)
+            ?: context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE).getString(KEY, null)
         current = Mode.entries.firstOrNull { it.name == saved } ?: Mode.SYSTEM
+        if (saved != null && !prefs.contains(KEY)) prefs.edit().putString(KEY, current.name).apply()
     }
 
     fun set(context: Context, mode: Mode) {
@@ -32,22 +34,17 @@ internal object ConsoleAppearance {
         current = mode
     }
 
-    @Composable
-    fun mode(context: Context): Mode {
-        LaunchedEffect(context) { load(context) }
-        return current
-    }
-
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    private const val PREFS = "debug_appearance"
+    private const val PREFS = "console_appearance"
+    private const val LEGACY_PREFS = "debug_appearance"
     private const val KEY = "theme"
 }
 
 @Composable
 internal fun SettingsThemeGroup() {
     val context = LocalContext.current
-    val selected = ConsoleAppearance.mode(context)
+    val selected = ConsoleAppearance.current
     SettingsGroup(title = stringResource(R.string.settings_theme), subtitle = stringResource(R.string.settings_theme_note)) {
         Column(Modifier.padding(Dimens.spaceSm), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
             ConsoleAppearance.Mode.entries.forEach { option ->

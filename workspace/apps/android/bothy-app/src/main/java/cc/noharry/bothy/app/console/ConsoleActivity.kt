@@ -64,6 +64,7 @@ class ConsoleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        ConsoleAppearance.load(this)
         // Phones stay in the orientation the person is holding, portrait included. A portrait phone keeps the status bar.
         AsrTextServerManager.start(applicationContext)
         detachSession = RuntimeSession.attach(this) { uiState = it }

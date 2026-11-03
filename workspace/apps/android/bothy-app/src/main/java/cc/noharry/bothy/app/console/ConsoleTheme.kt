@@ -1,5 +1,11 @@
 package cc.noharry.bothy.app.console
+import android.app.Activity
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -91,11 +97,11 @@ internal val DarkConsoleColors = ConsoleThemeColors(
     borderSubtle = Color(0x33F4F1EA),
     text = Color(0xFFF4F1EA),
     muted = Color(0xFFA8A194),
-    tertiary = Color(0xFF8F897F),
+    tertiary = Color(0xFFC4BBAE),
     accent = Color(0xFF8FCBAB),
     accentSoft = Color(0xFF243E32),
     ink = Color(0xFFF4F1EA),
-    inkSoft = Color(0xFF2C2823),
+    inkSoft = Color(0xFF4E6256),
     activity = Color(0xFFE08A4A),
     activitySoft = Color(0xFF3A2A22),
     danger = Color(0xFFE7B0A4),
@@ -160,14 +166,24 @@ internal object Dimens {
 internal typealias ProviderFetchAction =
     (String, ModelProvider, ProviderEndpoint, String, String, String, (Result<List<String>>) -> Unit) -> Unit
 
+internal fun consoleColors(mode: ConsoleAppearance.Mode, systemDark: Boolean): ConsoleThemeColors = when (mode) {
+    ConsoleAppearance.Mode.LIGHT -> LightConsoleColors
+    ConsoleAppearance.Mode.DARK -> DarkConsoleColors
+    ConsoleAppearance.Mode.SYSTEM -> if (systemDark) DarkConsoleColors else LightConsoleColors
+}
+
 @Composable
 internal fun ConsoleTheme(content: @Composable () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val mode = ConsoleAppearance.mode(context)
-    val colors = when (mode) {
-        ConsoleAppearance.Mode.LIGHT -> LightConsoleColors
-        ConsoleAppearance.Mode.DARK -> DarkConsoleColors
-        ConsoleAppearance.Mode.SYSTEM -> if (isSystemInDarkTheme()) DarkConsoleColors else LightConsoleColors
+    val colors = consoleColors(ConsoleAppearance.current, isSystemInDarkTheme())
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val argb = colors.bg.toArgb()
+            window.statusBarColor = argb
+            window.setBackgroundDrawable(ColorDrawable(argb))
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !colors.isDark
+        }
     }
     CompositionLocalProvider(LocalConsoleColors provides colors) {
         MaterialTheme(

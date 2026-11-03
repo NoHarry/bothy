@@ -144,6 +144,11 @@ class VoiceSession(
     private val nearGate: NearSpeechGate? = null,
     /** Whether Jev should also score small talk (the host routes it to a companion chat service); read per turn. */
     private val askSmallTalk: () -> Boolean = { false },
+    /**
+     * Press-to-talk. Finished utterances are kept until [commit]; [stop] and a discard drop them, including the
+     * utterance that has not been closed by silence yet.
+     */
+    private val hold: Boolean = false,
     private val clock: () -> Long = { SystemClock.elapsedRealtime() },
     private val dispatchers: VoiceDispatchers = VoiceDispatchers.create(),
 ) {
@@ -171,6 +176,8 @@ class VoiceSession(
     private var handedOverAt: Long? = null
     /** Each frame's level after the near-speech gate, with when it was heard: a turn's loudest frame. */
     private val heardLevels = ArrayDeque<Pair<Long, Double>>()
+    /** Utterances finished while [hold] is on, sent together by [commit]. */
+    private val held = ArrayDeque<String>()
     private var quietAfter = 0L
     private var segmentIds = 0L
 
@@ -208,7 +215,16 @@ class VoiceSession(
         }
     }
 
-    /** Ends listening; the recognizer and microphone are released. Segments stay visible. */
+    /**
+     * Release a press-to-talk hold: the open utterance is closed and handed over with everything finished during the
+     * hold. Returns false when the session is already gone.
+     */
+    fun commit(): Boolean {
+        val active = scope ?: return false
+        return active.isActive && events.trySend(Event.Commit).isSuccess
+    }
+
+    /** Ends listening; the recognizer and microphone are released. Segments stay visible. A held utterance is not sent. */
     fun stop() {
         val active = scope ?: return
         scope = null
@@ -300,6 +316,15 @@ class VoiceSession(
             is Event.History -> remember(event.message)
             is Event.Failed -> {
                 mutableState.update { it.copy(status = VoiceSessionStatus.ERROR, problem = event.problem) }
+                stop()
+                return
+            }
+            Event.Commit -> {
+                val openedAt = tracker.openedAtMillis
+                tracker.closeOpen()?.let { finish(it, turnPeakDb(openedAt)) }
+                val text = held.joinToString(" ").trim()
+                held.clear()
+                onAgentTurn(VoiceHandOver(text, VoiceHandOverMode.NEW_TURN, null))
                 stop()
                 return
             }
@@ -423,6 +448,23 @@ class VoiceSession(
                 end.label != VoiceSegmentLabel.SIDE && end.reason != VoiceEndReason.WAKE_PHRASE &&
                 (end.judgment?.endsSession ?: 0.0) >= thresholds.endSession
             )
+        if (hold) {
+            if (end.text.isNotBlank()) held.addLast(end.text.trim())
+            val segment = VoiceSegment(
+                id = ++segmentIds,
+                text = end.text,
+                label = end.label,
+                judgment = end.judgment,
+                reason = end.reason,
+                endedAtEpochMillis = System.currentTimeMillis(),
+                submitted = false,
+                handOver = null,
+                dismissed = false,
+                peakDb = peakDb,
+            )
+            mutableState.update { it.copy(segments = (it.segments + segment).takeLast(MAX_SEGMENTS)) }
+            return
+        }
         val submit = autoSubmit && end.label == VoiceSegmentLabel.AGENT && !dismissed
         val mode = if (submit) handOverMode(end.judgment) else null
         val segment = VoiceSegment(
@@ -485,6 +527,7 @@ class VoiceSession(
     private sealed interface Event {
         data object Started : Event
         data object Tick : Event
+        data object Commit : Event
         data class Partial(val text: String) : Event
         data class Final(val text: String) : Event
         data class Mic(val active: Boolean, val levels: FloatArray, val gate: NearGateStats? = null, val levelDb: Double? = null) : Event

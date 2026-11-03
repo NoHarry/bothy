@@ -119,8 +119,25 @@ class VoiceServicesTest {
 
     @Test
     fun overlayWakeCanBeSwitchedOnFromTheBuild() {
+        voicePrefs().edit().clear().commit()
         seedEmbeddedVoice(context) { mapOf("VOICE_OVERLAY_WAKE" to "on") }
         assertTrue(loadVoiceConfig(context).overlayWake)
+    }
+
+    @Test
+    fun anOldWakeThatWasNeverToggledIsTurnedOffOnce() {
+        voicePrefs().edit().clear().putBoolean("overlay_wake", true).commit()
+        assertFalse(loadVoiceConfig(context).overlayWake)
+        assertTrue(wakeMigrationNotice(context))
+        assertFalse(loadVoiceConfig(context).overlayWake)
+    }
+
+    @Test
+    fun aWakeChoiceSavedInSettingsIsKept() {
+        voicePrefs().edit().clear().commit()
+        assertTrue(saveOverlayWake(context, true))
+        assertTrue(loadVoiceConfig(context).overlayWake)
+        assertFalse(wakeMigrationNotice(context))
     }
 
     @Test
@@ -226,4 +243,6 @@ class VoiceServicesTest {
         assertTrue(ttsStatusLine(context, base.copy(enabled = true, apiKey = "k")).startsWith("可用"))
         assertEquals("已关闭", ttsStatusLine(context, base.copy(enabled = false, apiKey = "k")))
     }
+
+    private fun voicePrefs() = context.getSharedPreferences("debug_voice", Context.MODE_PRIVATE)
 }

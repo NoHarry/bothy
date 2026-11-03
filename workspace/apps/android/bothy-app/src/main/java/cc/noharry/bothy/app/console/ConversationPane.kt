@@ -477,7 +477,7 @@ private fun CondensedComposerActions(
             ContextUsageIndicator(state)
             ModelMenu(state.configEditor, actions, Modifier.weight(1f))
             if (showSecondaryActions) VariantMenu(state.configEditor, actions)
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = true)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -505,7 +505,7 @@ private fun CompactComposerActions(
             ComposerOverflowMenu(actions)
             Spacer(Modifier.weight(1f))
             if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = true)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }

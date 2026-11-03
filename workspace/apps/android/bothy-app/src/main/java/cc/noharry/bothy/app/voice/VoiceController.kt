@@ -74,12 +74,14 @@ import kotlinx.coroutines.launch
  */
 internal enum class VoiceOrigin {
     BUTTON,
+    /** Hold the mic: utterances stay buffered until the finger lifts. */
+    PRESS,
     WAKE,
     FOLLOW_UP,
     ;
 
     /** Ends itself when idle, and may be dismissed by voice or by the overlay. */
-    val handsFree: Boolean get() = this != BUTTON
+    val handsFree: Boolean get() = this == WAKE || this == FOLLOW_UP
 }
 
 /**
@@ -141,6 +143,24 @@ internal object VoiceController {
 
     /** What the session records, for the wake word to listen to while it runs; null without a session. */
     val wakeAudio: VoiceAudioSource? get() = tee?.copies
+
+    /** Press-to-talk: buffer while held. Null when listening started, else why it could not. */
+    fun beginPress(context: Context): String? {
+        if (listening) return null
+        return start(context, VoiceOrigin.PRESS)
+    }
+
+    /** Finger up: send what was said, including the utterance still open, then close the mic. */
+    fun releasePress() {
+        val active = session
+        if (active != null && origin == VoiceOrigin.PRESS && active.commit()) return
+        stop()
+    }
+
+    /** Slide up, or the gesture was cancelled: drop everything said during the hold. */
+    fun cancelPress() {
+        stop()
+    }
 
     /** The mic button: wakes the session, or ends it when already listening. */
     fun toggle(context: Context) {
@@ -223,7 +243,18 @@ internal object VoiceController {
             historyLimit = config.historyMessages,
             fullDuplex = fullDuplexActive(config),
             onInterrupt = { main.post(TtsActivity::interrupt) },
-            onAgentTurn = { handOver -> main.post { handOver(appContext, handOver) } },
+            onAgentTurn = { handOver ->
+                main.post {
+                    val ctx = this.appContext ?: return@post
+                    if (origin == VoiceOrigin.PRESS) {
+                        if (handOver.text.isNotBlank()) this.handOver(ctx, handOver)
+                        stop()
+                    } else {
+                        this.handOver(ctx, handOver)
+                    }
+                }
+            },
+            hold = origin == VoiceOrigin.PRESS,
             // Only a hands-free session may be dismissed by voice; the console's mic is tapped off.
             onDismiss = if (origin.handsFree) ({ main.post(::dismissed) }) else null,
             wakePhrase = XIAOBO_WAKE_PROFILE.heardInTranscript,
