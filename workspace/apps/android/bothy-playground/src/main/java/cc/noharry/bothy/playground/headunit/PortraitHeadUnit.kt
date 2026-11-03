@@ -19,11 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +46,7 @@ import cc.noharry.bothy.playground.link.Assistant
 internal fun usesPortraitHeadUnit(widthDp: Int, orientation: Int): Boolean =
     widthDp < PHONE_SHORT_SIDE_DP && orientation == Configuration.ORIENTATION_PORTRAIT
 
-private enum class PortraitTab(@StringRes val label: Int) {
+internal enum class PortraitTab(@StringRes val label: Int) {
     ROUTE(R.string.headunit_tab_route),
     CABIN(R.string.headunit_tab_cabin),
     CLIMATE(R.string.headunit_tab_climate),
@@ -60,9 +61,10 @@ internal fun PortraitHeadUnit(
     flashLevel: Float,
     store: PlaygroundStore,
     onHome: () -> Unit,
+    initialTab: PortraitTab = PortraitTab.ROUTE,
 ) {
-    var tab by rememberSaveable { mutableStateOf(PortraitTab.ROUTE) }
-    var sheet by rememberSaveable { mutableStateOf(false) }
+    var tab by remember { mutableStateOf(initialTab) }
+    var sheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val assistant by Assistant.state.collectAsState()
     val nav = world.cabin.nav
@@ -78,6 +80,7 @@ internal fun PortraitHeadUnit(
                         onLongPress = { store.holdCabin(context, it) },
                         compact = true,
                         speaking = assistant.listening,
+                        gestureTag = "portrait-cabin",
                     )
                     PortraitTab.CLIMATE -> Text(
                         world.cabin.climateLine(),
@@ -129,13 +132,13 @@ internal fun PortraitHeadUnit(
                         stringResource(R.string.playground_scene_home),
                         color = PlaygroundColors.text,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(16.dp)).background(PlaygroundColors.bg).clickable(onClick = onHome).padding(vertical = 12.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(16.dp)).background(PlaygroundColors.bg).clickable(role = Role.Button, onClick = onHome).padding(vertical = 12.dp),
                     )
                     Text(
                         stringResource(R.string.headunit_settings_title),
                         color = PlaygroundColors.text,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(16.dp)).background(PlaygroundColors.bg).clickable { sheet = true }.padding(vertical = 12.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp).clip(RoundedCornerShape(16.dp)).background(PlaygroundColors.bg).clickable(role = Role.Button) { sheet = true }.padding(vertical = 12.dp),
                     )
                 }
                 if (tab == PortraitTab.CABIN) {
@@ -150,6 +153,7 @@ internal fun PortraitHeadUnit(
                                         .heightIn(min = 48.dp)
                                         .clip(RoundedCornerShape(16.dp))
                                         .background(PlaygroundColors.bg)
+                                        .testTag("seat-${seat.name}")
                                         .clickable { store.tapCabin(context, CabinSpots.seats.getValue(seat)) }
                                         .padding(12.dp),
                                 )

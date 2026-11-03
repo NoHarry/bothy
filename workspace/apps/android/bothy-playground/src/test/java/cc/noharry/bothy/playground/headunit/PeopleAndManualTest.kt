@@ -65,12 +65,16 @@ class PeopleAndManualTest {
     }
 
     @Test
-    fun aPortraitHotspotOnTheDriverDoorOpensIt() {
+    fun aTapOnTheDriverWindowHotspotOpensIt() {
         val window = CabinSpots.windows.getValue(Seat.DRIVER)
         val at = androidx.compose.ui.geometry.Offset(window.first.x, (window.first.y + window.second.y) / 2)
         assertEquals(Seat.DRIVER, CabinSpots.windowAt(at))
         store.tapCabin(context, at)
         assertEquals(100, store.read().cabin.window(Seat.DRIVER))
+    }
+
+    @Test
+    fun aLongPressOnTheDriverSeatMakesThemTheSpeaker() {
         store.holdCabin(context, CabinSpots.seats.getValue(Seat.DRIVER))
         assertEquals(Seat.DRIVER, store.read().cabin.speaker)
     }

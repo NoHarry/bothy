@@ -18,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -62,6 +63,7 @@ internal fun FittedPicture(
     modifier: Modifier = Modifier,
     onTap: (Offset) -> Unit = {},
     onLongPress: (Offset) -> Unit = {},
+    gestureTag: String? = null,
     overlay: DrawScope.() -> Unit,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
@@ -72,7 +74,8 @@ internal fun FittedPicture(
             fun fraction(at: Offset) = Offset(at.x / size.width, at.y / size.height)
             detectTapGestures(onTap = { tap(fraction(it)) }, onLongPress = { press(fraction(it)) })
         }
-        Box(Modifier.size(width, width / aspect).then(gestures)) {
+        val tagged = if (gestureTag == null) Modifier else Modifier.testTag(gestureTag)
+        Box(Modifier.size(width, width / aspect).then(tagged).then(gestures)) {
             Image(painterResource(res), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             Canvas(Modifier.fillMaxSize()) { overlay() }
         }
