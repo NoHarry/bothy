@@ -1,7 +1,7 @@
 package cc.noharry.bothy.playground
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -94,9 +94,9 @@ class PlaygroundActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // A phone is a small head unit, held sideways (owner 2026-10-23: 手机都固定横屏): the head unit is laid out wide.
+        // A phone is a small head unit. Portrait keeps platform dp; landscape still scales the wide layout down.
         val phone = resources.configuration.smallestScreenWidthDp < PHONE_SHORT_SIDE_DP
-        if (phone) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
         // preferred rate alone lost to the map surface's own vote: the display's 60 Hz mode is asked for outright.
         @Suppress("DEPRECATION") val screen = windowManager.defaultDisplay
@@ -116,7 +116,7 @@ class PlaygroundActivity : ComponentActivity() {
             ViewCompat.onApplyWindowInsets(view, insets)
         }
         PlaygroundService.start(this)
-        setContent { PhoneScale(phone) { PlaygroundApp(Playground.store) } }
+        setContent { PhoneScale(playgroundContentScale(phone, landscape)) { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
         // Once: a rotation recreates the activity with the same intent.
         if (savedInstanceState == null) askedScene(intent)
@@ -167,14 +167,17 @@ class PlaygroundActivity : ComponentActivity() {
 }
 
 /**
- * A phone draws the head unit at [PHONE_SCALE]: sideways it is 851×393 dp, and the tablet's layout wants about 1105×692;
- * scaled it is 1135×524, its type still readable.
+ * Portrait phones keep the platform dp. A phone turned sideways still draws at [PHONE_SCALE]: 851×393 dp becomes about
+ * 1135×524, close to the wide head unit, and the type stays readable.
  */
+internal fun playgroundContentScale(phone: Boolean, landscape: Boolean): Float =
+    if (phone && landscape) PHONE_SCALE else 1f
+
 @Composable
-private fun PhoneScale(phone: Boolean, content: @Composable () -> Unit) {
-    if (!phone) return content()
+private fun PhoneScale(scale: Float, content: @Composable () -> Unit) {
+    if (scale == 1f) return content()
     val base = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(base.density * PHONE_SCALE, base.fontScale), content = content)
+    CompositionLocalProvider(LocalDensity provides Density(base.density * scale, base.fontScale), content = content)
 }
 
 private const val PHONE_SCALE = 0.75f
