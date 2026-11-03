@@ -92,13 +92,12 @@ internal object Onboarding {
     }
 
     /**
-     * 开始使用: what the last step says works from here on does — 「你好小博」 is heard (语音唤醒 on, with the microphone
-     * granted) and 小博 floats over other apps. Off, a fresh install had neither, and the head unit no cards.
+     * 开始使用. Wake word stays off until the person turns it on in 设置 → 语音. A fresh install used to switch it on
+     * here whenever the microphone was already granted.
      */
     fun finish(context: Context) {
         prefs(context).edit().putBoolean(DONE, true).apply()
-        val mic = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (mic) WakeWord.setEnabled(context, true) else OverlayControl.ensureRunning(context)
+        OverlayControl.ensureRunning(context)
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

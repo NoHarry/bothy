@@ -84,25 +84,25 @@ internal val LightConsoleColors = ConsoleThemeColors(
 )
 
 internal val DarkConsoleColors = ConsoleThemeColors(
-    bg = Color(0xFF0E1210),
-    panel = Color(0xFF141917),
-    elevated = Color(0xFF1B221E),
-    border = Color(0xFF29322D),
-    borderSubtle = Color(0xFF1F2723),
-    text = Color(0xFFE8E5DD),
-    muted = Color(0xFFA29D92),
-    tertiary = Color(0xFF6E6A62),
-    accent = Color(0xFF8CC7A5),
-    accentSoft = Color(0xFF1D2E25),
-    ink = Color(0xFFE8E5DD),
-    inkSoft = Color(0xFF2A322D),
-    activity = Color(0xFFF2925A),
-    activitySoft = Color(0xFF33221A),
-    danger = Color(0xFFF07A6E),
-    success = Color(0xFF5CCB8E),
+    bg = Color(0xFF1C1A16),
+    panel = Color(0xFF2C2823),
+    elevated = Color(0xFF38332C),
+    border = Color(0xFF4A453E),
+    borderSubtle = Color(0x33F4F1EA),
+    text = Color(0xFFF4F1EA),
+    muted = Color(0xFFA8A194),
+    tertiary = Color(0xFF8F897F),
+    accent = Color(0xFF8FCBAB),
+    accentSoft = Color(0xFF243E32),
+    ink = Color(0xFFF4F1EA),
+    inkSoft = Color(0xFF2C2823),
+    activity = Color(0xFFE08A4A),
+    activitySoft = Color(0xFF3A2A22),
+    danger = Color(0xFFE7B0A4),
+    success = Color(0xFF3CB371),
     warning = Color(0xFFE6B655),
-    userBubble = Color(0xFF1E2622),
-    codeBg = Color(0xFF111613),
+    userBubble = Color(0xFF2A4638),
+    codeBg = Color(0xFF161410),
     isDark = true,
 )
 
@@ -162,7 +162,13 @@ internal typealias ProviderFetchAction =
 
 @Composable
 internal fun ConsoleTheme(content: @Composable () -> Unit) {
-    val colors = if (isSystemInDarkTheme()) DarkConsoleColors else LightConsoleColors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val mode = ConsoleAppearance.mode(context)
+    val colors = when (mode) {
+        ConsoleAppearance.Mode.LIGHT -> LightConsoleColors
+        ConsoleAppearance.Mode.DARK -> DarkConsoleColors
+        ConsoleAppearance.Mode.SYSTEM -> if (isSystemInDarkTheme()) DarkConsoleColors else LightConsoleColors
+    }
     CompositionLocalProvider(LocalConsoleColors provides colors) {
         MaterialTheme(
             colorScheme = if (colors.isDark) {

@@ -15,6 +15,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,7 +124,7 @@ internal fun VoiceStrip() {
  * first time.
  */
 @Composable
-internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
+internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false) {
     val context = LocalContext.current
     val state by VoiceController.state.collectAsState()
     val denied = stringResource(R.string.voice_mic_denied)
@@ -146,10 +150,7 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
                 }
                 .clip(CircleShape)
                 .background(fill)
-                .clickable {
-                    val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                    if (on || granted) VoiceController.toggle(context) else permission.launch(Manifest.permission.RECORD_AUDIO)
-                }
+                .then(if (holdToTalk) Modifier.pressToTalk(context, permission) else Modifier.tapToTalk(context, permission, denied, on))
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
@@ -160,6 +161,41 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
                 Icon(IconMic, contentDescription = null, tint = colors.accent, modifier = Modifier.size(iconSize))
             }
         }
+    }
+}
+
+private fun Modifier.tapToTalk(
+    context: android.content.Context,
+    permission: androidx.activity.result.ActivityResultLauncher<String>,
+    denied: String,
+    on: Boolean,
+): Modifier = clickable {
+    val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    if (on || granted) VoiceController.toggle(context) else permission.launch(Manifest.permission.RECORD_AUDIO)
+}
+
+/** Press to listen, release to send. Sliding up ends the session the same way: the engine commits when listening stops. */
+private fun Modifier.pressToTalk(
+    context: android.content.Context,
+    permission: androidx.activity.result.ActivityResultLauncher<String>,
+): Modifier = pointerInput(Unit) {
+    val slop = 48.dp.toPx()
+    awaitEachGesture {
+        val down = awaitFirstDown()
+        val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            permission.launch(Manifest.permission.RECORD_AUDIO)
+            return@awaitEachGesture
+        }
+        if (!VoiceController.listening) VoiceController.toggle(context)
+        while (true) {
+            val event = awaitPointerEvent()
+            val change = event.changes.firstOrNull() ?: break
+            if (!change.pressed) break
+            change.consume()
+            if (down.position.y - change.position.y > slop) break
+        }
+        if (VoiceController.listening) VoiceController.stop()
     }
 }
 
