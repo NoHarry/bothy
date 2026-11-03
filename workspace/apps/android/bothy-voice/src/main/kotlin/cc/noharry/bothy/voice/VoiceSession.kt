@@ -178,6 +178,10 @@ class VoiceSession(
     private val heardLevels = ArrayDeque<Pair<Long, Double>>()
     /** Utterances finished while [hold] is on, sent together by [commit]. */
     private val held = ArrayDeque<String>()
+    /** Set on the logic thread; the recognizer thread sees it and asks the engine to finish. */
+    @Volatile private var finishRequested = false
+    private var drainingHold = false
+    private var drainDeadline = Long.MAX_VALUE
     private var quietAfter = 0L
     private var segmentIds = 0L
 
@@ -198,7 +202,15 @@ class VoiceSession(
                 engine.start(asrListener)
                 events.trySend(Event.Started)
                 val silence = ShortArray(VOICE_FRAME_SAMPLES)
+                var finishing = false
                 audio.frames().collect { heard ->
+                    if (finishRequested) {
+                        if (!finishing) {
+                            finishing = true
+                            engine.finish { events.trySend(Event.EngineDrained) }
+                        }
+                        return@collect
+                    }
                     val frame = nearGate?.process(heard) ?: heard
                     val levelDb = if (nearGate != null) NearSpeechGate.frameDb(frame) else null
                     events.trySend(Event.Mic(mic.update(frame), MicActivity.levels(frame), nearGate?.stats(), levelDb))
@@ -320,15 +332,20 @@ class VoiceSession(
                 return
             }
             Event.Commit -> {
-                val openedAt = tracker.openedAtMillis
-                tracker.closeOpen()?.let { finish(it, turnPeakDb(openedAt)) }
-                val text = held.joinToString(" ").trim()
-                held.clear()
-                onAgentTurn(VoiceHandOver(text, VoiceHandOverMode.NEW_TURN, null))
-                stop()
+                if (!drainingHold) {
+                    drainingHold = true
+                    drainDeadline = now + HOLD_FLUSH_MILLIS
+                    finishRequested = true
+                }
+            }
+            Event.EngineDrained -> {
+                handOverHold()
                 return
             }
-            Event.Tick -> Unit
+            Event.Tick -> if (drainingHold && now >= drainDeadline) {
+                handOverHold()
+                return
+            }
         }
         updateBusy(now)
         val openedAt = tracker.openedAtMillis
@@ -426,6 +443,19 @@ class VoiceSession(
         interruptSent = true
         mutableState.update { it.copy(interruptions = it.interruptions + 1) }
         onInterrupt()
+    }
+
+    /** Send everything said during the hold, including a final that arrived after the finger lifted. */
+    private fun handOverHold() {
+        if (!drainingHold) return
+        drainingHold = false
+        finishRequested = false
+        val openedAt = tracker.openedAtMillis
+        tracker.closeOpen()?.let { finish(it, turnPeakDb(openedAt)) }
+        val text = held.joinToString(" ").trim()
+        held.clear()
+        onAgentTurn(VoiceHandOver(text, VoiceHandOverMode.NEW_TURN, null))
+        stop()
     }
 
     private fun finish(ended: VoiceTurnAction.End, peakDb: Double?) {
@@ -528,6 +558,7 @@ class VoiceSession(
         data object Started : Event
         data object Tick : Event
         data object Commit : Event
+        data object EngineDrained : Event
         data class Partial(val text: String) : Event
         data class Final(val text: String) : Event
         data class Mic(val active: Boolean, val levels: FloatArray, val gate: NearGateStats? = null, val levelDb: Double? = null) : Event
@@ -546,6 +577,8 @@ class VoiceSession(
 }
 
 private const val TICK_MILLIS = 100L
+/** How long a press-to-talk release waits for the recognizer's trailing final. */
+private const val HOLD_FLUSH_MILLIS = 600L
 /** After the agent and its speech end, the room's echo and the user's breath settle. */
 private const val BUSY_TAIL_MILLIS = 600L
 /** A handed-over turn the host never picked up stops blocking the mic after this long. */

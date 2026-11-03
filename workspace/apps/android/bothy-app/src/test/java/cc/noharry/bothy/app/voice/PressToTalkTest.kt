@@ -10,4 +10,11 @@ class PressToTalkTest {
         assertEquals(PressOutcome.CANCEL, pressOutcome(slidUp = true, heldMillis = 800))
         assertEquals(PressOutcome.CANCEL, pressOutcome(slidUp = false, heldMillis = 80))
     }
+
+    @Test
+    fun aPressStopsAWakeOrFollowUpThatIsAlreadyListening() {
+        assertEquals(HoldDown.STOP_OTHER, holdDown(listening = true, holding = false))
+        assertEquals(HoldDown.ALREADY, holdDown(listening = true, holding = true))
+        assertEquals(HoldDown.START, holdDown(listening = false, holding = false))
+    }
 }

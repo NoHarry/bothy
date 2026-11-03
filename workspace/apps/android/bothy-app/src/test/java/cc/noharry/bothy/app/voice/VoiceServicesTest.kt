@@ -125,6 +125,13 @@ class VoiceServicesTest {
     }
 
     @Test
+    fun aSeededBuildWithoutAPackagedWakeStillTurnsAnOldWakeOff() {
+        voicePrefs().edit().clear().putBoolean("embedded_seeded", true).putBoolean("overlay_wake", true).commit()
+        assertFalse(loadVoiceConfig(context).overlayWake)
+        assertTrue(wakeMigrationNotice(context))
+    }
+
+    @Test
     fun anOldWakeThatWasNeverToggledIsTurnedOffOnce() {
         voicePrefs().edit().clear().putBoolean("overlay_wake", true).commit()
         assertFalse(loadVoiceConfig(context).overlayWake)

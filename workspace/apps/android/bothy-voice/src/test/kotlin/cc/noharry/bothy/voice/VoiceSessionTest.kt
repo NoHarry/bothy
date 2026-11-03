@@ -460,6 +460,7 @@ class VoiceSessionTest {
 
         assertTrue(handed.isEmpty())
         assertTrue(session.commit())
+        advanceTimeBy(200)
         runCurrent()
         assertEquals(listOf("打开窗帘"), handed)
     }
@@ -484,6 +485,22 @@ class VoiceSessionTest {
 
         assertTrue(handed.isEmpty())
         session.commit()
+        advanceTimeBy(200)
+        runCurrent()
+        assertEquals(listOf("去公司"), handed)
+    }
+
+    @Test
+    fun aFinalThatArrivesAfterReleaseIsStillSent() = test.runTest {
+        val engine = ScriptedEngine(mapOf(2 to "去"), trailingFinal = "去公司")
+        val session = session(engine, addressed = 0.9, hold = true)
+        session.start()
+        advanceTimeBy(500)
+        runCurrent()
+
+        assertTrue(handed.isEmpty())
+        session.commit()
+        advanceTimeBy(200)
         runCurrent()
         assertEquals(listOf("去公司"), handed)
     }
@@ -504,6 +521,7 @@ class VoiceSessionTest {
         private val partials: Map<Int, String>,
         private val failAt: Int? = null,
         private val finals: Map<Int, String> = emptyMap(),
+        private val trailingFinal: String? = null,
     ) : StreamingAsrEngine {
         override val label = "scripted"
         override val punctuates = false
@@ -522,6 +540,11 @@ class VoiceSessionTest {
             partials[frames]?.let { listener?.onPartial(it) }
             finals[frames]?.let { listener?.onFinal(it) }
             if (handedOver() && samples.all { it.toInt() == 0 }) silentFramesAfterHandOver++
+        }
+
+        override fun finish(onDrained: () -> Unit) {
+            trailingFinal?.let { listener?.onFinal(it) }
+            onDrained()
         }
 
         override fun stop() {

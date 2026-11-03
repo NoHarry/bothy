@@ -73,6 +73,8 @@ import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.overlay.isCompletedPlanStatus
 import cc.noharry.bothy.app.overlay.pickableReply
+import cc.noharry.bothy.app.voice.clearWakeMigrationNotice
+import cc.noharry.bothy.app.voice.wakeMigrationNotice
 import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
 import cc.noharry.bothy.app.runtime.variantChoices
 import cc.noharry.bothy.app.session.ConfirmationMode
@@ -130,6 +132,25 @@ private fun RegularConversationPane(
     modifier: Modifier,
 ) {
     PanelBox(stringResource(R.string.console_conversation), modifier) {
+        val context = LocalContext.current
+        var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
+        if (wakeNote) {
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.voice_wake_migrated_off),
+                    style = ConsoleType.bodySmall,
+                    color = ConsoleColors.text,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = {
+                    clearWakeMigrationNotice(context)
+                    wakeNote = false
+                }) { Text(stringResource(R.string.common_ok)) }
+            }
+        }
         ConversationStatus(state)
         Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()

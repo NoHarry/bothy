@@ -205,6 +205,15 @@ internal fun pressOutcome(slidUp: Boolean, heldMillis: Long): PressOutcome =
 
 internal enum class PressOutcome { SEND, CANCEL }
 
+/** What a finger-down does when another session may already be listening. */
+internal enum class HoldDown { STOP_OTHER, ALREADY, START }
+
+internal fun holdDown(listening: Boolean, holding: Boolean): HoldDown = when {
+    listening && !holding -> HoldDown.STOP_OTHER
+    listening -> HoldDown.ALREADY
+    else -> HoldDown.START
+}
+
 private const val PRESS_TAP_MILLIS = 250L
 
 /** Press to listen. Release sends, including the utterance still open. Sliding up drops the hold. */
@@ -227,12 +236,22 @@ private fun Modifier.pressToTalk(
         var started = false
         var send = false
         try {
-            if (!VoiceController.listening) {
-                VoiceController.beginPress(ctx)
-                started = VoiceController.listening
-                if (started) haptic()
+            when (holdDown(VoiceController.listening, VoiceController.holding)) {
+                HoldDown.STOP_OTHER -> {
+                    VoiceController.stop()
+                    return@awaitEachGesture
+                }
+                HoldDown.ALREADY -> started = true
+                HoldDown.START -> {
+                    val failure = VoiceController.beginPress(ctx)
+                    started = VoiceController.listening
+                    if (!started) {
+                        failure?.let(VoiceController::notice)
+                        return@awaitEachGesture
+                    }
+                    haptic()
+                }
             }
-            if (!started) return@awaitEachGesture
             val startedAt = SystemClock.elapsedRealtime()
             var slidUp = false
             while (true) {

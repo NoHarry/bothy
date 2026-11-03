@@ -144,6 +144,9 @@ internal object VoiceController {
     /** What the session records, for the wake word to listen to while it runs; null without a session. */
     val wakeAudio: VoiceAudioSource? get() = tee?.copies
 
+    /** True while the active session is a press-to-talk hold, not a wake or a follow-up. */
+    val holding: Boolean get() = listening && origin == VoiceOrigin.PRESS
+
     /** Press-to-talk: buffer while held. Null when listening started, else why it could not. */
     fun beginPress(context: Context): String? {
         if (listening) return null
