@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,11 +50,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,7 +69,6 @@ import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.overlay.isCompletedPlanStatus
 import cc.noharry.bothy.app.overlay.pickableReply
 import cc.noharry.bothy.app.voice.clearWakeMigrationNotice
 import cc.noharry.bothy.app.voice.wakeMigrationNotice
@@ -133,13 +128,10 @@ private fun RegularConversationPane(
     short: Boolean,
     modifier: Modifier,
 ) {
-    val phone = LocalPortraitPhone.current
-    ConversationFrame(phone, modifier) {
+    PanelBox(stringResource(R.string.console_conversation), modifier) {
         WakeMigrationNote()
-        if (!phone) {
-            ConversationStatus(state)
-            Spacer(Modifier.height(Dimens.spaceSm))
-        }
+        ConversationStatus(state)
+        Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()
         val renderItems = remember(state.items) { state.items.toRenderItems() }
         // reverseLayout: newest grows at the bottom; short threads sit above the composer
@@ -205,44 +197,13 @@ private fun RegularConversationPane(
                 }
             }
         }
-        val openPlans = LocalOpenPlans.current
-        val steps = state.contextPanel.todo.count { !it.status.isCompletedPlanStatus() }
-        if (openPlans != null && steps > 0) {
-            Spacer(Modifier.height(Dimens.spaceSm))
-            val stepsLabel = if (state.isRunning) R.plurals.console_plan_steps else R.plurals.console_plan_steps_unfinished
-            Text(
-                text = pluralStringResource(stepsLabel, steps, steps),
-                style = ConsoleType.body,
-                color = ConsoleColors.accent,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clickable { openPlans() }
-                    .semantics { role = Role.Button }
-                    .padding(vertical = Dimens.spaceXs),
-            )
-        }
         Spacer(Modifier.height(Dimens.spaceSm))
-        if (phone) {
-            PhoneComposer(input, onInputChange, onSubmit, state, actions)
-        } else {
-            ConversationInputBar(text = input, onTextChange = onInputChange, onSubmit = onSubmit, state = state, actions = actions, short = short)
-        }
-    }
-}
-
-/** The conversation's panel, or on a portrait phone the bare column the design draws without one. */
-@Composable
-private fun ConversationFrame(phone: Boolean, modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
-    if (phone) {
-        Column(modifier, content = content)
-    } else {
-        PanelBox(stringResource(R.string.console_conversation), modifier, content)
+        ConversationInputBar(text = input, onTextChange = onInputChange, onSubmit = onSubmit, state = state, actions = actions, short = short)
     }
 }
 
 @Composable
-private fun ConversationEmptyState(modifier: Modifier = Modifier) {
+internal fun ConversationEmptyState(modifier: Modifier = Modifier) {
     val colors = ConsoleColors
     Column(
         modifier = modifier.padding(vertical = Dimens.spaceLg),
@@ -274,7 +235,7 @@ private fun ConversationEmptyState(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun WakeMigrationNote() {
+internal fun WakeMigrationNote() {
     val context = LocalContext.current
     var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
     if (!wakeNote) return
@@ -533,7 +494,7 @@ private fun CondensedComposerActions(
             ContextUsageIndicator(state)
             ModelMenu(state.configEditor, actions, Modifier.weight(1f))
             if (showSecondaryActions) VariantMenu(state.configEditor, actions)
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalPortraitPhone.current)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -561,7 +522,7 @@ private fun CompactComposerActions(
             ComposerOverflowMenu(actions)
             Spacer(Modifier.weight(1f))
             if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalPortraitPhone.current)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }

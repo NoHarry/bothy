@@ -2,7 +2,6 @@ package cc.noharry.bothy.app.console
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -23,6 +22,7 @@ import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.console.ui.DesignDensity
 import cc.noharry.bothy.app.console.ui.UiScale
+import cc.noharry.bothy.app.phone.PhoneApp
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.overlay.OverlayService
 import cc.noharry.bothy.app.runtime.RuntimeSession
@@ -35,6 +35,9 @@ import cc.noharry.bothy.app.voice.AsrTextServerManager
 import cc.noharry.bothy.app.voice.loadVoiceConfig
 
 class ConsoleActivity : ComponentActivity() {
+    /** A phone gets Bothy's phone screens ([PhoneApp]); a tablet and a head unit the console ([ConsoleScreen]). */
+    private val phoneUi by lazy { UiScale.phone(this) }
+
     private var uiState by mutableStateOf<UiState?>(null)
     private var a2aClientState by mutableStateOf(A2aClientState())
     private var pendingInput by mutableStateOf("")
@@ -55,9 +58,9 @@ class ConsoleActivity : ComponentActivity() {
         super.onStart()
         ConsoleVisibility.set(this, visible = true)
         // With 语音唤醒 on, 小博 comes up with the app, not only when opened by hand (the wake word listens either way).
-        // A portrait phone has no room beside the console: 小博 comes once the console leaves.
+        // A phone has no room beside its screens: 小博 comes once the app leaves.
         if (loadVoiceConfig(this).overlayWake) {
-            if (UiScale.phone(this) && resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            if (phoneUi) {
                 ConsoleVisibility.restoreOnLeave()
             } else {
                 OverlayControl.ensureRunning(this)
@@ -91,14 +94,19 @@ class ConsoleActivity : ComponentActivity() {
                         return@ConsoleTheme
                     }
                     uiState?.let { state ->
-                        ConsoleScreen(
-                            state = state,
-                            pendingInput = pendingInput,
-                            onPendingInputConsumed = { pendingInput = "" },
-                            actions = actions(),
-                            a2aClient = a2aClientState,
-                            a2aActions = a2aClientActions(),
-                        )
+                        // One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the console.
+                        if (phoneUi) {
+                            PhoneApp(state, pendingInput, { pendingInput = "" }, actions(), a2aClientState, a2aClientActions())
+                        } else {
+                            ConsoleScreen(
+                                state = state,
+                                pendingInput = pendingInput,
+                                onPendingInputConsumed = { pendingInput = "" },
+                                actions = actions(),
+                                a2aClient = a2aClientState,
+                                a2aActions = a2aClientActions(),
+                            )
+                        }
                     }
                 }
             }

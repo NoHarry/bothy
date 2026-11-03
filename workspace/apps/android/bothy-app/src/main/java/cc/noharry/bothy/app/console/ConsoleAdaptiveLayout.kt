@@ -57,12 +57,8 @@ internal data class ConsoleLayoutPolicy(
     /** No header: the view tabs sit over the pane and the destinations in a rail on the right. */
     val useRailChrome: Boolean = useUltraCompactHeightChrome,
 ) {
-    /** Portrait phone: no bottom bar. The side drawer is the compact form of the session pane. */
-    val showPhoneDrawer: Boolean
-        get() = windowClass == WindowClass.COMPACT && !useRailChrome
-
-    val showBottomNavigation: Boolean
-        get() = windowClass != WindowClass.EXPANDED && !useRailChrome && !showPhoneDrawer
+    val showBottomNavigation: Boolean =
+        windowClass != WindowClass.EXPANDED && !useRailChrome
 
     val showTrailingNavigationRail: Boolean =
         windowClass == WindowClass.COMPACT && useRailChrome

@@ -315,4 +315,16 @@
     <string name="console_trajectory_full">Full trajectory</string>
     <string name="console_trajectory_given">Given</string>
     <string name="console_trajectory_returned">Returned</string>
+    <string name="phone_run_working">Working · step %1$d · %2$s</string>
+    <string name="phone_run_trajectory">Trajectory</string>
+    <plurals name="phone_run_thoughts">
+        <item quantity="one">thought %1$d time</item>
+        <item quantity="other">thought %1$d times</item>
+    </plurals>
+    <plurals name="phone_run_tools">
+        <item quantity="one">%1$d tool</item>
+        <item quantity="other">%1$d tools</item>
+    </plurals>
+    <string name="phone_plans_intro">Bothy reminds you when they come due, or does them for you.</string>
+    <string name="phone_plans_empty">Just tell Bothy, for example “Remind me to bring an umbrella at eight tomorrow” or “Read me the weather at 8 every morning”.</string>
 </resources>

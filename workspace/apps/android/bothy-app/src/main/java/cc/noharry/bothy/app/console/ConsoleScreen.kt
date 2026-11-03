@@ -28,27 +28,18 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -59,7 +50,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
@@ -91,7 +81,6 @@ internal fun ConsoleScreen(
     var mcpReturnDestination by rememberSaveable { mutableStateOf(NavigationDestination.BOARD) }
     var a2aReturnDestination by rememberSaveable { mutableStateOf(NavigationDestination.SETTINGS) }
     var consoleView by rememberSaveable { mutableStateOf(DEFAULT_DEBUG_CONSOLE_VIEW.name) }
-    var fullTrajectory by rememberSaveable { mutableStateOf(false) }
     // The A2A tab is the persisted client mode itself; Debug/Trajectory remember their own last choice.
     val view = consoleViewFor(consoleView, a2aClient.enabled && a2aActions != null)
     val setView: (ConsoleView) -> Unit = { next ->
@@ -144,54 +133,26 @@ internal fun ConsoleScreen(
         },
     )
     val colors = ConsoleColors
-    BoxWithConstraints(Modifier.fillMaxSize().background(colors.bg)) {
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .windowInsetsPadding(WindowInsets.displayCutout)
+            .imePadding()
+            .padding(Dimens.spaceMd),
+    ) {
         val policy = consoleLayoutPolicy(maxWidth.value, maxHeight.value)
-        val context = LocalContext.current
-        val drawerState = rememberDrawerState(DrawerValue.Closed)
-        val drawerScope = rememberCoroutineScope()
-        val openDrawer: () -> Unit = { drawerScope.launch { drawerState.open() } }
-        val closeDrawer: () -> Unit = { drawerScope.launch { drawerState.close() } }
-        val screenPadding = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.displayCutout).imePadding().padding(Dimens.spaceMd)
         if (page != ConsolePage.CONVERSATION) {
             BackHandler(onBack = showConversation)
             MainPane(
                 page, state, pendingInput, onPendingInputConsumed, screenActions,
                 showConversation, showMcpProvidersFromSettings, leaveMcpProviders,
-                showA2aProfilesFromSettings, leaveA2aProfiles, screenPadding,
+                showA2aProfilesFromSettings, leaveA2aProfiles, Modifier.fillMaxSize(),
             )
             return@BoxWithConstraints
         }
-        val setViewState = rememberUpdatedState(setView)
-        val openTrajectory = remember(policy.showPhoneDrawer) {
-            if (policy.showPhoneDrawer) {
-                { setViewState.value(ConsoleView.TRAJECTORY) }
-            } else {
-                null
-            }
-        }
-        val openPlans = remember(policy.showPhoneDrawer) {
-            if (policy.showPhoneDrawer) {
-                { setViewState.value(ConsoleView.PLANS) }
-            } else {
-                null
-            }
-        }
-        if (phoneBack(policy.showPhoneDrawer, drawerState.isOpen, view) == PhoneBack.SHOW_CONVERSATION) {
-            BackHandler { setView(ConsoleView.DEBUG) }
-        }
-        // The full trajectory opened from the phone's list goes back to the list; leaving the view closes it.
-        BackHandler(enabled = fullTrajectory && view == ConsoleView.TRAJECTORY) { fullTrajectory = false }
-        LaunchedEffect(view) { if (view != ConsoleView.TRAJECTORY) fullTrajectory = false }
-        val home: @Composable () -> Unit = {
-        CompositionLocalProvider(
-            LocalOpenTrajectory provides openTrajectory,
-            LocalOpenPlans provides openPlans,
-            LocalPortraitPhone provides policy.showPhoneDrawer,
-        ) {
-        Column(screenPadding) {
-            if (policy.showPhoneDrawer) {
-                PhoneTopBar(state, view, screenActions, openDrawer) { setView(ConsoleView.DEBUG) }
-            } else if (!policy.useRailChrome) {
+        Column(Modifier.fillMaxSize()) {
+            if (!policy.useRailChrome) {
                 HostChrome(
                     state = state,
                     view = view,
@@ -199,13 +160,6 @@ internal fun ConsoleScreen(
                     statusLine = if (view == ConsoleView.A2A) a2aClientStatusLine(a2aClient) else appStatusLine(state),
                     showA2aTab = a2aActions != null,
                 )
-            }
-            if (!policy.useRailChrome) {
-                if (policy.showPhoneDrawer && view != ConsoleView.DEBUG && view != ConsoleView.TRAJECTORY && state.isRunning) {
-                    TextButton(onClick = { setView(ConsoleView.TRAJECTORY) }) {
-                        Text(stringResource(R.string.console_status_running), color = colors.activity)
-                    }
-                }
                 Spacer(Modifier.height(Dimens.spaceSm))
             }
             val bodyModifier = Modifier.weight(1f).fillMaxWidth()
@@ -228,9 +182,7 @@ internal fun ConsoleScreen(
                     },
                     modifier = bodyModifier,
                 )
-                ConsoleView.TRAJECTORY -> if (policy.showPhoneDrawer && !fullTrajectory) {
-                    PhoneTrajectory(state, { fullTrajectory = true }, bodyModifier)
-                } else TrajectoryLayout(
+                ConsoleView.TRAJECTORY -> TrajectoryLayout(
                     state = state,
                     actions = screenActions,
                     policy = policy,
@@ -260,7 +212,6 @@ internal fun ConsoleScreen(
                         onLeaveMcpProviders = leaveMcpProviders,
                         onShowA2aProfiles = showA2aProfilesFromSettings,
                         onLeaveA2aProfiles = leaveA2aProfiles,
-                        showDestinationBar = !policy.showPhoneDrawer,
                         modifier = bodyModifier,
                     )
                     WindowClass.MEDIUM -> MediumLayout(
@@ -298,51 +249,6 @@ internal fun ConsoleScreen(
                     )
                 }
             }
-        }
-        }
-        }
-        if (policy.showPhoneDrawer) {
-            ModalNavigationDrawer(
-                drawerState = drawerState,
-                drawerContent = {
-                    ModalDrawerSheet(drawerState = drawerState, drawerContainerColor = colors.bg) {
-                        PhoneDrawer(
-                            sessions = state.sessions,
-                            activeSessionId = state.activeSessionId,
-                            open = drawerState.isOpen,
-                            showA2a = a2aActions != null,
-                            onNewChat = {
-                                screenActions.newSession()
-                                setView(ConsoleView.DEBUG)
-                                closeDrawer()
-                            },
-                            onSelectSession = {
-                                screenActions.selectSession(it)
-                                setView(ConsoleView.DEBUG)
-                                closeDrawer()
-                            },
-                            onPlans = {
-                                setView(ConsoleView.PLANS)
-                                closeDrawer()
-                            },
-                            onA2a = {
-                                setView(ConsoleView.A2A)
-                                closeDrawer()
-                            },
-                            onPlayground = {
-                                openPlayground(context)
-                                closeDrawer()
-                            },
-                            onSettings = {
-                                showSettings()
-                                closeDrawer()
-                            },
-                        )
-                    }
-                },
-            ) { home() }
-        } else {
-            home()
         }
     }
     htmlViewer?.let { request ->
@@ -495,18 +401,6 @@ internal enum class ConsoleView(@StringRes val label: Int) {
     PLANS(R.string.console_view_plans),
 }
 
-/**
- * What an extra back handler does on a portrait phone. An open drawer is [SYSTEM]: the sheet's own predictive back
- * closes it, and a second handler would take that gesture.
- */
-internal enum class PhoneBack { SHOW_CONVERSATION, SYSTEM }
-
-internal fun phoneBack(showPhoneDrawer: Boolean, drawerOpen: Boolean, view: ConsoleView): PhoneBack = when {
-    !showPhoneDrawer || drawerOpen -> PhoneBack.SYSTEM
-    view != ConsoleView.DEBUG -> PhoneBack.SHOW_CONVERSATION
-    else -> PhoneBack.SYSTEM
-}
-
 internal val DEFAULT_DEBUG_CONSOLE_VIEW: ConsoleView = ConsoleView.DEBUG
 
 internal fun String.toConsoleView(): ConsoleView =
@@ -596,7 +490,6 @@ private fun CompactLayout(
     onLeaveMcpProviders: () -> Unit,
     onShowA2aProfiles: () -> Unit,
     onLeaveA2aProfiles: () -> Unit,
-    showDestinationBar: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val selectedNavigation = compactNavigationDestination(page, destination)
@@ -626,10 +519,8 @@ private fun CompactLayout(
     } else {
         Column(modifier.fillMaxSize()) {
             paneContent(Modifier.weight(1f).fillMaxWidth())
-            if (showDestinationBar) {
-                Spacer(Modifier.height(8.dp))
-                DestinationBar(selectedNavigation, true, onDestinationSelected)
-            }
+            Spacer(Modifier.height(8.dp))
+            DestinationBar(selectedNavigation, true, onDestinationSelected)
         }
     }
 }

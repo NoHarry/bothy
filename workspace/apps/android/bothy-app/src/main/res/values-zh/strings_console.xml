@@ -302,4 +302,14 @@
     <string name="console_trajectory_full">完整轨迹</string>
     <string name="console_trajectory_given">传入</string>
     <string name="console_trajectory_returned">读回</string>
+    <string name="phone_run_working">正在处理 · 第 %1$d 步 · %2$s</string>
+    <string name="phone_run_trajectory">查看轨迹</string>
+    <plurals name="phone_run_thoughts">
+        <item quantity="other">思考 %1$d 次</item>
+    </plurals>
+    <plurals name="phone_run_tools">
+        <item quantity="other">%1$d 个工具</item>
+    </plurals>
+    <string name="phone_plans_intro">到点提醒你，或者让小博去做。</string>
+    <string name="phone_plans_empty">直接对小博说，比如「明早八点提醒我带伞」或「每天早上八点读天气给我听」。</string>
 </resources>

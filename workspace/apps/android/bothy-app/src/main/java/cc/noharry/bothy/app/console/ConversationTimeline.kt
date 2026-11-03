@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,9 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,11 +77,8 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
             .fillMaxWidth()
             .padding(vertical = Dimens.spaceXs),
     ) {
-        // A portrait phone shows the user's own turns by the bubble alone; a delegation's report keeps its name.
-        if (!LocalPortraitPhone.current || item.label != "You") {
-            Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
-            Spacer(Modifier.height(Dimens.spaceXs))
-        }
+        Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
+        Spacer(Modifier.height(Dimens.spaceXs))
         UserTurnBubble(body, collapsed = item.collapsed) {
             actions.toggleItem(item.copy(collapsed = !item.collapsed))
         }
@@ -237,7 +230,7 @@ internal fun thinkingDisplayLine(
 
 /** The label a turn was stored with ([cc.noharry.bothy.app.a2a.turnLabel]), in the screen's language. */
 @Composable
-private fun turnHeaderLabel(label: String): String = when (label) {
+internal fun turnHeaderLabel(label: String): String = when (label) {
     "You" -> stringResource(R.string.console_turn_you)
     "委托回报" -> stringResource(R.string.console_turn_delegation_report)
     else -> label
@@ -246,7 +239,6 @@ private fun turnHeaderLabel(label: String): String = when (label) {
 @Composable
 private fun RuntimePhaseRow(item: ConversationItem.RuntimePhaseItem, actions: ConsoleActions) {
     val colors = ConsoleColors
-    if (LocalPortraitPhone.current) return PhoneRunResultRow(item)
     TimelineRow(colors.muted, { actions.toggleItem(item.copy(collapsed = !item.collapsed)) }) {
         Text(item.title, style = ConsoleType.meta, color = colors.muted)
         Spacer(Modifier.height(Dimens.spaceXs))
@@ -642,37 +634,3 @@ private const val PREVIEW_CHARS = 140
 private const val THINKING_ONE_LINE_CHARS = 72
 private val WHITESPACE_RUN = Regex("""\s+""")
 private const val RUNNING_ELAPSED_TICK_MS = 1000L
-
-/**
- * A portrait phone's run result, as the phone design draws it: one quiet line with how the run ended, which opens the
- * trajectory. The answer itself is the reply above it, so the result's text is not repeated.
- */
-@Composable
-private fun PhoneRunResultRow(item: ConversationItem.RuntimePhaseItem) {
-    val colors = ConsoleColors
-    val status = item.title.removePrefix(RUNTIME_RESULT_PREFIX).substringBefore(' ')
-    val done = status == "COMPLETED"
-    val label = when (status) {
-        "COMPLETED" -> stringResource(R.string.console_run_done)
-        "FAILED" -> stringResource(R.string.console_status_failed)
-        "CANCELLED" -> stringResource(R.string.console_subagent_cancelled)
-        else -> item.title
-    }
-    val openTrajectory = LocalOpenTrajectory.current
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 40.dp)
-            .then(if (openTrajectory != null) Modifier.clickable(onClick = openTrajectory) else Modifier)
-            .padding(vertical = Dimens.spaceXs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        StatusDot(color = if (done) colors.success else colors.danger, modifier = Modifier.size(8.dp))
-        Spacer(Modifier.width(Dimens.spaceSm))
-        Text(label, style = ConsoleType.meta, color = colors.muted, modifier = Modifier.weight(1f))
-        if (openTrajectory != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.muted)
-    }
-}
-
-/** How the runtime titles a run's result entry ([cc.noharry.bothy.app.session.TranscriptStore.appendRuntimeResult]). */
-private const val RUNTIME_RESULT_PREFIX = "Runtime result "

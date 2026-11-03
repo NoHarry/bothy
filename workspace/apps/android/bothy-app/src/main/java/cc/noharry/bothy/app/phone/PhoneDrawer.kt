@@ -1,4 +1,4 @@
-package cc.noharry.bothy.app.console
+package cc.noharry.bothy.app.phone
 
 import android.content.Context
 import android.content.Intent
@@ -39,7 +39,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,22 +59,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ConsoleColors
+import cc.noharry.bothy.app.console.ConsoleType
+import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.session.sessionTitleText
+import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.session.SessionSummary
+import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.tools.PLAYGROUND_PACKAGE
 import java.util.Calendar
-
-/** Set on a portrait phone so a tool group can offer the trajectory without taking over the header tap. */
-internal val LocalOpenTrajectory = staticCompositionLocalOf<(() -> Unit)?> { null }
-
-/** Set on a portrait phone so the inline plan card opens the plans list. */
-internal val LocalOpenPlans = staticCompositionLocalOf<(() -> Unit)?> { null }
-
-/**
- * A portrait phone: the conversation without its panel, the one-line composer ([PhoneComposer]) and the mic held to
- * talk. Wider layouts keep the panel and tap the mic on and off.
- */
-internal val LocalPortraitPhone = staticCompositionLocalOf { false }
 
 internal enum class SessionDay { TODAY, YESTERDAY, EARLIER }
 
@@ -122,18 +114,14 @@ internal fun playgroundInstalled(context: Context): Boolean =
  * reached from a run's tool steps.
  */
 @Composable
-internal fun PhoneDrawer(
-    sessions: List<SessionSummary>,
-    activeSessionId: String,
-    open: Boolean,
-    showA2a: Boolean,
-    onNewChat: () -> Unit,
-    onSelectSession: (String) -> Unit,
-    onPlans: () -> Unit,
-    onA2a: () -> Unit,
-    onPlayground: () -> Unit,
-    onSettings: () -> Unit,
-) {
+internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, actions: ConsoleActions, onGo: (PhoneRoute) -> Unit) {
+    val sessions = state.sessions
+    val activeSessionId = state.activeSessionId
+    val onNewChat = { actions.newSession(); onGo(PhoneRoute.CHAT) }
+    val onSelectSession = { id: String -> actions.selectSession(id); onGo(PhoneRoute.CHAT) }
+    val onPlans = { onGo(PhoneRoute.PLANS) }
+    val onA2a = { onGo(PhoneRoute.A2A) }
+    val onSettings = { onGo(PhoneRoute.SETTINGS) }
     var query by rememberSaveable { mutableStateOf("") }
     val colors = ConsoleColors
     val context = LocalContext.current
@@ -154,7 +142,7 @@ internal fun PhoneDrawer(
                 DrawerSection(stringResource(R.string.console_drawer_features))
                 FeatureRow(rememberVectorPainter(Icons.Filled.DateRange), stringResource(R.string.console_view_plans), stringResource(R.string.console_drawer_plans_all), onPlans)
                 if (showA2a) FeatureRow(rememberVectorPainter(Icons.Filled.Share), stringResource(R.string.console_view_a2a), null, onA2a)
-                if (showPlayground) FeatureRow(painterResource(R.drawable.ic_drawer_car), stringResource(R.string.console_open_playground), null, onPlayground)
+                if (showPlayground) FeatureRow(painterResource(R.drawable.ic_drawer_car), stringResource(R.string.console_open_playground), null) { openPlayground(context); onGo(PhoneRoute.CHAT) }
             }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.borderSubtle))

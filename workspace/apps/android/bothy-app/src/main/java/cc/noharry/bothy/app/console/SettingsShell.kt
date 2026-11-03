@@ -98,7 +98,7 @@ internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -
                         Box(Modifier.weight(1f)) { SettingsSectionContent(section, state, actions, open) }
                     }
                     inSection -> SettingsSectionContent(section, state, actions, open)
-                    else -> SettingsPhoneHome(state, Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), open)
+                    else -> SettingsSectionList(null, Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), open)
                 }
             }
         }
@@ -115,8 +115,9 @@ private fun SettingsSectionList(selected: SettingsSection?, modifier: Modifier, 
     }
 }
 
+/** One section's page; also a phone's settings page for the section ([cc.noharry.bothy.app.phone.PhoneSettings]). */
 @Composable
-private fun SettingsSectionContent(
+internal fun SettingsSectionContent(
     section: SettingsSection,
     state: UiState,
     actions: ConsoleActions,

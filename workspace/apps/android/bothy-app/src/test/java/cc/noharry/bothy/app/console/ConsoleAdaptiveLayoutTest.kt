@@ -23,8 +23,7 @@ class ConsoleAdaptiveLayoutTest {
 
         assertFalse(policy.showPersistentSessions)
         assertFalse(policy.showPersistentBoard)
-        assertTrue(policy.showPhoneDrawer)
-        assertFalse(policy.showBottomNavigation)
+        assertTrue(policy.showBottomNavigation)
     }
 
     @Test
@@ -95,7 +94,6 @@ class ConsoleAdaptiveLayoutTest {
 
         assertFalse(policy.useUltraCompactHeightChrome)
         assertFalse(policy.showTrailingNavigationRail)
-        assertTrue(policy.showPhoneDrawer)
-        assertFalse(policy.showBottomNavigation)
+        assertTrue(policy.showBottomNavigation)
     }
 }

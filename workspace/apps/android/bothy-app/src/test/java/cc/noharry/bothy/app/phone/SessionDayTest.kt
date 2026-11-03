@@ -1,4 +1,4 @@
-package cc.noharry.bothy.app.console
+package cc.noharry.bothy.app.phone
 
 import cc.noharry.bothy.app.session.SessionSummary
 import org.junit.Assert.assertEquals
@@ -22,21 +22,6 @@ class SessionDayTest {
         )
         assertEquals(listOf("a"), groupDrawerSessions(sessions, "菜", now).single().second.map { it.sessionId })
         assertEquals(SessionDay.YESTERDAY, groupDrawerSessions(sessions, "", now)[1].first)
-    }
-
-    @Test
-    fun backLeavesPlansForTheConversationAndLeavesAnOpenDrawerToTheSheet() {
-        assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = true, drawerOpen = true, view = ConsoleView.PLANS))
-        assertEquals(PhoneBack.SHOW_CONVERSATION, phoneBack(showPhoneDrawer = true, drawerOpen = false, view = ConsoleView.TRAJECTORY))
-        assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = true, drawerOpen = false, view = ConsoleView.DEBUG))
-        assertEquals(PhoneBack.SYSTEM, phoneBack(showPhoneDrawer = false, drawerOpen = true, view = ConsoleView.PLANS))
-    }
-
-    @Test
-    fun aRunningToolGroupOpensOnlyOnThePhone() {
-        assertEquals(true, toolGroupAutoExpands(onPhone = true, running = true))
-        assertEquals(false, toolGroupAutoExpands(onPhone = false, running = true))
-        assertEquals(false, toolGroupAutoExpands(onPhone = true, running = false))
     }
 
     private fun summary(id: String, title: String, updated: Long) = SessionSummary(

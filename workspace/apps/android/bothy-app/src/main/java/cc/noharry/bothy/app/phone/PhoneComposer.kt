@@ -1,4 +1,4 @@
-package cc.noharry.bothy.app.console
+package cc.noharry.bothy.app.phone
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -40,6 +40,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ConsoleActions
+import cc.noharry.bothy.app.console.ConsoleColors
+import cc.noharry.bothy.app.console.ConsoleType
+import cc.noharry.bothy.app.console.SubmitButton
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.voice.HandOverNotice
 import cc.noharry.bothy.app.voice.VoiceController

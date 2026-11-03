@@ -1,6 +1,10 @@
-package cc.noharry.bothy.app.console
+package cc.noharry.bothy.app.phone
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +24,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,15 +37,53 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.a2a.A2aClientActions
+import cc.noharry.bothy.app.a2a.A2aClientPane
+import cc.noharry.bothy.app.a2a.A2aClientState
+import cc.noharry.bothy.app.console.ConsoleActions
+import cc.noharry.bothy.app.console.SettingsSectionContent
+import cc.noharry.bothy.app.console.switchColors
+import cc.noharry.bothy.app.console.labelRes
+import cc.noharry.bothy.app.console.ConsoleColors
+import cc.noharry.bothy.app.console.ConsoleType
+import cc.noharry.bothy.app.console.Dimens
+import cc.noharry.bothy.app.console.ConsoleAppearance
+import cc.noharry.bothy.app.console.SettingsSection
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.voice.WakeWord
 
 /**
  * Settings on a phone, as the phone design draws them: what is changed most (the theme, holding the mic, the wake
- * word, the model, the connections) on one page, then every section, each opened on its own ([onOpen]).
+ * word, the model, the connections) on one page, then every section, each opened on a page of its own with the
+ * tablet's own settings for it ([SettingsSectionContent]).
  */
 @Composable
-internal fun SettingsPhoneHome(state: UiState, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
+internal fun PhoneSettings(state: UiState, actions: ConsoleActions, onBack: () -> Unit) {
+    var sectionName by rememberSaveable { mutableStateOf<String?>(null) }
+    val section = sectionName?.let { SettingsSection.valueOf(it) }
+    val open = { next: SettingsSection -> sectionName = next.name }
+    BackHandler(enabled = section != null) { sectionName = null }
+    if (section == null) {
+        PhonePage(stringResource(R.string.common_settings), onBack) {
+            SettingsHome(state, Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), open)
+        }
+    } else {
+        PhonePage(stringResource(section.label), onBack = { sectionName = null }) {
+            Box(Modifier.weight(1f).fillMaxWidth()) { SettingsSectionContent(section, state, actions, open) }
+        }
+    }
+}
+
+/** A2A is the client mode itself: its page is the A2A client, with its own input over A2A. */
+@Composable
+internal fun PhoneA2a(state: A2aClientState, actions: A2aClientActions, onBack: () -> Unit) {
+    PhonePage(stringResource(R.string.console_view_a2a), onBack) {
+        A2aClientPane(state = state, actions = actions, header = {}, modifier = Modifier.weight(1f).fillMaxWidth())
+    }
+}
+
+@Composable
+private fun SettingsHome(state: UiState, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         HomeGroup(stringResource(R.string.settings_group_appearance)) { ThemeCard() }
         HomeGroup(stringResource(R.string.settings_section_voice)) {
@@ -83,7 +128,7 @@ private fun HomeRow(title: String, note: String, onClick: (() -> Unit)? = null, 
             .padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).padding(end = Dimens.spaceMd)) {
             Text(title, style = ConsoleType.body, color = ConsoleColors.text, fontWeight = FontWeight.SemiBold)
             Text(note, style = ConsoleType.meta, color = ConsoleColors.muted)
         }
@@ -131,7 +176,8 @@ private fun ThemeCard() {
                 val on = mode == selected
                 Text(
                     text = stringResource(mode.labelRes()),
-                    style = ConsoleType.body,
+                    style = ConsoleType.meta,
+                    maxLines = 1,
                     color = if (on) ConsoleColors.accent else ConsoleColors.text,
                     fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
