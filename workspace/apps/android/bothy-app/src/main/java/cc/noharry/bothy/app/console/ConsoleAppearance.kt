@@ -49,7 +49,7 @@ internal fun SettingsThemeGroup() {
         Column(Modifier.padding(Dimens.spaceSm), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
             ConsoleAppearance.Mode.entries.forEach { option ->
                 SelectableOptionRow(
-                    label = option.label(),
+                    label = stringResource(option.labelRes()),
                     selected = option == selected,
                     onClick = { ConsoleAppearance.set(context, option) },
                 )
@@ -58,9 +58,8 @@ internal fun SettingsThemeGroup() {
     }
 }
 
-@Composable
-private fun ConsoleAppearance.Mode.label(): String = when (this) {
-    ConsoleAppearance.Mode.SYSTEM -> stringResource(R.string.settings_theme_system)
-    ConsoleAppearance.Mode.LIGHT -> stringResource(R.string.settings_theme_light)
-    ConsoleAppearance.Mode.DARK -> stringResource(R.string.settings_theme_dark)
+internal fun ConsoleAppearance.Mode.labelRes(): Int = when (this) {
+    ConsoleAppearance.Mode.SYSTEM -> R.string.settings_theme_system
+    ConsoleAppearance.Mode.LIGHT -> R.string.settings_theme_light
+    ConsoleAppearance.Mode.DARK -> R.string.settings_theme_dark
 }

@@ -16,7 +16,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -146,7 +150,7 @@ private fun PortraitMap(nav: NavState, box: MapBox, showing: Boolean, onCue: () 
 private fun PortraitCabin(world: World, flash: Flash, store: PlaygroundStore, modifier: Modifier) {
     val context = LocalContext.current
     val assistant by Assistant.state.collectAsState()
-    Box(modifier.background(PlaygroundColors.bg).statusBarsPadding().padding(horizontal = 12.dp, vertical = 64.dp)) {
+    Box(modifier.background(PlaygroundColors.bg).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)).padding(horizontal = 12.dp, vertical = 64.dp)) {
         CabinScene(
             world.cabin,
             flash,
@@ -165,7 +169,7 @@ private fun PortraitCabin(world: World, flash: Flash, store: PlaygroundStore, mo
 private fun PortraitTopRow(cabin: Cabin, server: ServerState, onHome: () -> Unit, onSettings: () -> Unit, modifier: Modifier) {
     var menu by remember { mutableStateOf(false) }
     val menuLabel = stringResource(R.string.headunit_menu)
-    Row(modifier.fillMaxWidth().statusBarsPadding().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Box {
             Box(
                 Modifier
@@ -194,8 +198,8 @@ private fun PortraitTopRow(cabin: Cabin, server: ServerState, onHome: () -> Unit
 }
 
 /**
- * The bottom panel: the tabs, then the route (with the way to start it), nothing more for the cabin (its picture is
- * tapped), or the climate.
+ * The bottom panel: the tabs, then the route (with the way to start it), how to use the cabin's picture, or the
+ * climate.
  */
 @Composable
 private fun PortraitPanel(tab: PortraitTab, onTab: (PortraitTab) -> Unit, world: World, store: PlaygroundStore, modifier: Modifier) {
@@ -213,7 +217,7 @@ private fun PortraitPanel(tab: PortraitTab, onTab: (PortraitTab) -> Unit, world:
         Column(Modifier.heightIn(min = PANEL_CONTENT_MIN_HEIGHT), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             when (tab) {
                 PortraitTab.ROUTE -> RouteSummary(world.cabin.nav)
-                PortraitTab.CABIN -> Unit
+                PortraitTab.CABIN -> Text(stringResource(R.string.headunit_cabin_hint), color = PlaygroundColors.muted, fontSize = 14.sp)
                 PortraitTab.CLIMATE -> {
                     Text(world.cabin.climateSummary(), color = PlaygroundColors.text, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                     ClimatePanel(world.cabin, store, Modifier.fillMaxWidth())

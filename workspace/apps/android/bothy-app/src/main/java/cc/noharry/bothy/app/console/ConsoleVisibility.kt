@@ -58,6 +58,11 @@ internal object ConsoleVisibility {
         }
     }
 
+    /** 小博 is to come up with the app, but not over it: it comes when the console leaves. */
+    fun restoreOnLeave() {
+        restoreOverlay = true
+    }
+
     /** An A2A request to show the overlay while the console is in front: shown when the console leaves. */
     fun holdOpen() {
         openCard = true

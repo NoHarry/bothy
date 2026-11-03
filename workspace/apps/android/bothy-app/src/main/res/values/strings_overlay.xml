@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="overlay_details">Details</string>
-    <string name="overlay_xiao_bo">Xiao Bo</string>
+    <string name="overlay_xiao_bo">Bothy</string>
     <string name="overlay_input">Type</string>
     <string name="overlay_toggle_picture">Enlarge or shrink the picture</string>
     <string name="overlay_drawing_wait">Usually takes 15–30 seconds</string>
@@ -110,7 +110,7 @@
     <string name="overlay_subagent_planning">Planning steps</string>
     <string name="overlay_subagent_calling">Calling %1$s</string>
     <string name="overlay_voice_unavailable">Voice isn\'t available: %1$s. Type instead.</string>
-    <string name="overlay_notification_title">Xiao Bo floating card</string>
+    <string name="overlay_notification_title">Bothy floating card</string>
     <string name="overlay_notification_text">Answering A2A requests</string>
     <string name="overlay_voice_ended">Voice ended</string>
     <string name="overlay_voice_appended">Added: %1$s</string>

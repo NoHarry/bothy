@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -90,23 +92,7 @@ internal fun A2aClientPane(
     }
     PanelBox(stringResource(R.string.a2a_client_title), modifier) {
         header()
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                stringResource(
-                    if (state.speakExternal) R.string.a2a_client_intro_speaking else R.string.a2a_client_intro_silent,
-                    state.endpoint,
-                ),
-                style = ConsoleType.meta,
-                color = ConsoleColors.muted,
-                modifier = Modifier.weight(1f),
-            )
-            Text(stringResource(R.string.a2a_speak_received), style = ConsoleType.meta, color = ConsoleColors.text)
-            Switch(state.speakExternal, actions.setSpeakExternal, colors = switchColors())
-            TextButton(onClick = actions.newConversation, enabled = !state.running) {
-                Text(stringResource(R.string.a2a_new_conversation))
-            }
-            TextButton(onClick = actions.openOverlay) { Text(stringResource(R.string.a2a_floating_card)) }
-        }
+        A2aClientControls(state, actions)
         Spacer(Modifier.height(Dimens.spaceXs))
         val listState = rememberLazyListState()
         val items = remember(state.items) { state.items.asReversed() }
@@ -330,3 +316,29 @@ internal fun A2aClientLayout(
         modifier = modifier.fillMaxSize(),
     )
 }
+
+
+/** One line on a wide screen; on a phone the intro keeps a line of its own and the controls wrap under it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun A2aClientControls(state: A2aClientState, actions: A2aClientActions) {
+    FlowRow(itemVerticalAlignment = Alignment.CenterVertically) {
+        val intro = if (state.speakExternal) R.string.a2a_client_intro_speaking else R.string.a2a_client_intro_silent
+        Text(
+            stringResource(intro, state.endpoint),
+            style = ConsoleType.meta,
+            color = ConsoleColors.muted,
+            modifier = Modifier.weight(1f).widthIn(min = INTRO_MIN_WIDTH),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.a2a_speak_received), style = ConsoleType.meta, color = ConsoleColors.text)
+            Switch(state.speakExternal, actions.setSpeakExternal, colors = switchColors())
+        }
+        TextButton(onClick = actions.newConversation, enabled = !state.running) {
+            Text(stringResource(R.string.a2a_new_conversation))
+        }
+        TextButton(onClick = actions.openOverlay) { Text(stringResource(R.string.a2a_floating_card)) }
+    }
+}
+
+private val INTRO_MIN_WIDTH = 240.dp

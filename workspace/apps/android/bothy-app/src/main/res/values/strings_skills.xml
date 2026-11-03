@@ -89,7 +89,7 @@
     <string name="skills_tool_delegate">Delegate to a personal assistant</string>
     <string name="skills_tool_delegate_detail">a2a_message_send</string>
 
-    <string name="skills_custom_hint">Paste or type a SKILL.md: start with a YAML header between --- lines that gives name (lowercase letters, digits and -) and description (one line: what it does and when to use it), followed by the instructions for Xiao Bo. A saved skill is on and applies from the next request: its description goes into the skill catalog, and the full text is read when needed.</string>
+    <string name="skills_custom_hint">Paste or type a SKILL.md: start with a YAML header between --- lines that gives name (lowercase letters, digits and -) and description (one line: what it does and when to use it), followed by the instructions for Bothy. A saved skill is on and applies from the next request: its description goes into the skill catalog, and the full text is read when needed.</string>
     <string name="skills_custom_check">Check format</string>
     <string name="skills_custom_ok">The format is fine: %1$s</string>
     <plurals name="skills_custom_errors">

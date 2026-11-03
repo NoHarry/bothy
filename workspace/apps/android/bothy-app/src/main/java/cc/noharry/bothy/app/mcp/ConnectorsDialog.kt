@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -104,29 +105,7 @@ internal fun SidebarFooter(
     onShowA2aProfiles: () -> Unit,
 ) {
     val colors = ConsoleColors
-    val context = LocalContext.current
     val settingsLabel = stringResource(R.string.common_settings)
-    var showConnectors by remember { mutableStateOf(false) }
-    val controller = remember { ConnectorController(context.applicationContext) }
-    // The pill shows what is connected; with nothing connected, a few of the apps on offer. Read from what this car
-    // knows at once, so the first frame does not show the wrong icons.
-    val live = { DEBUG_CONNECTORS.filter { controller.status(it) is ConnectorStatus.Connected } }
-    var connected by remember { mutableStateOf(live().size) }
-    var shown by remember { mutableStateOf(live().ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)) }
-    fun count() {
-        val now = live()
-        connected = now.size
-        shown = now.ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)
-    }
-    // Check with the relay when the console shows and after the dialog closes: a device disconnected from the bot's
-    // side loses its A2A profile here instead of keeping a delegation target that no longer answers.
-    LaunchedEffect(showConnectors) {
-        count()
-        if (showConnectors) return@LaunchedEffect
-        DEBUG_CONNECTORS.filter { controller.status(it) !is ConnectorStatus.Disconnected }
-            .forEach { runCatching { controller.refresh(it) } }
-        count()
-    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier
@@ -145,34 +124,38 @@ internal fun SidebarFooter(
             )
         }
         Spacer(Modifier.width(Dimens.spaceXs))
-        Row(
-            Modifier
-                .weight(1f)
-                .height(FOOTER_HEIGHT)
-                .clip(RoundedCornerShape(Dimens.radiusFull))
-                .border(1.dp, colors.border, RoundedCornerShape(Dimens.radiusFull))
-                .background(colors.elevated)
-                .clickable { showConnectors = true }
-                .semantics { role = Role.Button }
-                .padding(horizontal = Dimens.spaceMd),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                stringResource(R.string.mcp_connect_apps),
-                style = ConsoleType.body,
-                color = colors.text,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-            )
-            Spacer(Modifier.width(Dimens.spaceXsMd))
-            Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) { shown.forEach { ConnectorAvatar(it, PILL_AVATAR_SIZE) } }
-            if (connected > 0) {
-                Spacer(Modifier.width(Dimens.spaceXs))
-                Text("$connected", style = ConsoleType.meta, color = colors.success)
-            }
-        }
+        ConnectAppsPill(onShowA2aProfiles, Modifier.weight(1f))
     }
+}
+
+/**
+ * 连接应用's pill, which opens the market: what is connected, or with nothing connected a few of the apps on offer. The
+ * sidebar's foot carries it, and on a phone also the empty conversation, which tells the user to start there.
+ */
+@Composable
+internal fun ConnectAppsPill(onShowA2aProfiles: () -> Unit, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    var showConnectors by remember { mutableStateOf(false) }
+    val controller = remember { ConnectorController(context.applicationContext) }
+    // Read from what this car knows at once, so the first frame does not show the wrong icons.
+    val live = { DEBUG_CONNECTORS.filter { controller.status(it) is ConnectorStatus.Connected } }
+    var connected by remember { mutableStateOf(live().size) }
+    var shown by remember { mutableStateOf(live().ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)) }
+    fun count() {
+        val now = live()
+        connected = now.size
+        shown = now.ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)
+    }
+    // Check with the relay when the console shows and after the dialog closes: a device disconnected from the bot's
+    // side loses its A2A profile here instead of keeping a delegation target that no longer answers.
+    LaunchedEffect(showConnectors) {
+        count()
+        if (showConnectors) return@LaunchedEffect
+        DEBUG_CONNECTORS.filter { controller.status(it) !is ConnectorStatus.Disconnected }
+            .forEach { runCatching { controller.refresh(it) } }
+        count()
+    }
+    PillFace(shown, connected, modifier) { showConnectors = true }
     if (showConnectors) {
         ConnectorsDialog(
             controller = controller,
@@ -182,6 +165,38 @@ internal fun SidebarFooter(
                 onShowA2aProfiles()
             },
         )
+    }
+}
+
+/** The pill itself: its label, a few app icons, and how many are connected. */
+@Composable
+private fun PillFace(shown: List<Connector>, connected: Int, modifier: Modifier, onClick: () -> Unit) {
+    val colors = ConsoleColors
+    Row(
+        modifier
+            .height(FOOTER_HEIGHT)
+            .clip(RoundedCornerShape(Dimens.radiusFull))
+            .border(1.dp, colors.border, RoundedCornerShape(Dimens.radiusFull))
+            .background(colors.elevated)
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
+            .padding(horizontal = Dimens.spaceMd),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            stringResource(R.string.mcp_connect_apps),
+            style = ConsoleType.body,
+            color = colors.text,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(Dimens.spaceXsMd))
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) { shown.forEach { ConnectorAvatar(it, PILL_AVATAR_SIZE) } }
+        if (connected > 0) {
+            Spacer(Modifier.width(Dimens.spaceXs))
+            Text("$connected", style = ConsoleType.meta, color = colors.success)
+        }
     }
 }
 
@@ -309,12 +324,15 @@ private fun ColumnScope.ConnectorCatalog(
 @Composable
 private fun FilterChips(selected: Int, onSelect: (Int) -> Unit) {
     val colors = ConsoleColors
-    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
+    // One line that scrolls sideways: on a phone the chips would otherwise squeeze into letter-wide columns.
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         CONNECTOR_FILTERS.forEach { entry ->
             val active = entry == selected
             Text(
                 stringResource(entry),
                 style = ConsoleType.body,
+                maxLines = 1,
+                softWrap = false,
                 color = if (active) colors.panel else colors.text,
                 modifier = Modifier
                     .clip(RoundedCornerShape(Dimens.radiusFull))

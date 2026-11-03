@@ -2,6 +2,7 @@ package cc.noharry.bothy.app.console
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +22,7 @@ import cc.noharry.bothy.app.a2a.A2aClientConsole
 import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.console.ui.DesignDensity
+import cc.noharry.bothy.app.console.ui.UiScale
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.overlay.OverlayService
 import cc.noharry.bothy.app.runtime.RuntimeSession
@@ -53,7 +55,14 @@ class ConsoleActivity : ComponentActivity() {
         super.onStart()
         ConsoleVisibility.set(this, visible = true)
         // With 语音唤醒 on, 小博 comes up with the app, not only when opened by hand (the wake word listens either way).
-        if (loadVoiceConfig(this).overlayWake) OverlayControl.ensureRunning(this)
+        // A portrait phone has no room beside the console: 小博 comes once the console leaves.
+        if (loadVoiceConfig(this).overlayWake) {
+            if (UiScale.phone(this) && resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                ConsoleVisibility.restoreOnLeave()
+            } else {
+                OverlayControl.ensureRunning(this)
+            }
+        }
     }
 
     override fun onStop() {

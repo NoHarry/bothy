@@ -32,15 +32,15 @@
     <string name="companion_http_hint_key">Check the API key (a Qwen sk-ws- workspace key needs the workspace address)</string>
     <string name="companion_http_hint_address">Check the address and model name</string>
 
-    <string name="companion_intro">Small talk in voice (chatting, venting, jokes) goes to the companion service and is answered in Xiao Bo\'s own voice; requests to do something still go to Xiao Bo. Jev gives each turn one more score for “is this small talk”, and turns that mention navigation, the AC, playing music and the like, or that come right after Xiao Bo asked a question, always go to Xiao Bo; when the companion service fails or judges that something should be done, the turn goes back to Xiao Bo too.</string>
+    <string name="companion_intro">Small talk in voice (chatting, venting, jokes) goes to the companion service and is answered in Bothy\'s own voice; requests to do something still go to Bothy. Jev gives each turn one more score for “is this small talk”, and turns that mention navigation, the AC, playing music and the like, or that come right after Bothy asked a question, always go to Bothy; when the companion service fails or judges that something should be done, the turn goes back to Bothy too.</string>
     <string name="companion_enable">Turn on companion chat</string>
     <string name="companion_service">Companion service</string>
     <string name="companion_key">API key</string>
     <string name="companion_key_saved">API key · saved (leave empty to keep it)</string>
     <string name="companion_key_qwen">API key (leave empty to use the speech recognition Model Studio key)</string>
     <string name="companion_no_key_yet">no API key yet</string>
-    <string name="companion_missing_one">%1$s: %2$s. Until it is filled in and saved, all small talk goes to Xiao Bo.</string>
-    <string name="companion_missing_two">%1$s: %2$s, %3$s. Until they are filled in and saved, all small talk goes to Xiao Bo.</string>
+    <string name="companion_missing_one">%1$s: %2$s. Until it is filled in and saved, all small talk goes to Bothy.</string>
+    <string name="companion_missing_two">%1$s: %2$s, %3$s. Until they are filled in and saved, all small talk goes to Bothy.</string>
     <string name="companion_field_address">Address (up to /v1, without /chat/completions)</string>
     <string name="companion_field_model">Model</string>
     <string name="companion_field_extra">Extra parameters (JSON, optional, e.g. {\"enable_thinking\": false})</string>
@@ -57,7 +57,7 @@
     <string name="companion_decisions_empty">No voice turns have been judged yet.</string>
     <string name="companion_decision_line">%1$s %2$s · %3$s · “%4$s”</string>
     <string name="companion_route_companion">Companion</string>
-    <string name="companion_route_agent">Xiao Bo</string>
+    <string name="companion_route_agent">Bothy</string>
     <string name="companion_reason_off">off</string>
     <string name="companion_reason_not_scored">not scored</string>
     <string name="companion_reason_below">small_talk %1$.2f &lt; %2$.2f</string>

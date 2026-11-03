@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -173,10 +175,13 @@ private fun ProfileHeader(memories: List<UserMemory>, enabled: Boolean, onEnable
             }
             Column(horizontalAlignment = Alignment.End) {
                 Switch(enabled, onEnabled, colors = switchColors())
+                // Kept narrow, wrapping under the switch: on a phone it would squeeze the summary to a letter's width.
                 Text(
                     stringResource(R.string.memory_switch_label),
                     style = ConsoleType.meta,
                     color = ConsoleColors.muted,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.widthIn(max = SWITCH_LABEL_WIDTH),
                 )
             }
         }
@@ -185,7 +190,7 @@ private fun ProfileHeader(memories: List<UserMemory>, enabled: Boolean, onEnable
             summary.metrics.forEach { (value, label) ->
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(value, style = ConsoleType.hero, color = ConsoleColors.text, maxLines = 1)
-                    Text(label, style = ConsoleType.bodySmall, color = ConsoleColors.muted, maxLines = 1)
+                    Text(label, style = ConsoleType.bodySmall, color = ConsoleColors.muted, maxLines = 2, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -359,5 +364,6 @@ private val CALL_ME = Regex("""(?<!别|不要|不|不用|再)(?:叫我|我叫|�
 private val NAME_TAIL = Regex("""(?:吧|就行|就好|就可以|好了|啊|呀|哦|嘛|了)+$""")
 private val MEMORY_TITLE_SIZE = 24.sp
 private val AVATAR_SIZE = 56.dp
+private val SWITCH_LABEL_WIDTH = 140.dp
 private val AVATAR_FONT = 24.sp
 private val TWO_COLUMNS = 640.dp

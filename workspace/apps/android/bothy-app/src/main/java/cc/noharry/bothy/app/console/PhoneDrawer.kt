@@ -60,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.session.sessionTitleText
 import cc.noharry.bothy.app.session.SessionSummary
 import cc.noharry.bothy.app.tools.PLAYGROUND_PACKAGE
 import java.util.Calendar
@@ -202,7 +203,7 @@ private fun SessionRow(session: SessionSummary, selected: Boolean, onClick: () -
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = session.title.ifBlank { stringResource(R.string.console_new_chat) },
+            text = session.title.ifBlank { null }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat),
             style = ConsoleType.body,
             color = if (selected) colors.accent else colors.text,
             fontWeight = FontWeight.SemiBold,

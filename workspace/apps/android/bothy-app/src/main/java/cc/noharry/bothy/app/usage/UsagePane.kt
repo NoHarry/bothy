@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -66,7 +70,7 @@ internal fun UsagePane() {
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
+        WrappingRow(Arrangement.spacedBy(Dimens.spaceLg)) {
             Text(
                 stringResource(R.string.usage_title),
                 style = ConsoleType.hero.copy(fontSize = TITLE_SIZE),
@@ -330,8 +334,8 @@ internal fun UsageCard(title: String?, action: (@Composable () -> Unit)? = null,
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
         if (title != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, Modifier.weight(1f), style = ConsoleType.panelTitle, color = ConsoleColors.text)
+            WrappingRow {
+                Text(title, Modifier.weight(1f).widthIn(min = CARD_TITLE_MIN_WIDTH), style = ConsoleType.panelTitle, color = ConsoleColors.text)
                 action?.invoke()
             }
         }
@@ -368,10 +372,30 @@ internal fun <T> UsageSegmented(
                     label(option),
                     Modifier.padding(horizontal = Dimens.spaceMd + Dimens.spaceXxs, vertical = Dimens.spaceXsMd + 1.dp),
                     style = ConsoleType.bodySmall.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal),
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
         }
     }
+}
+
+/**
+ * A title and its controls on one line where they fit; on a phone the controls wrap under the title rather than squeeze
+ * it into a column of letters.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun WrappingRow(
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    content: @Composable FlowRowScope.() -> Unit,
+) {
+    FlowRow(
+        horizontalArrangement = horizontalArrangement,
+        verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs),
+        itemVerticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
 }
 
 /** Yuan for [days] at the book's rate; models without a price add nothing. */
@@ -385,6 +409,7 @@ internal fun yuan(amount: Double): String = when {
 }
 
 private val TITLE_SIZE = 24.sp
+private val CARD_TITLE_MIN_WIDTH = 160.dp
 private val SUMMARY_ONE_ROW = 600.dp
 private const val METRICS_PER_ROW = 3
 private val METRIC_DIVIDER = 32.dp

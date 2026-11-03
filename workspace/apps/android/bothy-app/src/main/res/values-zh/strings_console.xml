@@ -95,6 +95,7 @@
     <string name="console_view_plans">计划</string>
     <string name="console_open_menu">打开菜单</string>
     <string name="console_new_chat">新对话</string>
+    <string name="console_run_done">已完成</string>
     <string name="console_message_placeholder_short">发消息</string>
     <string name="console_search_sessions">搜索会话</string>
     <string name="console_drawer_today">今天</string>
@@ -294,4 +295,11 @@
     <string name="console_code_streaming">代码 · 输出中</string>
     <string name="console_status_running_profile">正在运行 %1$s · %2$s</string>
     <string name="console_workspace_app_private">App 私有目录</string>
+    <string name="console_trajectory_none">这一轮没有调用工具。</string>
+    <plurals name="console_trajectory_calls">
+        <item quantity="other">这一轮调用了 %1$d 个工具</item>
+    </plurals>
+    <string name="console_trajectory_full">完整轨迹</string>
+    <string name="console_trajectory_given">传入</string>
+    <string name="console_trajectory_returned">读回</string>
 </resources>

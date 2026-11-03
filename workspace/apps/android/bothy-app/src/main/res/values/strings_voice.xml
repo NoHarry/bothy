@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Settings → Voice and End-to-end voice, the console's voice strip, the wake word's status and notification.
-  What Xiao Bo says and what the models read stay in the code.
+  What Bothy says and what the models read stay in the code.
 -->
 <resources>
     <!-- Jev: connection, tool search -->
@@ -45,7 +45,7 @@
     <string name="voice_dashscope_key_missing">Save a Model Studio API key first</string>
 
     <!-- Wake notification -->
-    <string name="voice_wake_channel">Xiao Bo voice wake</string>
+    <string name="voice_wake_channel">Bothy voice wake</string>
     <string name="voice_wake_notification">Say “OK Bothy” to wake; turn it off in Settings → Voice</string>
 
     <!-- The console's voice strip -->
@@ -61,7 +61,7 @@
     <string name="voice_handover_new_turn_notice">The task had ended; started a new turn</string>
     <string name="voice_handover_append_notice">+ Added to the current task</string>
     <string name="voice_handover_replace_notice">↻ Interrupted the current task; handling this as a new request</string>
-    <string name="voice_handover_with_ack">%1$s · Xiao Bo: %2$s</string>
+    <string name="voice_handover_with_ack">%1$s · Bothy: %2$s</string>
     <string name="voice_segment_dismissed">Exit voice</string>
     <string name="voice_segment_echo">Echo</string>
     <string name="voice_segment_appended">Added to the current task</string>
@@ -97,7 +97,7 @@
     </plurals>
     <string name="voice_score_complete">Done %1$.2f</string>
     <string name="voice_score_holding">Holding %1$.2f</string>
-    <string name="voice_score_addressed">To Xiao Bo %1$.2f</string>
+    <string name="voice_score_addressed">To Bothy %1$.2f</string>
     <string name="voice_score_taking">Cut-in %1$.2f</string>
     <string name="voice_score_replaces">New task %1$.2f</string>
     <string name="voice_end_judged">Jev judged it finished</string>
@@ -131,7 +131,7 @@
     <string name="voice_dashscope_key_note">Used when Recognition and wake → Recognizer is “Cloud · Alibaba Cloud Model Studio”; the hotword list is created under this account too.</string>
     <string name="voice_dashscope_key_deleted">Model Studio key deleted · switched back to on-device recognition</string>
     <string name="voice_jev_key_missing_status">Missing: voice sessions can\'t start, and tool search can\'t run</string>
-    <string name="voice_jev_key_note">Judges whether each sentence is for Xiao Bo and whether it\'s finished; Tools and skills → Tool search uses it too.</string>
+    <string name="voice_jev_key_note">Judges whether each sentence is for Bothy and whether it\'s finished; Tools and skills → Tool search uses it too.</string>
     <string name="voice_jev_key_deleted">Jev key deleted</string>
     <string name="voice_jev_key_deleted_search_off">Jev key deleted · tool search turned off</string>
     <string name="voice_loading">Loading…</string>
@@ -156,9 +156,9 @@
     <string name="voice_recognition_model">Recognition model</string>
     <string name="voice_websocket_address">WebSocket address</string>
     <string name="voice_hotwords">Hotwords (comma separated, up to 15 characters each; saving creates a hotword list in your Model Studio account)</string>
-    <string name="voice_turns_intro">Tap the microphone beside the console\'s Send button to wake and keep listening; tap it again to end. With Jev judging on, Jev decides whether speech is for Xiao Bo and whether it\'s finished; other people\'s talk and anything unclear is only marked, not carried out. Off, or without a Jev key, every recognized sentence goes straight to the agent.</string>
+    <string name="voice_turns_intro">Tap the microphone beside the console\'s Send button to wake and keep listening; tap it again to end. With Jev judging on, Jev decides whether speech is for Bothy and whether it\'s finished; other people\'s talk and anything unclear is only marked, not carried out. Off, or without a Jev key, every recognized sentence goes straight to the agent.</string>
     <string name="voice_turn_judging">End of turn and addressee</string>
-    <string name="voice_jev_turns">Use Jev to judge whether speech is finished and meant for Xiao Bo (needs a Jev key)</string>
+    <string name="voice_jev_turns">Use Jev to judge whether speech is finished and meant for Bothy (needs a Jev key)</string>
     <string name="voice_thresholds">Judging thresholds</string>
     <string name="voice_barge_in_title">Interruptions and tones</string>
     <string name="voice_jev_off">Off: every sentence goes straight to the agent</string>
@@ -188,9 +188,9 @@
     <string name="voice_delete_key">Delete key</string>
     <string name="voice_api_key">API key</string>
     <string name="voice_api_key_saved">API key · saved (leave blank to keep it)</string>
-    <string name="voice_wake_switch">Say “OK Bothy”, or long-press Xiao Bo to wake it (when off, a long press puts Xiao Bo to rest)</string>
+    <string name="voice_wake_switch">Say “OK Bothy”, or long-press the floating Bothy to wake it (when off, a long press puts it to rest)</string>
     <string name="voice_switch_save_failed">Couldn\'t save the switch.</string>
-    <string name="voice_wake_explainer">Applies at once, no need to save. A small model on the device listens for the wake word all the time (about 4.6 MB, no audio uploaded). Once woken, Xiao Bo flies to the middle and opens its card, whose input box turns to voice; it ends after %1$d seconds idle or a tap on Collapse, then goes back to listening for the wake word. While operating the screen, what it hears is shown at the top of the screen and hidden in screenshots.</string>
+    <string name="voice_wake_explainer">Applies at once, no need to save. A small model on the device listens for the wake word all the time (about 4.6 MB, no audio uploaded). Once woken, Bothy flies to the middle and opens its card, whose input box turns to voice; it ends after %1$d seconds idle or a tap on Collapse, then goes back to listening for the wake word. While operating the screen, what it hears is shown at the top of the screen and hidden in screenshots.</string>
     <string name="voice_wake_status">Status: %1$s</string>
     <string name="voice_wake_sensitivity_save_failed">Couldn\'t save the wake threshold.</string>
     <string name="voice_wake_sensitivity">Wake threshold</string>
@@ -238,7 +238,7 @@
 
     <!-- Wake word status -->
     <string name="voice_wake_paused">Paused: %1$s</string>
-    <string name="voice_wake_waking">Waking Xiao Bo</string>
+    <string name="voice_wake_waking">Waking Bothy</string>
     <string name="voice_wake_start_failed">The wake word couldn\'t start</string>
     <string name="voice_wake_listening_in_session">Also listening for “OK Bothy” during a conversation; say it again to interrupt and start over</string>
     <string name="voice_wake_listening">Listening for “OK Bothy”</string>
@@ -292,14 +292,14 @@
     <string name="realtime_connect_failed">Doubao end-to-end connection failed (HTTP %1$d) %2$s</string>
     <string name="realtime_saved_after_restart">Saved · takes effect when you end this conversation and wake again</string>
     <string name="realtime_saved_next_wake">Saved; takes effect from the next wake</string>
-    <string name="realtime_persona_text">Persona (edit and save to make it custom; the rules for handing tasks to Xiao Bo and ending the conversation are added after it)</string>
-    <string name="realtime_intro">For demos: after a wake, Doubao\'s end-to-end real-time voice (Seeduplex) listens and talks directly and answers small talk itself; for tasks it hands them to Xiao Bo (who stays silent) and tells you the result. When on, the wake and the microphone button both go this way, skipping speech recognition, Jev and Companion. It uses the Doubao Speech key in Settings → Voice → Keys, and end-to-end real-time voice must be enabled in the Doubao console.</string>
+    <string name="realtime_persona_text">Persona (edit and save to make it custom; the rules for handing tasks to Bothy and ending the conversation are added after it)</string>
+    <string name="realtime_intro">For demos: after a wake, Doubao\'s end-to-end real-time voice (Seeduplex) listens and talks directly and answers small talk itself; for tasks it hands them to Bothy (who stays silent) and tells you the result. When on, the wake and the microphone button both go this way, skipping speech recognition, Jev and Companion. It uses the Doubao Speech key in Settings → Voice → Keys, and end-to-end real-time voice must be enabled in the Doubao console.</string>
     <string name="realtime_no_key">No Doubao Speech key yet: add one in Settings → Voice → Keys first.</string>
     <string name="realtime_enable">Turn on end-to-end demo mode</string>
     <string name="realtime_barge_in">Allow interruptions (full duplex)</string>
     <string name="realtime_barge_in_note">When off, Doubao can\'t hear you while it talks (so poor echo cancellation can\'t make it interrupt itself); say the wake word to interrupt. When on, you can just cut in.</string>
-    <string name="realtime_late_speech">Xiao Bo reads out late results</string>
-    <string name="realtime_late_speech_note">When off (the default), results Doubao can\'t wait for (past the wait, subagent and plan reports) only show on screen and are quietly passed to Doubao, so it knows when asked. When on, Xiao Bo reads them out once Doubao has finished talking.</string>
+    <string name="realtime_late_speech">Bothy reads out late results</string>
+    <string name="realtime_late_speech_note">When off (the default), results Doubao can\'t wait for (past the wait, subagent and plan reports) only show on screen and are quietly passed to Doubao, so it knows when asked. When on, Bothy reads them out once Doubao has finished talking.</string>
     <string name="realtime_persona">Persona</string>
     <string name="realtime_custom">Custom</string>
     <string name="realtime_custom_summary">Use the persona you write in the box below</string>
@@ -313,7 +313,7 @@
     <string name="realtime_check_off">Not turned on</string>
     <string name="realtime_check_no_key">Missing Doubao Speech key</string>
     <string name="realtime_check_ok">%1$s · %2$s · interruptions %3$s · session opened in %4$d ms</string>
-    <string name="realtime_persona_warm">Xiao Bo (default)</string>
+    <string name="realtime_persona_warm">Bothy (default)</string>
     <string name="realtime_persona_warm_summary">Warm, quick-witted, conversational</string>
     <string name="realtime_persona_savage">Savage buddy</string>
     <string name="realtime_persona_savage_summary">Truly biting: roasts you first, then gets it done</string>

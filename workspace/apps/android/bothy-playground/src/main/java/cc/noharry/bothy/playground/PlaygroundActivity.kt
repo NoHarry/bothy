@@ -2,6 +2,7 @@ package cc.noharry.bothy.playground
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -104,6 +105,7 @@ class PlaygroundActivity : ComponentActivity() {
         window.statusBarColor = PlaygroundColors.bg.toArgb()
         window.navigationBarColor = PlaygroundColors.bg.toArgb()
         hideSystemBars()
+        drawUnderCutout(resources.configuration)
         // Whatever brings them back for good (another app's window taking focus, the map going full screen), they go
         // again a moment later.
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
@@ -151,6 +153,27 @@ class PlaygroundActivity : ComponentActivity() {
     }
 
     /** A head unit has no phone status bar: the system bars stay hidden, a swipe brings them back for a moment. */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        drawUnderCutout(newConfig)
+    }
+
+    /**
+     * Upright, the head unit's map runs under the camera's cutout as on the phone design, and what sits over the map's top
+     * keeps clear of it. Sideways the wide layout keeps the cutout's band.
+     */
+    private fun drawUnderCutout(config: Configuration) {
+        val upright = config.orientation == Configuration.ORIENTATION_PORTRAIT
+        WindowCompat.setDecorFitsSystemWindows(window, !upright)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val mode = if (upright) {
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        } else {
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+        }
+        if (window.attributes.layoutInDisplayCutoutMode != mode) window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = mode }
+    }
+
     private fun hideSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())

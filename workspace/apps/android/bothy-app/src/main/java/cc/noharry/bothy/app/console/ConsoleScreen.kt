@@ -38,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,6 +91,7 @@ internal fun ConsoleScreen(
     var mcpReturnDestination by rememberSaveable { mutableStateOf(NavigationDestination.BOARD) }
     var a2aReturnDestination by rememberSaveable { mutableStateOf(NavigationDestination.SETTINGS) }
     var consoleView by rememberSaveable { mutableStateOf(DEFAULT_DEBUG_CONSOLE_VIEW.name) }
+    var fullTrajectory by rememberSaveable { mutableStateOf(false) }
     // The A2A tab is the persisted client mode itself; Debug/Trajectory remember their own last choice.
     val view = consoleViewFor(consoleView, a2aClient.enabled && a2aActions != null)
     val setView: (ConsoleView) -> Unit = { next ->
@@ -177,6 +179,9 @@ internal fun ConsoleScreen(
         if (phoneBack(policy.showPhoneDrawer, drawerState.isOpen, view) == PhoneBack.SHOW_CONVERSATION) {
             BackHandler { setView(ConsoleView.DEBUG) }
         }
+        // The full trajectory opened from the phone's list goes back to the list; leaving the view closes it.
+        BackHandler(enabled = fullTrajectory && view == ConsoleView.TRAJECTORY) { fullTrajectory = false }
+        LaunchedEffect(view) { if (view != ConsoleView.TRAJECTORY) fullTrajectory = false }
         val home: @Composable () -> Unit = {
         CompositionLocalProvider(
             LocalOpenTrajectory provides openTrajectory,
@@ -185,7 +190,7 @@ internal fun ConsoleScreen(
         ) {
         Column(screenPadding) {
             if (policy.showPhoneDrawer) {
-                PhoneTopBar(state, view, screenActions, openDrawer)
+                PhoneTopBar(state, view, screenActions, openDrawer) { setView(ConsoleView.DEBUG) }
             } else if (!policy.useRailChrome) {
                 HostChrome(
                     state = state,
@@ -223,7 +228,9 @@ internal fun ConsoleScreen(
                     },
                     modifier = bodyModifier,
                 )
-                ConsoleView.TRAJECTORY -> TrajectoryLayout(
+                ConsoleView.TRAJECTORY -> if (policy.showPhoneDrawer && !fullTrajectory) {
+                    PhoneTrajectory(state, { fullTrajectory = true }, bodyModifier)
+                } else TrajectoryLayout(
                     state = state,
                     actions = screenActions,
                     policy = policy,

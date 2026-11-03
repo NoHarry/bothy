@@ -10,6 +10,7 @@
     <string name="headunit_tab_cabin">座舱</string>
     <string name="headunit_tab_climate">空调</string>
     <string name="headunit_menu">菜单</string>
+    <string name="headunit_cabin_hint">点车门、车窗或座位；长按座位，设为正在说话的人。</string>
     <string name="headunit_real_nav_mode">真实导航模式（用设备的真实定位，不模拟车和家）</string>
     <string name="headunit_amap_app_mode">导航交给高德地图 App（有途经点时在高德里点开始导航）</string>
     <string name="headunit_simulated_drive">导航模拟行驶（不用真开车）</string>

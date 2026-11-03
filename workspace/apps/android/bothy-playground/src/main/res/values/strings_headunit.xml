@@ -10,12 +10,13 @@
     <string name="headunit_tab_cabin">Cabin</string>
     <string name="headunit_tab_climate">Climate</string>
     <string name="headunit_menu">Menu</string>
+    <string name="headunit_cabin_hint">Tap a door, a window or a seat; long-press a seat to make it the one speaking.</string>
     <string name="headunit_real_nav_mode">Real navigation mode (the device\'s real location, no simulated car or home)</string>
     <string name="headunit_amap_app_mode">Hand navigation to the AMap app (with stops, start the navigation in AMap)</string>
     <string name="headunit_simulated_drive">Simulated driving for navigation (no real driving needed)</string>
     <string name="headunit_demo_start">Car parked at Shenzhen Civic Center (not the device\'s real location)</string>
     <string name="headunit_reset">Reset car and home</string>
-    <!-- Chips said to Xiao Bo when tapped: the label, and the line sent -->
+    <!-- Chips said to Bothy when tapped: the label, and the line sent -->
     <string name="headunit_nearby_charging">Charging</string>
     <string name="headunit_say_find_charging">Find charging stations nearby</string>
     <string name="headunit_nearby_parking">Parking</string>
@@ -39,14 +40,14 @@
     <string name="headunit_say_news_today">What\'s in the news today?</string>
     <!-- The side panel: recent calls, controls, examples, how to connect -->
     <string name="headunit_recent">Recent</string>
-    <string name="headunit_no_calls">No calls yet. In Bothy, connect “%1$s”, then say something to Xiao Bo.</string>
+    <string name="headunit_no_calls">No calls yet. In Bothy, connect “%1$s”, then talk to it.</string>
     <string name="headunit_controls_title">Controls (changed by hand; Bothy\'s plans see them too)</string>
-    <string name="headunit_try_saying_to">Try saying to Xiao Bo</string>
+    <string name="headunit_try_saying_to">Try saying to Bothy</string>
     <string name="headunit_quoted">“%1$s”</string>
     <string name="headunit_connection">Connection</string>
     <string name="headunit_connect_hint">In Bothy\'s Connect apps, connect “Virtual cabin” and “Virtual home” (same device, no key needed).</string>
     <string name="headunit_connect_hint_address">In Bothy\'s Connect apps, connect “Virtual cabin” and “Virtual home” (same device, no key needed). Address: %1$s/cabin/mcp, /home/mcp</string>
-    <string name="headunit_xiaobo">Xiao Bo</string>
+    <string name="headunit_xiaobo">Bothy</string>
     <string name="headunit_manual">Manual</string>
     <string name="headunit_gestures_cabin">On the picture: tap a seat to have someone get in or out, long-press a seat to make whoever sits there the speaker (“me” is them), tap a window to open or close it, long-press a window to open or close the door, tap the rear to open or close the trunk.</string>
     <string name="headunit_gestures_home">On the picture: tap a room to switch its light, long-press a room to toggle whether someone is in it, tap a curtain rail to open or close the curtain, tap the door to lock or unlock it.</string>
@@ -88,15 +89,15 @@
     <string name="headunit_real">Real</string>
     <string name="headunit_simulated_description">Simulated mode: the simulated car and home</string>
     <string name="headunit_real_description">Real mode: navigation from the device\'s location</string>
-    <string name="headunit_switched_simulated">Switched to Simulated: the simulated car and home; Xiao Bo started a new conversation</string>
-    <string name="headunit_switched_real">Switched to Real: navigation from the device\'s location; Xiao Bo started a new conversation</string>
+    <string name="headunit_switched_simulated">Switched to Simulated: the simulated car and home; Bothy started a new conversation</string>
+    <string name="headunit_switched_real">Switched to Real: navigation from the device\'s location; Bothy started a new conversation</string>
     <string name="headunit_scene_head_unit">Head unit</string>
     <string name="headunit_scene_head_unit_description">Head unit: Virtual cabin</string>
     <string name="headunit_scene_home">Home</string>
     <string name="headunit_scene_home_description">Home: Virtual home</string>
     <!-- The AMap key -->
     <string name="headunit_amap_key_needed">Maps and navigation need your own AMap key</string>
-    <string name="headunit_amap_key_free">Free to apply for, about 5 minutes. The virtual car, the virtual home and Xiao Bo work right now.</string>
+    <string name="headunit_amap_key_free">Free to apply for, about 5 minutes. The virtual car, the virtual home and Bothy work right now.</string>
     <string name="headunit_amap_key_enter">Enter AMap key</string>
     <string name="headunit_amap_key">AMap key</string>
     <string name="headunit_amap_key_entered">Entered</string>
@@ -141,22 +142,22 @@
     <string name="headunit_weather_heavy_rain">Heavy rain</string>
     <string name="headunit_weather_snow">Snow</string>
     <string name="headunit_weather_thunderstorm">Thunderstorms</string>
-    <!-- Xiao Bo's card, bar and corner -->
-    <string name="headunit_greeting">Hi, I\'m Xiao Bo</string>
+    <!-- Bothy's card, bar and corner -->
+    <string name="headunit_greeting">Hi, I\'m Bothy</string>
     <string name="headunit_wake_hint">Say “OK Bothy” or tap me</string>
-    <string name="headunit_wake_xiaobo">Wake Xiao Bo</string>
+    <string name="headunit_wake_xiaobo">Wake Bothy</string>
     <string name="headunit_end_voice">End voice</string>
     <string name="headunit_try_saying">Try saying</string>
-    <string name="headunit_plan_of_xiaobo">Xiao Bo\'s plan</string>
+    <string name="headunit_plan_of_xiaobo">Bothy\'s plan</string>
     <string name="headunit_you">You</string>
     <string name="headunit_listening">Listening…</string>
-    <string name="headunit_xiaobo_calls">Xiao Bo calls</string>
-    <string name="headunit_xiaobo_thinking">Xiao Bo is thinking</string>
+    <string name="headunit_xiaobo_calls">Bothy calls</string>
+    <string name="headunit_xiaobo_thinking">Bothy is thinking</string>
     <string name="headunit_locating">Locating…</string>
     <string name="headunit_current_location_in">Current location · %1$s</string>
     <string name="headunit_recommended">Recommended</string>
-    <string name="headunit_sent_to_xiaobo">Sent to Xiao Bo</string>
-    <!-- The tools Xiao Bo calls, as its card names them -->
+    <string name="headunit_sent_to_xiaobo">Sent to Bothy</string>
+    <!-- The tools Bothy calls, as its card names them -->
     <string name="headunit_tool_get_cabin_status">Check the car</string>
     <string name="headunit_tool_set_climate">Air conditioning</string>
     <string name="headunit_tool_set_seat">Seat heating and ventilation</string>
@@ -247,7 +248,7 @@
     <string name="headunit_nav_unavailable">Navigation isn\'t available yet</string>
     <string name="headunit_arrived_at">Arrived at %1$s</string>
     <string name="headunit_where_to">Where to?</string>
-    <string name="headunit_nav_hint">Tell Xiao Bo “Navigate to Shenzhen Bay Park, passing Nanshan Book City”</string>
+    <string name="headunit_nav_hint">Tell Bothy “Navigate to Shenzhen Bay Park, passing Nanshan Book City”</string>
     <string name="headunit_action_exit">Exit</string>
     <string name="headunit_action_overview">Overview</string>
     <string name="headunit_action_exit_overview">Exit overview</string>

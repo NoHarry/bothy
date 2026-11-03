@@ -28,17 +28,17 @@
 
     <!-- Connect apps: an agent paired through the relay (Grok Bot) -->
     <string name="mcp_via_relay">Connects through the preset relay %1$s</string>
-    <string name="mcp_agent_intro">Once connected, Xiao Bo hands tasks that need your personal accounts to your own %1$s and announces the result here when it\'s done. You need a phone that can scan a QR code and your %1$s account; the page on the phone walks you through the setup.</string>
+    <string name="mcp_agent_intro">Once connected, Bothy hands tasks that need your personal accounts to your own %1$s and announces the result here when it\'s done. You need a phone that can scan a QR code and your %1$s account; the page on the phone walks you through the setup.</string>
     <string name="mcp_start_connecting">Start connecting</string>
     <string name="mcp_connected_to_your">Connected to your %1$s</string>
-    <string name="mcp_agent_verified">The full flow has worked once. Just say to Xiao Bo: \"Ask %1$s to…\"</string>
-    <string name="mcp_agent_unverified">The full flow hasn\'t worked yet: tap \"Test connection\" on the phone\'s connect page, or just say to Xiao Bo: \"Ask %1$s to…\"</string>
+    <string name="mcp_agent_verified">The full flow has worked once. Just say to Bothy: \"Ask %1$s to…\"</string>
+    <string name="mcp_agent_unverified">The full flow hasn\'t worked yet: tap \"Test connection\" on the phone\'s connect page, or just say to Bothy: \"Ask %1$s to…\"</string>
     <string name="mcp_test_connection">Test connection</string>
     <string name="mcp_unpair">Unpair</string>
     <string name="mcp_test_waiting">Sent to %1$s; waiting for its report (usually 30 seconds to two minutes)…</string>
     <string name="mcp_test_reply">%1$s: %2$s</string>
     <string name="mcp_unpair_title">Unpair from %1$s?</string>
-    <string name="mcp_unpair_message">After unpairing, Xiao Bo can no longer hand tasks to %1$s. %1$s is first asked to delete its routine and the car-relay connector and report back (up to three minutes); both sides keep a record.</string>
+    <string name="mcp_unpair_message">After unpairing, Bothy can no longer hand tasks to %1$s. %1$s is first asked to delete its routine and the car-relay connector and report back (up to three minutes); both sides keep a record.</string>
     <string name="mcp_account">Account</string>
     <string name="mcp_signed_in_as">Signed in: %1$s</string>
     <string name="mcp_sign_out">Sign out</string>
@@ -77,11 +77,11 @@
         <item quantity="one">%1$d feature available: %2$s</item>
         <item quantity="other">%1$d features available: %2$s</item>
     </plurals>
-    <string name="mcp_say_example">Just say to Xiao Bo: \"%1$s\"</string>
+    <string name="mcp_say_example">Just say to Bothy: \"%1$s\"</string>
     <string name="mcp_sandbox_hint">This is the sandbox, with simulated data. For real use, tap \"Replace %1$s\" and choose production.</string>
     <string name="mcp_check_connection">Check connection</string>
     <string name="mcp_replace_credential">Replace %1$s</string>
-    <string name="mcp_paused_hint">Turned off in Settings → Connections → MCP; Xiao Bo won\'t use it for now.</string>
+    <string name="mcp_paused_hint">Turned off in Settings → Connections → MCP; Bothy won\'t use it for now.</string>
     <string name="mcp_turn_back_on">Turn back on</string>
     <string name="mcp_open_local_hint">A demo service on this device, no key needed: open Bothy Playground first, then tap \"Connect\".</string>
     <string name="mcp_open_public_hint">A public service, no key needed: tap \"Connect\" to test it and it\'s ready to use.</string>
@@ -93,8 +93,8 @@
     <string name="mcp_production_choice">Production: real rides, real charges</string>
     <string name="mcp_abilities">What it can do</string>
     <string name="mcp_disconnect_title">Disconnect %1$s?</string>
-    <string name="mcp_disconnect_open">After disconnecting, Xiao Bo can no longer use %1$s.</string>
-    <string name="mcp_disconnect_keyed">After disconnecting, Xiao Bo can no longer use %1$s, and the %2$s saved on this device is deleted too.</string>
+    <string name="mcp_disconnect_open">After disconnecting, Bothy can no longer use %1$s.</string>
+    <string name="mcp_disconnect_keyed">After disconnecting, Bothy can no longer use %1$s, and the %2$s saved on this device is deleted too.</string>
     <string name="mcp_token">token</string>
 
     <!-- Connect apps: what connecting says (errors, and the timestamped log) -->
@@ -117,7 +117,7 @@
     <string name="mcp_event_connected_agent">Connected to your %1$s.</string>
     <string name="mcp_event_test_failed">Connection test failed: %1$s</string>
     <string name="mcp_event_test_passed">Connection test: %1$s reported \"%2$s\"</string>
-    <string name="mcp_disconnected_app">Disconnected. Xiao Bo no longer uses %1$s.</string>
+    <string name="mcp_disconnected_app">Disconnected. Bothy no longer uses %1$s.</string>
     <string name="mcp_pairing_cancelled">Pairing cancelled.</string>
     <string name="mcp_event_unpaired">Unpaired: %1$s</string>
     <string name="mcp_unpaired_here_only">Unpaired on this device, but %1$s Please delete the \"车载语音助手任务\" routine and the car-relay connector in %2$s yourself.</string>

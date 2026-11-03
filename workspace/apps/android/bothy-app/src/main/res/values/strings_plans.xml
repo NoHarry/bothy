@@ -19,14 +19,14 @@
     <string name="plans_delete_text">“%1$s” · %2$s</string>
     <string name="plans_delete_plan">Delete plan</string>
     <string name="plans_empty_title">No plans yet</string>
-    <string name="plans_empty_hint">Just tell Xiao Bo. When a plan comes due, Xiao Bo pops up a card and reads it out to you:</string>
+    <string name="plans_empty_hint">Just tell Bothy. When a plan comes due, Bothy pops up a card and reads it out to you:</string>
     <string name="plans_example_parcel">“Remind me to pick up the parcel in two hours”</string>
     <string name="plans_example_badge">“Remind me to bring my badge at 8 every weekday morning”</string>
     <string name="plans_example_fare">“Tell me when flights from Shenzhen to Chengdu drop below 800 yuan”</string>
     <string name="plans_example_weather">“Read me the weather at 8 every morning”</string>
     <string name="plans_example_umbrella">“Remind me to take an umbrella when it rains”</string>
     <string name="plans_example_air">“Remind me to open the windows when the air gets better”</string>
-    <string name="plans_footer">When a plan comes due, Xiao Bo pops up a card and reads the reminder out; a “Task” plan has Xiao Bo run a turn; an “Auto” plan runs its actions directly, without the model. What status plans can watch depends on the MCP services loaded now (Settings → Connections → MCP or Connect apps): resources are read at the set interval, and services that only offer query tools are called at the interval (at most once every 5 minutes); this happens only while Xiao Bo is running. A one-off reminder missed while the device was off is caught up if it starts within 2 hours; after that it is marked missed.</string>
+    <string name="plans_footer">When a plan comes due, Bothy pops up a card and reads the reminder out; a “Task” plan has Bothy run a turn; an “Auto” plan runs its actions directly, without the model. What status plans can watch depends on the MCP services loaded now (Settings → Connections → MCP or Connect apps): resources are read at the set interval, and services that only offer query tools are called at the interval (at most once every 5 minutes); this happens only while Bothy is running. A one-off reminder missed while the device was off is caught up if it starts within 2 hours; after that it is marked missed.</string>
 
     <string name="plans_kind_auto">Auto</string>
     <string name="plans_kind_once">Once</string>
@@ -38,8 +38,8 @@
     <string name="plans_history_title">Recent activity</string>
     <string name="plans_does_auto_due">When due, runs: %1$s</string>
     <string name="plans_does_auto_triggered">When triggered, runs: %1$s</string>
-    <string name="plans_does_task_due">When due, Xiao Bo does: %1$s</string>
-    <string name="plans_does_task_triggered">When triggered, Xiao Bo does: %1$s</string>
+    <string name="plans_does_task_due">When due, Bothy does: %1$s</string>
+    <string name="plans_does_task_triggered">When triggered, Bothy does: %1$s</string>
     <string name="plans_does_remind_due">When due, reminds: %1$s</string>
     <string name="plans_does_remind_triggered">When triggered, reminds: %1$s</string>
     <string name="plans_list_separator">", "</string>
@@ -103,12 +103,12 @@
     <string name="plans_watch_every_time">%1$s, every time</string>
     <string name="plans_watch_once">%1$s, once</string>
 
-    <string name="plans_notice_handed">Handed to Xiao Bo: %1$s</string>
+    <string name="plans_notice_handed">Handed to Bothy: %1$s</string>
     <string name="plans_notice_running">Running: %1$s</string>
     <string name="plans_notice_sample_title">Sample plan</string>
     <string name="plans_notice_sample_said">Reminder: this is what a plan coming due looks like</string>
 
-    <string name="plans_note_handed">Handed to Xiao Bo</string>
+    <string name="plans_note_handed">Handed to Bothy</string>
     <plurals name="plans_note_late">
         <item quantity="one">Reminded %1$d minute late (the device was off)</item>
         <item quantity="other">Reminded %1$d minutes late (the device was off)</item>

@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.LocalPortraitPhone
 import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -132,7 +133,10 @@ private fun PlansHeader(plans: List<Plan>, now: Long) {
         watching.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.plans_watching_count, it, it) },
     ).joinToString(" · ")
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-        Text(stringResource(R.string.plans_title), style = ConsoleType.hero.copy(fontSize = PLANS_TITLE_SIZE), color = ConsoleColors.text)
+        // A portrait phone names the page in its top bar.
+        if (!LocalPortraitPhone.current) {
+            Text(stringResource(R.string.plans_title), style = ConsoleType.hero.copy(fontSize = PLANS_TITLE_SIZE), color = ConsoleColors.text)
+        }
         Text(summary, style = ConsoleType.bodySmall, color = ConsoleColors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
