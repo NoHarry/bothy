@@ -36,6 +36,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -84,6 +85,9 @@ import cc.noharry.bothy.playground.nav.place
 
 /** The playground's one screen; it also starts [PlaygroundService], which serves the world to Bothy. */
 class PlaygroundActivity : ComponentActivity() {
+    /** Read during composition. Updated from [onConfigurationChanged], which this activity handles itself. */
+    internal lateinit var scaleSource: PlaygroundScaleSource
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(AppLanguages.wrap(newBase))
     }
@@ -92,11 +96,9 @@ class PlaygroundActivity : ComponentActivity() {
         HeadUnitModes.load(this)
         AmapKey.apply(this)
         super.onCreate(savedInstanceState)
+        scaleSource = PlaygroundScaleSource(resources.configuration)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // A phone is a small head unit. Portrait keeps platform dp; landscape still scales the wide layout down.
-        val phone = resources.configuration.smallestScreenWidthDp < PHONE_SHORT_SIDE_DP
-        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
         // preferred rate alone lost to the map surface's own vote: the display's 60 Hz mode is asked for outright.
         @Suppress("DEPRECATION") val screen = windowManager.defaultDisplay
@@ -116,10 +118,16 @@ class PlaygroundActivity : ComponentActivity() {
             ViewCompat.onApplyWindowInsets(view, insets)
         }
         PlaygroundService.start(this)
-        setContent { PhoneScale(playgroundContentScale(phone, landscape)) { PlaygroundApp(Playground.store) } }
+        // configChanges includes orientation, so a turn does not recreate this activity. The scale is read again
+        // inside composition, which follows that change; the scene extra is applied once per launch.
+        setContent { PlaygroundPhoneScale(scaleSource) { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
-        // Once: a rotation recreates the activity with the same intent.
         if (savedInstanceState == null) askedScene(intent)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::scaleSource.isInitialized) scaleSource.update(newConfig)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -161,10 +169,11 @@ class PlaygroundActivity : ComponentActivity() {
 
     private companion object {
         const val REHIDE_MS = 2_500L
-        /** Android's line between phones and tablets, in dp of the smallest width. */
-        const val PHONE_SHORT_SIDE_DP = 600
     }
 }
+
+/** Android's line between phones and tablets, in dp of the smallest width. */
+internal const val PHONE_SHORT_SIDE_DP = 600
 
 /**
  * Portrait phones keep the platform dp. A phone turned sideways still draws at [PHONE_SCALE]: 851×393 dp becomes about
@@ -172,6 +181,32 @@ class PlaygroundActivity : ComponentActivity() {
  */
 internal fun playgroundContentScale(phone: Boolean, landscape: Boolean): Float =
     if (phone && landscape) PHONE_SCALE else 1f
+
+/** Scale for the configuration Compose is showing now, so a handled rotation updates it. */
+internal fun playgroundScaleFor(smallestWidthDp: Int, orientation: Int): Float =
+    playgroundContentScale(
+        phone = smallestWidthDp < PHONE_SHORT_SIDE_DP,
+        landscape = orientation == Configuration.ORIENTATION_LANDSCAPE,
+    )
+
+/**
+ * The head unit's scale. Composition locals do not move when this activity handles orientation itself, so the
+ * activity writes the new configuration here and composition reads it.
+ */
+internal class PlaygroundScaleSource(config: Configuration) {
+    var smallestWidthDp by mutableIntStateOf(config.smallestScreenWidthDp)
+    var orientation by mutableIntStateOf(config.orientation)
+
+    fun update(config: Configuration) {
+        smallestWidthDp = config.smallestScreenWidthDp
+        orientation = config.orientation
+    }
+}
+
+@Composable
+internal fun PlaygroundPhoneScale(source: PlaygroundScaleSource, content: @Composable () -> Unit) {
+    PhoneScale(playgroundScaleFor(source.smallestWidthDp, source.orientation), content)
+}
 
 @Composable
 private fun PhoneScale(scale: Float, content: @Composable () -> Unit) {

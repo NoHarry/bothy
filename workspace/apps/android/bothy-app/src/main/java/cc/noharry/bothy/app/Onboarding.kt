@@ -125,13 +125,27 @@ internal fun OnboardingScreen(onDone: () -> Unit) {
     }
 }
 
+/**
+ * Keys typed on the setup screen. They live for this process, so a rotation keeps a key that has not been saved yet,
+ * and they are not written into the instance state.
+ */
+internal object OnboardingDraft {
+    val modelKey = mutableStateOf("")
+    val doubaoKey = mutableStateOf("")
+
+    fun clear() {
+        modelKey.value = ""
+        doubaoKey.value = ""
+    }
+}
+
 /** 1. The DeepSeek key, saved to the selected model service and checked against its model list. */
 @Composable
 private fun ModelKeyStep() {
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
-    var key by remember { mutableStateOf("") }
+    var key by OnboardingDraft.modelKey
     var status by remember { mutableStateOf<Pair<String, Color>?>(null) }
     val good = ConsoleColors.success
     val bad = ConsoleColors.danger
@@ -166,7 +180,7 @@ private fun ModelKeyStep() {
 @Composable
 private fun DoubaoKeyStep() {
     val context = LocalContext.current
-    var key by remember { mutableStateOf("") }
+    var key by OnboardingDraft.doubaoKey
     var saved by remember { mutableStateOf(loadDoubaoTtsKey(context).isNotEmpty()) }
     var problem by remember { mutableStateOf<String?>(null) }
     OnboardingStep(stringResource(R.string.onboarding_step_doubao_key), done = saved) {

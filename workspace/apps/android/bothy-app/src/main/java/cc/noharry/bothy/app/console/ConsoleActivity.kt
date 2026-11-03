@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cc.noharry.bothy.app.Onboarding
+import cc.noharry.bothy.app.OnboardingDraft
 import cc.noharry.bothy.app.OnboardingScreen
 import cc.noharry.bothy.app.a2a.A2aClientActions
 import cc.noharry.bothy.app.a2a.A2aClientConsole
@@ -63,8 +64,7 @@ class ConsoleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
-        // Phones stay in the orientation the person is holding, portrait included. Tablets are not locked here.
-        // The old lock hid the system bars and forced landscape (owner 2026-10-23); a portrait phone keeps the status bar.
+        // Phones stay in the orientation the person is holding, portrait included. A portrait phone keeps the status bar.
         AsrTextServerManager.start(applicationContext)
         detachSession = RuntimeSession.attach(this) { uiState = it }
         detachA2aClient = A2aClientConsole.attach(this) { a2aClientState = it }
@@ -75,6 +75,7 @@ class ConsoleActivity : ComponentActivity() {
                     if (onboarding) {
                         OnboardingScreen {
                             Onboarding.finish(this)
+                            OnboardingDraft.clear()
                             onboarding = false
                         }
                         return@ConsoleTheme
@@ -92,7 +93,8 @@ class ConsoleActivity : ComponentActivity() {
                 }
             }
         }
-        handleIntent(intent)
+        // A recreated activity is handed the same intent again. A debug utterance is filled in once.
+        if (savedInstanceState == null) handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
