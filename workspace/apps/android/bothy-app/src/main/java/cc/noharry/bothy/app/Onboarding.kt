@@ -92,13 +92,12 @@ internal object Onboarding {
     }
 
     /**
-     * 开始使用: what the last step says works from here on does — 「你好小博」 is heard (语音唤醒 on, with the microphone
-     * granted) and 小博 floats over other apps. Off, a fresh install had neither, and the head unit no cards.
+     * 开始使用. Wake word stays off until the person turns it on in 设置 → 语音. A fresh install used to switch it on
+     * here whenever the microphone was already granted.
      */
     fun finish(context: Context) {
         prefs(context).edit().putBoolean(DONE, true).apply()
-        val mic = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (mic) WakeWord.setEnabled(context, true) else OverlayControl.ensureRunning(context)
+        OverlayControl.ensureRunning(context)
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -125,13 +124,27 @@ internal fun OnboardingScreen(onDone: () -> Unit) {
     }
 }
 
+/**
+ * Keys typed on the setup screen. They live for this process, so a rotation keeps a key that has not been saved yet,
+ * and they are not written into the instance state.
+ */
+internal object OnboardingDraft {
+    val modelKey = mutableStateOf("")
+    val doubaoKey = mutableStateOf("")
+
+    fun clear() {
+        modelKey.value = ""
+        doubaoKey.value = ""
+    }
+}
+
 /** 1. The DeepSeek key, saved to the selected model service and checked against its model list. */
 @Composable
 private fun ModelKeyStep() {
     val context = LocalContext.current
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
-    var key by remember { mutableStateOf("") }
+    var key by OnboardingDraft.modelKey
     var status by remember { mutableStateOf<Pair<String, Color>?>(null) }
     val good = ConsoleColors.success
     val bad = ConsoleColors.danger
@@ -166,7 +179,7 @@ private fun ModelKeyStep() {
 @Composable
 private fun DoubaoKeyStep() {
     val context = LocalContext.current
-    var key by remember { mutableStateOf("") }
+    var key by OnboardingDraft.doubaoKey
     var saved by remember { mutableStateOf(loadDoubaoTtsKey(context).isNotEmpty()) }
     var problem by remember { mutableStateOf<String?>(null) }
     OnboardingStep(stringResource(R.string.onboarding_step_doubao_key), done = saved) {

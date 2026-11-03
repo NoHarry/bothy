@@ -3,4 +3,9 @@
     <string name="settings_language">语言</string>
     <string name="settings_language_note">默认跟随系统，也可以在这里选定。不影响小博说的话。</string>
     <string name="settings_language_system">跟随系统</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_note">浅色是燕麦和松绿，深色是暖深色。车机仍用自己的夜色。</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
 </resources>

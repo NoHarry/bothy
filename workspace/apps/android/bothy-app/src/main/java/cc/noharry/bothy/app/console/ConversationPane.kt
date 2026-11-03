@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -49,8 +50,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,7 +71,10 @@ import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
+import cc.noharry.bothy.app.overlay.isCompletedPlanStatus
 import cc.noharry.bothy.app.overlay.pickableReply
+import cc.noharry.bothy.app.voice.clearWakeMigrationNotice
+import cc.noharry.bothy.app.voice.wakeMigrationNotice
 import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
 import cc.noharry.bothy.app.runtime.variantChoices
 import cc.noharry.bothy.app.session.ConfirmationMode
@@ -125,6 +132,25 @@ private fun RegularConversationPane(
     modifier: Modifier,
 ) {
     PanelBox(stringResource(R.string.console_conversation), modifier) {
+        val context = LocalContext.current
+        var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
+        if (wakeNote) {
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    stringResource(R.string.voice_wake_migrated_off),
+                    style = ConsoleType.bodySmall,
+                    color = ConsoleColors.text,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = {
+                    clearWakeMigrationNotice(context)
+                    wakeNote = false
+                }) { Text(stringResource(R.string.common_ok)) }
+            }
+        }
         ConversationStatus(state)
         Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()
@@ -191,6 +217,22 @@ private fun RegularConversationPane(
                     CompletedStatusBar(state.lastRunSummary.orEmpty())
                 }
             }
+        }
+        val openPlans = LocalOpenPlans.current
+        val steps = state.contextPanel.todo.count { !it.status.isCompletedPlanStatus() }
+        if (openPlans != null && steps > 0) {
+            Spacer(Modifier.height(Dimens.spaceSm))
+            Text(
+                text = pluralStringResource(R.plurals.console_plan_steps, steps, steps),
+                style = ConsoleType.body,
+                color = ConsoleColors.accent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clickable { openPlans() }
+                    .semantics { role = Role.Button }
+                    .padding(vertical = Dimens.spaceXs),
+            )
         }
         Spacer(Modifier.height(Dimens.spaceSm))
         ConversationInputBar(
@@ -456,7 +498,7 @@ private fun CondensedComposerActions(
             ContextUsageIndicator(state)
             ModelMenu(state.configEditor, actions, Modifier.weight(1f))
             if (showSecondaryActions) VariantMenu(state.configEditor, actions)
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -484,7 +526,7 @@ private fun CompactComposerActions(
             ComposerOverflowMenu(actions)
             Spacer(Modifier.weight(1f))
             if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -653,6 +695,7 @@ private val VARIANT_MENU_MAX_WIDTH = 180.dp
 private val APPROVAL_MENU_MIN_WIDTH = 260.dp
 private val APPROVAL_MENU_MAX_WIDTH = 340.dp
 private val COMPACT_COMPOSER_WIDTH = 560.dp
+
 /** Under this the conversation pane takes the two-row composer: a phone held sideways gives it about 330 dp. */
 private val SHORT_PANE_HEIGHT = 420.dp
 private val CONDENSED_INPUT_HEIGHT = 52.dp

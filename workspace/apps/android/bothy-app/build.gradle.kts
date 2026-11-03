@@ -252,10 +252,12 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.13.0-alpha03")
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.robolectric:robolectric:4.12.2")
     testImplementation("androidx.test:core:1.5.0")
+    testImplementation("androidx.compose.ui:ui-test-junit4:1.13.0-alpha03")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.1")
     // Device lane: the Trajectory cold read depends on real filesystem, lock and permission
     // behaviour that a JVM/Robolectric run cannot reproduce.

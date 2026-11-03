@@ -617,11 +617,17 @@ private fun VoiceWakeSection() {
     val enabled by WakeWord.enabled.collectAsState()
     val status by WakeWord.status.collectAsState()
     var message by remember { mutableStateOf("") }
+    var migrated by remember { mutableStateOf(wakeMigrationNotice(context)) }
     // The switch as saved, even before the overlay has started.
     LaunchedEffect(Unit) { WakeWord.load(context) }
     val switchFailed = stringResource(R.string.voice_switch_save_failed)
     val sensitivityFailed = stringResource(R.string.voice_wake_sensitivity_save_failed)
+    if (migrated) {
+        Text(stringResource(R.string.voice_wake_migrated_off), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
+    }
     VoiceSwitchRow(stringResource(R.string.voice_wake_switch), enabled) { on ->
+        clearWakeMigrationNotice(context)
+        migrated = false
         message = if (WakeWord.setEnabled(context, on)) "" else switchFailed
     }
     Text(

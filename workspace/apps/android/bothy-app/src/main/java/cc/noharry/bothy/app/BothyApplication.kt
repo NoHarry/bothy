@@ -9,6 +9,7 @@ import cc.noharry.bothy.app.a2a.A2aServerManager
 import cc.noharry.bothy.app.androiduse.applyAndroidUseSwitch
 import cc.noharry.bothy.app.androiduse.scheduleAndroidUseRepair
 import cc.noharry.bothy.app.console.AppLanguages
+import cc.noharry.bothy.app.console.ConsoleAppearance
 import cc.noharry.bothy.app.console.DisplaySettings
 import cc.noharry.bothy.app.evidence.benchTrustedClient
 import cc.noharry.bothy.app.mcp.McpToolCatalogs
@@ -44,6 +45,7 @@ class BothyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         shownLocale = resources.configuration.locales.get(0)
+        ConsoleAppearance.load(this)
         DisplaySettings.init(this)
         SessionSettings.init(this)
         PlaygroundMode.init(this)

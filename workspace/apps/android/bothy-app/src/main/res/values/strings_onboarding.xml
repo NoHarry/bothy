@@ -15,7 +15,7 @@
     <string name="onboarding_doubao_saved">Saved: Xiao Bo will speak in Doubao\'s voice</string>
     <string name="onboarding_step_permissions">3 · Grant permissions</string>
     <string name="onboarding_permission_microphone">Microphone (required)</string>
-    <string name="onboarding_permission_microphone_note">Wake Xiao Bo by saying \"OK Bothy\", and talk by voice</string>
+    <string name="onboarding_permission_microphone_note">Talk by voice. The wake word stays off until you turn it on in Settings → Voice</string>
     <string name="onboarding_permission_overlay">Overlay (required)</string>
     <string name="onboarding_permission_overlay_note">Xiao Bo floats over other apps, ready to wake at any time</string>
     <string name="onboarding_permission_notifications">Notification access (recommended)</string>
@@ -27,7 +27,7 @@
     <string name="onboarding_permission_granted">On</string>
     <string name="onboarding_permission_grant">Turn on</string>
     <string name="onboarding_step_first_words">4 · Try saying</string>
-    <string name="onboarding_first_words_note">Say \"OK Bothy\", or tap the floating Xiao Bo, then:</string>
+    <string name="onboarding_first_words_note">Tap the floating Xiao Bo, or the mic in the console, then:</string>
     <string name="onboarding_playground_note">Bothy Playground is installed: open it and keep it in front, and Xiao Bo is in the virtual head unit, where it can turn on the air conditioning, open the windows and navigate.</string>
     <string name="onboarding_open_playground">Open Bothy Playground</string>
     <string name="onboarding_get_started">Get started</string>

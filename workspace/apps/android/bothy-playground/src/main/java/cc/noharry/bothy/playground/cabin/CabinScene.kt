@@ -81,6 +81,7 @@ internal fun CabinScene(
     compact: Boolean = false,
     /** Whether the speaker's seat shows that they speak: always here, only while the assistant listens on the head unit. */
     speaking: Boolean = true,
+    gestureTag: String? = null,
 ) {
     val chip = if (compact) COMPACT_CHIP else FULL_CHIP
     val measurer = rememberTextMeasurer()
@@ -93,7 +94,7 @@ internal fun CabinScene(
     val wave = rememberInfiniteTransition(label = "speaker").animateFloat(0f, 1f, infiniteRepeatable(tween(WAVE_MS, easing = LinearEasing)), label = "wave")
     val doorImages = CabinParts.images.mapValues { (_, res) -> ImageBitmap.imageResource(res) }
     val tailgate = ImageBitmap.imageResource(R.drawable.cabin_part_lid)
-    FittedPicture(R.drawable.scene_cabin_base, CabinSpots.ASPECT, modifier, onTap, onLongPress) {
+    FittedPicture(R.drawable.scene_cabin_base, CabinSpots.ASPECT, modifier, onTap, onLongPress, gestureTag) {
         drawClimateWash(cabin, flash.of(Highlight.CLIMATE))
         drawTailgate(tailgate, motion.trunk.value, flash.of(Highlight.TRUNK))
         drawAmbient(cabin.ambient, motion.ambient.value, flash.of(Highlight.AMBIENT))

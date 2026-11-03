@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,19 +79,28 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
     ) {
         Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
         Spacer(Modifier.height(Dimens.spaceXs))
+        UserTurnBubble(body, collapsed = item.collapsed) {
+            actions.toggleItem(item.copy(collapsed = !item.collapsed))
+        }
+    }
+}
+
+/** A user turn, right-aligned, no wider than 86% of the row. The same bubble is used on a phone and a tablet. */
+@Composable
+internal fun UserTurnBubble(text: String, collapsed: Boolean = false, onClick: () -> Unit = {}) {
+    val colors = ConsoleColors
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { actions.toggleItem(item.copy(collapsed = !item.collapsed)) },
-            shape = RoundedCornerShape(Dimens.radiusMd),
+            modifier = Modifier.widthIn(max = maxWidth * 0.86f).clickable(onClick = onClick),
+            shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
             color = colors.userBubble,
-            border = BorderStroke(1.dp, colors.borderSubtle),
+            border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.45f)),
         ) {
             Text(
-                text = body,
+                text = text,
                 style = ConsoleType.body,
                 color = colors.text,
-                maxLines = if (item.collapsed) 2 else Int.MAX_VALUE,
+                maxLines = if (collapsed) 2 else Int.MAX_VALUE,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(Dimens.spaceMd),
             )

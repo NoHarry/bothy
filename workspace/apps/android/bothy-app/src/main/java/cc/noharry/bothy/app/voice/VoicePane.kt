@@ -15,6 +15,10 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,7 +41,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,10 +54,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -120,13 +131,19 @@ internal fun VoiceStrip() {
  * first time.
  */
 @Composable
-internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
+internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false) {
     val context = LocalContext.current
     val state by VoiceController.state.collectAsState()
     val denied = stringResource(R.string.voice_mic_denied)
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) VoiceController.toggle(context) else VoiceController.notice(denied)
+        // A hold is already over by the time the dialog returns, so granting only records the permission.
+        if (!granted) VoiceController.notice(denied) else if (!holdToTalk) VoiceController.toggle(context)
     }
+    val contextState = rememberUpdatedState(context)
+    val permissionState = rememberUpdatedState(permission)
+    val hint = rememberUpdatedState(stringResource(R.string.voice_hold_to_talk))
+    val holdDescription = stringResource(R.string.voice_mic_hold)
+    val view = LocalView.current
     val colors = ConsoleColors
     val on = state.status.isOn
     val description = stringResource(if (on) R.string.voice_mic_stop else R.string.voice_mic_start)
@@ -146,11 +163,20 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
                 }
                 .clip(CircleShape)
                 .background(fill)
-                .clickable {
-                    val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-                    if (on || granted) VoiceController.toggle(context) else permission.launch(Manifest.permission.RECORD_AUDIO)
-                }
-                .semantics { contentDescription = description },
+                .then(
+                    if (holdToTalk) {
+                        Modifier.pressToTalk(contextState, permissionState, hint) {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        }
+                    } else {
+                        Modifier.tapToTalk(context, permission, denied, on)
+                    },
+                )
+                .semantics {
+                    role = Role.Button
+                    contentDescription = if (holdToTalk && !on) holdDescription else description
+                    if (holdToTalk) onClick { VoiceController.toggle(contextState.value); true }
+                },
             contentAlignment = Alignment.Center,
         ) {
             if (on) {
@@ -158,6 +184,92 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp) {
                 Box(Modifier.size(iconSize * STOP_SQUARE_SHARE).clip(RoundedCornerShape(2.dp)).background(Color.White))
             } else {
                 Icon(IconMic, contentDescription = null, tint = colors.accent, modifier = Modifier.size(iconSize))
+            }
+        }
+    }
+}
+
+private fun Modifier.tapToTalk(
+    context: android.content.Context,
+    permission: androidx.activity.result.ActivityResultLauncher<String>,
+    denied: String,
+    on: Boolean,
+): Modifier = clickable {
+    val granted = context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    if (on || granted) VoiceController.toggle(context) else permission.launch(Manifest.permission.RECORD_AUDIO)
+}
+
+/** A short tap is not a request. Sliding up, or the gesture being cancelled, drops what was said. */
+internal fun pressOutcome(slidUp: Boolean, heldMillis: Long): PressOutcome =
+    if (slidUp || heldMillis < PRESS_TAP_MILLIS) PressOutcome.CANCEL else PressOutcome.SEND
+
+internal enum class PressOutcome { SEND, CANCEL }
+
+/** What a finger-down does when another session may already be listening. */
+internal enum class HoldDown { STOP_OTHER, ALREADY, START }
+
+internal fun holdDown(listening: Boolean, holding: Boolean): HoldDown = when {
+    listening && !holding -> HoldDown.STOP_OTHER
+    listening -> HoldDown.ALREADY
+    else -> HoldDown.START
+}
+
+private const val PRESS_TAP_MILLIS = 250L
+
+/** Press to listen. Release sends, including the utterance still open. Sliding up drops the hold. */
+private fun Modifier.pressToTalk(
+    context: State<android.content.Context>,
+    permission: State<androidx.activity.result.ActivityResultLauncher<String>>,
+    hint: State<String>,
+    haptic: () -> Unit,
+): Modifier = pointerInput(Unit) {
+    val slop = 48.dp.toPx()
+    awaitEachGesture {
+        val down = awaitFirstDown()
+        down.consume()
+        val ctx = context.value
+        val granted = ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            permission.value.launch(Manifest.permission.RECORD_AUDIO)
+            return@awaitEachGesture
+        }
+        var started = false
+        var send = false
+        try {
+            when (holdDown(VoiceController.listening, VoiceController.holding)) {
+                HoldDown.STOP_OTHER -> {
+                    VoiceController.stop()
+                    return@awaitEachGesture
+                }
+                HoldDown.ALREADY -> started = true
+                HoldDown.START -> {
+                    val failure = VoiceController.beginPress(ctx)
+                    started = VoiceController.listening
+                    if (!started) {
+                        failure?.let(VoiceController::notice)
+                        return@awaitEachGesture
+                    }
+                    haptic()
+                }
+            }
+            val startedAt = SystemClock.elapsedRealtime()
+            var slidUp = false
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) break
+                change.consume()
+                if (down.position.y - change.position.y > slop) {
+                    slidUp = true
+                    break
+                }
+            }
+            send = pressOutcome(slidUp, SystemClock.elapsedRealtime() - startedAt) == PressOutcome.SEND
+            if (!send && !slidUp) VoiceController.notice(hint.value)
+        } finally {
+            if (started && VoiceController.listening) {
+                if (send) haptic()
+                if (send) VoiceController.releasePress() else VoiceController.cancelPress()
             }
         }
     }

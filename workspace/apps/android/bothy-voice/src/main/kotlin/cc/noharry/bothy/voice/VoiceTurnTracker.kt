@@ -167,6 +167,13 @@ class VoiceTurnTracker(
         lastVoiceAt = now
     }
 
+    /** The open utterance, closed now. Null when nothing is open. */
+    fun closeOpen(): VoiceTurnAction.End? {
+        if (transcript.isBlank()) return null
+        val current = judgment.takeIf { judgedVersion == version } ?: latestJudgment
+        return end(VoiceEndReason.SILENCE_CAP, current)
+    }
+
     fun poll(now: Long): VoiceTurnAction? {
         if (busy) return null
         cutAtWakePhrase(now)?.let { return it }

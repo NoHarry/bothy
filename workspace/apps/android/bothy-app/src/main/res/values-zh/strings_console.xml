@@ -93,6 +93,17 @@
     <string name="console_view_trajectory">轨迹</string>
     <string name="console_view_a2a">A2A</string>
     <string name="console_view_plans">计划</string>
+    <string name="console_open_menu">打开菜单</string>
+    <string name="console_new_chat">新对话</string>
+    <string name="console_search_sessions">搜索会话</string>
+    <string name="console_drawer_today">今天</string>
+    <string name="console_drawer_yesterday">昨天</string>
+    <string name="console_drawer_earlier">更早</string>
+    <string name="console_drawer_features">功能</string>
+    <string name="console_open_playground">车机</string>
+    <plurals name="console_plan_steps">
+        <item quantity="other">还有 %1$d 步</item>
+    </plurals>
     <string name="console_expand_board">展开看板</string>
     <plurals name="console_read_files">
         <item quantity="other">读取了 %1$d 个文件</item>

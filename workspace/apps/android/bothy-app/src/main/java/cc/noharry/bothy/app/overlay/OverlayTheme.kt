@@ -4,9 +4,9 @@ import android.graphics.Color
 /**
  * Visual tokens for the floating overlay HUD (classic View system, not Compose).
  *
- * Same source as the app dark theme ([DarkConsoleColors] / [ConsoleType]): deep forest
- * stage surfaces, sage brand accent, and ember reserved for live/running
- * signals. Corner radii stay larger than app panels because the overlay floats over
+ * The overlay keeps its own forest stage. It does not follow [cc.noharry.bothy.app.console.DarkConsoleColors].
+ * Sage stays the brand accent, and ember is reserved for live/running signals.
+ * Corner radii stay larger than app panels because the overlay floats over
  * other apps and keeps the softer stage chrome.
  */
 internal object OverlayTheme {

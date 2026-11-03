@@ -55,6 +55,25 @@ class SherpaOnnxAsrEngine(
         }
     }
 
+    override fun finish(onDrained: () -> Unit) {
+        val recognizer = recognizer
+        val stream = stream
+        if (recognizer == null || stream == null) {
+            onDrained()
+            return
+        }
+        // A short tail of silence closes the endpoint, so the last words leave the pipeline.
+        val silence = FloatArray(VOICE_FRAME_SAMPLES)
+        repeat(FINISH_SILENCE_FRAMES) {
+            stream.acceptWaveform(silence, VOICE_SAMPLE_RATE)
+            while (recognizer.isReady(stream)) recognizer.decode(stream)
+        }
+        val text = recognizer.getResult(stream).text.trim()
+        if (text.isNotEmpty()) listener?.onFinal(text)
+        lastPartial = ""
+        onDrained()
+    }
+
     override fun stop() {
         stream?.release()
         recognizer?.release()
@@ -110,6 +129,8 @@ internal fun recognizerConfig(modelDir: String, numThreads: Int): OnlineRecogniz
     enableEndpoint = true,
     decodingMethod = "greedy_search",
 )
+
+private const val FINISH_SILENCE_FRAMES = 6
 
 const val SHERPA_MODEL_NAME = "sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16"
 const val SHERPA_MODEL_ASSET_DIR = "voice-models/$SHERPA_MODEL_NAME"

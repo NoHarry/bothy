@@ -6,6 +6,9 @@
     <string name="headunit_map_privacy">Agree to the AMap privacy policy to show the map</string>
     <string name="headunit_map_starting">AMap navigation is starting…</string>
     <string name="headunit_settings_title">Settings and controls</string>
+    <string name="headunit_tab_route">Route</string>
+    <string name="headunit_tab_cabin">Cabin</string>
+    <string name="headunit_tab_climate">Climate</string>
     <string name="headunit_real_nav_mode">Real navigation mode (the device\'s real location, no simulated car or home)</string>
     <string name="headunit_amap_app_mode">Hand navigation to the AMap app (with stops, start the navigation in AMap)</string>
     <string name="headunit_simulated_drive">Simulated driving for navigation (no real driving needed)</string>

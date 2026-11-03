@@ -48,6 +48,8 @@ class DashScopeAsrEngine(
     private val pending = ArrayDeque<ByteString>()
     private var finished: CountDownLatch? = null
     private var vocabulary: String? = null
+    private var drain: (() -> Unit)? = null
+    private var finishSent = false
 
     override fun start(listener: AsrListener) {
         vocabulary = runCatching { vocabularyId() }.getOrNull()
@@ -76,10 +78,24 @@ class DashScopeAsrEngine(
         }
     }
 
+    override fun finish(onDrained: () -> Unit) {
+        val active = socket
+        if (active == null) {
+            onDrained()
+            return
+        }
+        drain = onDrained
+        if (!finishSent) {
+            finishSent = true
+            active.send(dashScopeFinishTask(taskId))
+        }
+    }
+
     override fun stop() {
         val active = socket ?: return
         val wasStarted = synchronized(lock) { started }
-        if (wasStarted) {
+        if (wasStarted && !finishSent) {
+            finishSent = true
             active.send(dashScopeFinishTask(taskId))
             runCatching { finished?.await(FINISH_WAIT_MILLIS, TimeUnit.MILLISECONDS) }
         }
@@ -104,7 +120,12 @@ class DashScopeAsrEngine(
                     while (pending.isNotEmpty()) webSocket.send(pending.removeFirst())
                 }
                 is DashScopeEvent.Result -> if (event.final) listener?.onFinal(event.text) else listener?.onPartial(event.text)
-                DashScopeEvent.Finished -> finished?.countDown()
+                DashScopeEvent.Finished -> {
+                    finished?.countDown()
+                    val pending = drain
+                    drain = null
+                    pending?.invoke()
+                }
                 is DashScopeEvent.Failed -> {
                     finished?.countDown()
                     listener?.onError(VoiceProblem.RecognitionFailed(event.code, event.message))

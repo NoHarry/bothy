@@ -117,6 +117,7 @@ private fun SettingsSectionContent(
 ) {
     when (section) {
         SettingsSection.GENERAL -> SettingsScrollableContent {
+            SettingsThemeGroup()
             SettingsLanguageGroup()
             SettingsRuntimeGroup(state, actions)
             SettingsSessionGroup()
