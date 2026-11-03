@@ -2,11 +2,9 @@ package cc.noharry.bothy.app.phone
 
 import android.content.Context
 import android.content.Intent
-import android.text.format.DateUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,11 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,7 +42,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -64,27 +59,35 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.session.sessionTitleText
 import cc.noharry.bothy.app.console.ConsoleActions
+import cc.noharry.bothy.app.console.ui.PopupMenu
+import cc.noharry.bothy.app.console.ui.PopupMenuItem
+import cc.noharry.bothy.app.console.ui.StatusDot
+import cc.noharry.bothy.app.session.ConfirmationStatus
+import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.session.SessionSummary
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.tools.PLAYGROUND_PACKAGE
 import java.util.Calendar
 
-internal enum class SessionDay { TODAY, YESTERDAY, EARLIER }
+internal enum class SessionDay { TODAY, YESTERDAY, THIS_WEEK, EARLIER }
 
+/** Which of the drawer's groups a session falls in: today, yesterday, the five days before, or earlier. */
 internal fun sessionDay(updatedAtEpochMillis: Long, nowMillis: Long = System.currentTimeMillis()): SessionDay {
-    val today = Calendar.getInstance().apply { timeInMillis = nowMillis }
-    val then = Calendar.getInstance().apply { timeInMillis = updatedAtEpochMillis }
-    if (sameDay(today, then)) return SessionDay.TODAY
-    val yesterday = Calendar.getInstance().apply {
+    val dayStart = Calendar.getInstance().apply {
         timeInMillis = nowMillis
-        add(Calendar.DAY_OF_YEAR, -1)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
     }
-    return if (sameDay(yesterday, then)) SessionDay.YESTERDAY else SessionDay.EARLIER
+    fun daysBack(days: Int) = (dayStart.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -days) }.timeInMillis
+    return when {
+        updatedAtEpochMillis >= dayStart.timeInMillis -> SessionDay.TODAY
+        updatedAtEpochMillis >= daysBack(1) -> SessionDay.YESTERDAY
+        updatedAtEpochMillis >= daysBack(WEEK_DAYS - 1) -> SessionDay.THIS_WEEK
+        else -> SessionDay.EARLIER
+    }
 }
-
-private fun sameDay(left: Calendar, right: Calendar): Boolean =
-    left.get(Calendar.YEAR) == right.get(Calendar.YEAR) &&
-        left.get(Calendar.DAY_OF_YEAR) == right.get(Calendar.DAY_OF_YEAR)
 
 /** Sessions matching [query], grouped by day. Computed once per list or query change. */
 internal fun groupDrawerSessions(
@@ -109,137 +112,133 @@ internal fun playgroundInstalled(context: Context): Boolean =
     context.packageManager.getLaunchIntentForPackage(PLAYGROUND_PACKAGE) != null
 
 /**
- * A portrait phone's drawer, as the phone design draws it: a new chat, search, the sessions by day, the features
- * (plans, A2A, the head unit) and 小博's settings at the foot. A session opens the conversation; the trajectory is
- * reached from a run's tool steps.
+ * The phone's drawer: Bothy and a new chat at the top, search, the sessions by day (the open one filled, with a dot
+ * while it runs or waits), and at the foot how 小博 is doing, the other features behind a button, and the settings.
  */
 @Composable
 internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, actions: ConsoleActions, onGo: (PhoneRoute) -> Unit) {
-    val sessions = state.sessions
-    val activeSessionId = state.activeSessionId
-    val onNewChat = { actions.newSession(); onGo(PhoneRoute.CHAT) }
-    val onSelectSession = { id: String -> actions.selectSession(id); onGo(PhoneRoute.CHAT) }
-    val onPlans = { onGo(PhoneRoute.PLANS) }
-    val onA2a = { onGo(PhoneRoute.A2A) }
-    val onSettings = { onGo(PhoneRoute.SETTINGS) }
     var query by rememberSaveable { mutableStateOf("") }
-    val colors = ConsoleColors
-    val context = LocalContext.current
-    val showPlayground = remember(context) { playgroundInstalled(context) }
-    val grouped = remember(sessions, query) { groupDrawerSessions(sessions, query) }
-    Column(Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        NewChatButton(onNewChat)
-        Spacer(Modifier.height(10.dp))
+    val grouped = remember(state.sessions, query) { groupDrawerSessions(state.sessions, query) }
+    val activeDot = drawerDot(state)
+    Column(Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
+        DrawerHeader { actions.newSession(); onGo(PhoneRoute.CHAT) }
+        Spacer(Modifier.height(12.dp))
         DrawerSearch(query, open) { query = it }
-        LazyColumn(Modifier.weight(1f)) {
+        LazyColumn(Modifier.weight(1f).padding(top = 4.dp)) {
             grouped.forEach { (day, rows) ->
                 item(key = "day-$day") { DrawerSection(stringResource(day.label)) }
                 items(rows, key = { it.sessionId }) { session ->
-                    SessionRow(session, selected = session.sessionId == activeSessionId) { onSelectSession(session.sessionId) }
+                    val selected = session.sessionId == state.activeSessionId
+                    SessionRow(session, selected, dot = activeDot.takeIf { selected }) {
+                        actions.selectSession(session.sessionId)
+                        onGo(PhoneRoute.CHAT)
+                    }
                 }
             }
-            item(key = "features") {
-                DrawerSection(stringResource(R.string.console_drawer_features))
-                FeatureRow(rememberVectorPainter(Icons.Filled.DateRange), stringResource(R.string.console_view_plans), stringResource(R.string.console_drawer_plans_all), onPlans)
-                if (showA2a) FeatureRow(rememberVectorPainter(Icons.Filled.Share), stringResource(R.string.console_view_a2a), null, onA2a)
-                if (showPlayground) FeatureRow(painterResource(R.drawable.ic_drawer_car), stringResource(R.string.console_open_playground), null) { openPlayground(context); onGo(PhoneRoute.CHAT) }
-            }
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.borderSubtle))
-        SettingsFoot(onSettings)
+        DrawerFoot(state, showA2a, onGo)
     }
 }
 
+/** The open session's dot in the drawer: working, or waiting for an approval; none when it is idle. */
 @Composable
-private fun NewChatButton(onClick: () -> Unit) {
+private fun drawerDot(state: UiState): Color? = when {
+    state.items.any { it is ConversationItem.ConfirmationItem && it.status == ConfirmationStatus.PENDING } -> ConsoleColors.warning
+    state.isRunning -> ConsoleColors.activity
+    else -> null
+}
+
+@Composable
+private fun DrawerHeader(onNewChat: () -> Unit) {
     val colors = ConsoleColors
     val onAccent = if (colors.isDark) colors.bg else Color.White
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(Dimens.radiusLg))
-            .background(colors.accent)
-            .clickable(role = Role.Button, onClick = onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Filled.Edit, contentDescription = null, tint = onAccent, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.console_new_chat), style = ConsoleType.panelTitle, color = onAccent)
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(34.dp).clip(CircleShape))
+        Spacer(Modifier.width(10.dp))
+        Text(BRAND, style = ConsoleType.hero, color = colors.text, modifier = Modifier.weight(1f))
+        Row(
+            Modifier
+                .heightIn(min = 44.dp)
+                .clip(RoundedCornerShape(Dimens.radiusFull))
+                .background(colors.accent)
+                .clickable(role = Role.Button, onClick = onNewChat)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Filled.Edit, contentDescription = null, tint = onAccent, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(stringResource(R.string.console_new_chat), style = ConsoleType.panelTitle, color = onAccent)
+        }
     }
 }
 
 @Composable
 private fun DrawerSection(title: String) {
-    Text(title, style = ConsoleType.meta, color = ConsoleColors.muted, modifier = Modifier.padding(top = 18.dp, bottom = 6.dp))
+    Text(title, style = ConsoleType.meta, color = ConsoleColors.muted, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp, top = 16.dp, bottom = 4.dp))
 }
 
-/** A session: its title, and when it was last used; the open one is filled. */
+/** A session in one line; the open one is filled, and [dot] says it runs or waits. */
 @Composable
-private fun SessionRow(session: SessionSummary, selected: Boolean, onClick: () -> Unit) {
+private fun SessionRow(session: SessionSummary, selected: Boolean, dot: Color?, onClick: () -> Unit) {
     val colors = ConsoleColors
-    val context = LocalContext.current
-    Column(
+    Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(Dimens.radiusMd))
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(Dimens.radiusLg))
             .background(if (selected) colors.accentSoft else Color.Transparent)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = session.title.ifBlank { null }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat),
             style = ConsoleType.body,
-            color = if (selected) colors.accent else colors.text,
-            fontWeight = FontWeight.SemiBold,
+            color = colors.text,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Text(sessionWhen(context, session.updatedAtEpochMillis), style = ConsoleType.meta, color = colors.muted, maxLines = 1)
+        if (dot != null) StatusDot(color = dot, pulsing = dot == colors.activity, modifier = Modifier.padding(start = 8.dp).size(8.dp))
     }
 }
 
-/** When a session was last used: the time today and yesterday, the weekday and time before that. */
-internal fun sessionWhen(context: Context, atMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
-    val time = DateUtils.FORMAT_SHOW_TIME
-    val flags = if (sessionDay(atMillis, nowMillis) == SessionDay.EARLIER) time or DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_ABBREV_WEEKDAY else time
-    return DateUtils.formatDateTime(context, atMillis, flags)
-}
-
+/** How 小博 is doing; then plans, A2A and the head unit behind one button; then the settings. */
 @Composable
-private fun FeatureRow(icon: Painter, title: String, subtitle: String?, onClick: () -> Unit) {
+private fun DrawerFoot(state: UiState, showA2a: Boolean, onGo: (PhoneRoute) -> Unit) {
     val colors = ConsoleColors
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 4.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = colors.accent, modifier = Modifier.size(24.dp))
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(title, style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.SemiBold)
-            if (subtitle != null) Text(subtitle, style = ConsoleType.meta, color = colors.muted)
-        }
-    }
-}
-
-/** 小博 and its settings, at the drawer's foot. */
-@Composable
-private fun SettingsFoot(onClick: () -> Unit) {
-    val colors = ConsoleColors
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(role = Role.Button, onClick = onClick).padding(top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(44.dp).clip(CircleShape))
-        Spacer(Modifier.width(12.dp))
+    val context = LocalContext.current
+    val showPlayground = remember(context) { playgroundInstalled(context) }
+    var more by remember { mutableStateOf(false) }
+    val status = drawerDot(state)
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(40.dp).clip(CircleShape))
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.console_drawer_assistant), style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.SemiBold)
-            Text(stringResource(R.string.common_settings), style = ConsoleType.meta, color = colors.muted)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(color = status ?: colors.success, modifier = Modifier.size(6.dp))
+                val words = when (status) {
+                    null -> R.string.phone_status_ready
+                    colors.warning -> R.string.phone_status_waiting
+                    else -> R.string.phone_status_working
+                }
+                Text(stringResource(words), style = ConsoleType.meta, color = colors.muted, modifier = Modifier.padding(start = 5.dp))
+            }
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.muted)
+        Box {
+            RoundButton(painterResource(R.drawable.ic_phone_more), stringResource(R.string.console_drawer_features)) { more = true }
+            PopupMenu(expanded = more, onDismissRequest = { more = false }) {
+                PopupMenuItem(label = stringResource(R.string.console_view_plans), selected = false, onClick = { more = false; onGo(PhoneRoute.PLANS) })
+                if (showA2a) PopupMenuItem(label = stringResource(R.string.console_view_a2a), selected = false, onClick = { more = false; onGo(PhoneRoute.A2A) })
+                if (showPlayground) {
+                    PopupMenuItem(label = stringResource(R.string.console_open_playground), selected = false, onClick = { more = false; openPlayground(context); onGo(PhoneRoute.CHAT) })
+                }
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        RoundButton(rememberVectorPainter(Icons.Filled.Settings), stringResource(R.string.common_settings)) { onGo(PhoneRoute.SETTINGS) }
     }
 }
 
@@ -265,8 +264,8 @@ private fun DrawerSearch(query: String, open: Boolean, onQueryChange: (String) -
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
-            .clip(RoundedCornerShape(Dimens.radiusLg))
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(Dimens.radiusFull))
             .background(colors.elevated)
             .then(if (active) Modifier else Modifier.clickable(role = Role.Button) { searching = true })
             .padding(horizontal = 14.dp),
@@ -297,5 +296,10 @@ private val SessionDay.label: Int
     get() = when (this) {
         SessionDay.TODAY -> R.string.console_drawer_today
         SessionDay.YESTERDAY -> R.string.console_drawer_yesterday
+        SessionDay.THIS_WEEK -> R.string.phone_drawer_this_week
         SessionDay.EARLIER -> R.string.console_drawer_earlier
     }
+
+/** Bothy's name, the same in every language, beside its mark. */
+private const val BRAND = "Bothy"
+private const val WEEK_DAYS = 7

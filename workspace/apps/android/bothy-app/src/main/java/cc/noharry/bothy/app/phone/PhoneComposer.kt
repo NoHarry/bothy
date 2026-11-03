@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,7 +45,6 @@ import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
-import cc.noharry.bothy.app.console.SubmitButton
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.voice.HandOverNotice
 import cc.noharry.bothy.app.voice.VoiceController
@@ -76,19 +77,20 @@ internal fun PhoneComposer(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(PILL_RADIUS),
             color = if (holding) colors.accentSoft else colors.elevated,
-            border = BorderStroke(1.dp, if (holding) colors.accent.copy(alpha = HELD_BORDER_ALPHA) else colors.borderSubtle),
+            border = if (holding) BorderStroke(1.dp, colors.accent.copy(alpha = HELD_BORDER_ALPHA)) else null,
+            shadowElevation = PILL_SHADOW,
         ) {
             Row(
                 Modifier.padding(PILL_PADDING),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (holding) HeldWords(voice, Modifier.weight(1f)) else PillField(text, onTextChange, Modifier.weight(1f))
+                if (holding) HeldWords(voice, Modifier.weight(1f)) else PillField(text, onTextChange, state.isRunning, Modifier.weight(1f))
                 VoiceMicButton(PHONE_BUTTON_SIZE, PHONE_ICON_SIZE, holdToTalk = true)
                 if (state.isRunning && text.isBlank()) {
                     StopButton(actions.stop)
                 } else {
-                    SubmitButton(text, onSubmit, state.isRunning, PHONE_BUTTON_SIZE, PHONE_ICON_SIZE)
+                    SendButton(enabled = text.isNotBlank(), steering = state.isRunning, onSend = onSubmit)
                 }
             }
         }
@@ -116,9 +118,10 @@ private fun HeldWords(voice: VoiceSessionState, modifier: Modifier) {
 
 /** The message, as one line that grows to a few while typing. */
 @Composable
-private fun PillField(text: String, onTextChange: (String) -> Unit, modifier: Modifier) {
+private fun PillField(text: String, onTextChange: (String) -> Unit, running: Boolean, modifier: Modifier) {
     val colors = ConsoleColors
-    val placeholder = stringResource(R.string.console_message_placeholder_short)
+    // While a run goes on, what is typed steers it.
+    val placeholder = stringResource(if (running) R.string.phone_composer_running else R.string.phone_composer_hint)
     BasicTextField(
         value = text,
         onValueChange = onTextChange,
@@ -186,6 +189,31 @@ private fun PhoneVoiceLine(voice: VoiceSessionState, holding: Boolean) {
     )
 }
 
+/** Send, an arrow up; it steers a run going on. The Run/Steer description is what automation looks for. */
+@Composable
+private fun SendButton(enabled: Boolean, steering: Boolean, onSend: () -> Unit) {
+    val colors = ConsoleColors
+    Box(
+        Modifier
+            .size(PHONE_BUTTON_SIZE)
+            .clip(CircleShape)
+            .background(if (enabled) colors.accent else colors.borderSubtle)
+            .clickable(enabled = enabled, onClick = onSend)
+            .semantics {
+                role = Role.Button
+                contentDescription = if (steering) "Steer" else "Run"
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_phone_send),
+            contentDescription = null,
+            tint = if (enabled) (if (colors.isDark) colors.bg else Color.White) else colors.tertiary,
+            modifier = Modifier.size(PHONE_ICON_SIZE),
+        )
+    }
+}
+
 /** Send's place while a run goes on and nothing is typed: stops the run. */
 @Composable
 private fun StopButton(onStop: () -> Unit) {
@@ -208,6 +236,7 @@ private fun StopButton(onStop: () -> Unit) {
 }
 
 private val PILL_RADIUS = 28.dp
+private val PILL_SHADOW = 3.dp
 private val PILL_PADDING = 6.dp
 private val PHONE_BUTTON_SIZE = 44.dp
 private val PHONE_ICON_SIZE = 22.dp

@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.phone
 
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +23,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import cc.noharry.bothy.app.a2a.A2aClientActions
@@ -70,7 +76,7 @@ internal fun PhoneApp(
                 }
             },
         ) {
-            Box(Modifier.fillMaxSize().background(ConsoleColors.bg).statusBarsPadding().navigationBarsPadding().imePadding()) {
+            Box(Modifier.fillMaxSize().background(phoneBackdrop()).statusBarsPadding().navigationBarsPadding().imePadding()) {
                 PhoneRouteContent(route, state, pendingInput, onPendingInputConsumed, screenActions, a2aClient, a2aActions, navigate = { route = it }) {
                     scope.launch { drawer.open() }
                 }
@@ -102,6 +108,17 @@ private fun PhoneRouteContent(
     }
 }
 
+/** The phone's ground: the console's, washed with its accent at the top and lighter at the foot. */
+@Composable
+private fun phoneBackdrop(): Brush {
+    val colors = ConsoleColors
+    val top = lerp(colors.bg, colors.accentSoft, BACKDROP_WASH)
+    // The status bar takes the backdrop's top, so the wash runs up under the clock.
+    val view = LocalView.current
+    if (!view.isInEditMode) SideEffect { (view.context as? Activity)?.window?.statusBarColor = top.toArgb() }
+    return Brush.verticalGradient(listOf(top, colors.bg, colors.panel))
+}
+
 /** The phone reads the console's type a fifth larger, as the phone design sets it; the user's own font scale still applies. */
 @Composable
 private fun PhoneTypeScale(content: @Composable () -> Unit) {
@@ -110,3 +127,4 @@ private fun PhoneTypeScale(content: @Composable () -> Unit) {
 }
 
 private const val PHONE_TYPE_SCALE = 1.2f
+private const val BACKDROP_WASH = 0.6f

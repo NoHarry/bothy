@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.phone
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.a2ui.QuestionCards
@@ -56,7 +59,14 @@ internal fun PhoneChat(
             PhoneTimeline(state, actions, onTrajectory, Modifier.weight(1f).fillMaxWidth())
         }
         Spacer(Modifier.height(8.dp))
-        PhoneComposer(input, { input = it }, submit, state, actions)
+        // 小博 sits on the composer's top edge, as it floats over other apps; the run's activity shows just above.
+        Box(Modifier.fillMaxWidth()) {
+            Column(Modifier.fillMaxWidth()) {
+                PhoneActivityStrip(state)
+                PhoneComposer(input, { input = it }, submit, state, actions)
+            }
+            PhoneMascot(state, Modifier.align(Alignment.TopEnd).offset(x = (-64).dp, y = (-46).dp))
+        }
         Spacer(Modifier.height(8.dp))
     }
 }

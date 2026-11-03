@@ -1,7 +1,5 @@
 package cc.noharry.bothy.app.phone
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -23,14 +22,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConfirmationModeItems
 import cc.noharry.bothy.app.console.ConsoleActions
@@ -39,18 +41,64 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.ModelMenu
 import cc.noharry.bothy.app.console.VariantItems
+import cc.noharry.bothy.app.console.ui.StatusDot
+import cc.noharry.bothy.app.session.ConfirmationStatus
+import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.console.ui.PopupMenuItem
 import cc.noharry.bothy.app.console.ui.PopupSectionLabel
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.session.sessionTitleText
 
-/** The conversation's top bar, as the phone design draws it: the menu that opens the drawer, the session, the model. */
+/**
+ * The conversation's top bar: the menu that opens the drawer, the session and how it is doing, the model, and a new
+ * chat.
+ */
 @Composable
 internal fun PhoneTopBar(state: UiState, actions: ConsoleActions, onMenu: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RoundButton(Icons.Filled.Menu, stringResource(R.string.console_open_menu), onMenu)
-        Box(Modifier.weight(1f)) { TitlePill(phoneTitle(state)) }
-        PhoneModelMenu(state, actions)
+        TitleAndModel(Modifier.weight(1f)) {
+            TitlePill(phoneTitle(state), phoneStatus(state))
+            PhoneModelMenu(state, actions)
+        }
+        RoundButton(Icons.Filled.Edit, stringResource(R.string.console_new_chat), actions.newSession)
+    }
+}
+
+/**
+ * The title on the left and the model on the right, each as wide as it needs while both fit. When they do not, the
+ * title keeps at least half the room and the model shortens first.
+ */
+@Composable
+private fun TitleAndModel(modifier: Modifier, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
+        val (title, model) = measurables
+        val room = constraints.maxWidth
+        val gap = PILL_GAP.roundToPx()
+        val height = constraints.maxHeight.takeIf { it != Constraints.Infinity } ?: Constraints.Infinity
+        val titleWants = title.maxIntrinsicWidth(height)
+        val modelWants = model.maxIntrinsicWidth(height)
+        val modelWidth = minOf(modelWants, maxOf(room - gap - titleWants, (room - gap) / 2)).coerceAtLeast(0)
+        val titleWidth = minOf(titleWants, room - gap - modelWidth).coerceAtLeast(0)
+        val placedModel = model.measure(Constraints(maxWidth = modelWidth))
+        val placedTitle = title.measure(Constraints(maxWidth = titleWidth))
+        val rowHeight = maxOf(placedTitle.height, placedModel.height)
+        layout(room, rowHeight) {
+            placedTitle.place(0, (rowHeight - placedTitle.height) / 2)
+            placedModel.place(room - placedModel.width, (rowHeight - placedModel.height) / 2)
+        }
+    }
+}
+
+/** How the session is doing, under its title, with the dot's colour. */
+@Composable
+private fun phoneStatus(state: UiState): Pair<String, androidx.compose.ui.graphics.Color> {
+    val colors = ConsoleColors
+    val waiting = state.items.any { it is ConversationItem.ConfirmationItem && it.status == ConfirmationStatus.PENDING }
+    return when {
+        waiting -> stringResource(R.string.phone_status_waiting) to colors.warning
+        state.isRunning -> stringResource(R.string.phone_status_working) to colors.activity
+        else -> stringResource(R.string.phone_status_ready) to colors.success
     }
 }
 
@@ -88,16 +136,20 @@ private fun PhoneModelMenu(state: UiState, actions: ConsoleActions) {
 }
 
 @Composable
-internal fun RoundButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+internal fun RoundButton(icon: ImageVector, label: String, onClick: () -> Unit) = RoundButton(rememberVectorPainter(icon), label, onClick)
+
+/** A raised round button: the bars' menu, back and new chat, and the drawer's foot. */
+@Composable
+internal fun RoundButton(icon: Painter, label: String, onClick: () -> Unit) {
     val colors = ConsoleColors
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = colors.elevated,
-        border = BorderStroke(1.dp, colors.borderSubtle),
+        shadowElevation = PILL_SHADOW,
         modifier = Modifier.size(TOP_BUTTON_SIZE).semantics { contentDescription = label },
     ) {
-        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = colors.text) }
+        Box(contentAlignment = Alignment.Center) { Icon(icon, contentDescription = null, tint = colors.text, modifier = Modifier.size(22.dp)) }
     }
 }
 
@@ -108,24 +160,24 @@ private fun phoneTitle(state: UiState): String {
     return title?.takeIf { it.isNotBlank() }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat)
 }
 
+/** The session's title, and under it a dot and how it is doing. */
 @Composable
-private fun TitlePill(title: String) {
+private fun TitlePill(title: String, status: Pair<String, androidx.compose.ui.graphics.Color>) {
     val colors = ConsoleColors
-    Surface(shape = RoundedCornerShape(Dimens.radiusFull), color = colors.elevated, border = BorderStroke(1.dp, colors.borderSubtle)) {
-        Row(Modifier.padding(start = 6.dp, end = 16.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(MARK_SIZE).clip(CircleShape))
-            Text(
-                text = title,
-                style = ConsoleType.panelTitle,
-                color = colors.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 8.dp),
-            )
+    Surface(shape = RoundedCornerShape(Dimens.radiusFull), color = colors.elevated, shadowElevation = PILL_SHADOW) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
+            Text(title, style = ConsoleType.panelTitle.copy(fontSize = TITLE_SIZE), color = colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StatusDot(color = status.second, modifier = Modifier.size(6.dp))
+                Text(status.first, style = ConsoleType.meta.copy(fontSize = STATUS_SIZE), color = colors.muted, maxLines = 1, modifier = Modifier.padding(start = 4.dp))
+            }
         }
     }
 }
 
-private val TOP_BUTTON_SIZE = 48.dp
-private val MARK_SIZE = 30.dp
-private val MODEL_PILL_MAX_WIDTH = 180.dp
+private val TOP_BUTTON_SIZE = 46.dp
+private val MODEL_PILL_MAX_WIDTH = 200.dp
+private val PILL_GAP = 8.dp
+private val TITLE_SIZE = 14.sp
+private val STATUS_SIZE = 11.sp
+private val PILL_SHADOW = 2.dp

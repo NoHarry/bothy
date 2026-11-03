@@ -819,7 +819,7 @@ private fun ActiveStatusBarContent(header: String, detail: String?, elapsedLabel
 }
 
 @Composable
-private fun statusDetail(state: UiState): String? {
+internal fun statusDetail(state: UiState): String? {
     val status = state.status.trim()
     return when {
         status.startsWith("Tool running:", ignoreCase = true) -> null

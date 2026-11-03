@@ -97,23 +97,13 @@
     <string name="console_open_menu">Open menu</string>
     <string name="console_new_chat">New chat</string>
     <string name="console_run_done">Done</string>
-    <string name="console_message_placeholder_short">Message</string>
     <string name="console_search_sessions">Search chats</string>
     <string name="console_drawer_today">Today</string>
     <string name="console_drawer_yesterday">Yesterday</string>
     <string name="console_drawer_earlier">Earlier</string>
     <string name="console_drawer_features">More</string>
-    <string name="console_drawer_plans_all">All plans</string>
     <string name="console_drawer_assistant">Bothy</string>
     <string name="console_open_playground">Head unit</string>
-    <plurals name="console_plan_steps">
-        <item quantity="one">%1$d step left</item>
-        <item quantity="other">%1$d steps left</item>
-    </plurals>
-    <plurals name="console_plan_steps_unfinished">
-        <item quantity="one">%1$d step unfinished</item>
-        <item quantity="other">%1$d steps unfinished</item>
-    </plurals>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">
         <item quantity="one">Read %1$d file</item>
@@ -315,16 +305,25 @@
     <string name="console_trajectory_full">Full trajectory</string>
     <string name="console_trajectory_given">Given</string>
     <string name="console_trajectory_returned">Returned</string>
-    <string name="phone_run_working">Working · step %1$d · %2$s</string>
-    <string name="phone_run_trajectory">Trajectory</string>
-    <plurals name="phone_run_thoughts">
-        <item quantity="one">thought %1$d time</item>
-        <item quantity="other">thought %1$d times</item>
-    </plurals>
-    <plurals name="phone_run_tools">
-        <item quantity="one">%1$d tool</item>
-        <item quantity="other">%1$d tools</item>
-    </plurals>
     <string name="phone_plans_intro">Bothy reminds you when they come due, or does them for you.</string>
     <string name="phone_plans_empty">Just tell Bothy, for example “Remind me to bring an umbrella at eight tomorrow” or “Read me the weather at 8 every morning”.</string>
+    <plurals name="phone_run_tool_calls">
+        <item quantity="one">%1$d tool call</item>
+        <item quantity="other">%1$d tool calls</item>
+    </plurals>
+    <plurals name="phone_run_messages">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
+    <plurals name="phone_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+    <string name="phone_copy">Copy</string>
+    <string name="phone_composer_hint">Message Bothy…</string>
+    <string name="phone_composer_running">Working · type to steer</string>
+    <string name="phone_status_ready">Ready</string>
+    <string name="phone_status_working">Working</string>
+    <string name="phone_status_waiting">Waiting for you</string>
+    <string name="phone_drawer_this_week">This week</string>
 </resources>
