@@ -10,7 +10,8 @@ import cc.noharry.bothy.playground.home.line
 
 /**
  * Where things sit in the two scene pictures, as fractions of the picture (measured on scene_cabin.webp and
- * scene_home.webp): what the overlays draw on. A new picture needs these measured again.
+ * scene_home.webp): what the overlays draw on. A new picture needs these measured again. Portrait letterboxes the
+ * same picture at [CabinSpots.ASPECT], so these fractions stay on the seats and doors.
  */
 internal object CabinSpots {
     const val ASPECT = 744f / 1200f

@@ -102,6 +102,11 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState, flash: Flash, flashLevel: Float, store: PlaygroundStore, onHome: () -> Unit) {
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    if (usesPortraitHeadUnit(config.screenWidthDp, config.orientation)) {
+        PortraitHeadUnit(world, flash, store)
+        return
+    }
     val mode by HeadUnitModes.mode.collectAsState()
     // Held above the switch, so the sheet stays open across it (the switch is in the sheet).
     var sheet by remember { mutableStateOf(false) }
