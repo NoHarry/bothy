@@ -104,8 +104,12 @@ internal data class VoiceConfig(
     }
 }
 
-internal fun loadVoiceConfig(context: Context): VoiceConfig {
-    seedEmbeddedVoice(context)
+internal fun loadVoiceConfig(
+    context: Context,
+    embedded: () -> Map<String, String> = ::buildConfigValues,
+): VoiceConfig {
+    migrateOverlayWakeDefault(context, embedded)
+    seedEmbeddedVoice(context, embedded)
     val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
     val defaults = VoiceConfig()
     val t = defaults.thresholds
@@ -196,7 +200,57 @@ internal fun saveVoiceConfig(
 
 /** The overlay wake switch; applied at once by [WakeWord.setEnabled]. */
 internal fun saveOverlayWake(context: Context, enabled: Boolean): Boolean =
-    context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE).edit().putBoolean(OVERLAY_WAKE_KEY, enabled).commit()
+    context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE).edit()
+        .putBoolean(OVERLAY_WAKE_KEY, enabled)
+        .putBoolean(OVERLAY_WAKE_USER_SET, true)
+        .commit()
+
+/**
+ * Wake word is off unless the person turned it on, or this build embedded an explicit choice.
+ * Older installs were switched on when setup finished; that value is turned off once. A later
+ * [saveOverlayWake] is kept.
+ *
+ * A build that already seeded [EMBEDDED_OVERLAY_WAKE] on, before [OVERLAY_WAKE_FROM_BUILD] existed,
+ * keeps wake on. If that migration already turned it off and the notice is still up, wake is put back.
+ * Dismissing the notice leaves it off.
+ */
+internal fun migrateOverlayWakeDefault(
+    context: Context,
+    embedded: () -> Map<String, String> = ::buildConfigValues,
+) {
+    val prefs = context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE)
+    val packagedOn = embedded()[EMBEDDED_OVERLAY_WAKE]?.trim()?.lowercase() in TRUE_WORDS
+    val userSet = prefs.getBoolean(OVERLAY_WAKE_USER_SET, false)
+    val seededPackagedOn = packagedOn && prefs.getBoolean(KEY_SEEDED, false) && !userSet
+    if (seededPackagedOn && !prefs.getBoolean(OVERLAY_WAKE_FROM_BUILD, false)) {
+        val stillOn = prefs.getBoolean(OVERLAY_WAKE_KEY, false)
+        val noticeStillUp = prefs.getBoolean(WAKE_MIGRATION_NOTICE, false)
+        if (stillOn || noticeStillUp) {
+            prefs.edit()
+                .putBoolean(OVERLAY_WAKE_FROM_BUILD, true)
+                .putBoolean(OVERLAY_WAKE_KEY, true)
+                .putBoolean(WAKE_DEFAULT_MIGRATED, true)
+                .putBoolean(WAKE_MIGRATION_NOTICE, false)
+                .apply()
+            return
+        }
+    }
+    if (prefs.getBoolean(WAKE_DEFAULT_MIGRATED, false)) return
+    val edit = prefs.edit().putBoolean(WAKE_DEFAULT_MIGRATED, true)
+    val explicit = userSet || prefs.getBoolean(OVERLAY_WAKE_FROM_BUILD, false)
+    if (!explicit && prefs.getBoolean(OVERLAY_WAKE_KEY, false)) {
+        edit.putBoolean(OVERLAY_WAKE_KEY, false)
+        edit.putBoolean(WAKE_MIGRATION_NOTICE, true)
+    }
+    edit.apply()
+}
+
+internal fun wakeMigrationNotice(context: Context): Boolean =
+    context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE).getBoolean(WAKE_MIGRATION_NOTICE, false)
+
+internal fun clearWakeMigrationNotice(context: Context) {
+    context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE).edit().putBoolean(WAKE_MIGRATION_NOTICE, false).apply()
+}
 
 internal fun saveWakeSensitivity(context: Context, sensitivity: WakeSensitivity): Boolean =
     context.getSharedPreferences(VOICE_PREFS, Context.MODE_PRIVATE).edit().putString(WAKE_SENSITIVITY_KEY, sensitivity.wireName).commit()
@@ -236,7 +290,10 @@ internal fun seedEmbeddedVoice(context: Context, embedded: () -> Map<String, Str
     seed("dashscope_model", values[EMBEDDED_DASHSCOPE_MODEL]?.takeIf { id -> DashScopeAsrModel.entries.any { it.id == id } })
     seed("hotwords", values[EMBEDDED_HOTWORDS]?.let(::parseHotwords)?.takeIf { it.isNotEmpty() }?.joinToString("\n"))
     values[EMBEDDED_OVERLAY_WAKE]?.lowercase()?.let { it in TRUE_WORDS }
-        ?.takeIf { !prefs.contains(OVERLAY_WAKE_KEY) }?.let { edit.putBoolean(OVERLAY_WAKE_KEY, it) }
+        ?.takeIf { !prefs.contains(OVERLAY_WAKE_KEY) }?.let { enabled ->
+            edit.putBoolean(OVERLAY_WAKE_KEY, enabled)
+            edit.putBoolean(OVERLAY_WAKE_FROM_BUILD, true)
+        }
     edit.putBoolean(KEY_SEEDED, true).apply()
 }
 
@@ -245,6 +302,10 @@ private fun android.content.SharedPreferences.double(name: String, fallback: Dou
 
 private const val VOICE_PREFS = "debug_voice"
 private const val OVERLAY_WAKE_KEY = "overlay_wake"
+private const val OVERLAY_WAKE_USER_SET = "overlay_wake_user_set"
+private const val OVERLAY_WAKE_FROM_BUILD = "overlay_wake_from_build"
+private const val WAKE_DEFAULT_MIGRATED = "overlay_wake_default_migrated"
+internal const val WAKE_MIGRATION_NOTICE = "overlay_wake_migration_notice"
 private const val WAKE_SENSITIVITY_KEY = "wake_sensitivity"
 private const val DASHSCOPE_KEY_FILE = "debug_voice_dashscope_key"
 private const val KEY_SEEDED = "embedded_seeded"

@@ -102,6 +102,11 @@ import kotlinx.coroutines.withContext
  */
 @Composable
 internal fun HeadUnit(world: World, calls: List<CallRecord>, server: ServerState, flash: Flash, flashLevel: Float, store: PlaygroundStore, onHome: () -> Unit) {
+    val config = androidx.compose.ui.platform.LocalConfiguration.current
+    if (usesPortraitHeadUnit(config.screenWidthDp, config.orientation)) {
+        PortraitHeadUnit(world, calls, server, flash, flashLevel, store, onHome)
+        return
+    }
     val mode by HeadUnitModes.mode.collectAsState()
     // Held above the switch, so the sheet stays open across it (the switch is in the sheet).
     var sheet by remember { mutableStateOf(false) }
@@ -584,9 +589,9 @@ internal fun SettingsSheet(world: World, calls: List<CallRecord>, server: Server
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val mode by HeadUnitModes.mode.collectAsState()
-    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(remember { MutableInteractionSource() }, null, onClick = onClose)) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.5f)).clickable(remember { MutableInteractionSource() }, null, onClick = onClose)) {
         Column(
-            Modifier.align(Alignment.CenterEnd).width(SHEET_WIDTH).fillMaxHeight().background(PlaygroundColors.bg)
+            Modifier.align(Alignment.CenterEnd).width(if (maxWidth < SHEET_WIDTH) maxWidth else SHEET_WIDTH).fillMaxHeight().background(PlaygroundColors.bg)
                 .clickable(remember { MutableInteractionSource() }, null) {}.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {

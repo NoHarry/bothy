@@ -2,23 +2,19 @@ package cc.noharry.bothy.app.console
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Window
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import cc.noharry.bothy.app.Onboarding
+import cc.noharry.bothy.app.OnboardingDraft
 import cc.noharry.bothy.app.OnboardingScreen
 import cc.noharry.bothy.app.a2a.A2aClientActions
 import cc.noharry.bothy.app.a2a.A2aClientConsole
@@ -26,6 +22,7 @@ import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.console.ui.DesignDensity
 import cc.noharry.bothy.app.console.ui.UiScale
+import cc.noharry.bothy.app.phone.PhoneApp
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.overlay.OverlayService
 import cc.noharry.bothy.app.runtime.RuntimeSession
@@ -38,6 +35,9 @@ import cc.noharry.bothy.app.voice.AsrTextServerManager
 import cc.noharry.bothy.app.voice.loadVoiceConfig
 
 class ConsoleActivity : ComponentActivity() {
+    /** Whether this screen is a phone's, worked out once: a fold or a rotation recreates the activity. */
+    private val phoneScreen by lazy { UiScale.phone(this) }
+
     private var uiState by mutableStateOf<UiState?>(null)
     private var a2aClientState by mutableStateOf(A2aClientState())
     private var pendingInput by mutableStateOf("")
@@ -58,6 +58,7 @@ class ConsoleActivity : ComponentActivity() {
         super.onStart()
         ConsoleVisibility.set(this, visible = true)
         // With 语音唤醒 on, 小博 comes up with the app, not only when opened by hand (the wake word listens either way).
+        // A phone has no resting 小博, so nothing comes up there ([OverlayControl.ensureRunning]).
         if (loadVoiceConfig(this).overlayWake) OverlayControl.ensureRunning(this)
     }
 
@@ -69,7 +70,9 @@ class ConsoleActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
-        if (UiScale.phone(this)) sideways()
+        ConsoleAppearance.load(this)
+        FrontEnd.load(this)
+        // Phones stay in the orientation the person is holding, portrait included. A portrait phone keeps the status bar.
         AsrTextServerManager.start(applicationContext)
         detachSession = RuntimeSession.attach(this) { uiState = it }
         detachA2aClient = A2aClientConsole.attach(this) { a2aClientState = it }
@@ -80,24 +83,32 @@ class ConsoleActivity : ComponentActivity() {
                     if (onboarding) {
                         OnboardingScreen {
                             Onboarding.finish(this)
+                            OnboardingDraft.clear()
                             onboarding = false
                         }
                         return@ConsoleTheme
                     }
                     uiState?.let { state ->
-                        ConsoleScreen(
-                            state = state,
-                            pendingInput = pendingInput,
-                            onPendingInputConsumed = { pendingInput = "" },
-                            actions = actions(),
-                            a2aClient = a2aClientState,
-                            a2aActions = a2aClientActions(),
-                        )
+                        // One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the
+                        // console ([FrontEnd]); switching in the settings swaps them at once.
+                        if (FrontEnd.phone(phoneScreen)) {
+                            PhoneApp(state, pendingInput, { pendingInput = "" }, actions(), a2aClientState, a2aClientActions())
+                        } else {
+                            ConsoleScreen(
+                                state = state,
+                                pendingInput = pendingInput,
+                                onPendingInputConsumed = { pendingInput = "" },
+                                actions = actions(),
+                                a2aClient = a2aClientState,
+                                a2aActions = a2aClientActions(),
+                            )
+                        }
                     }
                 }
             }
         }
-        handleIntent(intent)
+        // A recreated activity is handed the same intent again. A debug utterance is filled in once.
+        if (savedInstanceState == null) handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -201,23 +212,6 @@ class ConsoleActivity : ComponentActivity() {
         if (intent == null) return
         val text = intent.getStringExtra(DEBUG_TEXT_EXTRA) ?: return
         if (!intent.getBooleanExtra(DEBUG_ALREADY_SUBMITTED_EXTRA, false)) pendingInput = text
-    }
-
-    /**
-     * A phone holds the console sideways, as the playground's head unit (owner 2026-10-23: 手机都固定横屏), without the
-     * system bars, which would take a fifth of its height; a swipe brings them back for a moment. The camera's side would
-     * stay a black band: the console draws under it and keeps its content clear ([ConsoleScreen]).
-     */
-    private fun sideways() {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES }
-        }
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
     }
 
     private fun openOverlay() {

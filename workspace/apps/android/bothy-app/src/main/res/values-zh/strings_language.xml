@@ -3,4 +3,15 @@
     <string name="settings_language">语言</string>
     <string name="settings_language_note">默认跟随系统，也可以在这里选定。不影响小博说的话。</string>
     <string name="settings_language_system">跟随系统</string>
+    <string name="settings_theme">主题</string>
+    <string name="settings_theme_note">浅色是燕麦和松绿，深色是暖深色。车机仍用自己的夜色。</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_layout">界面布局</string>
+    <string name="settings_layout_note">自动按屏幕选：手机用手机界面，平板和车机用控制台。手机布局下，小博不会停在别的应用上面，唤醒或有任务来了才出来。</string>
+    <string name="settings_layout_short_note">自动按屏幕选。手机和平板在应用外的表现也不一样。</string>
+    <string name="settings_layout_auto">自动</string>
+    <string name="settings_layout_phone">手机</string>
+    <string name="settings_layout_console">平板</string>
 </resources>

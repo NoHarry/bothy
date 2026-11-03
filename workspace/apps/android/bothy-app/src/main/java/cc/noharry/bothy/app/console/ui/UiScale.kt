@@ -34,7 +34,7 @@ internal object UiScale {
     /** A display whose short side is under a tablet's, in platform dp. */
     fun phone(shortPx: Int, nativeDensity: Float): Boolean = shortPx / nativeDensity < PHONE_SHORT_SIDE_DP
 
-    /** Whether this device is a phone, for the screens that turn it sideways. */
+    /** Whether this device is a phone. Phones keep the platform dp and are not turned sideways. */
     fun phone(context: Context): Boolean = phone(displaySidesPx(context).second, context.resources.displayMetrics.density)
 
     /** Screen pixels per design pixel on this display. */

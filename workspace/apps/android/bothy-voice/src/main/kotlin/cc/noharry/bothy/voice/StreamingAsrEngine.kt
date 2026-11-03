@@ -48,6 +48,15 @@ interface StreamingAsrEngine {
 
     fun accept(samples: ShortArray)
 
+    /**
+     * No more audio is coming. Deliver a trailing final if the pipeline still holds one, then call [onDrained].
+     * Does not release the engine; the session calls [stop] after the drain or a short timeout.
+     * The default has nothing queued.
+     */
+    fun finish(onDrained: () -> Unit) {
+        onDrained()
+    }
+
     fun stop()
 }
 

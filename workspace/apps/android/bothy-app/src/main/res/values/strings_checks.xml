@@ -92,12 +92,12 @@
     <string name="checks_capture_mono">Mono</string>
     <string name="checks_allowed">Allowed</string>
     <string name="checks_record_denied">Not allowed: voice and wake won\'t work</string>
-    <string name="checks_overlay_denied">Not allowed: Xiao Bo\'s floating card and voice wake both need it</string>
+    <string name="checks_overlay_denied">Not allowed: Bothy\'s floating card and voice wake both need it</string>
     <string name="checks_accessibility_off">Screen control is off (Basic tools)</string>
     <string name="checks_accessibility_connected">Connected</string>
     <string name="checks_accessibility_repaired">The system hadn\'t connected it (common after the app is force-stopped); turned it back on and connected it</string>
-    <string name="checks_accessibility_stuck">On, but the system never connected it, and turning it back on didn\'t help: Xiao Bo can\'t control the screen</string>
-    <string name="checks_accessibility_disabled">Off: Xiao Bo can\'t control the screen</string>
+    <string name="checks_accessibility_stuck">On, but the system never connected it, and turning it back on didn\'t help: Bothy can\'t control the screen</string>
+    <string name="checks_accessibility_disabled">Off: Bothy can\'t control the screen</string>
     <string name="checks_notifications_not_needed">Not needed on this Android version</string>
     <string name="checks_notifications_denied">Not allowed: the background recording notification won\'t show; recording and wake still work</string>
     <string name="checks_cannot_connect">Can\'t connect: %1$s</string>

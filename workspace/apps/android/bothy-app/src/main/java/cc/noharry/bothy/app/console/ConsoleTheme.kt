@@ -1,5 +1,11 @@
 package cc.noharry.bothy.app.console
+import android.app.Activity
+import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -67,7 +73,7 @@ internal val LightConsoleColors = ConsoleThemeColors(
     border = Color(0xFFE4DDD0),
     borderSubtle = Color(0xFFEDE7DC),
     text = Color(0xFF1E231F),
-    muted = Color(0xFF6A665D),
+    muted = Color(0xFF646860),
     tertiary = Color(0xFF9B958A),
     accent = Color(0xFF2F6B4F),
     accentSoft = Color(0xFFE2EDE5),
@@ -78,31 +84,31 @@ internal val LightConsoleColors = ConsoleThemeColors(
     danger = Color(0xFFC8372D),
     success = Color(0xFF2E9C63),
     warning = Color(0xFFB7791F),
-    userBubble = Color(0xFFECE6DA),
+    userBubble = Color(0xFFD3E6DA),
     codeBg = Color(0xFFF1ECE3),
     isDark = false,
 )
 
 internal val DarkConsoleColors = ConsoleThemeColors(
-    bg = Color(0xFF0E1210),
-    panel = Color(0xFF141917),
-    elevated = Color(0xFF1B221E),
-    border = Color(0xFF29322D),
-    borderSubtle = Color(0xFF1F2723),
-    text = Color(0xFFE8E5DD),
-    muted = Color(0xFFA29D92),
-    tertiary = Color(0xFF6E6A62),
-    accent = Color(0xFF8CC7A5),
-    accentSoft = Color(0xFF1D2E25),
-    ink = Color(0xFFE8E5DD),
-    inkSoft = Color(0xFF2A322D),
-    activity = Color(0xFFF2925A),
-    activitySoft = Color(0xFF33221A),
-    danger = Color(0xFFF07A6E),
-    success = Color(0xFF5CCB8E),
+    bg = Color(0xFF1C1A16),
+    panel = Color(0xFF2C2823),
+    elevated = Color(0xFF38332C),
+    border = Color(0xFF4A453E),
+    borderSubtle = Color(0x33F4F1EA),
+    text = Color(0xFFF4F1EA),
+    muted = Color(0xFFA8A194),
+    tertiary = Color(0xFFC4BBAE),
+    accent = Color(0xFF8FCBAB),
+    accentSoft = Color(0xFF243E32),
+    ink = Color(0xFFF4F1EA),
+    inkSoft = Color(0xFF4E6256),
+    activity = Color(0xFFE08A4A),
+    activitySoft = Color(0xFF3A2A22),
+    danger = Color(0xFFE7B0A4),
+    success = Color(0xFF3CB371),
     warning = Color(0xFFE6B655),
-    userBubble = Color(0xFF1E2622),
-    codeBg = Color(0xFF111613),
+    userBubble = Color(0xFF2A4638),
+    codeBg = Color(0xFF161410),
     isDark = true,
 )
 
@@ -160,9 +166,25 @@ internal object Dimens {
 internal typealias ProviderFetchAction =
     (String, ModelProvider, ProviderEndpoint, String, String, String, (Result<List<String>>) -> Unit) -> Unit
 
+internal fun consoleColors(mode: ConsoleAppearance.Mode, systemDark: Boolean): ConsoleThemeColors = when (mode) {
+    ConsoleAppearance.Mode.LIGHT -> LightConsoleColors
+    ConsoleAppearance.Mode.DARK -> DarkConsoleColors
+    ConsoleAppearance.Mode.SYSTEM -> if (systemDark) DarkConsoleColors else LightConsoleColors
+}
+
 @Composable
 internal fun ConsoleTheme(content: @Composable () -> Unit) {
-    val colors = if (isSystemInDarkTheme()) DarkConsoleColors else LightConsoleColors
+    val colors = consoleColors(ConsoleAppearance.current, isSystemInDarkTheme())
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val argb = colors.bg.toArgb()
+            window.statusBarColor = argb
+            window.setBackgroundDrawable(ColorDrawable(argb))
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !colors.isDark
+        }
+    }
     CompositionLocalProvider(LocalConsoleColors provides colors) {
         MaterialTheme(
             colorScheme = if (colors.isDark) {

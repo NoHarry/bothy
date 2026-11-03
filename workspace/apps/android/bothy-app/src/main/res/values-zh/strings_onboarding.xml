@@ -15,7 +15,7 @@
     <string name="onboarding_doubao_saved">已保存：小博会用豆包的声音说话</string>
     <string name="onboarding_step_permissions">3 · 权限</string>
     <string name="onboarding_permission_microphone">麦克风（必需）</string>
-    <string name="onboarding_permission_microphone_note">说「你好小博」唤醒、语音对话</string>
+    <string name="onboarding_permission_microphone_note">用语音对话。唤醒词默认关闭，可在设置 → 语音里打开</string>
     <string name="onboarding_permission_overlay">悬浮窗（必需）</string>
     <string name="onboarding_permission_overlay_note">小博浮在其它 App 上面，随时唤醒</string>
     <string name="onboarding_permission_notifications">通知使用权（推荐）</string>
@@ -27,7 +27,7 @@
     <string name="onboarding_permission_granted">已开启</string>
     <string name="onboarding_permission_grant">去开启</string>
     <string name="onboarding_step_first_words">4 · 试试这样说</string>
-    <string name="onboarding_first_words_note">说「你好小博」或「OK Bothy」，也可以点悬浮的小博，然后：</string>
+    <string name="onboarding_first_words_note">点悬浮的小博，或控制台里的麦克风，然后：</string>
     <string name="onboarding_playground_note">装了 Bothy Playground：打开它放在前台，小博就在虚拟车机里，可以开空调、开车窗、导航。</string>
     <string name="onboarding_open_playground">打开 Bothy Playground</string>
     <string name="onboarding_get_started">开始使用</string>

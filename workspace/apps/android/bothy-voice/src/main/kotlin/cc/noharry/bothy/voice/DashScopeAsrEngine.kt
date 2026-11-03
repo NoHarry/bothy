@@ -48,6 +48,11 @@ class DashScopeAsrEngine(
     private val pending = ArrayDeque<ByteString>()
     private var finished: CountDownLatch? = null
     private var vocabulary: String? = null
+    /** Set from the recognizer thread and read from the WebSocket thread. */
+    @Volatile private var drain: (() -> Unit)? = null
+    @Volatile private var finishSent = false
+    /** [finish] arrived before `task-started`; send `finish-task` only after the queued audio. */
+    private var finishQueued = false
 
     override fun start(listener: AsrListener) {
         vocabulary = runCatching { vocabularyId() }.getOrNull()
@@ -76,18 +81,43 @@ class DashScopeAsrEngine(
         }
     }
 
+    override fun finish(onDrained: () -> Unit) {
+        val idle = synchronized(lock) {
+            val active = socket
+            if (active == null) return@synchronized true
+            drain = onDrained
+            if (!started) {
+                // A quick release, or a slow handshake: `finish-task` before `run-task` makes 百炼 drop the audio.
+                finishQueued = true
+            } else if (!finishSent) {
+                finishSent = true
+                active.send(dashScopeFinishTask(taskId))
+            }
+            false
+        }
+        if (idle) onDrained()
+    }
+
     override fun stop() {
         val active = socket ?: return
-        val wasStarted = synchronized(lock) { started }
-        if (wasStarted) {
-            active.send(dashScopeFinishTask(taskId))
-            runCatching { finished?.await(FINISH_WAIT_MILLIS, TimeUnit.MILLISECONDS) }
+        val waitForServer = synchronized(lock) {
+            finishQueued = false
+            val send = started && !finishSent
+            if (send) {
+                finishSent = true
+                active.send(dashScopeFinishTask(taskId))
+            }
+            drain = null
+            send
         }
+        if (waitForServer) runCatching { finished?.await(FINISH_WAIT_MILLIS, TimeUnit.MILLISECONDS) }
         active.close(NORMAL_CLOSURE, null)
         synchronized(lock) {
             socket = null
             started = false
             pending.clear()
+            finishQueued = false
+            drain = null
         }
         listener = null
     }
@@ -102,12 +132,21 @@ class DashScopeAsrEngine(
                 DashScopeEvent.Started -> synchronized(lock) {
                     started = true
                     while (pending.isNotEmpty()) webSocket.send(pending.removeFirst())
+                    if (finishQueued && !finishSent) {
+                        finishSent = true
+                        webSocket.send(dashScopeFinishTask(taskId))
+                    }
+                    finishQueued = false
                 }
                 is DashScopeEvent.Result -> if (event.final) listener?.onFinal(event.text) else listener?.onPartial(event.text)
-                DashScopeEvent.Finished -> finished?.countDown()
+                DashScopeEvent.Finished -> {
+                    finished?.countDown()
+                    deliverDrain()
+                }
                 is DashScopeEvent.Failed -> {
                     finished?.countDown()
                     listener?.onError(VoiceProblem.RecognitionFailed(event.code, event.message))
+                    deliverDrain()
                 }
                 null -> Unit
             }
@@ -117,7 +156,17 @@ class DashScopeAsrEngine(
             finished?.countDown()
             if (socket !== webSocket) return
             listener?.onError(VoiceProblem.ConnectionFailed(response?.code, t.message.orEmpty()))
+            deliverDrain()
         }
+    }
+
+    private fun deliverDrain() {
+        val pending = synchronized(lock) {
+            val current = drain
+            drain = null
+            current
+        }
+        pending?.invoke()
     }
 }
 

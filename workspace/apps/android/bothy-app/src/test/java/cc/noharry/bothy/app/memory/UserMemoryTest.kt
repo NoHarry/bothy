@@ -212,10 +212,10 @@ class UserMemoryTest {
     fun theHeaderCountsInEnglishWithSingularAndPlural() {
         book.remember(MemoryCategory.IDENTITY, "叫我老王", MemorySource.SAID)
         val one = memorySummary(context, book.all(), clock).line
-        assertEquals("Xiao Bo remembers 1 thing · has known you for 1 day", one)
+        assertEquals("Bothy remembers 1 thing · has known you for 1 day", one)
         book.remember(MemoryCategory.PLACES, "家在望京花园", MemorySource.SAID)
         val two = memorySummary(context, book.all(), clock + 2L * 24 * 60 * 60 * 1000).line
-        assertEquals("Xiao Bo remembers 2 things · has known you for 3 days", two)
+        assertEquals("Bothy remembers 2 things · has known you for 3 days", two)
     }
 
     private fun saved(result: MemoryWrite): UserMemory = (result as MemoryWrite.Saved).memory

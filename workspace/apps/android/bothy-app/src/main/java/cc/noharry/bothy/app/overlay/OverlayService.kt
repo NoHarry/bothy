@@ -36,10 +36,7 @@ import kotlinx.coroutines.*
  * window drives the pose at a time (the old one stops, the new one starts a frame later).
  */
 class OverlayService : Service(), OverlayBubble.Listener {
-    override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(AppLanguages.wrap(newBase))
-    }
-
+    override fun attachBaseContext(newBase: Context) = super.attachBaseContext(AppLanguages.wrap(newBase))
     private val composeOwner = OverlayComposeOwner()
     private lateinit var windowManager: WindowManager
     private lateinit var root: ComposeView
@@ -56,7 +53,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     private var latestState: UiState? = null
     private var renderScheduled: Boolean = false
     private var placedLandscape: Boolean? = null
-
+    private var phoneRest: OverlayPhoneRest? = null
     private var hud by mutableStateOf<OverlayHud?>(null)
     private var ui by mutableStateOf(OverlayUi())
     private var showInput: Boolean = false
@@ -69,7 +66,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
     /** The picture shown large; a new picture (or none) returns the card to normal. */
     private var expandedPicture: String? = null
     private val expandedToolIds = linkedSetOf<Long>()
-
     private var presence = Presence.BUBBLE
     /** Where the user wants the overlay; a transition under way finishes first, then this is honoured. */
     private var wantCard = false
@@ -103,7 +99,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
     private var useMode = UseMode.OFF
     private var pendingUse: (() -> Unit)? = null
     private val useIdle = Runnable { exitAndroidUse() }
-
     private val renderRunnable = Runnable { renderLatestState() }
     private val tickRunnable = object : Runnable {
         override fun run() {
@@ -186,12 +181,10 @@ class OverlayService : Service(), OverlayBubble.Listener {
             if (!OverlayFocus.external && A2aClientConsole.state.mirrors.isEmpty()) collapse()
         })
         OverlayControl.androidUse = androidUseOverlay
-        val (x, y) = parkedSpot()
-        bubble.showAt(x, y, touchable = true)
+        phoneRest = restOnPhone()
+        parkedSpot().let { (x, y) -> bubble.showAt(x, y, touchable = true) }
         bubble.driving = true
-        OverlayControl.presenter = { command ->
-            if (command == OverlayCommand.SHOW) expand() else collapse()
-        }
+        OverlayControl.presenter = { command -> if (command == OverlayCommand.SHOW) expand() else collapse() }
         OverlayControl.mascotPreview = ::previewMascot
         OverlayControl.closer = { stopSelf() }
         detachSession = RuntimeSession.attach(this) { state ->
@@ -237,6 +230,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
             root.removeCallbacks(flyToCardRunnable)
             root.removeCallbacks(fitPending)
             root.removeCallbacks(useIdle)
+            phoneRest?.stop()
             voice.destroy()
             useStage.destroy()
             flight.destroy()
@@ -450,8 +444,13 @@ class OverlayService : Service(), OverlayBubble.Listener {
         if (wantCard && presence == Presence.BUBBLE) expand()
     }
 
+    /** On a phone the bubble stays hidden, and the overlay goes once folded with nothing under way ([OverlayPhoneRest]). */
+    private fun restOnPhone() = OverlayPhoneRest.on(this, root, bubble, ::stopSelf) {
+        if (presence != Presence.BUBBLE || wantCard) null else useMode != UseMode.OFF || pendingUse != null || AssistantSurface.active || overlayFoldedSignal(resources, delegations) != null
+    }
+
     private fun surfaceChanged(taken: Boolean) {
-        bubble.suppressed = taken
+        bubble.suppressed = taken || phoneRest != null
         if (taken && presence != Presence.BUBBLE) collapse()
         glance.sync()
     }
@@ -594,7 +593,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
                 bubble.driving = true
                 presence = Presence.BUBBLE
                 glance.sync()
-                if (pendingUse != null) enterAndroidUse() else if (wantCard) expand()
+                if (pendingUse != null) enterAndroidUse() else if (wantCard) expand() else phoneRest?.arm()
             }
         }
     }

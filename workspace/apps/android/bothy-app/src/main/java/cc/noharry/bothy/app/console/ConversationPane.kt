@@ -68,6 +68,8 @@ import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.model.ProviderEditState
 import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.overlay.pickableReply
+import cc.noharry.bothy.app.voice.clearWakeMigrationNotice
+import cc.noharry.bothy.app.voice.wakeMigrationNotice
 import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
 import cc.noharry.bothy.app.runtime.variantChoices
 import cc.noharry.bothy.app.session.ConfirmationMode
@@ -125,6 +127,7 @@ private fun RegularConversationPane(
     modifier: Modifier,
 ) {
     PanelBox(stringResource(R.string.console_conversation), modifier) {
+        WakeMigrationNote()
         ConversationStatus(state)
         Spacer(Modifier.height(Dimens.spaceSm))
         val listState = rememberLazyListState()
@@ -236,6 +239,28 @@ private fun ConversationEmptyState(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+internal fun WakeMigrationNote() {
+    val context = LocalContext.current
+    var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
+    if (!wakeNote) return
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.voice_wake_migrated_off),
+            style = ConsoleType.bodySmall,
+            color = ConsoleColors.text,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = {
+            clearWakeMigrationNotice(context)
+            wakeNote = false
+        }) { Text(stringResource(R.string.common_ok)) }
+    }
+}
+
 private val WELCOME_MAX_WIDTH = 560.dp
 private const val WELCOME_ASPECT = 2f
 
@@ -260,6 +285,7 @@ private fun CondensedConversationPane(
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 6.dp, vertical = 4.dp)) {
             val showStatus = maxHeight >= CONDENSED_STATUS_MIN_HEIGHT
             Column(Modifier.fillMaxSize()) {
+                WakeMigrationNote()
                 if (showStatus) {
                     ConversationStatus(state)
                     Spacer(Modifier.height(2.dp))
@@ -617,7 +643,7 @@ private fun ConfirmationModeSelector(
 }
 
 @StringRes
-private fun ConfirmationMode.menuHint(): Int =
+internal fun ConfirmationMode.menuHint(): Int =
     when (this) {
         ConfirmationMode.ASK_EVERY_TIME -> R.string.console_approval_ask_hint
         ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> R.string.console_approval_domains_hint
@@ -664,7 +690,7 @@ private val SUBMIT_ICON_SIZE = 20.dp
 private const val SUBMIT_DISABLED_ALPHA = 0.35f
 
 @Composable
-private fun String.variantLabel(): String =
+internal fun String.variantLabel(): String =
     when {
         isBlank() || equals(DEFAULT_DEBUG_VARIANT_ID, ignoreCase = true) ->
             stringResource(R.string.console_variant_default)
@@ -771,7 +797,7 @@ private fun ActiveStatusBarContent(header: String, detail: String?, elapsedLabel
 }
 
 @Composable
-private fun statusDetail(state: UiState): String? {
+internal fun statusDetail(state: UiState): String? {
     val status = state.status.trim()
     return when {
         status.startsWith("Tool running:", ignoreCase = true) -> null

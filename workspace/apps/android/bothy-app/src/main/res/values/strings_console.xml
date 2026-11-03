@@ -24,7 +24,7 @@
     <string name="console_subagent_log">%1$ds · tools %2$d · model calls %3$d · in %4$d · out %5$d</string>
     <string name="console_subagent_log_cached">%1$ds · tools %2$d · model calls %3$d · in %4$d cache %5$d%% · out %6$d</string>
     <string name="console_conversation">Conversation</string>
-    <string name="console_empty_title">Xiao Bo is waiting for you in the bothy</string>
+    <string name="console_empty_title">Bothy is waiting for you</string>
     <string name="console_empty_body">Ask something, or first go to Connect apps and add a public MCP that needs no key. Every tool used at each step, and what it brought back, is listed here.</string>
     <string name="console_ready">Ready</string>
     <string name="console_choose_model">Choose a model</string>
@@ -94,6 +94,15 @@
     <string name="console_view_trajectory">Trajectory</string>
     <string name="console_view_a2a">A2A</string>
     <string name="console_view_plans">Plans</string>
+    <string name="console_open_menu">Open menu</string>
+    <string name="console_new_chat">New chat</string>
+    <string name="console_run_done">Done</string>
+    <string name="console_search_sessions">Search chats</string>
+    <string name="console_drawer_today">Today</string>
+    <string name="console_drawer_yesterday">Yesterday</string>
+    <string name="console_drawer_earlier">Earlier</string>
+    <string name="console_drawer_features">More</string>
+    <string name="console_open_playground">Head unit</string>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">
         <item quantity="one">Read %1$d file</item>
@@ -287,4 +296,44 @@
     <string name="console_code_streaming">code · streaming</string>
     <string name="console_status_running_profile">Running %1$s %2$s</string>
     <string name="console_workspace_app_private">App private</string>
+    <string name="console_trajectory_none">No tools were called in this turn.</string>
+    <plurals name="console_trajectory_calls">
+        <item quantity="one">%1$d tool called in this turn</item>
+        <item quantity="other">%1$d tools called in this turn</item>
+    </plurals>
+    <string name="console_trajectory_full">Full trajectory</string>
+    <string name="console_trajectory_given">Given</string>
+    <string name="console_trajectory_returned">Returned</string>
+    <string name="phone_plans_intro">Bothy reminds you when they come due, or does them for you.</string>
+    <string name="phone_plans_empty">Just tell Bothy, for example “Remind me to bring an umbrella at eight tomorrow” or “Read me the weather at 8 every morning”.</string>
+    <plurals name="phone_run_tool_calls">
+        <item quantity="one">%1$d tool call</item>
+        <item quantity="other">%1$d tool calls</item>
+    </plurals>
+    <plurals name="phone_run_messages">
+        <item quantity="one">%1$d message</item>
+        <item quantity="other">%1$d messages</item>
+    </plurals>
+    <plurals name="phone_steps">
+        <item quantity="one">%1$d step</item>
+        <item quantity="other">%1$d steps</item>
+    </plurals>
+    <string name="phone_copy">Copy</string>
+    <string name="phone_composer_hint">Message Bothy…</string>
+    <string name="phone_composer_running">Working · type to steer</string>
+    <string name="phone_status_ready">Ready</string>
+    <string name="phone_status_working">Working</string>
+    <string name="phone_status_waiting">Waiting for you</string>
+    <string name="phone_drawer_this_week">This week</string>
+    <string name="phone_this_phone">This phone</string>
+    <string name="phone_drawer_empty">No chats yet</string>
+    <string name="phone_drawer_empty_note">New chats appear here</string>
+    <string name="phone_greeting_morning">Good morning</string>
+    <string name="phone_greeting_afternoon">Good afternoon</string>
+    <string name="phone_greeting_evening">Good evening</string>
+    <string name="phone_greeting_ask">What can I do for you?</string>
+    <string name="phone_suggest_remind">Remind me at 8</string>
+    <string name="phone_suggest_nearby">Coffee nearby</string>
+    <string name="phone_suggest_navigate">To the airport</string>
+    <string name="phone_suggest_news">Today\'s news</string>
 </resources>

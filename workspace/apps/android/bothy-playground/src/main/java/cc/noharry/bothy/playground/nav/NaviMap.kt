@@ -36,6 +36,8 @@ import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.Marker
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.navi.AMapNaviView
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.ViewCompat
 import com.amap.api.navi.AMapNaviViewListener
 import com.amap.api.navi.AMapNaviViewOptions
 import com.amap.api.navi.AmapPageType
@@ -373,6 +375,8 @@ internal fun NaviMap(handle: NaviMapHandle, modifier: Modifier = Modifier) {
         AndroidView(
             factory = { context ->
                 AMapNaviView(context, handle.options()).also { view ->
+                    // Upright, the map lies under the bars and the cutout: no padding for them, the controls over it keep clear.
+                    ViewCompat.setOnApplyWindowInsetsListener(view) { _, _ -> WindowInsetsCompat.CONSUMED }
                     view.onCreate(null)
                     // The head unit is always at night; the options alone leave the map in day colours.
                     view.viewOptions = handle.options()

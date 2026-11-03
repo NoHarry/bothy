@@ -59,4 +59,13 @@
     <string name="settings_manual_profile_off">Off — follow the default profile from configuration</string>
     <string name="settings_no_model">no model</string>
     <string name="settings_profile_active">Active</string>
+    <string name="settings_group_appearance">Appearance</string>
+    <string name="settings_group_model">Model</string>
+    <string name="settings_theme_short_note">Follows the system by default.</string>
+    <string name="settings_wake_word">Wake word</string>
+    <string name="settings_wake_word_note">“OK Bothy”. When off, nothing listens behind other apps.</string>
+    <string name="settings_model_in_use">In use. Pick another one in Models and services.</string>
+    <string name="settings_connections_note">Apps, MCP and your own agent</string>
+    <string name="settings_all">All settings</string>
+    <string name="settings_connections_action">Connect, pause or remove them</string>
 </resources>

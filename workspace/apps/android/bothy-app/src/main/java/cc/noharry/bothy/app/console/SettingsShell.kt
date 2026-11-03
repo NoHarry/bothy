@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.console
+import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -72,44 +73,51 @@ internal enum class SettingsSection(@StringRes val label: Int) {
 @Composable
 internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -> Unit, modifier: Modifier) {
     var sectionName by rememberSaveable { mutableStateOf(SettingsSection.GENERAL.name) }
+    // A phone lists the sections and opens one at a time (owner 2026-11-02: 做一套手机适配的界面).
+    var opened by rememberSaveable { mutableStateOf(false) }
     val section = SettingsSection.valueOf(sectionName)
-    Column(modifier.fillMaxSize().padding(Dimens.spaceMd)) {
-        SettingsNavBar(stringResource(R.string.common_settings), null, stringResource(R.string.settings_exit), onBack)
-        Spacer(Modifier.height(Dimens.spaceMd))
-        HorizontalDivider(color = ConsoleColors.borderSubtle)
-        Spacer(Modifier.height(Dimens.spaceMd))
-        BoxWithConstraints(Modifier.weight(1f)) {
-            if (maxWidth >= SETTINGS_RAIL_BREAKPOINT) {
-                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
-                    Column(Modifier.width(SETTINGS_RAIL_WIDTH), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-                        SettingsSection.entries.forEach { item ->
-                            val label = stringResource(item.label)
-                            SelectableOptionRow(label, section == item, { sectionName = item.name })
-                        }
-                    }
-                    Box(Modifier.weight(1f)) { SettingsSectionContent(section, state, actions) { sectionName = it.name } }
-                }
+    val open = { next: SettingsSection -> sectionName = next.name; opened = true }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val rail = maxWidth >= SETTINGS_RAIL_BREAKPOINT
+        val inSection = !rail && opened
+        BackHandler(enabled = inSection) { opened = false }
+        Column(Modifier.fillMaxSize().padding(Dimens.spaceMd)) {
+            if (inSection) {
+                val settings = stringResource(R.string.common_settings)
+                SettingsNavBar(stringResource(section.label), settings, stringResource(R.string.common_back), { opened = false })
             } else {
-                Column {
-                    Row(Modifier.horizontalScroll(rememberScrollState())) {
-                        SettingsSection.entries.forEach { item ->
-                            TextButton(onClick = { sectionName = item.name }) {
-                                Text(
-                                    stringResource(item.label),
-                                    color = if (item == section) ConsoleColors.accent else ConsoleColors.muted,
-                                )
-                            }
-                        }
+                SettingsNavBar(stringResource(R.string.common_settings), null, stringResource(R.string.settings_exit), onBack)
+            }
+            Spacer(Modifier.height(Dimens.spaceMd))
+            HorizontalDivider(color = ConsoleColors.borderSubtle)
+            Spacer(Modifier.height(Dimens.spaceMd))
+            Box(Modifier.weight(1f)) {
+                when {
+                    rail -> Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
+                        SettingsSectionList(section, Modifier.width(SETTINGS_RAIL_WIDTH), open)
+                        Box(Modifier.weight(1f)) { SettingsSectionContent(section, state, actions, open) }
                     }
-                    Box(Modifier.weight(1f)) { SettingsSectionContent(section, state, actions) { sectionName = it.name } }
+                    inSection -> SettingsSectionContent(section, state, actions, open)
+                    else -> SettingsSectionList(null, Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), open)
                 }
             }
         }
     }
 }
 
+/** The sections: a rail beside the open one on a wide screen, the whole page on a phone ([selected] null). */
 @Composable
-private fun SettingsSectionContent(
+private fun SettingsSectionList(selected: SettingsSection?, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+        SettingsSection.entries.forEach { item ->
+            SelectableOptionRow(stringResource(item.label), selected == item, { onOpen(item) })
+        }
+    }
+}
+
+/** One section's page; also a phone's settings page for the section ([cc.noharry.bothy.app.phone.PhoneSettings]). */
+@Composable
+internal fun SettingsSectionContent(
     section: SettingsSection,
     state: UiState,
     actions: ConsoleActions,
@@ -117,6 +125,8 @@ private fun SettingsSectionContent(
 ) {
     when (section) {
         SettingsSection.GENERAL -> SettingsScrollableContent {
+            SettingsThemeGroup()
+            SettingsLayoutGroup()
             SettingsLanguageGroup()
             SettingsRuntimeGroup(state, actions)
             SettingsSessionGroup()

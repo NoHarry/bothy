@@ -93,6 +93,15 @@
     <string name="console_view_trajectory">轨迹</string>
     <string name="console_view_a2a">A2A</string>
     <string name="console_view_plans">计划</string>
+    <string name="console_open_menu">打开菜单</string>
+    <string name="console_new_chat">新对话</string>
+    <string name="console_run_done">已完成</string>
+    <string name="console_search_sessions">搜索会话</string>
+    <string name="console_drawer_today">今天</string>
+    <string name="console_drawer_yesterday">昨天</string>
+    <string name="console_drawer_earlier">更早</string>
+    <string name="console_drawer_features">功能</string>
+    <string name="console_open_playground">车机</string>
     <string name="console_expand_board">展开看板</string>
     <plurals name="console_read_files">
         <item quantity="other">读取了 %1$d 个文件</item>
@@ -277,4 +286,40 @@
     <string name="console_code_streaming">代码 · 输出中</string>
     <string name="console_status_running_profile">正在运行 %1$s · %2$s</string>
     <string name="console_workspace_app_private">App 私有目录</string>
+    <string name="console_trajectory_none">这一轮没有调用工具。</string>
+    <plurals name="console_trajectory_calls">
+        <item quantity="other">这一轮调用了 %1$d 个工具</item>
+    </plurals>
+    <string name="console_trajectory_full">完整轨迹</string>
+    <string name="console_trajectory_given">传入</string>
+    <string name="console_trajectory_returned">读回</string>
+    <string name="phone_plans_intro">到点提醒你，或者让小博去做。</string>
+    <string name="phone_plans_empty">直接对小博说，比如「明早八点提醒我带伞」或「每天早上八点读天气给我听」。</string>
+    <plurals name="phone_run_tool_calls">
+        <item quantity="other">%1$d 次工具调用</item>
+    </plurals>
+    <plurals name="phone_run_messages">
+        <item quantity="other">%1$d 条消息</item>
+    </plurals>
+    <plurals name="phone_steps">
+        <item quantity="other">%1$d 步</item>
+    </plurals>
+    <string name="phone_copy">复制</string>
+    <string name="phone_composer_hint">给小博发消息…</string>
+    <string name="phone_composer_running">生成中 · 可直接插话</string>
+    <string name="phone_status_ready">就绪</string>
+    <string name="phone_status_working">生成中</string>
+    <string name="phone_status_waiting">等你确认</string>
+    <string name="phone_drawer_this_week">本周</string>
+    <string name="phone_this_phone">本机</string>
+    <string name="phone_drawer_empty">还没有对话</string>
+    <string name="phone_drawer_empty_note">新对话会出现在这里</string>
+    <string name="phone_greeting_morning">早上好</string>
+    <string name="phone_greeting_afternoon">下午好</string>
+    <string name="phone_greeting_evening">晚上好</string>
+    <string name="phone_greeting_ask">想让我帮你做点什么？</string>
+    <string name="phone_suggest_remind">明早 8 点提醒我</string>
+    <string name="phone_suggest_nearby">附近的咖啡</string>
+    <string name="phone_suggest_navigate">导航去机场</string>
+    <string name="phone_suggest_news">今天有什么新闻</string>
 </resources>

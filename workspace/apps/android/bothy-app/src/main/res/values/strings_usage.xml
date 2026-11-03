@@ -11,7 +11,7 @@
 
     <!-- Summary -->
     <string name="usage_total_tokens">Total tokens</string>
-    <string name="usage_peak_day_tokens">Peak tokens in a day</string>
+    <string name="usage_peak_day_tokens">Peak day</string>
     <string name="usage_total_cost">Total cost</string>
     <string name="usage_current_streak">Current streak</string>
     <string name="usage_longest_streak">Longest streak</string>

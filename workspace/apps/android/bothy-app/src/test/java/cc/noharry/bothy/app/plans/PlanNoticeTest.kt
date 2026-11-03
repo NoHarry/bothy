@@ -52,7 +52,7 @@ class PlanNoticeTest {
         val open = PlanAction("device", "home_window_position_set", JsonObject(emptyMap()), "窗户全开")
         val entry = planNoticeEntry(context, plan("p3", "到终点开窗", actions = listOf(open, dim)), null)
         assertEquals("Auto" to "Running: 窗户全开, 屏幕调暗", entry.kind to entry.doing)
-        assertEquals("Handed to Xiao Bo: 查路况", planNoticeEntry(context, plan("p2", "t", instruction = "查路况"), "").said)
+        assertEquals("Handed to Bothy: 查路况", planNoticeEntry(context, plan("p2", "t", instruction = "查路况"), "").said)
     }
 
     @Test

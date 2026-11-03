@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -237,39 +238,52 @@ internal fun Dock(onHome: () -> Unit, onControls: () -> Unit, onMap: () -> Unit,
 /** The climate strip under the car and the assistant: temperature, A/C, fan, seat heating, ambient light, volume. */
 @Composable
 internal fun ClimateBar(cabin: Cabin, store: PlaygroundStore, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val climate = cabin.climate
     Row(
         modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.panel).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        fun temp(to: Double) {
-            store.cabin(resources.getString(R.string.cabin_log_climate_temp, to.deg()), Highlight.CLIMATE) {
-                it.copy(climate = it.climate.copy(on = true, driverTemp = to, passengerTemp = to))
-            }
+    ) { ClimateControls(cabin, store) }
+}
+
+/** The strip's controls wrapped over lines, for a portrait phone's climate tab. */
+@Composable
+internal fun ClimatePanel(cabin: Cabin, store: PlaygroundStore, modifier: Modifier = Modifier) {
+    FlowRow(
+        modifier.clip(RoundedCornerShape(18.dp)).background(UnitColors.panel).padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) { ClimateControls(cabin, store) }
+}
+
+@Composable
+private fun ClimateControls(cabin: Cabin, store: PlaygroundStore) {
+    val resources = LocalResources.current
+    val climate = cabin.climate
+    fun temp(to: Double) {
+        store.cabin(resources.getString(R.string.cabin_log_climate_temp, to.deg()), Highlight.CLIMATE) {
+            it.copy(climate = it.climate.copy(on = true, driverTemp = to, passengerTemp = to))
         }
-        BarText("‹", 22) { temp((climate.driverTemp - 0.5).coerceAtLeast(16.0)) }
-        Text(if (climate.on) "%.1f".format(java.util.Locale.ROOT, climate.driverTemp) else "OFF", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-        BarText("›", 22) { temp((climate.driverTemp + 0.5).coerceAtMost(30.0)) }
-        BarToggle("A/C", climate.on) {
-            val line = if (climate.on) R.string.cabin_log_climate_off else R.string.cabin_log_climate_on
-            store.cabin(resources.getString(line), Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = !it.climate.on)) }
+    }
+    BarText("‹", 22) { temp((climate.driverTemp - 0.5).coerceAtLeast(16.0)) }
+    Text(if (climate.on) "%.1f".format(java.util.Locale.ROOT, climate.driverTemp) else "OFF", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
+    BarText("›", 22) { temp((climate.driverTemp + 0.5).coerceAtMost(30.0)) }
+    BarToggle("A/C", climate.on) {
+        val line = if (climate.on) R.string.cabin_log_climate_off else R.string.cabin_log_climate_on
+        store.cabin(resources.getString(line), Highlight.CLIMATE) { it.copy(climate = it.climate.copy(on = !it.climate.on)) }
+    }
+    val fan = stringResource(R.string.headunit_fan, climate.fan)
+    BarToggle(fan, false) {
+        store.cabin(resources.getString(R.string.cabin_log_fan, climate.fan % 7 + 1), Highlight.CLIMATE) {
+            it.copy(climate = it.climate.copy(on = true, fan = it.climate.fan % 7 + 1))
         }
-        val fan = stringResource(R.string.headunit_fan, climate.fan)
-        BarToggle(fan, false) {
-            store.cabin(resources.getString(R.string.cabin_log_fan, climate.fan % 7 + 1), Highlight.CLIMATE) {
-                it.copy(climate = it.climate.copy(on = true, fan = it.climate.fan % 7 + 1))
-            }
-        }
-        SeatHeat(Seat.DRIVER, cabin, store)
-        SeatHeat(Seat.PASSENGER, cabin, store)
-        val ambient = stringResource(R.string.headunit_ambient)
-        BarToggle(ambient, cabin.ambient.on) {
-            val line = if (cabin.ambient.on) R.string.cabin_log_ambient_off else R.string.cabin_log_ambient_on
-            store.cabin(resources.getString(line), Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = !it.ambient.on)) }
-        }
+    }
+    SeatHeat(Seat.DRIVER, cabin, store)
+    SeatHeat(Seat.PASSENGER, cabin, store)
+    val ambient = stringResource(R.string.headunit_ambient)
+    BarToggle(ambient, cabin.ambient.on) {
+        val line = if (cabin.ambient.on) R.string.cabin_log_ambient_off else R.string.cabin_log_ambient_on
+        store.cabin(resources.getString(line), Highlight.AMBIENT) { it.copy(ambient = it.ambient.copy(on = !it.ambient.on)) }
     }
 }
 

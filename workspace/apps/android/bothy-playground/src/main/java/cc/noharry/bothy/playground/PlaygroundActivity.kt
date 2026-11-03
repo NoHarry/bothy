@@ -1,7 +1,8 @@
 package cc.noharry.bothy.playground
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -44,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
@@ -94,9 +96,6 @@ class PlaygroundActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // A demo screen: it stays on while people watch the assistant work.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // A phone is a small head unit, held sideways (owner 2026-10-23: 手机都固定横屏): the head unit is laid out wide.
-        val phone = resources.configuration.smallestScreenWidthDp < PHONE_SHORT_SIDE_DP
-        if (phone) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         // 60 Hz is smooth for a driving map; at the tablet's 120 Hz its every-frame drawing kept a whole core busy, and a
         // preferred rate alone lost to the map surface's own vote: the display's 60 Hz mode is asked for outright.
         @Suppress("DEPRECATION") val screen = windowManager.defaultDisplay
@@ -106,6 +105,7 @@ class PlaygroundActivity : ComponentActivity() {
         window.statusBarColor = PlaygroundColors.bg.toArgb()
         window.navigationBarColor = PlaygroundColors.bg.toArgb()
         hideSystemBars()
+        drawUnderCutout(resources.configuration)
         // Whatever brings them back for good (another app's window taking focus, the map going full screen), they go
         // again a moment later.
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
@@ -116,9 +116,10 @@ class PlaygroundActivity : ComponentActivity() {
             ViewCompat.onApplyWindowInsets(view, insets)
         }
         PlaygroundService.start(this)
-        setContent { PhoneScale(phone) { PlaygroundApp(Playground.store) } }
+        // configChanges includes orientation, so a turn does not recreate this activity. LocalConfiguration still
+        // updates, and the scale is read from it. The scene extra is applied once per launch.
+        setContent { PlaygroundPhoneScale { PlaygroundApp(Playground.store) } }
         if (intent?.getBooleanExtra(StockNavi.EXTRA, false) == true) StockNavi.open(this)
-        // Once: a rotation recreates the activity with the same intent.
         if (savedInstanceState == null) askedScene(intent)
     }
 
@@ -152,6 +153,27 @@ class PlaygroundActivity : ComponentActivity() {
     }
 
     /** A head unit has no phone status bar: the system bars stay hidden, a swipe brings them back for a moment. */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        drawUnderCutout(newConfig)
+    }
+
+    /**
+     * Upright, the head unit's map runs under the camera's cutout as on the phone design, and what sits over the map's top
+     * keeps clear of it. Sideways the wide layout keeps the cutout's band.
+     */
+    private fun drawUnderCutout(config: Configuration) {
+        val upright = config.orientation == Configuration.ORIENTATION_PORTRAIT
+        WindowCompat.setDecorFitsSystemWindows(window, !upright)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+        val mode = if (upright) {
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        } else {
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+        }
+        if (window.attributes.layoutInDisplayCutoutMode != mode) window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = mode }
+    }
+
     private fun hideSystemBars() {
         WindowCompat.getInsetsController(window, window.decorView).apply {
             hide(WindowInsetsCompat.Type.systemBars())
@@ -161,20 +183,41 @@ class PlaygroundActivity : ComponentActivity() {
 
     private companion object {
         const val REHIDE_MS = 2_500L
-        /** Android's line between phones and tablets, in dp of the smallest width. */
-        const val PHONE_SHORT_SIDE_DP = 600
     }
 }
 
+/** Android's line between phones and tablets, in dp of the smallest width. */
+internal const val PHONE_SHORT_SIDE_DP = 600
+
 /**
- * A phone draws the head unit at [PHONE_SCALE]: sideways it is 851×393 dp, and the tablet's layout wants about 1105×692;
- * scaled it is 1135×524, its type still readable.
+ * Portrait phones keep the platform dp. A phone turned sideways still draws at [PHONE_SCALE]: 851×393 dp becomes about
+ * 1135×524, close to the wide head unit, and the type stays readable.
+ */
+internal fun playgroundContentScale(phone: Boolean, landscape: Boolean): Float =
+    if (phone && landscape) PHONE_SCALE else 1f
+
+/** Scale for the configuration Compose is showing now, so a handled rotation updates it. */
+internal fun playgroundScaleFor(smallestWidthDp: Int, orientation: Int): Float =
+    playgroundContentScale(
+        phone = smallestWidthDp < PHONE_SHORT_SIDE_DP,
+        landscape = orientation == Configuration.ORIENTATION_LANDSCAPE,
+    )
+
+/**
+ * The head unit's scale. This activity handles orientation itself, and [LocalConfiguration] still updates when it
+ * does, so the scale follows a rotation without a second copy of the configuration.
  */
 @Composable
-private fun PhoneScale(phone: Boolean, content: @Composable () -> Unit) {
-    if (!phone) return content()
+internal fun PlaygroundPhoneScale(content: @Composable () -> Unit) {
+    val config = LocalConfiguration.current
+    PhoneScale(playgroundScaleFor(config.smallestScreenWidthDp, config.orientation), content)
+}
+
+@Composable
+private fun PhoneScale(scale: Float, content: @Composable () -> Unit) {
+    if (scale == 1f) return content()
     val base = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(base.density * PHONE_SCALE, base.fontScale), content = content)
+    CompositionLocalProvider(LocalDensity provides Density(base.density * scale, base.fontScale), content = content)
 }
 
 private const val PHONE_SCALE = 0.75f

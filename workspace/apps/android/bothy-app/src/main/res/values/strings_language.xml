@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_language">Language</string>
-    <string name="settings_language_note">Follows the system unless you choose one here. What Xiao Bo says is not affected.</string>
+    <string name="settings_language_note">Follows the system unless you choose one here. What Bothy says is not affected.</string>
     <string name="settings_language_system">System default</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_note">Oatmeal and pine in the light. A warm dark in the dark. The head unit keeps its own night colors.</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_layout">Layout</string>
+    <string name="settings_layout_note">Auto follows the screen: a phone gets the phone screens, a tablet or a head unit the console. A phone shows no Bothy over other apps until it is woken or a task comes in.</string>
+    <string name="settings_layout_short_note">Auto follows the screen. Phone and tablet also behave differently outside the app.</string>
+    <string name="settings_layout_auto">Auto</string>
+    <string name="settings_layout_phone">Phone</string>
+    <string name="settings_layout_console">Tablet</string>
 </resources>

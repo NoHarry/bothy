@@ -58,4 +58,13 @@
     <string name="settings_manual_profile_off">关：跟随配置文件里的默认配置</string>
     <string name="settings_no_model">未选模型</string>
     <string name="settings_profile_active">当前</string>
+    <string name="settings_group_appearance">外观</string>
+    <string name="settings_group_model">模型</string>
+    <string name="settings_theme_short_note">默认跟随系统。</string>
+    <string name="settings_wake_word">唤醒词</string>
+    <string name="settings_wake_word_note">「你好小博」或「OK Bothy」。关闭时不会在别的应用后面听。</string>
+    <string name="settings_model_in_use">正在使用。在「模型与服务」里换别的。</string>
+    <string name="settings_connections_note">应用、MCP 和你自己的 agent</string>
+    <string name="settings_all">全部设置</string>
+    <string name="settings_connections_action">连接、暂停或移除</string>
 </resources>
