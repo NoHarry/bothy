@@ -351,15 +351,21 @@ private fun ConversationStatus(state: UiState) {
 }
 
 @Composable
-internal fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
+internal fun ModelMenu(
+    editor: ProviderEditState,
+    actions: ConsoleActions,
+    modifier: Modifier = Modifier,
+    leadingDot: Color? = null,
+    more: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
+) {
     var expanded by remember { mutableStateOf(false) }
-    val options = editor.modelOptions.ifEmpty { listOf(editor.model).filter { it.isNotBlank() } }
     val selected = editor.model
     Box(modifier.widthIn(max = MODEL_BUTTON_MAX_WIDTH), contentAlignment = Alignment.BottomEnd) {
         SelectorChip(
             label = selected.ifBlank { stringResource(R.string.console_choose_model) },
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
+            leadingDot = leadingDot,
             placeholder = selected.isBlank(),
         )
         PopupMenu(
@@ -368,26 +374,30 @@ internal fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modif
             minWidth = MODEL_MENU_MIN_WIDTH,
             maxWidth = MODEL_MENU_MAX_WIDTH,
         ) {
-            PopupSectionLabel(stringResource(R.string.console_model))
-            if (options.isEmpty()) {
-                PopupMenuItem(
-                    label = stringResource(R.string.console_no_models),
-                    selected = false,
-                    onClick = { expanded = false },
-                )
-            } else {
-                options.forEach { model ->
-                    PopupMenuItem(
-                        label = model,
-                        selected = model == selected,
-                        onClick = {
-                            expanded = false
-                            actions.selectModel(model)
-                        },
-                    )
-                }
-            }
+            ModelItems(editor, actions) { expanded = false }
+            more?.invoke(this) { expanded = false }
         }
+    }
+}
+
+/** The model menu's rows; [onPicked] closes the menu. */
+@Composable
+internal fun ModelItems(editor: ProviderEditState, actions: ConsoleActions, onPicked: () -> Unit) {
+    val options = editor.modelOptions.ifEmpty { listOf(editor.model).filter { it.isNotBlank() } }
+    PopupSectionLabel(stringResource(R.string.console_model))
+    if (options.isEmpty()) {
+        PopupMenuItem(label = stringResource(R.string.console_no_models), selected = false, onClick = onPicked)
+        return
+    }
+    options.forEach { model ->
+        PopupMenuItem(
+            label = model,
+            selected = model == editor.model,
+            onClick = {
+                onPicked()
+                actions.selectModel(model)
+            },
+        )
     }
 }
 

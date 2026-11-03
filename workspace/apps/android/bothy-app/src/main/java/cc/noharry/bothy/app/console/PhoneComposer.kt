@@ -9,22 +9,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,6 +30,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -42,10 +41,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.session.UiState
-import cc.noharry.bothy.app.console.ui.PopupMenu
-import cc.noharry.bothy.app.console.ui.PopupMenuItem
-import cc.noharry.bothy.app.console.ui.PopupSectionLabel
-import cc.noharry.bothy.app.console.ui.SelectorChip
 import cc.noharry.bothy.app.voice.HandOverNotice
 import cc.noharry.bothy.app.voice.VoiceController
 import cc.noharry.bothy.app.voice.VoiceMicButton
@@ -55,9 +50,9 @@ import cc.noharry.bothy.voice.VoiceSessionState
 import kotlinx.coroutines.delay
 
 /**
- * A portrait phone's composer, as the phone design draws it: one pill with the conversation's options, the message,
- * the mic held to talk and send (stop while a run goes on and nothing is typed). While the mic is held the pill turns
- * green and shows what is heard, and letting go sends it.
+ * A portrait phone's composer: one pill with the message, the mic held to talk and send (stop while a run goes on and
+ * nothing is typed). The model and the run's other choices are in the top bar ([PhoneTopBar]). While the mic is held
+ * the pill turns green and shows what is heard, and letting go sends it.
  */
 @Composable
 internal fun PhoneComposer(
@@ -84,15 +79,7 @@ internal fun PhoneComposer(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (holding) {
-                    HeldWords(voice, Modifier.weight(1f))
-                } else {
-                    ComposerOptions(state, actions)
-                    MessageField(
-                        text, onTextChange, singleLine = false, modifier = Modifier.weight(1f),
-                        placeholder = stringResource(R.string.console_message_placeholder_short), minLines = 1,
-                    )
-                }
+                if (holding) HeldWords(voice, Modifier.weight(1f)) else PillField(text, onTextChange, Modifier.weight(1f))
                 VoiceMicButton(PHONE_BUTTON_SIZE, PHONE_ICON_SIZE, holdToTalk = true)
                 if (state.isRunning && text.isBlank()) {
                     StopButton(actions.stop)
@@ -100,34 +87,6 @@ internal fun PhoneComposer(
                     SubmitButton(text, onSubmit, state.isRunning, PHONE_BUTTON_SIZE, PHONE_ICON_SIZE)
                 }
             }
-        }
-    }
-}
-
-/**
- * The chip at the pill's start, named for the model service (the first word of its profile's name): approval, the
- * variant and the composer's actions, which the wide composer shows as separate chips. A warning approval keeps its
- * amber dot on the chip.
- */
-@Composable
-private fun ComposerOptions(state: UiState, actions: ConsoleActions) {
-    var expanded by remember { mutableStateOf(false) }
-    val editor = state.configEditor
-    val mode = state.confirmationMode
-    Box {
-        SelectorChip(
-            label = editor.profileLabel.substringBefore(' ').ifBlank { stringResource(R.string.console_model) },
-            onClick = { expanded = true },
-            modifier = Modifier.widthIn(max = OPTIONS_CHIP_MAX_WIDTH),
-            leadingDot = ConsoleColors.warning.takeIf { mode.warning },
-        )
-        PopupMenu(expanded = expanded, onDismissRequest = { expanded = false }, minWidth = OPTIONS_MENU_MIN_WIDTH, maxWidth = OPTIONS_MENU_MAX_WIDTH) {
-            val close = { expanded = false }
-            ConfirmationModeItems(mode, actions, compact = true, onPicked = close)
-            VariantItems(editor, actions, onPicked = close)
-            PopupSectionLabel(stringResource(R.string.console_actions))
-            PopupMenuItem(label = stringResource(R.string.console_floating_card), selected = false, onClick = { close(); actions.openOverlay() })
-            PopupMenuItem(label = stringResource(R.string.console_toggle_stream), selected = false, onClick = { close(); actions.toggleStream() })
         }
     }
 }
@@ -149,6 +108,27 @@ private fun HeldWords(voice: VoiceSessionState, modifier: Modifier) {
         )
         Text(stringResource(R.string.voice_hold_release), style = ConsoleType.meta, color = colors.accent, fontWeight = FontWeight.SemiBold)
     }
+}
+
+/** The message, as one line that grows to a few while typing. */
+@Composable
+private fun PillField(text: String, onTextChange: (String) -> Unit, modifier: Modifier) {
+    val colors = ConsoleColors
+    val placeholder = stringResource(R.string.console_message_placeholder_short)
+    BasicTextField(
+        value = text,
+        onValueChange = onTextChange,
+        maxLines = FIELD_MAX_LINES,
+        textStyle = ConsoleType.body.copy(color = colors.text),
+        cursorBrush = SolidColor(colors.accent),
+        modifier = modifier,
+        decorationBox = { inner ->
+            Box(Modifier.heightIn(min = PHONE_BUTTON_SIZE).padding(start = 14.dp, end = 4.dp), contentAlignment = Alignment.CenterStart) {
+                if (text.isEmpty()) Text(placeholder, style = ConsoleType.body, color = colors.muted)
+                inner()
+            }
+        },
+    )
 }
 
 /** What a hold has heard: its closed sentences, then the one still open. */
@@ -228,9 +208,6 @@ private val PILL_PADDING = 6.dp
 private val PHONE_BUTTON_SIZE = 44.dp
 private val PHONE_ICON_SIZE = 22.dp
 private val STOP_SQUARE = 14.dp
-private val OPTIONS_CHIP_MAX_WIDTH = 140.dp
-private val OPTIONS_MENU_MIN_WIDTH = 240.dp
-private val OPTIONS_MENU_MAX_WIDTH = 320.dp
 private val LEVEL_BARS_WIDTH = 56.dp
 private val LEVEL_BARS_HEIGHT = 24.dp
 private const val LEVEL_BARS = 14
@@ -238,3 +215,4 @@ private const val BAR_SHARE = 0.5f
 private const val MIN_BAR = 0.15f
 private const val HELD_BORDER_ALPHA = 0.35f
 private const val NOTICE_MILLIS = 5_000L
+private const val FIELD_MAX_LINES = 5

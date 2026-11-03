@@ -29,12 +29,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ui.PopupMenuItem
+import cc.noharry.bothy.app.console.ui.PopupSectionLabel
 import cc.noharry.bothy.app.session.sessionTitleText
 import cc.noharry.bothy.app.session.UiState
 
 /**
  * A portrait phone's top bar, as the phone design draws it. In the conversation: the menu that opens the drawer, the
- * session's title and the model. Elsewhere (plans, the trajectory, A2A): back to the conversation, and the view's name.
+ * session's title and the model ([PhoneModelMenu]). Elsewhere (plans, the trajectory, A2A): back to the conversation, and the view's name.
  */
 @Composable
 internal fun PhoneTopBar(state: UiState, view: ConsoleView, actions: ConsoleActions, onMenu: () -> Unit, onBack: () -> Unit) {
@@ -44,11 +46,32 @@ internal fun PhoneTopBar(state: UiState, view: ConsoleView, actions: ConsoleActi
         if (conversation) {
             RoundButton(Icons.Filled.Menu, stringResource(R.string.console_open_menu), onMenu)
             Box(Modifier.weight(1f)) { TitlePill(phoneTitle(state)) }
-            ModelMenu(state.configEditor, actions, Modifier.widthIn(max = MODEL_PILL_MAX_WIDTH))
+            PhoneModelMenu(state, actions)
         } else {
             RoundButton(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.common_back), onBack)
             Text(stringResource(view.label), style = ConsoleType.panelTitle, color = colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+    }
+}
+
+/**
+ * The model, and the run's other choices with it on a phone: approval, the variant and the actions, which the wide
+ * composer shows as chips of their own. A warning approval keeps its amber dot on the button.
+ */
+@Composable
+private fun PhoneModelMenu(state: UiState, actions: ConsoleActions) {
+    val mode = state.confirmationMode
+    ModelMenu(
+        state.configEditor,
+        actions,
+        Modifier.widthIn(max = MODEL_PILL_MAX_WIDTH),
+        leadingDot = ConsoleColors.warning.takeIf { mode.warning },
+    ) { close ->
+        ConfirmationModeItems(mode, actions, compact = true, onPicked = close)
+        VariantItems(state.configEditor, actions, onPicked = close)
+        PopupSectionLabel(stringResource(R.string.console_actions))
+        PopupMenuItem(label = stringResource(R.string.console_floating_card), selected = false, onClick = { close(); actions.openOverlay() })
+        PopupMenuItem(label = stringResource(R.string.console_toggle_stream), selected = false, onClick = { close(); actions.toggleStream() })
     }
 }
 
