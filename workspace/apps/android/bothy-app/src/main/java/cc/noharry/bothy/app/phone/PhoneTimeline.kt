@@ -53,7 +53,7 @@ internal sealed interface PhoneRow {
         override val key = "fold-$turn"
     }
 
-    /** Under a finished turn: copy its answer ([reply]), how many steps it took, and the way to its trajectory. */
+    /** Under a finished turn: copy its answer ([reply]), how many tool calls it made, and the way to its trajectory. */
     data class Footnote(val turn: Long, val reply: String?, val steps: Int, val failed: Boolean) : PhoneRow {
         override val key = "foot-$turn"
     }
@@ -92,7 +92,7 @@ private fun turnRows(turn: List<ConversationItem>, live: Boolean): List<PhoneRow
     } else {
         rows += processRows(body)
     }
-    if (!live && (reply != null || failed)) rows += PhoneRow.Footnote(id, reply?.content, body.count { it.isPhoneStep() }, failed)
+    if (!live && (reply != null || failed)) rows += PhoneRow.Footnote(id, reply?.content, body.count { it.isTool() }, failed)
     body.filterIsInstance<ConversationItem.ToolCallItem>().forEach { tool ->
         tool.toHtmlArtifactPreview()?.let { rows += PhoneRow.Made(ConversationRenderItem.HtmlArtifact(tool.id, it)) }
         tool.generatedPicture()?.let { rows += PhoneRow.Made(ConversationRenderItem.GeneratedImage(tool.id, it)) }
@@ -134,7 +134,7 @@ private fun ConversationItem.isInterim(reply: ConversationItem): Boolean =
 
 /** The conversation, newest at the bottom over the composer; it follows a run as it grows. */
 @Composable
-internal fun PhoneTimeline(state: UiState, actions: ConsoleActions, onTrajectory: () -> Unit, modifier: Modifier) {
+internal fun PhoneTimeline(state: UiState, actions: ConsoleActions, onTrajectory: (turn: Long) -> Unit, modifier: Modifier) {
     val rows = remember(state.items, state.isRunning) { phoneRows(state.items, state.isRunning) }
     val keys = remember(rows) { rows.map { it.key }.uniqueKeys() }
     val bottomFirst = remember(rows) { rows.asReversed() }

@@ -11,6 +11,7 @@ import cc.noharry.bothy.app.console.ConsoleVisibility
 import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.plans.reading
 import cc.noharry.bothy.app.voice.WakeSource
+import cc.noharry.bothy.app.voice.WakeWord
 
 /** What an A2A caller asks of the device's overlay through `metadata.carOverlay`. */
 internal enum class OverlayCommand(val done: String) {
@@ -87,10 +88,19 @@ internal object OverlayControl {
 
     /**
      * Brings 小博 up (card closed) when it is not running, as 语音唤醒 does. Null when it runs or was started, else why it
-     * could not be. A phone has no resting 小博 ([OverlayPhoneRest]), so nothing comes up there.
+     * could not be. A phone has no resting 小博 ([OverlayPhoneRest]): nothing comes up there, and the wake word, which the
+     * overlay would have started, listens on its own. A head unit's own surface ([forSurface]) still needs the overlay
+     * running, hidden, for its reports.
      */
-    fun ensureRunning(context: Context): String? =
-        if (presenter != null || FrontEnd.phone(context)) null else start(context, open = false)
+    fun ensureRunning(context: Context, forSurface: Boolean = false): String? {
+        if (presenter != null) return null
+        if (!forSurface && FrontEnd.phone(context)) {
+            val app = context.applicationContext
+            main.post { WakeWord.load(app) }
+            return null
+        }
+        return start(context, open = false)
+    }
 
     /**
      * Starts the overlay, with its card open when [open]. A plain start is refused while the app is idle in the

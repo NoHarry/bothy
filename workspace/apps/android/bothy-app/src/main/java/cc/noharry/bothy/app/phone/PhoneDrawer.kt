@@ -92,15 +92,17 @@ internal fun sessionDay(updatedAtEpochMillis: Long, nowMillis: Long = System.cur
 
 /**
  * Sessions matching [query], grouped by day; a session nothing was asked in yet is left out, as a new chat is until it
- * starts. Computed once per list or query change.
+ * starts. [started] is the open session when something is under way in it, kept although no turn has ended there yet.
+ * Computed once per list or query change.
  */
 internal fun groupDrawerSessions(
     sessions: List<SessionSummary>,
     query: String,
     nowMillis: Long = System.currentTimeMillis(),
+    started: String? = null,
 ): List<Pair<SessionDay, List<SessionSummary>>> {
-    val started = sessions.filter { it.turnCount > 0 }
-    val filtered = if (query.isBlank()) started else started.filter { it.title.contains(query, ignoreCase = true) }
+    val begun = sessions.filter { it.turnCount > 0 || it.sessionId == started }
+    val filtered = if (query.isBlank()) begun else begun.filter { it.title.contains(query, ignoreCase = true) }
     return SessionDay.entries.mapNotNull { day ->
         val rows = filtered.filter { sessionDay(it.updatedAtEpochMillis, nowMillis) == day }
         if (rows.isEmpty()) null else day to rows
@@ -123,7 +125,8 @@ internal fun playgroundInstalled(context: Context): Boolean =
 @Composable
 internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, actions: ConsoleActions, onGo: (PhoneRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    val grouped = remember(state.sessions, query) { groupDrawerSessions(state.sessions, query) }
+    val underWay = state.activeSessionId.takeIf { state.items.isNotEmpty() }
+    val grouped = remember(state.sessions, query, underWay) { groupDrawerSessions(state.sessions, query, started = underWay) }
     val activeDot = drawerDot(state)
     Column(Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
         DrawerHeader { actions.newSession(); onGo(PhoneRoute.CHAT) }

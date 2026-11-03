@@ -33,7 +33,7 @@ internal fun PhoneChat(
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
     onMenu: () -> Unit,
-    onTrajectory: () -> Unit,
+    onTrajectory: (turn: Long) -> Unit,
 ) {
     var input by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(pendingInput) {

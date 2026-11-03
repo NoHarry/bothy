@@ -15,7 +15,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,10 +99,15 @@ private fun PhoneRouteContent(
     openDrawer: () -> Unit,
 ) {
     val back = { navigate(PhoneRoute.CHAT) }
+    // The turn whose footnote opened the trajectory; null for the latest.
+    var trajectoryTurn by rememberSaveable { mutableStateOf<Long?>(null) }
     when (route) {
-        PhoneRoute.CHAT -> PhoneChat(state, pendingInput, onPendingInputConsumed, actions, openDrawer) { navigate(PhoneRoute.TRAJECTORY) }
+        PhoneRoute.CHAT -> PhoneChat(state, pendingInput, onPendingInputConsumed, actions, openDrawer) { turn ->
+            trajectoryTurn = turn
+            navigate(PhoneRoute.TRAJECTORY)
+        }
         PhoneRoute.PLANS -> PhonePlans(back)
-        PhoneRoute.TRAJECTORY -> PhoneTrajectory(state, actions, back)
+        PhoneRoute.TRAJECTORY -> PhoneTrajectory(state, actions, trajectoryTurn, back)
         PhoneRoute.A2A -> if (a2aActions != null) PhoneA2a(a2aClient, a2aActions, back) else back()
         PhoneRoute.SETTINGS -> PhoneSettings(state, actions, back)
     }
@@ -113,9 +118,15 @@ private fun PhoneRouteContent(
 private fun phoneBackdrop(): Brush {
     val colors = ConsoleColors
     val top = lerp(colors.bg, colors.accentSoft, BACKDROP_WASH)
-    // The status bar takes the backdrop's top, so the wash runs up under the clock.
+    // The status bar takes the backdrop's top, so the wash runs up under the clock, and the console's colour again when
+    // the phone screens go (the layout switched to the console).
     val view = LocalView.current
-    if (!view.isInEditMode) SideEffect { (view.context as? Activity)?.window?.statusBarColor = top.toArgb() }
+    val ground = colors.bg
+    DisposableEffect(view, top, ground) {
+        val window = (view.context as? Activity)?.window?.takeUnless { view.isInEditMode }
+        window?.statusBarColor = top.toArgb()
+        onDispose { window?.statusBarColor = ground.toArgb() }
+    }
     return Brush.verticalGradient(listOf(top, colors.bg, colors.panel))
 }
 

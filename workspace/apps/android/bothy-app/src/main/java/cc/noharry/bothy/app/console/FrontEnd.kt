@@ -46,6 +46,9 @@ internal object FrontEnd {
         return resolve(choice, UiScale.phone(context))
     }
 
+    /** As [phone], for a screen already known to be a phone's or not ([phoneScreen]); reads the choice as state. */
+    fun phone(phoneScreen: Boolean): Boolean = resolve(choice, phoneScreen)
+
     internal fun resolve(choice: Choice, phoneScreen: Boolean): Boolean = when (choice) {
         Choice.AUTO -> phoneScreen
         Choice.PHONE -> true

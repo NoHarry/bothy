@@ -31,6 +31,8 @@ class SessionDayTest {
         val now = 1_700_000_000_000L
         val sessions = listOf(summary("a", "买菜", now), summary("b", "", now, turns = 0))
         assertEquals(listOf("a"), groupDrawerSessions(sessions, "", now).flatMap { it.second }.map { it.sessionId })
+        // Its first run going on, it is listed before any turn has ended.
+        assertEquals(listOf("a", "b"), groupDrawerSessions(sessions, "", now, started = "b").flatMap { it.second }.map { it.sessionId })
     }
 
     @Test

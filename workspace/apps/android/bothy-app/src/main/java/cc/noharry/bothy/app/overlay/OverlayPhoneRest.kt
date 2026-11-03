@@ -9,7 +9,8 @@ import cc.noharry.bothy.app.voice.VoiceController
  * A phone has no resting 小博 over other apps (owner 2026-11-03: 「点击弹悬浮窗这种应该是平板上的交互」): the bubble stays
  * hidden, the card comes when 小博 is woken or a task or a plan arrives, and once it has folded with nothing left
  * under way the overlay goes. [folded] is null while the card is up, else whether anything is still under way that
- * keeps it (a task on the capsule, Android Use); a voice session keeps it too. Checked again until it can go.
+ * keeps it (a task on the capsule, Android Use, a head unit's surface); a voice session keeps it too. Checked every
+ * few seconds, the card up or not, so no way back to the bubble leaves the overlay running unseen.
  */
 internal class OverlayPhoneRest private constructor(
     private val view: View,
@@ -18,8 +19,7 @@ internal class OverlayPhoneRest private constructor(
 ) {
     private val check = Runnable {
         when (folded()) {
-            null -> Unit
-            true -> arm()
+            null, true -> arm()
             false -> if (VoiceController.listening) arm() else leave()
         }
     }

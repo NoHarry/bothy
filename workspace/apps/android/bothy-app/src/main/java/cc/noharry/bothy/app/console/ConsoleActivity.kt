@@ -21,6 +21,7 @@ import cc.noharry.bothy.app.a2a.A2aClientConsole
 import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.console.ui.DesignDensity
+import cc.noharry.bothy.app.console.ui.UiScale
 import cc.noharry.bothy.app.phone.PhoneApp
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.overlay.OverlayService
@@ -34,6 +35,9 @@ import cc.noharry.bothy.app.voice.AsrTextServerManager
 import cc.noharry.bothy.app.voice.loadVoiceConfig
 
 class ConsoleActivity : ComponentActivity() {
+    /** Whether this screen is a phone's, worked out once: a fold or a rotation recreates the activity. */
+    private val phoneScreen by lazy { UiScale.phone(this) }
+
     private var uiState by mutableStateOf<UiState?>(null)
     private var a2aClientState by mutableStateOf(A2aClientState())
     private var pendingInput by mutableStateOf("")
@@ -87,7 +91,7 @@ class ConsoleActivity : ComponentActivity() {
                     uiState?.let { state ->
                         // One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the
                         // console ([FrontEnd]); switching in the settings swaps them at once.
-                        if (FrontEnd.phone(this)) {
+                        if (FrontEnd.phone(phoneScreen)) {
                             PhoneApp(state, pendingInput, { pendingInput = "" }, actions(), a2aClientState, a2aClientActions())
                         } else {
                             ConsoleScreen(

@@ -446,7 +446,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
 
     /** On a phone the bubble stays hidden, and the overlay goes once folded with nothing under way ([OverlayPhoneRest]). */
     private fun restOnPhone() = OverlayPhoneRest.on(this, root, bubble, ::stopSelf) {
-        if (presence != Presence.BUBBLE || wantCard) null else useMode != UseMode.OFF || pendingUse != null || overlayFoldedSignal(resources, delegations) != null
+        if (presence != Presence.BUBBLE || wantCard) null else useMode != UseMode.OFF || pendingUse != null || AssistantSurface.active || overlayFoldedSignal(resources, delegations) != null
     }
 
     private fun surfaceChanged(taken: Boolean) {

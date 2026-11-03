@@ -55,12 +55,12 @@ import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.session.UiState
 
 /**
- * The trajectory on a phone, as the phone design draws it: the latest turn's tool calls as cards (the kind of work,
- * the tool and how long it took), each opening to what it was given and what came back. The full trajectory, with
- * every session and run, is one tap further; back from it returns to the cards.
+ * The trajectory on a phone, as the phone design draws it: a turn's tool calls as cards (the kind of work, the tool
+ * and how it went), each opening to what it was given and what came back; the turn whose footnote was tapped ([turn]),
+ * else the latest. The full trajectory, with every session and run, is one tap further; back from it returns to the cards.
  */
 @Composable
-internal fun PhoneTrajectory(state: UiState, actions: ConsoleActions, onBack: () -> Unit) {
+internal fun PhoneTrajectory(state: UiState, actions: ConsoleActions, turn: Long?, onBack: () -> Unit) {
     var full by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = full) { full = false }
     PhonePage(stringResource(R.string.console_view_trajectory), onBack = { if (full) full = false else onBack() }) {
@@ -69,14 +69,14 @@ internal fun PhoneTrajectory(state: UiState, actions: ConsoleActions, onBack: ()
                 TrajectoryScreen(state, actions, consoleLayoutPolicy(maxWidth.value, maxHeight.value), modifier = Modifier.fillMaxSize())
             }
         } else {
-            TurnCalls(state, { full = true }, Modifier.weight(1f).fillMaxWidth())
+            TurnCalls(state, turn, { full = true }, Modifier.weight(1f).fillMaxWidth())
         }
     }
 }
 
 @Composable
-private fun TurnCalls(state: UiState, onFull: () -> Unit, modifier: Modifier) {
-    val calls = remember(state.items) { latestTurnCalls(state.items) }
+private fun TurnCalls(state: UiState, turn: Long?, onFull: () -> Unit, modifier: Modifier) {
+    val calls = remember(state.items, turn) { turnCalls(state.items, turn) }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         item(key = "summary") {
             val summary = if (calls.isEmpty()) {
@@ -93,10 +93,16 @@ private fun TurnCalls(state: UiState, onFull: () -> Unit, modifier: Modifier) {
     }
 }
 
-/** The tool calls since the latest turn began: what the phone's trajectory lists. */
-internal fun latestTurnCalls(items: List<ConversationItem>): List<ConversationItem.ToolCallItem> {
-    val start = items.indexOfLast { it is ConversationItem.TurnHeader }.coerceAtLeast(0)
-    return items.drop(start).filterIsInstance<ConversationItem.ToolCallItem>().filter { it.isPhoneStep() }
+/**
+ * The tool calls of the turn that starts at the item [turn] (the latest turn when it is null or no longer there), up to
+ * the next turn: what the phone's trajectory lists, and what a turn's footnote counts.
+ */
+internal fun turnCalls(items: List<ConversationItem>, turn: Long?): List<ConversationItem.ToolCallItem> {
+    val asked = turn?.let { id -> items.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
+    val start = asked ?: items.indexOfLast { it is ConversationItem.TurnHeader }.coerceAtLeast(0)
+    val next = items.drop(start + 1).indexOfFirst { it is ConversationItem.TurnHeader }
+    val end = if (next < 0) items.size else start + 1 + next
+    return items.subList(start, end).filterIsInstance<ConversationItem.ToolCallItem>().filter { it.isPhoneStep() }
 }
 
 @Composable

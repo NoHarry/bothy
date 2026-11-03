@@ -30,7 +30,22 @@ class PhoneTimelineTest {
         assertEquals(0, folded.messages)
         val foot = rows[3] as PhoneRow.Footnote
         assertEquals("路线大约 42 分钟", foot.reply)
-        assertEquals(2, foot.steps)
+        assertEquals(1, foot.steps)
+    }
+
+    @Test
+    fun aFootnoteOpensItsOwnTurnsCalls() {
+        val items = listOf(
+            ConversationItem.TurnHeader(1, "You", "去世界之窗", "去世界之窗"),
+            ConversationItem.ToolCallItem(2, toolName = "navigation_route", argumentsJson = null, resultJson = "{}", status = ToolCallStatus.DONE, startedAt = 0L),
+            ConversationItem.TurnHeader(3, "You", "开空调", "开空调"),
+            ConversationItem.ToolCallItem(4, toolName = "car_climate", argumentsJson = null, resultJson = "{}", status = ToolCallStatus.DONE, startedAt = 0L),
+            ConversationItem.ToolCallItem(5, toolName = "finish", argumentsJson = null, resultJson = "{}", status = ToolCallStatus.DONE, startedAt = 0L),
+        )
+        assertEquals(listOf(2L), turnCalls(items, turn = 1).map { it.id })
+        assertEquals(listOf(4L), turnCalls(items, turn = 3).map { it.id })
+        assertEquals(listOf(4L), turnCalls(items, turn = null).map { it.id })
+        assertEquals(listOf(4L), turnCalls(items, turn = 99).map { it.id })
     }
 
     @Test

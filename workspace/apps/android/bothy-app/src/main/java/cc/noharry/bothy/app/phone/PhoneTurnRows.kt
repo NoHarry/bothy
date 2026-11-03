@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -53,7 +54,7 @@ import cc.noharry.bothy.app.session.ConversationItem
 import cc.noharry.bothy.app.session.ToolCallStatus
 
 @Composable
-internal fun PhoneRowView(row: PhoneRow, actions: ConsoleActions, pickable: PickableReply?, onTrajectory: () -> Unit) {
+internal fun PhoneRowView(row: PhoneRow, actions: ConsoleActions, pickable: PickableReply?, onTrajectory: (turn: Long) -> Unit) {
     when (row) {
         is PhoneRow.Asked -> AskedRow(row.header, actions)
         is PhoneRow.Thought -> ThoughtRow(row.item)
@@ -105,7 +106,8 @@ private fun ToolRow(item: ConversationItem.ToolCallItem) {
     var open by rememberSaveable(item.id) { mutableStateOf(false) }
     val resources = LocalResources.current
     val running = item.status == ToolCallStatus.RUNNING
-    StepLine(stepTitle(item, resources), item.stepObject(), item.status.color(), live = running, open = open) { open = !open }
+    val acted = remember(item.argumentsJson) { item.stepObject() }
+    StepLine(stepTitle(item, resources), acted, item.status.color(), live = running, open = open) { open = !open }
     if (open) {
         Column(Modifier.padding(start = STEP_INDENT, bottom = 6.dp)) {
             Text(item.toolName, style = ConsoleType.label, color = ConsoleColors.tertiary, modifier = Modifier.padding(bottom = 4.dp))
@@ -149,7 +151,7 @@ private fun StepLine(title: String, detail: String, dot: androidx.compose.ui.gra
 
 /** A finished turn's process in one line: done, how many tool calls and passing messages; it opens to the steps. */
 @Composable
-private fun FoldedRow(row: PhoneRow.Folded, actions: ConsoleActions, pickable: PickableReply?, onTrajectory: () -> Unit) {
+private fun FoldedRow(row: PhoneRow.Folded, actions: ConsoleActions, pickable: PickableReply?, onTrajectory: (turn: Long) -> Unit) {
     var open by rememberSaveable(row.key) { mutableStateOf(false) }
     val colors = ConsoleColors
     val parts = listOfNotNull(
@@ -166,9 +168,9 @@ private fun FoldedRow(row: PhoneRow.Folded, actions: ConsoleActions, pickable: P
     if (open) Column(Modifier.padding(start = 4.dp, bottom = 4.dp)) { row.rows.forEach { PhoneRowView(it, actions, pickable, onTrajectory) } }
 }
 
-/** Under an answer: copy it, and on the right how many steps the turn took, which opens its trajectory. */
+/** Under an answer: copy it, and on the right how many steps (tool calls) the turn took, which opens its trajectory. */
 @Composable
-private fun FootnoteRow(row: PhoneRow.Footnote, onTrajectory: () -> Unit) {
+private fun FootnoteRow(row: PhoneRow.Footnote, onTrajectory: (turn: Long) -> Unit) {
     val colors = ConsoleColors
     val clipboard = LocalClipboardManager.current
     Row(Modifier.fillMaxWidth().heightIn(min = 36.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -180,7 +182,7 @@ private fun FootnoteRow(row: PhoneRow.Footnote, onTrajectory: () -> Unit) {
         Spacer(Modifier.weight(1f))
         val steps = pluralStringResource(R.plurals.phone_steps, row.steps, row.steps).takeIf { row.steps > 0 }
         val text = listOfNotNull(stringResource(R.string.console_status_failed).takeIf { row.failed }, steps).joinToString(" · ")
-        if (text.isNotEmpty()) Row(Modifier.clickable(onClick = onTrajectory).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (text.isNotEmpty()) Row(Modifier.clickable { onTrajectory(row.turn) }.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text, style = ConsoleType.meta, color = if (row.failed) colors.danger else colors.tertiary)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = colors.tertiary, modifier = Modifier.size(16.dp))
         }
