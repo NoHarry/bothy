@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -59,6 +60,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionCards
@@ -131,10 +133,13 @@ private fun RegularConversationPane(
     short: Boolean,
     modifier: Modifier,
 ) {
-    PanelBox(stringResource(R.string.console_conversation), modifier) {
+    val phone = LocalPortraitPhone.current
+    ConversationFrame(phone, modifier) {
         WakeMigrationNote()
-        ConversationStatus(state)
-        Spacer(Modifier.height(Dimens.spaceSm))
+        if (!phone) {
+            ConversationStatus(state)
+            Spacer(Modifier.height(Dimens.spaceSm))
+        }
         val listState = rememberLazyListState()
         val renderItems = remember(state.items) { state.items.toRenderItems() }
         // reverseLayout: newest grows at the bottom; short threads sit above the composer
@@ -218,14 +223,21 @@ private fun RegularConversationPane(
             )
         }
         Spacer(Modifier.height(Dimens.spaceSm))
-        ConversationInputBar(
-            text = input,
-            onTextChange = onInputChange,
-            onSubmit = onSubmit,
-            state = state,
-            actions = actions,
-            short = short,
-        )
+        if (phone) {
+            PhoneComposer(input, onInputChange, onSubmit, state, actions)
+        } else {
+            ConversationInputBar(text = input, onTextChange = onInputChange, onSubmit = onSubmit, state = state, actions = actions, short = short)
+        }
+    }
+}
+
+/** The conversation's panel, or on a portrait phone the bare column the design draws without one. */
+@Composable
+private fun ConversationFrame(phone: Boolean, modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+    if (phone) {
+        Column(modifier, content = content)
+    } else {
+        PanelBox(stringResource(R.string.console_conversation), modifier, content)
     }
 }
 
@@ -339,7 +351,7 @@ private fun ConversationStatus(state: UiState) {
 }
 
 @Composable
-private fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
+internal fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
     val options = editor.modelOptions.ifEmpty { listOf(editor.model).filter { it.isNotBlank() } }
     val selected = editor.model
@@ -383,7 +395,7 @@ private fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifi
 private fun VariantMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
     if (editor.variantOptions.isEmpty()) return
     var expanded by remember { mutableStateOf(false) }
-    val (options, selected) = editor.variantChoices()
+    val selected = editor.variantChoices().second
     Box(modifier.widthIn(max = VARIANT_BUTTON_MAX_WIDTH), contentAlignment = Alignment.BottomEnd) {
         SelectorChip(
             label = selected.variantLabel(),
@@ -395,19 +407,25 @@ private fun VariantMenu(editor: ProviderEditState, actions: ConsoleActions, modi
             onDismissRequest = { expanded = false },
             minWidth = VARIANT_MENU_MIN_WIDTH,
             maxWidth = VARIANT_MENU_MAX_WIDTH,
-        ) {
-            PopupSectionLabel(stringResource(R.string.console_variant))
-            options.forEach { variant ->
-                PopupMenuItem(
-                    label = variant.variantLabel(),
-                    selected = variant == selected,
-                    onClick = {
-                        expanded = false
-                        actions.selectVariant(variant)
-                    },
-                )
-            }
-        }
+        ) { VariantItems(editor, actions) { expanded = false } }
+    }
+}
+
+/** The variant menu's rows, also in a portrait phone's composer options; [onPicked] closes the menu. */
+@Composable
+internal fun VariantItems(editor: ProviderEditState, actions: ConsoleActions, onPicked: () -> Unit) {
+    if (editor.variantOptions.isEmpty()) return
+    val (options, selected) = editor.variantChoices()
+    PopupSectionLabel(stringResource(R.string.console_variant))
+    options.forEach { variant ->
+        PopupMenuItem(
+            label = variant.variantLabel(),
+            selected = variant == selected,
+            onClick = {
+                onPicked()
+                actions.selectVariant(variant)
+            },
+        )
     }
 }
 
@@ -459,6 +477,7 @@ internal fun MessageField(
     singleLine: Boolean,
     modifier: Modifier,
     placeholder: String = stringResource(R.string.console_message_placeholder),
+    minLines: Int = if (singleLine) 1 else 2,
 ) {
     val colors = ConsoleColors
     // Borderless field fused into the composer dock; the dock Surface owns the outline.
@@ -466,7 +485,7 @@ internal fun MessageField(
         value = text,
         onValueChange = onTextChange,
         modifier = modifier,
-        minLines = if (singleLine) 1 else 2,
+        minLines = minLines,
         maxLines = if (singleLine) 1 else 5,
         singleLine = singleLine,
         textStyle = ConsoleType.body,
@@ -504,7 +523,7 @@ private fun CondensedComposerActions(
             ContextUsageIndicator(state)
             ModelMenu(state.configEditor, actions, Modifier.weight(1f))
             if (showSecondaryActions) VariantMenu(state.configEditor, actions)
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalPortraitPhone.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -532,7 +551,7 @@ private fun CompactComposerActions(
             ComposerOverflowMenu(actions)
             Spacer(Modifier.weight(1f))
             if (state.isRunning) TextButton(onClick = actions.stop) { Text(stringResource(R.string.console_stop)) }
-            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalHoldToTalk.current)
+            VoiceMicButton(SUBMIT_BUTTON_SIZE, SUBMIT_ICON_SIZE, holdToTalk = LocalPortraitPhone.current)
             SubmitButton(text, onSubmit, state.isRunning)
         }
     }
@@ -594,13 +613,19 @@ private fun ComposerOverflowMenu(actions: ConsoleActions) {
 }
 
 @Composable
-private fun SubmitButton(text: String, onSubmit: () -> Unit, isRunning: Boolean) {
+internal fun SubmitButton(
+    text: String,
+    onSubmit: () -> Unit,
+    isRunning: Boolean,
+    size: Dp = SUBMIT_BUTTON_SIZE,
+    iconSize: Dp = SUBMIT_ICON_SIZE,
+) {
     val colors = ConsoleColors
     val enabled = text.isNotBlank()
     // Icon-only send button; the Run/Steer contentDescription is load-bearing for adb/UI automation.
     Box(
         modifier = Modifier
-            .size(SUBMIT_BUTTON_SIZE)
+            .size(size)
             .clip(CircleShape)
             .background(if (enabled) colors.accent else colors.accent.copy(alpha = SUBMIT_DISABLED_ALPHA))
             .clickable(enabled = enabled, onClick = onSubmit)
@@ -611,7 +636,7 @@ private fun SubmitButton(text: String, onSubmit: () -> Unit, isRunning: Boolean)
             imageVector = Icons.AutoMirrored.Filled.Send,
             contentDescription = null,
             tint = if (colors.isDark) colors.bg else Color.White,
-            modifier = Modifier.size(SUBMIT_ICON_SIZE),
+            modifier = Modifier.size(iconSize),
         )
     }
 }
@@ -641,31 +666,34 @@ private fun ConfirmationModeSelector(
             onDismissRequest = { expanded = false },
             minWidth = APPROVAL_MENU_MIN_WIDTH,
             maxWidth = APPROVAL_MENU_MAX_WIDTH,
-        ) {
-            PopupSectionLabel(stringResource(R.string.console_approval))
-            ConfirmationMode.entries.forEach { mode ->
-                val modeAccent = if (mode.warning) colors.warning else colors.ink
-                PopupMenuItem(
-                    label = stringResource(mode.labelRes()),
-                    selected = mode == selected,
-                    hint = stringResource(mode.menuHint()),
-                    accent = modeAccent,
-                    compact = compactMenuItems,
-                    onClick = {
-                        expanded = false
-                        actions.selectConfirmationMode(mode)
-                    },
-                    leading = {
-                        PopupDot(active = mode == selected, color = modeAccent)
-                    },
-                )
-            }
-        }
+        ) { ConfirmationModeItems(selected, actions, compactMenuItems) { expanded = false } }
+    }
+}
+
+/** The approval menu's rows, also in a portrait phone's composer options; [onPicked] closes the menu. */
+@Composable
+internal fun ConfirmationModeItems(selected: ConfirmationMode, actions: ConsoleActions, compact: Boolean, onPicked: () -> Unit) {
+    val colors = ConsoleColors
+    PopupSectionLabel(stringResource(R.string.console_approval))
+    ConfirmationMode.entries.forEach { mode ->
+        val modeAccent = if (mode.warning) colors.warning else colors.ink
+        PopupMenuItem(
+            label = stringResource(mode.labelRes()),
+            selected = mode == selected,
+            hint = stringResource(mode.menuHint()),
+            accent = modeAccent,
+            compact = compact,
+            onClick = {
+                onPicked()
+                actions.selectConfirmationMode(mode)
+            },
+            leading = { PopupDot(active = mode == selected, color = modeAccent) },
+        )
     }
 }
 
 @StringRes
-private fun ConfirmationMode.menuHint(): Int =
+internal fun ConfirmationMode.menuHint(): Int =
     when (this) {
         ConfirmationMode.ASK_EVERY_TIME -> R.string.console_approval_ask_hint
         ConfirmationMode.ALLOW_CONFIRMED_DOMAINS -> R.string.console_approval_domains_hint
@@ -713,7 +741,7 @@ private val SUBMIT_ICON_SIZE = 20.dp
 private const val SUBMIT_DISABLED_ALPHA = 0.35f
 
 @Composable
-private fun String.variantLabel(): String =
+internal fun String.variantLabel(): String =
     when {
         isBlank() || equals(DEFAULT_DEBUG_VARIANT_ID, ignoreCase = true) ->
             stringResource(R.string.console_variant_default)

@@ -305,13 +305,13 @@ The on-device chat model's llama.cpp libraries are committed in `bothy-llm`; the
   `java.nio.file`)
 - JDK 17, Gradle 9.6, Android Gradle Plugin 9.4, Kotlin 2.4
 - Tablets first; phones work too, the way they are held. Upright (smallest width under 600 dp), Bothy shows one page at
-  a time with a side drawer for chats, plans, the trajectory, A2A, the head unit and settings, and its mic is held to
-  talk (in end-to-end mode it is still tapped on and off). The head unit, upright, switches between Route, Cabin and
-  Climate from a panel at the bottom; the map shows once the phone is turned sideways. Sideways, Bothy's console takes
-  its compact layout with the destinations in a rail and the head unit draws at three quarters of its size. Xiao Bo's
-  floating card fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs both apps;
-  AMap's map needs software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when the map
-  opens.
+  a time: the conversation under a bar with the session and the model, a one-line composer whose mic is held to talk (in
+  end-to-end mode it is still tapped on and off), and a side drawer for chats, plans, A2A, the head unit and settings; a
+  run's steps open its trajectory. The head unit, upright, shows the map over the whole screen, with Route, Cabin and
+  Climate in a panel at the bottom and the home and settings in its menu. Sideways, Bothy's console takes its compact
+  layout with the destinations in a rail and the head unit draws at three quarters of its size. Xiao Bo's floating card
+  fits the upright apps it shows over. A phone emulator (arm64 image on Apple silicon) runs both apps; AMap's map needs
+  software rendering there (start it with `-gpu swiftshader_indirect`), or it crashes when the map opens.
 
 ## Friends
 

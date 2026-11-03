@@ -2,15 +2,16 @@ package cc.noharry.bothy.playground.headunit
 
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import cc.noharry.bothy.playground.PlaygroundStore
 import cc.noharry.bothy.playground.ServerState
@@ -46,8 +47,10 @@ class PortraitHeadUnitTest {
                 initialTab = PortraitTab.CABIN,
             )
         }
-        val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-        compose.onNodeWithTag("seat-DRIVER").assert(button).performSemanticsAction(SemanticsActions.OnClick) { it() }
+        compose.onNodeWithTag("portrait-cabin").performTouchInput {
+            val seat = CabinSpots.seats.getValue(Seat.DRIVER)
+            click(androidx.compose.ui.geometry.Offset(seat.x * width, seat.y * height))
+        }
         assertTrue(store.calls.value.joinToString { it.summary }, Seat.DRIVER !in store.read().cabin.occupants)
 
         compose.onNodeWithTag("portrait-cabin").performTouchInput {
@@ -58,7 +61,7 @@ class PortraitHeadUnitTest {
     }
 
     @Test
-    fun homeAndSettingsAreButtons() {
+    fun theMenuHoldsTheHomeAndTheSettings() {
         compose.setContent {
             PortraitHeadUnit(
                 world = World(),
@@ -71,7 +74,8 @@ class PortraitHeadUnitTest {
             )
         }
         val button = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-        compose.onNodeWithText("虚拟小家").assert(button)
-        compose.onNodeWithText("设置与控制").assert(button)
+        compose.onNodeWithContentDescription("菜单").assert(button).performClick()
+        compose.onNodeWithText("虚拟小家").assertExists()
+        compose.onNodeWithText("设置与控制").assertExists()
     }
 }

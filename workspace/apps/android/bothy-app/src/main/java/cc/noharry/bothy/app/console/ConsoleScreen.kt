@@ -28,10 +28,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
@@ -183,18 +181,21 @@ internal fun ConsoleScreen(
         CompositionLocalProvider(
             LocalOpenTrajectory provides openTrajectory,
             LocalOpenPlans provides openPlans,
-            LocalHoldToTalk provides policy.showPhoneDrawer,
+            LocalPortraitPhone provides policy.showPhoneDrawer,
         ) {
         Column(screenPadding) {
-            if (!policy.useRailChrome) {
+            if (policy.showPhoneDrawer) {
+                PhoneTopBar(state, view, screenActions, openDrawer)
+            } else if (!policy.useRailChrome) {
                 HostChrome(
                     state = state,
                     view = view,
                     onViewChange = setView,
                     statusLine = if (view == ConsoleView.A2A) a2aClientStatusLine(a2aClient) else appStatusLine(state),
                     showA2aTab = a2aActions != null,
-                    onMenu = if (policy.showPhoneDrawer) openDrawer else null,
                 )
+            }
+            if (!policy.useRailChrome) {
                 if (policy.showPhoneDrawer && view != ConsoleView.DEBUG && view != ConsoleView.TRAJECTORY && state.isRunning) {
                     TextButton(onClick = { setView(ConsoleView.TRAJECTORY) }) {
                         Text(stringResource(R.string.console_status_running), color = colors.activity)
@@ -303,11 +304,6 @@ internal fun ConsoleScreen(
                             activeSessionId = state.activeSessionId,
                             open = drawerState.isOpen,
                             showA2a = a2aActions != null,
-                            conversationSelected = view == ConsoleView.DEBUG,
-                            onConversation = {
-                                setView(ConsoleView.DEBUG)
-                                closeDrawer()
-                            },
                             onNewChat = {
                                 screenActions.newSession()
                                 setView(ConsoleView.DEBUG)
@@ -320,10 +316,6 @@ internal fun ConsoleScreen(
                             },
                             onPlans = {
                                 setView(ConsoleView.PLANS)
-                                closeDrawer()
-                            },
-                            onTrajectory = {
-                                setView(ConsoleView.TRAJECTORY)
                                 closeDrawer()
                             },
                             onA2a = {
@@ -360,7 +352,6 @@ internal fun HostChrome(
     onViewChange: (ConsoleView) -> Unit,
     statusLine: String = appStatusLine(state),
     showA2aTab: Boolean = true,
-    onMenu: (() -> Unit)? = null,
 ) {
     val colors = ConsoleColors
     // Tabs on the LEFT of chrome: some devices' right-edge floating chrome (avatar /
@@ -371,14 +362,7 @@ internal fun HostChrome(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            if (onMenu != null) {
-                val menuLabel = stringResource(R.string.console_open_menu)
-                IconButton(onClick = onMenu, modifier = Modifier.semantics { contentDescription = menuLabel }) {
-                    Icon(Icons.Filled.Menu, contentDescription = null, tint = colors.text)
-                }
-            } else {
-                ConsoleViewTabs(view = view, onViewChange = onViewChange, showA2aTab = showA2aTab)
-            }
+            ConsoleViewTabs(view = view, onViewChange = onViewChange, showA2aTab = showA2aTab)
             Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(BRAND_MARK_SIZE))
             Column(Modifier.weight(1f)) {
                 Text(

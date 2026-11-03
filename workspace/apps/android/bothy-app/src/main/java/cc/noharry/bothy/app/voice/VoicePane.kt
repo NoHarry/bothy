@@ -147,13 +147,8 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
     val hint = rememberUpdatedState(stringResource(R.string.voice_hold_to_talk))
     val holdDescription = stringResource(R.string.voice_mic_hold)
     val view = LocalView.current
-    val colors = ConsoleColors
     val description = stringResource(if (on) R.string.voice_mic_stop else R.string.voice_mic_start)
-    val fill = when {
-        !on -> colors.accentSoft
-        state.status == VoiceSessionStatus.BUSY -> colors.warning
-        else -> colors.danger
-    }
+    val fill = micFill(on, hold, state.status)
     // The ring grows with loudness, drawn outside the button so the row never shifts.
     val level by animateFloatAsState(if (on) state.micLevels.takeLast(LEVEL_RING_SLICES).maxOrNull() ?: 0f else 0f, tween(LEVEL_EASE_MILLIS), label = "micLevel")
     val gesture = if (hold) {
@@ -177,17 +172,26 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
                     if (hold) onClick { VoiceController.toggle(contextState.value); true }
                 },
             contentAlignment = Alignment.Center,
-        ) { MicFace(on, iconSize) }
+        ) { MicFace(on && !hold, iconSize, if (on) Color.White else ConsoleColors.accent) }
     }
 }
 
-/** A stop square while listening (tapping ends it), else the mic. */
+/** Off a soft mic; listening red, amber while half duplex waits; a hold keeps the mic, filled, as the pill says it listens. */
 @Composable
-private fun MicFace(on: Boolean, iconSize: Dp) {
-    if (on) {
+private fun micFill(on: Boolean, hold: Boolean, status: VoiceSessionStatus): Color = when {
+    !on -> ConsoleColors.accentSoft
+    hold -> ConsoleColors.accent
+    status == VoiceSessionStatus.BUSY -> ConsoleColors.warning
+    else -> ConsoleColors.danger
+}
+
+/** A stop square while listening (tapping ends it), else the mic in [tint]. */
+@Composable
+private fun MicFace(stop: Boolean, iconSize: Dp, tint: Color) {
+    if (stop) {
         Box(Modifier.size(iconSize * STOP_SQUARE_SHARE).clip(RoundedCornerShape(2.dp)).background(Color.White))
     } else {
-        Icon(IconMic, contentDescription = null, tint = ConsoleColors.accent, modifier = Modifier.size(iconSize))
+        Icon(IconMic, contentDescription = null, tint = tint, modifier = Modifier.size(iconSize))
     }
 }
 
@@ -285,7 +289,7 @@ private fun Modifier.pressToTalk(
 
 /** How the last words reached a working agent, for a few seconds: appended, replacing its task, or too late. */
 @Composable
-private fun HandOverNotice() {
+internal fun HandOverNotice() {
     val notice by VoiceFeedback.notice.collectAsState()
     var shown by remember { mutableStateOf<VoiceHandOverNotice?>(null) }
     LaunchedEffect(notice) {
@@ -344,7 +348,7 @@ private fun VoiceWaveform(levels: List<Float>, color: Color) {
     }
 }
 
-private val VoiceSessionStatus.isOn: Boolean
+internal val VoiceSessionStatus.isOn: Boolean
     get() = this == VoiceSessionStatus.STARTING || this == VoiceSessionStatus.LISTENING || this == VoiceSessionStatus.BUSY
 
 @Composable

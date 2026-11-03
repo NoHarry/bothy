@@ -53,6 +53,8 @@
     <string name="voice_mic_hold">按住说话</string>
     <string name="voice_hold_to_talk">按住说话，松开就发送。上移取消。</string>
     <string name="voice_hold_still_sending">上一句还在发送</string>
+    <string name="voice_hold_listening">正在听…</string>
+    <string name="voice_hold_release">松开发送</string>
     <string name="voice_wake_migrated_off">语音唤醒已关闭。如果还想用「你好小博」，在这里打开。</string>
     <string name="voice_handover_new_turn_notice">当前任务已结束，作为新的一轮</string>
     <string name="voice_handover_append_notice">＋ 已追加到当前任务</string>
