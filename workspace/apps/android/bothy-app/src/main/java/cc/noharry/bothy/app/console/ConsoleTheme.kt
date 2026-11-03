@@ -67,7 +67,7 @@ internal val LightConsoleColors = ConsoleThemeColors(
     border = Color(0xFFE4DDD0),
     borderSubtle = Color(0xFFEDE7DC),
     text = Color(0xFF1E231F),
-    muted = Color(0xFF6A665D),
+    muted = Color(0xFF646860),
     tertiary = Color(0xFF9B958A),
     accent = Color(0xFF2F6B4F),
     accentSoft = Color(0xFFE2EDE5),
@@ -78,7 +78,7 @@ internal val LightConsoleColors = ConsoleThemeColors(
     danger = Color(0xFFC8372D),
     success = Color(0xFF2E9C63),
     warning = Color(0xFFB7791F),
-    userBubble = Color(0xFFECE6DA),
+    userBubble = Color(0xFFE7F3EC),
     codeBg = Color(0xFFF1ECE3),
     isDark = false,
 )

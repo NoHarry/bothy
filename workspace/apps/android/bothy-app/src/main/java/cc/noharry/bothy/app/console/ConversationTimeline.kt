@@ -77,13 +77,13 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
     ) {
         Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
         Spacer(Modifier.height(Dimens.spaceXs))
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.86f)
                 .clickable { actions.toggleItem(item.copy(collapsed = !item.collapsed)) },
-            shape = RoundedCornerShape(Dimens.radiusMd),
+            shape = RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp),
             color = colors.userBubble,
-            border = BorderStroke(1.dp, colors.borderSubtle),
         ) {
             Text(
                 text = body,
@@ -93,6 +93,7 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(Dimens.spaceMd),
             )
+        }
         }
     }
 }

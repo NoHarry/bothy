@@ -28,18 +28,27 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -50,6 +59,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
@@ -142,6 +152,11 @@ internal fun ConsoleScreen(
             .padding(Dimens.spaceMd),
     ) {
         val policy = consoleLayoutPolicy(maxWidth.value, maxHeight.value)
+        val context = LocalContext.current
+        val drawerState = rememberDrawerState(DrawerValue.Closed)
+        val drawerScope = rememberCoroutineScope()
+        val openDrawer: () -> Unit = { drawerScope.launch { drawerState.open() } }
+        val closeDrawer: () -> Unit = { drawerScope.launch { drawerState.close() } }
         if (page != ConsolePage.CONVERSATION) {
             BackHandler(onBack = showConversation)
             MainPane(
@@ -151,6 +166,19 @@ internal fun ConsoleScreen(
             )
             return@BoxWithConstraints
         }
+        val home: @Composable () -> Unit = {
+        CompositionLocalProvider(
+            LocalOpenTrajectory provides if (policy.showPhoneDrawer) {
+                { setView(ConsoleView.TRAJECTORY) }
+            } else {
+                null
+            },
+            LocalOpenPlans provides if (policy.showPhoneDrawer) {
+                { setView(ConsoleView.PLANS) }
+            } else {
+                null
+            },
+        ) {
         Column(Modifier.fillMaxSize()) {
             if (!policy.useRailChrome) {
                 HostChrome(
@@ -159,7 +187,13 @@ internal fun ConsoleScreen(
                     onViewChange = setView,
                     statusLine = if (view == ConsoleView.A2A) a2aClientStatusLine(a2aClient) else appStatusLine(state),
                     showA2aTab = a2aActions != null,
+                    onMenu = if (policy.showPhoneDrawer) openDrawer else null,
                 )
+                if (policy.showPhoneDrawer && view != ConsoleView.DEBUG && state.isRunning) {
+                    TextButton(onClick = { setView(ConsoleView.TRAJECTORY) }) {
+                        Text(stringResource(R.string.console_status_running), color = colors.activity)
+                    }
+                }
                 Spacer(Modifier.height(Dimens.spaceSm))
             }
             val bodyModifier = Modifier.weight(1f).fillMaxWidth()
@@ -212,6 +246,7 @@ internal fun ConsoleScreen(
                         onLeaveMcpProviders = leaveMcpProviders,
                         onShowA2aProfiles = showA2aProfilesFromSettings,
                         onLeaveA2aProfiles = leaveA2aProfiles,
+                        showDestinationBar = !policy.showPhoneDrawer,
                         modifier = bodyModifier,
                     )
                     WindowClass.MEDIUM -> MediumLayout(
@@ -250,6 +285,54 @@ internal fun ConsoleScreen(
                 }
             }
         }
+        }
+        }
+        if (policy.showPhoneDrawer) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    ModalDrawerSheet(drawerContainerColor = colors.bg) {
+                        PhoneDrawer(
+                            state = state,
+                            activeSessionId = state.activeSessionId,
+                            showA2a = a2aActions != null,
+                            onNewChat = {
+                                screenActions.newSession()
+                                setView(ConsoleView.DEBUG)
+                                closeDrawer()
+                            },
+                            onSelectSession = {
+                                screenActions.selectSession(it)
+                                setView(ConsoleView.DEBUG)
+                                closeDrawer()
+                            },
+                            onPlans = {
+                                setView(ConsoleView.PLANS)
+                                closeDrawer()
+                            },
+                            onTrajectory = {
+                                setView(ConsoleView.TRAJECTORY)
+                                closeDrawer()
+                            },
+                            onA2a = {
+                                setView(ConsoleView.A2A)
+                                closeDrawer()
+                            },
+                            onPlayground = {
+                                openPlayground(context)
+                                closeDrawer()
+                            },
+                            onSettings = {
+                                showSettings()
+                                closeDrawer()
+                            },
+                        )
+                    }
+                },
+            ) { home() }
+        } else {
+            home()
+        }
     }
     htmlViewer?.let { request ->
         HtmlViewerDialog(request = request, onDismiss = { htmlViewer = null })
@@ -265,6 +348,7 @@ internal fun HostChrome(
     onViewChange: (ConsoleView) -> Unit,
     statusLine: String = appStatusLine(state),
     showA2aTab: Boolean = true,
+    onMenu: (() -> Unit)? = null,
 ) {
     val colors = ConsoleColors
     // Tabs on the LEFT of chrome: some devices' right-edge floating chrome (avatar /
@@ -275,7 +359,14 @@ internal fun HostChrome(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            ConsoleViewTabs(view = view, onViewChange = onViewChange, showA2aTab = showA2aTab)
+            if (onMenu != null) {
+                val menuLabel = stringResource(R.string.console_open_menu)
+                IconButton(onClick = onMenu, modifier = Modifier.semantics { contentDescription = menuLabel }) {
+                    Icon(Icons.Filled.Menu, contentDescription = null, tint = colors.text)
+                }
+            } else {
+                ConsoleViewTabs(view = view, onViewChange = onViewChange, showA2aTab = showA2aTab)
+            }
             Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(BRAND_MARK_SIZE))
             Column(Modifier.weight(1f)) {
                 Text(
@@ -490,6 +581,7 @@ private fun CompactLayout(
     onLeaveMcpProviders: () -> Unit,
     onShowA2aProfiles: () -> Unit,
     onLeaveA2aProfiles: () -> Unit,
+    showDestinationBar: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val selectedNavigation = compactNavigationDestination(page, destination)
@@ -519,8 +611,10 @@ private fun CompactLayout(
     } else {
         Column(modifier.fillMaxSize()) {
             paneContent(Modifier.weight(1f).fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            DestinationBar(selectedNavigation, true, onDestinationSelected)
+            if (showDestinationBar) {
+                Spacer(Modifier.height(8.dp))
+                DestinationBar(selectedNavigation, true, onDestinationSelected)
+            }
         }
     }
 }

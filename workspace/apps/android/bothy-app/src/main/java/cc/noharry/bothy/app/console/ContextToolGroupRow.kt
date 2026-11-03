@@ -123,15 +123,19 @@ private val ARTIFACT_ROW_PREVIEW_HEIGHT = 200.dp
 
 @Composable
 private fun ContextToolGroupRow(group: ConversationRenderItem.ContextToolGroup) {
-    var expanded by remember(group.key) { mutableStateOf(false) }
+    var manual by remember(group.key) { mutableStateOf<Boolean?>(null) }
     val status = group.status()
+    val expanded = manual ?: (status == ToolCallStatus.RUNNING)
+    val openTrajectory = LocalOpenTrajectory.current
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     TimelineRow(status.color(), null) {
         GroupHeader(
             summary = group.summaryLabel(LocalContext.current.resources),
             expanded = expanded,
             meta = listOfNotNull(stringResource(status.labelRes()), elapsed).joinToString(" · "),
-            onToggle = { expanded = !expanded },
+            onToggle = {
+                if (openTrajectory != null) openTrajectory() else manual = !expanded
+            },
         )
         if (expanded) {
             Spacer(Modifier.height(Dimens.spaceXsMd))
@@ -147,8 +151,10 @@ private fun BusinessToolGroupRow(
     group: ConversationRenderItem.BusinessToolGroup,
     actions: ConsoleActions,
 ) {
-    var expanded by remember(group.key) { mutableStateOf(false) }
+    var manual by remember(group.key) { mutableStateOf<Boolean?>(null) }
     val status = group.status()
+    val expanded = manual ?: (status == ToolCallStatus.RUNNING)
+    val openTrajectory = LocalOpenTrajectory.current
     val elapsed = groupElapsedLabel(group.tools, group.key, status)
     val running = status == ToolCallStatus.RUNNING
     GroupCard(
@@ -157,7 +163,9 @@ private fun BusinessToolGroupRow(
         elapsed = elapsed,
         statusColor = if (running) ConsoleColors.activity else status.color(),
         pulsing = running,
-        onToggle = { expanded = !expanded },
+        onToggle = {
+            if (openTrajectory != null) openTrajectory() else manual = !expanded
+        },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
             group.tools.forEach { tool -> ConversationItemView(tool, actions) }

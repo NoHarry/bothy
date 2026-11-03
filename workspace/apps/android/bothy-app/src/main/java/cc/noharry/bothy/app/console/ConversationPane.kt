@@ -192,6 +192,17 @@ private fun RegularConversationPane(
                 }
             }
         }
+        val openPlans = LocalOpenPlans.current
+        val steps = state.contextPanel.todo.size
+        if (openPlans != null && steps > 0) {
+            Spacer(Modifier.height(Dimens.spaceSm))
+            Text(
+                text = stringResource(R.string.console_plan_card, steps),
+                style = ConsoleType.body,
+                color = ConsoleColors.accent,
+                modifier = Modifier.fillMaxWidth().clickable { openPlans() }.padding(vertical = Dimens.spaceXs),
+            )
+        }
         Spacer(Modifier.height(Dimens.spaceSm))
         ConversationInputBar(
             text = input,
