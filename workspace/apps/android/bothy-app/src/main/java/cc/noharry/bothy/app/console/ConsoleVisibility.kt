@@ -49,18 +49,15 @@ internal object ConsoleVisibility {
                 restoreOverlay = true
                 main.post { close() }
             }
-        } else if (restoreOverlay || openCard || WakeWord.enabled.value) {
+        } else {
             // With 语音唤醒 on 小博 comes back too: the overlay may have closed itself on the way in (its card's 打开页面).
+            // A phone has no resting 小博: only a card asked for meanwhile comes up there.
             val open = openCard
+            val resting = !FrontEnd.phone(app) && (restoreOverlay || WakeWord.enabled.value)
             restoreOverlay = false
             openCard = false
-            OverlayControl.start(app, open)
+            if (open || resting) OverlayControl.start(app, open)
         }
-    }
-
-    /** 小博 is to come up with the app, but not over it: it comes when the console leaves. */
-    fun restoreOnLeave() {
-        restoreOverlay = true
     }
 
     /** An A2A request to show the overlay while the console is in front: shown when the console leaves. */

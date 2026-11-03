@@ -8,4 +8,10 @@
     <string name="settings_theme_system">Follow system</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_theme_dark">Dark</string>
+    <string name="settings_layout">Layout</string>
+    <string name="settings_layout_note">Auto follows the screen: a phone gets the phone screens, a tablet or a head unit the console. A phone shows no Bothy over other apps until it is woken or a task comes in.</string>
+    <string name="settings_layout_short_note">Auto follows the screen. Phone and tablet also behave differently outside the app.</string>
+    <string name="settings_layout_auto">Auto</string>
+    <string name="settings_layout_phone">Phone</string>
+    <string name="settings_layout_console">Tablet</string>
 </resources>

@@ -5,47 +5,51 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.console.ConfirmationModeItems
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
-import cc.noharry.bothy.app.console.ModelMenu
-import cc.noharry.bothy.app.console.VariantItems
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.session.ConfirmationStatus
 import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.console.ui.PopupMenuItem
-import cc.noharry.bothy.app.console.ui.PopupSectionLabel
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.session.sessionTitleText
 
@@ -59,9 +63,10 @@ internal fun PhoneTopBar(state: UiState, actions: ConsoleActions, onMenu: () -> 
         RoundButton(Icons.Filled.Menu, stringResource(R.string.console_open_menu), onMenu)
         TitleAndModel(Modifier.weight(1f)) {
             TitlePill(phoneTitle(state), phoneStatus(state))
-            PhoneModelMenu(state, actions)
+            PhoneModelPill(state, actions)
         }
-        RoundButton(Icons.Filled.Edit, stringResource(R.string.console_new_chat), actions.newSession)
+        // A chat nothing was asked in yet is already new.
+        if (state.items.isNotEmpty() || state.isRunning) RoundButton(Icons.Filled.Edit, stringResource(R.string.console_new_chat), actions.newSession)
     }
 }
 
@@ -98,7 +103,7 @@ private fun phoneStatus(state: UiState): Pair<String, androidx.compose.ui.graphi
     return when {
         waiting -> stringResource(R.string.phone_status_waiting) to colors.warning
         state.isRunning -> stringResource(R.string.phone_status_working) to colors.activity
-        else -> stringResource(R.string.phone_status_ready) to colors.success
+        else -> stringResource(R.string.phone_this_phone) to colors.success
     }
 }
 
@@ -115,24 +120,40 @@ internal fun PhonePage(title: String, onBack: () -> Unit, content: @Composable C
 }
 
 /**
- * The model, and the run's other choices with it: approval, the variant and the actions, which the tablet's composer
- * shows as chips of their own. A warning approval keeps its amber dot on the button.
+ * The model, as a pill that brings up the run's choices from the bottom ([PhoneModelSheet]): the model, its variant and
+ * approval. A warning approval keeps its amber dot on the pill.
  */
 @Composable
-private fun PhoneModelMenu(state: UiState, actions: ConsoleActions) {
-    val mode = state.confirmationMode
-    ModelMenu(
-        state.configEditor,
-        actions,
-        Modifier.widthIn(max = MODEL_PILL_MAX_WIDTH),
-        leadingDot = ConsoleColors.warning.takeIf { mode.warning },
-    ) { close ->
-        ConfirmationModeItems(mode, actions, compact = true, onPicked = close)
-        VariantItems(state.configEditor, actions, onPicked = close)
-        PopupSectionLabel(stringResource(R.string.console_actions))
-        PopupMenuItem(label = stringResource(R.string.console_floating_card), selected = false, onClick = { close(); actions.openOverlay() })
-        PopupMenuItem(label = stringResource(R.string.console_toggle_stream), selected = false, onClick = { close(); actions.toggleStream() })
+private fun PhoneModelPill(state: UiState, actions: ConsoleActions) {
+    val colors = ConsoleColors
+    var open by remember { mutableStateOf(false) }
+    val model = state.configEditor.model.ifBlank { stringResource(R.string.console_choose_model) }
+    Surface(
+        onClick = { open = true },
+        shape = RoundedCornerShape(Dimens.radiusFull),
+        color = colors.elevated,
+        shadowElevation = PILL_SHADOW,
+        modifier = Modifier.widthIn(max = MODEL_PILL_MAX_WIDTH),
+    ) {
+        Row(Modifier.heightIn(min = TOP_BUTTON_SIZE).padding(start = 14.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (state.confirmationMode.warning) {
+                StatusDot(color = colors.warning, modifier = Modifier.size(7.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                model,
+                style = ConsoleType.meta,
+                color = colors.text,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                // A model's name ends in what tells it from its siblings ("…-flash", "…-pro"): cut its middle.
+                overflow = TextOverflow.MiddleEllipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = colors.muted, modifier = Modifier.padding(start = 2.dp).size(18.dp))
+        }
     }
+    if (open) PhoneModelSheet(state, actions) { open = false }
 }
 
 @Composable
@@ -153,11 +174,11 @@ internal fun RoundButton(icon: Painter, label: String, onClick: () -> Unit) {
     }
 }
 
-/** The open session's title, or a new chat's. */
+/** The open session's title, or "New chat" until something is asked in it. */
 @Composable
 private fun phoneTitle(state: UiState): String {
-    val title = state.sessions.firstOrNull { it.sessionId == state.activeSessionId }?.title
-    return title?.takeIf { it.isNotBlank() }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat)
+    val session = state.sessions.firstOrNull { it.sessionId == state.activeSessionId }?.takeIf { it.turnCount > 0 || state.items.isNotEmpty() }
+    return session?.title?.takeIf { it.isNotBlank() }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat)
 }
 
 /** The session's title, and under it a dot and how it is doing. */

@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,7 +25,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -59,8 +62,6 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.session.sessionTitleText
 import cc.noharry.bothy.app.console.ConsoleActions
-import cc.noharry.bothy.app.console.ui.PopupMenu
-import cc.noharry.bothy.app.console.ui.PopupMenuItem
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.session.ConfirmationStatus
 import cc.noharry.bothy.app.session.ConversationItem
@@ -89,13 +90,17 @@ internal fun sessionDay(updatedAtEpochMillis: Long, nowMillis: Long = System.cur
     }
 }
 
-/** Sessions matching [query], grouped by day. Computed once per list or query change. */
+/**
+ * Sessions matching [query], grouped by day; a session nothing was asked in yet is left out, as a new chat is until it
+ * starts. Computed once per list or query change.
+ */
 internal fun groupDrawerSessions(
     sessions: List<SessionSummary>,
     query: String,
     nowMillis: Long = System.currentTimeMillis(),
 ): List<Pair<SessionDay, List<SessionSummary>>> {
-    val filtered = if (query.isBlank()) sessions else sessions.filter { it.title.contains(query, ignoreCase = true) }
+    val started = sessions.filter { it.turnCount > 0 }
+    val filtered = if (query.isBlank()) started else started.filter { it.title.contains(query, ignoreCase = true) }
     return SessionDay.entries.mapNotNull { day ->
         val rows = filtered.filter { sessionDay(it.updatedAtEpochMillis, nowMillis) == day }
         if (rows.isEmpty()) null else day to rows
@@ -124,7 +129,7 @@ internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, action
         DrawerHeader { actions.newSession(); onGo(PhoneRoute.CHAT) }
         Spacer(Modifier.height(12.dp))
         DrawerSearch(query, open) { query = it }
-        LazyColumn(Modifier.weight(1f).padding(top = 4.dp)) {
+        if (grouped.isEmpty()) DrawerEmpty(Modifier.weight(1f)) else LazyColumn(Modifier.weight(1f).padding(top = 4.dp)) {
             grouped.forEach { (day, rows) ->
                 item(key = "day-$day") { DrawerSection(stringResource(day.label)) }
                 items(rows, key = { it.sessionId }) { session ->
@@ -204,7 +209,17 @@ private fun SessionRow(session: SessionSummary, selected: Boolean, dot: Color?, 
     }
 }
 
-/** How 小博 is doing; then plans, A2A and the head unit behind one button; then the settings. */
+/** No session has started yet. */
+@Composable
+private fun DrawerEmpty(modifier: Modifier) {
+    val colors = ConsoleColors
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(stringResource(R.string.phone_drawer_empty), style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.phone_drawer_empty_note), style = ConsoleType.meta, color = colors.muted, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+/** Where Bothy runs and how it is doing; then plans, A2A and the head unit behind one button; then the settings. */
 @Composable
 private fun DrawerFoot(state: UiState, showA2a: Boolean, onGo: (PhoneRoute) -> Unit) {
     val colors = ConsoleColors
@@ -213,10 +228,12 @@ private fun DrawerFoot(state: UiState, showA2a: Boolean, onGo: (PhoneRoute) -> U
     var more by remember { mutableStateOf(false) }
     val status = drawerDot(state)
     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Image(painterResource(R.drawable.bothy_mark), contentDescription = null, modifier = Modifier.size(40.dp).clip(CircleShape))
+        Box(Modifier.size(44.dp).clip(CircleShape).background(colors.accentSoft), contentAlignment = Alignment.Center) {
+            Icon(painterResource(R.drawable.ic_phone_device), contentDescription = null, tint = colors.accent, modifier = Modifier.size(22.dp))
+        }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.console_drawer_assistant), style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.phone_this_phone), style = ConsoleType.body, color = colors.text, fontWeight = FontWeight.SemiBold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StatusDot(color = status ?: colors.success, modifier = Modifier.size(6.dp))
                 val words = when (status) {
@@ -227,18 +244,18 @@ private fun DrawerFoot(state: UiState, showA2a: Boolean, onGo: (PhoneRoute) -> U
                 Text(stringResource(words), style = ConsoleType.meta, color = colors.muted, modifier = Modifier.padding(start = 5.dp))
             }
         }
-        Box {
-            RoundButton(painterResource(R.drawable.ic_phone_more), stringResource(R.string.console_drawer_features)) { more = true }
-            PopupMenu(expanded = more, onDismissRequest = { more = false }) {
-                PopupMenuItem(label = stringResource(R.string.console_view_plans), selected = false, onClick = { more = false; onGo(PhoneRoute.PLANS) })
-                if (showA2a) PopupMenuItem(label = stringResource(R.string.console_view_a2a), selected = false, onClick = { more = false; onGo(PhoneRoute.A2A) })
-                if (showPlayground) {
-                    PopupMenuItem(label = stringResource(R.string.console_open_playground), selected = false, onClick = { more = false; openPlayground(context); onGo(PhoneRoute.CHAT) })
-                }
-            }
-        }
+        RoundButton(painterResource(R.drawable.ic_phone_more), stringResource(R.string.console_drawer_features)) { more = true }
         Spacer(Modifier.width(10.dp))
         RoundButton(rememberVectorPainter(Icons.Filled.Settings), stringResource(R.string.common_settings)) { onGo(PhoneRoute.SETTINGS) }
+    }
+    if (more) {
+        val plans = SheetTile(rememberVectorPainter(Icons.Filled.DateRange), stringResource(R.string.console_view_plans)) { onGo(PhoneRoute.PLANS) }
+        val a2a = SheetTile(rememberVectorPainter(Icons.Filled.Share), stringResource(R.string.console_view_a2a)) { onGo(PhoneRoute.A2A) }
+        val car = SheetTile(painterResource(R.drawable.ic_drawer_car), stringResource(R.string.console_open_playground)) {
+            openPlayground(context)
+            onGo(PhoneRoute.CHAT)
+        }
+        PhoneMoreSheet(listOfNotNull(plans, a2a.takeIf { showA2a }, car.takeIf { showPlayground })) { more = false }
     }
 }
 

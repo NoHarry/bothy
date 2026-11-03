@@ -102,7 +102,6 @@
     <string name="console_drawer_yesterday">Yesterday</string>
     <string name="console_drawer_earlier">Earlier</string>
     <string name="console_drawer_features">More</string>
-    <string name="console_drawer_assistant">Bothy</string>
     <string name="console_open_playground">Head unit</string>
     <string name="console_expand_board">Expand board</string>
     <plurals name="console_read_files">
@@ -326,4 +325,15 @@
     <string name="phone_status_working">Working</string>
     <string name="phone_status_waiting">Waiting for you</string>
     <string name="phone_drawer_this_week">This week</string>
+    <string name="phone_this_phone">This phone</string>
+    <string name="phone_drawer_empty">No chats yet</string>
+    <string name="phone_drawer_empty_note">New chats appear here</string>
+    <string name="phone_greeting_morning">Good morning</string>
+    <string name="phone_greeting_afternoon">Good afternoon</string>
+    <string name="phone_greeting_evening">Good evening</string>
+    <string name="phone_greeting_ask">What can I do for you?</string>
+    <string name="phone_suggest_remind">Remind me at 8</string>
+    <string name="phone_suggest_nearby">Coffee nearby</string>
+    <string name="phone_suggest_navigate">To the airport</string>
+    <string name="phone_suggest_news">Today\'s news</string>
 </resources>

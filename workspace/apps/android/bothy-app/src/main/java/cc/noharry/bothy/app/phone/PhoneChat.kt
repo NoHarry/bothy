@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.a2ui.QuestionCards
 import cc.noharry.bothy.app.console.ConsoleActions
-import cc.noharry.bothy.app.console.ConversationEmptyState
 import cc.noharry.bothy.app.console.WakeMigrationNote
 import cc.noharry.bothy.app.session.UiState
 
@@ -54,7 +53,7 @@ internal fun PhoneChat(
         WakeMigrationNote()
         QuestionCards(state, actions)
         if (state.items.isEmpty() && !state.isRunning) {
-            ConversationEmptyState(Modifier.weight(1f).fillMaxWidth())
+            PhoneWelcome(onSuggest = { input = it }, modifier = Modifier.weight(1f).fillMaxWidth())
         } else {
             PhoneTimeline(state, actions, onTrajectory, Modifier.weight(1f).fillMaxWidth())
         }

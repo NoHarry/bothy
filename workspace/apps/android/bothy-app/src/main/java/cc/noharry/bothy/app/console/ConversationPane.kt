@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -56,7 +55,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionCards
@@ -198,12 +196,19 @@ private fun RegularConversationPane(
             }
         }
         Spacer(Modifier.height(Dimens.spaceSm))
-        ConversationInputBar(text = input, onTextChange = onInputChange, onSubmit = onSubmit, state = state, actions = actions, short = short)
+        ConversationInputBar(
+            text = input,
+            onTextChange = onInputChange,
+            onSubmit = onSubmit,
+            state = state,
+            actions = actions,
+            short = short,
+        )
     }
 }
 
 @Composable
-internal fun ConversationEmptyState(modifier: Modifier = Modifier) {
+private fun ConversationEmptyState(modifier: Modifier = Modifier) {
     val colors = ConsoleColors
     Column(
         modifier = modifier.padding(vertical = Dimens.spaceLg),
@@ -312,21 +317,15 @@ private fun ConversationStatus(state: UiState) {
 }
 
 @Composable
-internal fun ModelMenu(
-    editor: ProviderEditState,
-    actions: ConsoleActions,
-    modifier: Modifier = Modifier,
-    leadingDot: Color? = null,
-    more: (@Composable ColumnScope.(close: () -> Unit) -> Unit)? = null,
-) {
+private fun ModelMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
+    val options = editor.modelOptions.ifEmpty { listOf(editor.model).filter { it.isNotBlank() } }
     val selected = editor.model
     Box(modifier.widthIn(max = MODEL_BUTTON_MAX_WIDTH), contentAlignment = Alignment.BottomEnd) {
         SelectorChip(
             label = selected.ifBlank { stringResource(R.string.console_choose_model) },
             onClick = { expanded = true },
             modifier = Modifier.fillMaxWidth(),
-            leadingDot = leadingDot,
             placeholder = selected.isBlank(),
         )
         PopupMenu(
@@ -335,30 +334,26 @@ internal fun ModelMenu(
             minWidth = MODEL_MENU_MIN_WIDTH,
             maxWidth = MODEL_MENU_MAX_WIDTH,
         ) {
-            ModelItems(editor, actions) { expanded = false }
-            more?.invoke(this) { expanded = false }
+            PopupSectionLabel(stringResource(R.string.console_model))
+            if (options.isEmpty()) {
+                PopupMenuItem(
+                    label = stringResource(R.string.console_no_models),
+                    selected = false,
+                    onClick = { expanded = false },
+                )
+            } else {
+                options.forEach { model ->
+                    PopupMenuItem(
+                        label = model,
+                        selected = model == selected,
+                        onClick = {
+                            expanded = false
+                            actions.selectModel(model)
+                        },
+                    )
+                }
+            }
         }
-    }
-}
-
-/** The model menu's rows; [onPicked] closes the menu. */
-@Composable
-internal fun ModelItems(editor: ProviderEditState, actions: ConsoleActions, onPicked: () -> Unit) {
-    val options = editor.modelOptions.ifEmpty { listOf(editor.model).filter { it.isNotBlank() } }
-    PopupSectionLabel(stringResource(R.string.console_model))
-    if (options.isEmpty()) {
-        PopupMenuItem(label = stringResource(R.string.console_no_models), selected = false, onClick = onPicked)
-        return
-    }
-    options.forEach { model ->
-        PopupMenuItem(
-            label = model,
-            selected = model == editor.model,
-            onClick = {
-                onPicked()
-                actions.selectModel(model)
-            },
-        )
     }
 }
 
@@ -366,7 +361,7 @@ internal fun ModelItems(editor: ProviderEditState, actions: ConsoleActions, onPi
 private fun VariantMenu(editor: ProviderEditState, actions: ConsoleActions, modifier: Modifier = Modifier) {
     if (editor.variantOptions.isEmpty()) return
     var expanded by remember { mutableStateOf(false) }
-    val selected = editor.variantChoices().second
+    val (options, selected) = editor.variantChoices()
     Box(modifier.widthIn(max = VARIANT_BUTTON_MAX_WIDTH), contentAlignment = Alignment.BottomEnd) {
         SelectorChip(
             label = selected.variantLabel(),
@@ -378,25 +373,19 @@ private fun VariantMenu(editor: ProviderEditState, actions: ConsoleActions, modi
             onDismissRequest = { expanded = false },
             minWidth = VARIANT_MENU_MIN_WIDTH,
             maxWidth = VARIANT_MENU_MAX_WIDTH,
-        ) { VariantItems(editor, actions) { expanded = false } }
-    }
-}
-
-/** The variant menu's rows, also in a portrait phone's composer options; [onPicked] closes the menu. */
-@Composable
-internal fun VariantItems(editor: ProviderEditState, actions: ConsoleActions, onPicked: () -> Unit) {
-    if (editor.variantOptions.isEmpty()) return
-    val (options, selected) = editor.variantChoices()
-    PopupSectionLabel(stringResource(R.string.console_variant))
-    options.forEach { variant ->
-        PopupMenuItem(
-            label = variant.variantLabel(),
-            selected = variant == selected,
-            onClick = {
-                onPicked()
-                actions.selectVariant(variant)
-            },
-        )
+        ) {
+            PopupSectionLabel(stringResource(R.string.console_variant))
+            options.forEach { variant ->
+                PopupMenuItem(
+                    label = variant.variantLabel(),
+                    selected = variant == selected,
+                    onClick = {
+                        expanded = false
+                        actions.selectVariant(variant)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -448,7 +437,6 @@ internal fun MessageField(
     singleLine: Boolean,
     modifier: Modifier,
     placeholder: String = stringResource(R.string.console_message_placeholder),
-    minLines: Int = if (singleLine) 1 else 2,
 ) {
     val colors = ConsoleColors
     // Borderless field fused into the composer dock; the dock Surface owns the outline.
@@ -456,7 +444,7 @@ internal fun MessageField(
         value = text,
         onValueChange = onTextChange,
         modifier = modifier,
-        minLines = minLines,
+        minLines = if (singleLine) 1 else 2,
         maxLines = if (singleLine) 1 else 5,
         singleLine = singleLine,
         textStyle = ConsoleType.body,
@@ -584,19 +572,13 @@ private fun ComposerOverflowMenu(actions: ConsoleActions) {
 }
 
 @Composable
-internal fun SubmitButton(
-    text: String,
-    onSubmit: () -> Unit,
-    isRunning: Boolean,
-    size: Dp = SUBMIT_BUTTON_SIZE,
-    iconSize: Dp = SUBMIT_ICON_SIZE,
-) {
+private fun SubmitButton(text: String, onSubmit: () -> Unit, isRunning: Boolean) {
     val colors = ConsoleColors
     val enabled = text.isNotBlank()
     // Icon-only send button; the Run/Steer contentDescription is load-bearing for adb/UI automation.
     Box(
         modifier = Modifier
-            .size(size)
+            .size(SUBMIT_BUTTON_SIZE)
             .clip(CircleShape)
             .background(if (enabled) colors.accent else colors.accent.copy(alpha = SUBMIT_DISABLED_ALPHA))
             .clickable(enabled = enabled, onClick = onSubmit)
@@ -607,7 +589,7 @@ internal fun SubmitButton(
             imageVector = Icons.AutoMirrored.Filled.Send,
             contentDescription = null,
             tint = if (colors.isDark) colors.bg else Color.White,
-            modifier = Modifier.size(iconSize),
+            modifier = Modifier.size(SUBMIT_ICON_SIZE),
         )
     }
 }
@@ -637,29 +619,26 @@ private fun ConfirmationModeSelector(
             onDismissRequest = { expanded = false },
             minWidth = APPROVAL_MENU_MIN_WIDTH,
             maxWidth = APPROVAL_MENU_MAX_WIDTH,
-        ) { ConfirmationModeItems(selected, actions, compactMenuItems) { expanded = false } }
-    }
-}
-
-/** The approval menu's rows, also in a portrait phone's composer options; [onPicked] closes the menu. */
-@Composable
-internal fun ConfirmationModeItems(selected: ConfirmationMode, actions: ConsoleActions, compact: Boolean, onPicked: () -> Unit) {
-    val colors = ConsoleColors
-    PopupSectionLabel(stringResource(R.string.console_approval))
-    ConfirmationMode.entries.forEach { mode ->
-        val modeAccent = if (mode.warning) colors.warning else colors.ink
-        PopupMenuItem(
-            label = stringResource(mode.labelRes()),
-            selected = mode == selected,
-            hint = stringResource(mode.menuHint()),
-            accent = modeAccent,
-            compact = compact,
-            onClick = {
-                onPicked()
-                actions.selectConfirmationMode(mode)
-            },
-            leading = { PopupDot(active = mode == selected, color = modeAccent) },
-        )
+        ) {
+            PopupSectionLabel(stringResource(R.string.console_approval))
+            ConfirmationMode.entries.forEach { mode ->
+                val modeAccent = if (mode.warning) colors.warning else colors.ink
+                PopupMenuItem(
+                    label = stringResource(mode.labelRes()),
+                    selected = mode == selected,
+                    hint = stringResource(mode.menuHint()),
+                    accent = modeAccent,
+                    compact = compactMenuItems,
+                    onClick = {
+                        expanded = false
+                        actions.selectConfirmationMode(mode)
+                    },
+                    leading = {
+                        PopupDot(active = mode == selected, color = modeAccent)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -700,7 +679,6 @@ private val VARIANT_MENU_MAX_WIDTH = 180.dp
 private val APPROVAL_MENU_MIN_WIDTH = 260.dp
 private val APPROVAL_MENU_MAX_WIDTH = 340.dp
 private val COMPACT_COMPOSER_WIDTH = 560.dp
-
 /** Under this the conversation pane takes the two-row composer: a phone held sideways gives it about 330 dp. */
 private val SHORT_PANE_HEIGHT = 420.dp
 private val CONDENSED_INPUT_HEIGHT = 52.dp

@@ -21,7 +21,6 @@ import cc.noharry.bothy.app.a2a.A2aClientConsole
 import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aInputSource
 import cc.noharry.bothy.app.console.ui.DesignDensity
-import cc.noharry.bothy.app.console.ui.UiScale
 import cc.noharry.bothy.app.phone.PhoneApp
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.overlay.OverlayService
@@ -35,9 +34,6 @@ import cc.noharry.bothy.app.voice.AsrTextServerManager
 import cc.noharry.bothy.app.voice.loadVoiceConfig
 
 class ConsoleActivity : ComponentActivity() {
-    /** A phone gets Bothy's phone screens ([PhoneApp]); a tablet and a head unit the console ([ConsoleScreen]). */
-    private val phoneUi by lazy { UiScale.phone(this) }
-
     private var uiState by mutableStateOf<UiState?>(null)
     private var a2aClientState by mutableStateOf(A2aClientState())
     private var pendingInput by mutableStateOf("")
@@ -58,14 +54,8 @@ class ConsoleActivity : ComponentActivity() {
         super.onStart()
         ConsoleVisibility.set(this, visible = true)
         // With 语音唤醒 on, 小博 comes up with the app, not only when opened by hand (the wake word listens either way).
-        // A phone has no room beside its screens: 小博 comes once the app leaves.
-        if (loadVoiceConfig(this).overlayWake) {
-            if (phoneUi) {
-                ConsoleVisibility.restoreOnLeave()
-            } else {
-                OverlayControl.ensureRunning(this)
-            }
-        }
+        // A phone has no resting 小博, so nothing comes up there ([OverlayControl.ensureRunning]).
+        if (loadVoiceConfig(this).overlayWake) OverlayControl.ensureRunning(this)
     }
 
     override fun onStop() {
@@ -77,6 +67,7 @@ class ConsoleActivity : ComponentActivity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         ConsoleAppearance.load(this)
+        FrontEnd.load(this)
         // Phones stay in the orientation the person is holding, portrait included. A portrait phone keeps the status bar.
         AsrTextServerManager.start(applicationContext)
         detachSession = RuntimeSession.attach(this) { uiState = it }
@@ -94,8 +85,9 @@ class ConsoleActivity : ComponentActivity() {
                         return@ConsoleTheme
                     }
                     uiState?.let { state ->
-                        // One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the console.
-                        if (phoneUi) {
+                        // One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the
+                        // console ([FrontEnd]); switching in the settings swaps them at once.
+                        if (FrontEnd.phone(this)) {
                             PhoneApp(state, pendingInput, { pendingInput = "" }, actions(), a2aClientState, a2aClientActions())
                         } else {
                             ConsoleScreen(

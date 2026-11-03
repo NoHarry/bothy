@@ -60,7 +60,8 @@ internal data class A2aClientActions(
     val answer: (questionId: String, text: String) -> Unit,
     val cancel: () -> Unit,
     val newConversation: () -> Unit,
-    val openOverlay: () -> Unit,
+    /** Shows the floating card; null where there is none to show (a phone has no resting 小博). */
+    val openOverlay: (() -> Unit)?,
     val setSpeakExternal: (Boolean) -> Unit = {},
 )
 
@@ -337,7 +338,7 @@ private fun A2aClientControls(state: A2aClientState, actions: A2aClientActions) 
         TextButton(onClick = actions.newConversation, enabled = !state.running) {
             Text(stringResource(R.string.a2a_new_conversation))
         }
-        TextButton(onClick = actions.openOverlay) { Text(stringResource(R.string.a2a_floating_card)) }
+        actions.openOverlay?.let { open -> TextButton(onClick = open) { Text(stringResource(R.string.a2a_floating_card)) } }
     }
 }
 

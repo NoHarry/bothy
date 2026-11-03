@@ -101,7 +101,6 @@
     <string name="console_drawer_yesterday">昨天</string>
     <string name="console_drawer_earlier">更早</string>
     <string name="console_drawer_features">功能</string>
-    <string name="console_drawer_assistant">小博</string>
     <string name="console_open_playground">车机</string>
     <string name="console_expand_board">展开看板</string>
     <plurals name="console_read_files">
@@ -312,4 +311,15 @@
     <string name="phone_status_working">生成中</string>
     <string name="phone_status_waiting">等你确认</string>
     <string name="phone_drawer_this_week">本周</string>
+    <string name="phone_this_phone">本机</string>
+    <string name="phone_drawer_empty">还没有对话</string>
+    <string name="phone_drawer_empty_note">新对话会出现在这里</string>
+    <string name="phone_greeting_morning">早上好</string>
+    <string name="phone_greeting_afternoon">下午好</string>
+    <string name="phone_greeting_evening">晚上好</string>
+    <string name="phone_greeting_ask">想让我帮你做点什么？</string>
+    <string name="phone_suggest_remind">明早 8 点提醒我</string>
+    <string name="phone_suggest_nearby">附近的咖啡</string>
+    <string name="phone_suggest_navigate">导航去机场</string>
+    <string name="phone_suggest_news">今天有什么新闻</string>
 </resources>

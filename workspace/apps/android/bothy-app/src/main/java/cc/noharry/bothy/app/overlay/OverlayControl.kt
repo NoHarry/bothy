@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.util.Log
 import cc.noharry.bothy.app.androiduse.AndroidUseOverlay
 import cc.noharry.bothy.app.console.ConsoleVisibility
+import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.plans.reading
 import cc.noharry.bothy.app.voice.WakeSource
 
@@ -86,9 +87,10 @@ internal object OverlayControl {
 
     /**
      * Brings 小博 up (card closed) when it is not running, as 语音唤醒 does. Null when it runs or was started, else why it
-     * could not be.
+     * could not be. A phone has no resting 小博 ([OverlayPhoneRest]), so nothing comes up there.
      */
-    fun ensureRunning(context: Context): String? = if (presenter != null) null else start(context, open = false)
+    fun ensureRunning(context: Context): String? =
+        if (presenter != null || FrontEnd.phone(context)) null else start(context, open = false)
 
     /**
      * Starts the overlay, with its card open when [open]. A plain start is refused while the app is idle in the

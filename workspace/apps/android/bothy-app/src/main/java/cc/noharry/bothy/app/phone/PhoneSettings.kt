@@ -48,6 +48,7 @@ import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.ConsoleAppearance
+import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.console.SettingsSection
 import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.voice.WakeWord
@@ -78,14 +79,25 @@ internal fun PhoneSettings(state: UiState, actions: ConsoleActions, onBack: () -
 @Composable
 internal fun PhoneA2a(state: A2aClientState, actions: A2aClientActions, onBack: () -> Unit) {
     PhonePage(stringResource(R.string.console_view_a2a), onBack) {
-        A2aClientPane(state = state, actions = actions, header = {}, modifier = Modifier.weight(1f).fillMaxWidth())
+        // The floating card is the tablet's: a phone has no resting 小博 to open it on.
+        A2aClientPane(state = state, actions = actions.copy(openOverlay = null), header = {}, modifier = Modifier.weight(1f).fillMaxWidth())
     }
 }
 
 @Composable
 private fun SettingsHome(state: UiState, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        HomeGroup(stringResource(R.string.settings_group_appearance)) { ThemeCard() }
+        HomeGroup(stringResource(R.string.settings_group_appearance)) {
+            val context = LocalContext.current
+            val themeNote = stringResource(R.string.settings_theme_short_note)
+            SegmentCard(stringResource(R.string.settings_theme), themeNote, ConsoleAppearance.Mode.entries, ConsoleAppearance.current, { it.labelRes() }) {
+                ConsoleAppearance.set(context, it)
+            }
+            // Tablet swaps to the console at once; it has the same setting to come back.
+            SegmentCard(stringResource(R.string.settings_layout), stringResource(R.string.settings_layout_short_note), FrontEnd.Choice.entries, FrontEnd.choice, { it.labelRes() }) {
+                FrontEnd.set(context, it)
+            }
+        }
         HomeGroup(stringResource(R.string.settings_section_voice)) {
             HomeRow(stringResource(R.string.voice_mic_hold), stringResource(R.string.voice_hold_to_talk)) {
                 Text(stringResource(R.string.common_on), style = ConsoleType.meta, color = ConsoleColors.accent, fontWeight = FontWeight.SemiBold)
@@ -163,19 +175,17 @@ private fun WakeRow() {
     }
 }
 
-/** The theme as three choices side by side. */
+/** A setting as a few choices side by side: the theme, the layout. */
 @Composable
-private fun ThemeCard() {
-    val context = LocalContext.current
-    val selected = ConsoleAppearance.current
+private fun <T> SegmentCard(title: String, note: String, options: List<T>, selected: T, label: (T) -> Int, onPick: (T) -> Unit) {
     Column(Modifier.padding(Dimens.spaceMd), verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Text(stringResource(R.string.settings_theme), style = ConsoleType.body, color = ConsoleColors.text, fontWeight = FontWeight.SemiBold)
-        Text(stringResource(R.string.settings_theme_short_note), style = ConsoleType.meta, color = ConsoleColors.muted)
+        Text(title, style = ConsoleType.body, color = ConsoleColors.text, fontWeight = FontWeight.SemiBold)
+        Text(note, style = ConsoleType.meta, color = ConsoleColors.muted)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            ConsoleAppearance.Mode.entries.forEach { mode ->
+            options.forEach { mode ->
                 val on = mode == selected
                 Text(
-                    text = stringResource(mode.labelRes()),
+                    text = stringResource(label(mode)),
                     style = ConsoleType.meta,
                     maxLines = 1,
                     color = if (on) ConsoleColors.accent else ConsoleColors.text,
@@ -186,7 +196,7 @@ private fun ThemeCard() {
                         .heightIn(min = 44.dp)
                         .clip(RoundedCornerShape(Dimens.radiusFull))
                         .background(if (on) ConsoleColors.accentSoft else ConsoleColors.panel)
-                        .selectable(selected = on, role = Role.RadioButton) { ConsoleAppearance.set(context, mode) }
+                        .selectable(selected = on, role = Role.RadioButton) { onPick(mode) }
                         .padding(vertical = 11.dp),
                 )
             }

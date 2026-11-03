@@ -126,6 +126,7 @@ internal fun SettingsSectionContent(
     when (section) {
         SettingsSection.GENERAL -> SettingsScrollableContent {
             SettingsThemeGroup()
+            SettingsLayoutGroup()
             SettingsLanguageGroup()
             SettingsRuntimeGroup(state, actions)
             SettingsSessionGroup()

@@ -55,8 +55,8 @@ import cc.noharry.bothy.voice.VoiceSessionState
 import kotlinx.coroutines.delay
 
 /**
- * A portrait phone's composer: one pill with the message, the mic held to talk and send (stop while a run goes on and
- * nothing is typed). The model and the run's other choices are in the top bar ([PhoneTopBar]). While the mic is held
+ * A phone's composer: one pill with the message and the mic held to talk, which turns into send once something is
+ * typed (stop beside the mic while a run goes on). The model and the run's other choices are in the top bar ([PhoneTopBar]). While the mic is held
  * the pill turns green and shows what is heard, and letting go sends it.
  */
 @Composable
@@ -86,11 +86,12 @@ internal fun PhoneComposer(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (holding) HeldWords(voice, Modifier.weight(1f)) else PillField(text, onTextChange, state.isRunning, Modifier.weight(1f))
-                VoiceMicButton(PHONE_BUTTON_SIZE, PHONE_ICON_SIZE, holdToTalk = true)
-                if (state.isRunning && text.isBlank()) {
-                    StopButton(actions.stop)
+                // The mic until something is typed, then send; while a run goes on stop sits beside the mic.
+                if (text.isNotBlank() && !holding) {
+                    SendButton(enabled = true, steering = state.isRunning, onSend = onSubmit)
                 } else {
-                    SendButton(enabled = text.isNotBlank(), steering = state.isRunning, onSend = onSubmit)
+                    VoiceMicButton(PHONE_BUTTON_SIZE, PHONE_ICON_SIZE, holdToTalk = true)
+                    if (state.isRunning) StopButton(actions.stop)
                 }
             }
         }
