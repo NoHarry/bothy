@@ -1,8 +1,10 @@
 package cc.noharry.bothy.app.phone
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,53 +13,42 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
-import cc.noharry.bothy.app.console.ConsoleType
-import cc.noharry.bothy.app.console.Dimens
 import java.util.Calendar
 
 /**
- * A new chat on a phone: a greeting for the time of day and a few things to ask, which go into the composer to be
- * sent or changed. The tablet's console opens on 小博's picture instead.
+ * A new chat on a phone, as the design opens it: a greeting for the time of day, what Bothy asks, and three things to
+ * ask as cards, which go into the composer to be sent or changed. The tablet's console opens on 小博's picture instead.
  */
 @Composable
 internal fun PhoneWelcome(onSuggest: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = ConsoleColors
     val greeting = remember { greetingFor(Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) }
-    Column(modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(stringResource(greeting), style = ConsoleType.hero.copy(fontSize = GREETING_SIZE, fontWeight = FontWeight.Light), color = colors.text, textAlign = TextAlign.Center)
-        Text(stringResource(R.string.phone_greeting_ask), style = ConsoleType.body, color = colors.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp, bottom = 24.dp))
-        val suggestions = listOf(
-            Icons.Filled.Notifications to R.string.phone_suggest_remind,
-            Icons.Filled.Place to R.string.phone_suggest_nearby,
-            Icons.Filled.LocationOn to R.string.phone_suggest_navigate,
-            Icons.Filled.Search to R.string.phone_suggest_news,
-        ).map { (icon, words) -> icon to stringResource(words) }
-        suggestions.chunked(2).forEach { pair ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                pair.forEach { (icon, words) -> SuggestionChip(icon, words, Modifier.weight(1f)) { onSuggest(words) } }
+    // In the middle while it fits; held sideways or in a large font, it scrolls.
+    BoxWithConstraints(modifier) {
+        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight), verticalArrangement = Arrangement.Center) {
+            Text(stringResource(greeting), style = PhoneType.greeting, color = colors.text)
+            Text(stringResource(R.string.phone_greeting_ask), style = PhoneType.reply, color = colors.muted, modifier = Modifier.padding(top = 4.dp, bottom = 28.dp))
+            listOf(R.string.phone_suggest_navigate, R.string.phone_suggest_remind, R.string.phone_suggest_news).forEach { id ->
+                val words = stringResource(id)
+                SuggestionCard(words) { onSuggest(words) }
+                Spacer(Modifier.size(12.dp))
             }
         }
     }
@@ -70,27 +61,28 @@ internal fun greetingFor(hour: Int): Int = when (hour) {
     else -> R.string.phone_greeting_evening
 }
 
+/** Something to ask: its words, and on the right an arrow out in a round chip. */
 @Composable
-private fun SuggestionChip(icon: ImageVector, words: String, modifier: Modifier, onClick: () -> Unit) {
+private fun SuggestionCard(words: String, onClick: () -> Unit) {
     val colors = ConsoleColors
-    Row(
-        modifier
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(Dimens.radiusFull))
-            .background(colors.elevated.copy(alpha = CHIP_ALPHA))
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(CARD_RADIUS),
+        color = colors.elevated,
+        border = BorderStroke(1.dp, colors.border),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Icon(icon, contentDescription = null, tint = colors.muted, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(words, style = ConsoleType.meta, color = colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.heightIn(min = 64.dp).padding(start = 16.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(words, style = PhoneType.body, color = colors.text, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(12.dp))
+            Box(Modifier.size(32.dp).background(colors.panel, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.ic_phone_arrow_out), contentDescription = null, tint = colors.inkSoft, modifier = Modifier.size(18.dp))
+            }
+        }
     }
 }
 
-private val GREETING_SIZE = 30.sp
-private const val CHIP_ALPHA = 0.7f
+internal val CARD_RADIUS = 16.dp
 private const val MORNING_FROM = 5
 private const val NOON = 12
 private const val EVENING_FROM = 18

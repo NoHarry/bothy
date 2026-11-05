@@ -12,8 +12,10 @@ import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aProfileDraft
 import cc.noharry.agent.appserver.protocol.ApprovalDecision
 import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.ModelSelectParams
+import cc.noharry.agent.appserver.protocol.PlanDraft
 import cc.noharry.agent.appserver.protocol.ProviderCreateParams
 import cc.noharry.agent.appserver.protocol.ProviderFetchParams
 import cc.noharry.agent.appserver.protocol.ProviderModelsParams
@@ -51,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 
 /** The backend over [RuntimeSession]: each request as the console's buttons do it. */
 internal class RuntimeBackend(private val app: Context) : ServerBackend, SettingsBackend {
@@ -193,10 +196,20 @@ internal class RuntimeBackend(private val app: Context) : ServerBackend, Setting
 
     override fun deletePlan(id: String) = inBackground { PlanRunner.delete(app, id) }
 
+    override suspend fun createPlan(draft: PlanDraft): Finding? = withContext(Dispatchers.IO) {
+        PlanRunner.create(app, draft).exceptionOrNull()?.let { Finding(FindingCode.PLANS_PROBLEM_NOT_SAVED.name) }
+    }
+
     override fun toolsChanged(serverIds: List<String>) = serverIds.forEach { McpToolCatalogs.onServerChanged(app, it) }
 
-    /** The app came to the front or left it: each feature hears it (a voice may start its microphone service then). */
-    override fun appInFront(inFront: Boolean) = AppServer.features.forEach { it.appInFront(app, inFront) }
+    /**
+     * The app came to the front or left it: the next run offers drawn pages only while it is in front ([AppScreen]), and
+     * each feature hears it (a voice may start its microphone service then).
+     */
+    override fun appInFront(inFront: Boolean) {
+        AppScreen.inFront = inFront
+        AppServer.features.forEach { it.appInFront(app, inFront) }
+    }
 
     override fun setSessionPolicy(policy: SessionPolicy) = SessionSettings.save(app, policy)
 

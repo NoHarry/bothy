@@ -338,6 +338,7 @@ cc.noharry.agent.appserver.server.SettingsBackend.cancelAgentTask | fun cancelAg
 cc.noharry.agent.appserver.server.SettingsBackend.checkSkill | fun checkSkill(text: String, editing: String?): SkillCheckView
 cc.noharry.agent.appserver.server.SettingsBackend.clearData | suspend fun clearData(alsoMemories: Boolean): Boolean
 cc.noharry.agent.appserver.server.SettingsBackend.clearWorkspace | fun clearWorkspace()
+cc.noharry.agent.appserver.server.SettingsBackend.createPlan | suspend fun createPlan(draft: PlanDraft): Finding?
 cc.noharry.agent.appserver.server.SettingsBackend.createProvider | fun createProvider(params: ProviderCreateParams): String
 cc.noharry.agent.appserver.server.SettingsBackend.deleteA2aProfile | fun deleteA2aProfile(id: String)
 cc.noharry.agent.appserver.server.SettingsBackend.deleteMcp | fun deleteMcp(id: String)

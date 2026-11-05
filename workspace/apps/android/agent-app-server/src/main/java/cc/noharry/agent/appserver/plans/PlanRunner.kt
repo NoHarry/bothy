@@ -11,6 +11,7 @@ import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.Plan
+import cc.noharry.agent.appserver.protocol.PlanDraft
 import cc.noharry.agent.appserver.protocol.PlanEnd
 import cc.noharry.agent.appserver.protocol.PlanFiring
 import cc.noharry.agent.appserver.protocol.PlanTrigger
@@ -95,6 +96,18 @@ internal object PlanRunner {
         val now = System.currentTimeMillis()
         write(context) { it.update(id) { plan -> if (enabled) plan.resumed(now) else plan.copy(enabled = false) } }
         Log.i(TAG, "${if (enabled) "resumed" else "paused"} $id")
+    }
+
+    /**
+     * A plan made on the plans page; refused when its time cannot be one ([pageTriggerError]: checked before it is
+     * kept, as one it could not schedule would fail every start after) or the book will not keep it. Any thread but
+     * main.
+     */
+    fun create(context: Context, draft: PlanDraft): Result<Plan> {
+        pageTriggerError(draft.trigger, System.currentTimeMillis())?.let { return Result.failure(IllegalArgumentException(it)) }
+        return runCatching { write(context) { it.add(draft.title, draft.message, draft.instruction, draft.trigger, said = null) } }
+            .getOrElse { Result.failure(it) }
+            .onSuccess { Log.i(TAG, "made ${it.id} on the page") }
     }
 
     fun delete(context: Context, id: String) = logFailure("delete $id") {

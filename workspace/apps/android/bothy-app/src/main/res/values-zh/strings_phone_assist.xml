@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_assist_name">小博</string>
+    <string name="phone_assist_avatar">博</string>
+    <string name="phone_assist_listening">正在听</string>
+    <string name="phone_assist_listen_hint">说吧，我在听</string>
+    <string name="phone_assist_idle_hint">点麦克风说话，或者打字</string>
+    <string name="phone_assist_tap_stop">点一下停</string>
+    <string name="phone_assist_tap_talk">点一下说</string>
+    <string name="phone_assist_type">打字</string>
+    <string name="phone_assist_send">发送（长按：停下当前任务，改问这句）</string>
+    <string name="phone_assist_fold">收起</string>
+    <string name="phone_assist_running">进行中</string>
+    <string name="phone_assist_done">做好了</string>
+    <string name="phone_assist_partly">做了一部分</string>
+    <string name="phone_assist_failed">没做成</string>
+    <string name="phone_assist_stopped">已停止</string>
+    <string name="phone_assist_took_seconds">用时 %1$d 秒</string>
+    <string name="phone_assist_took_minutes">用时 %1$d 分 %2$d 秒</string>
+    <string name="phone_assist_copy">复制</string>
+    <string name="phone_assist_copied">已复制</string>
+    <string name="phone_assist_open_app">在 App 里看</string>
+    <string name="phone_assist_talk">继续说</string>
+    <string name="phone_assist_pending">待批准</string>
+    <string name="phone_assist_allow_session">这次对话都允许</string>
+    <string name="phone_assist_stop">停止</string>
+    <string name="phone_assist_live_channel">小博正在做的事</string>
+    <string name="phone_assist_live_chip">小博</string>
+    <string name="phone_settings_power_key">长按电源键唤醒</string>
+    <string name="phone_settings_power_key_on">已开启</string>
+    <string name="phone_settings_power_key_off">设为默认助理</string>
+</resources>

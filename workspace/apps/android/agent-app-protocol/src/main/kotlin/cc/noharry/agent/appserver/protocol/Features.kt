@@ -208,6 +208,13 @@ sealed interface PlanTrigger {
     data class Watch(val watch: PlanWatch, val holdSeconds: Int, val repeat: Boolean) : PlanTrigger
 }
 
+/**
+ * A plan the person makes on the plans page ([FeatureRequests.PLAN_CREATE]): at [trigger], a reminder that says
+ * [message], or, with [instruction], something the assistant then does.
+ */
+@Serializable
+data class PlanDraft(val title: String, val message: String = "", val instruction: String? = null, val trigger: PlanTrigger)
+
 /** How a plan ended: it did its one job, or its time passed while the device slept too long. */
 @Serializable
 enum class PlanEnd(val id: String, val label: String) {

@@ -208,6 +208,27 @@ fun resolvePlanWatch(ask: PlanWatchAsk, repeatByDefault: Boolean): Result<PlanTr
     PlanTrigger.Watch(watch, hold, ask.repeat ?: repeatByDefault)
 }
 
+/**
+ * Why [trigger] cannot be the time of a plan made on the page at [now], or null: once, ahead and within a year, or
+ * weekly at a time of day on ISO days 1 to 7. Watching is the agent's own to set up, after it has checked the tool.
+ */
+internal fun pageTriggerError(trigger: PlanTrigger, now: Long): String? = when (trigger) {
+    is PlanTrigger.Once -> when {
+        trigger.atMillis <= now -> "the time has passed"
+        trigger.atMillis > now + MAX_PAGE_AHEAD_MS -> "more than a year ahead"
+        else -> null
+    }
+    is PlanTrigger.Repeat -> when {
+        trigger.minuteOfDay !in 0 until MINUTES_PER_DAY -> "the time of day is out of range"
+        trigger.days.isEmpty() || trigger.days.any { it !in 1..7 } -> "the days must be 1 to 7"
+        else -> null
+    }
+    is PlanTrigger.Watch -> "a watch is set up by the agent"
+}
+
+private const val MAX_PAGE_AHEAD_MS = 366L * 24 * 60 * 60 * 1000
+private const val MINUTES_PER_DAY = 24 * 60
+
 /** Why [title], [message] or [instruction] cannot be a plan's, or null; a plan with [actions] needs no words. */
 internal fun planTextError(title: String, message: String, instruction: String?, actions: Boolean = false): String? = when {
     title.isBlank() -> "需要 title（计划的名字，比如「拿快递」）"

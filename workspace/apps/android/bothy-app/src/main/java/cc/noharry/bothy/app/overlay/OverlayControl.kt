@@ -13,13 +13,18 @@ import cc.noharry.agent.appserver.protocol.PresentResult
 import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.bothy.app.console.ConsoleVisibility
 import cc.noharry.bothy.app.console.FrontEnd
+import cc.noharry.bothy.app.phoneassist.PhoneAssistant
+import cc.noharry.bothy.app.phoneassist.PhoneAssistantService
 
 /**
- * Opens the overlay's card or folds it back into 小博 for an A2A caller, and opens it when any A2A task arrives, so
+ * Opens the assistant's card or folds it back for an A2A caller, and opens it when any A2A task arrives, so
  * the device responds to A2A without its console ever being opened. While the full-screen console is in front the
  * overlay stays away and the request waits ([ConsoleVisibility]).
  */
 internal object OverlayControl {
+    /** The service whose hooks these are: [OverlayService], or the phone's [PhoneAssistantService]. */
+    @Volatile var owner: Any? = null
+
     /** The running overlay's handler, set by [OverlayService] while it is up; called on the main thread. */
     @Volatile var presenter: ((OverlayCommand) -> Unit)? = null
 
@@ -49,6 +54,16 @@ internal object OverlayControl {
             field = value
             HostConnection.report { copy(readingUntilEpochMillis = value) }
         }
+
+    /** Lets go of the hooks [service] set, unless the other assistant's service has set its own since. Main thread. */
+    fun release(service: Any) {
+        if (owner !== service) return
+        owner = null
+        presenter = null
+        closer = null
+        mascotPreview = null
+        androidUse = null
+    }
 
     /** Hands a wake to the running overlay; false when none is up to take it. */
     fun wake(origin: WakeOrigin): Boolean = waker?.invoke(origin) != null
@@ -81,7 +96,7 @@ internal object OverlayControl {
 
     /**
      * Brings 小博 up (card closed) when it is not running, as 语音唤醒 does. Null when it runs or was started, else why it
-     * could not be. A phone has no resting 小博 ([OverlayPhoneRest]): nothing comes up there, and the wake word, which the
+     * could not be. A phone has no resting 小博 ([PhoneAssistant]): nothing comes up there, and the wake word, which the
      * overlay would have started, listens on its own. A head unit's own surface ([forSurface]) still needs the overlay
      * running, hidden, for its reports. On a phone the server is told so ([PresentResult.noResting]), and listens itself.
      */
@@ -92,14 +107,31 @@ internal object OverlayControl {
     }
 
     /**
-     * Starts the overlay, with its card open when [open]. A plain start is refused while the app is idle in the
+     * Starts the assistant over other apps, with its card open when [open]: the overlay, or on a phone its own
+     * ([PhoneAssistant]), which answers through the same hooks. A plain start is refused while the app is idle in the
      * background (no bound screen-control service, no activity); Android 11 still allows a foreground-service start,
      * so the overlay then runs as one, with a notification.
      */
     fun start(context: Context, open: Boolean): String? {
         val app = context.applicationContext
+        // A phone has an assistant of its own over other apps; tablets and head units have the overlay.
+        val intent = if (FrontEnd.phone(app)) {
+            PhoneAssistant.intent(app, open)
+        } else {
+            Intent(app, OverlayService::class.java).apply { if (open) action = ACTION_OPEN_OVERLAY_CARD }
+        }
+        return launch(app, intent)
+    }
+
+    /**
+     * Starts the assistant's service ([intent]); from the background, where a plain start is refused, as a
+     * foreground service that promotes itself ([EXTRA_FOREGROUND]). The other one stops first (a foldable is a phone
+     * folded and not open): the two share the connection and these hooks. Null when started, else why not.
+     */
+    fun launch(app: Context, intent: Intent): String? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(app)) return "没有授予悬浮窗权限"
-        val intent = Intent(app, OverlayService::class.java).apply { if (open) action = ACTION_OPEN_OVERLAY_CARD }
+        val other = if (intent.component?.className == OverlayService::class.java.name) PhoneAssistantService::class.java else OverlayService::class.java
+        app.stopService(Intent(app, other))
         return try {
             app.startService(intent)
             null

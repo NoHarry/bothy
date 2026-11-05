@@ -25,9 +25,10 @@ class PhoneTimelineTest {
         )
         assertEquals(listOf("asked-1", "fold-1", "item-5", "foot-1"), rows.map { it.key })
         val folded = rows[1] as PhoneRow.Folded
-        assertEquals(listOf("thought-2", "tool-3"), folded.rows.map { it.key })
-        assertEquals(1, folded.toolCalls)
-        assertEquals(0, folded.messages)
+        assertEquals(listOf(2L, 3L), folded.steps.map { it.id })
+        assertEquals(1, folded.thoughts)
+        assertEquals(1, folded.tools)
+        assertTrue(folded.interim.isEmpty())
         val foot = rows[3] as PhoneRow.Footnote
         assertEquals("路线大约 42 分钟", foot.reply)
         assertEquals(1, foot.steps)
@@ -49,7 +50,7 @@ class PhoneTimelineTest {
     }
 
     @Test
-    fun theTurnStillGoingShowsItsStepsInOrder() {
+    fun theTurnStillGoingShowsItsStepsAsOneCardThenWhatItSays() {
         val rows = phoneRows(
             listOf(
                 ConversationItem.TurnHeader(1, "You", "找咖啡", "找咖啡"),
@@ -59,15 +60,17 @@ class PhoneTimelineTest {
             ),
             running = true,
         )
-        assertEquals(listOf("asked-1", "thought-2", "item-3", "tool-4"), rows.map { it.key })
+        assertEquals(listOf("asked-1", "steps-1", "item-3"), rows.map { it.key })
+        val steps = rows[1] as PhoneRow.Steps
+        assertEquals(listOf(2L, 4L), steps.steps.map { it.id })
+        assertTrue(steps.live)
     }
 
     @Test
-    fun threeToolsInARowAreOneLine() {
-        val tools = (2L..4L).map { ConversationItem.ToolCallItem(it, toolName = "read_file", argumentsJson = null, resultJson = "{}", status = ToolCallStatus.DONE, startedAt = 0L) }
-        val rows = phoneRows(listOf(ConversationItem.TurnHeader(1, "You", "读", "读")) + tools, running = true)
-        assertEquals(listOf("asked-1", "tools-2"), rows.map { it.key })
-        assertEquals(3, (rows[1] as PhoneRow.ToolGroup).tools.size)
+    fun aTurnJustStartedShowsThatItIsWorking() {
+        val rows = phoneRows(listOf(ConversationItem.TurnHeader(1, "You", "读", "读")), running = true)
+        assertEquals(listOf("asked-1", "steps-1"), rows.map { it.key })
+        assertTrue((rows[1] as PhoneRow.Steps).steps.isEmpty())
     }
 
     @Test
@@ -81,7 +84,8 @@ class PhoneTimelineTest {
             ),
             running = false,
         )
-        assertEquals(listOf("asked-1", "tool-2", "item-3", "foot-1"), rows.map { it.key })
+        assertEquals(listOf("asked-1", "steps-1", "item-3", "foot-1"), rows.map { it.key })
+        assertTrue((rows[1] as PhoneRow.Steps).failed)
         assertTrue((rows.last() as PhoneRow.Footnote).failed)
     }
 
@@ -94,13 +98,47 @@ class PhoneTimelineTest {
             ),
             running = true,
         )
-        assertEquals(listOf("asked-1", "item-2"), rows.map { it.key })
+        assertEquals(listOf("asked-1", "steps-1", "approval-2"), rows.map { it.key })
+        assertEquals("p", (rows[1] as PhoneRow.Steps).waiting?.pendingId)
     }
 
     @Test
-    fun theRunClockCountsMinutesAndHours() {
-        assertEquals("0:07", clock(7_000L))
-        assertEquals("12:45", clock(765_000L))
-        assertEquals("1:02:05", clock(3_725_000L))
+    fun aPlanTheTurnMadeComesUnderItsAnswer() {
+        val rows = phoneRows(
+            listOf(
+                ConversationItem.TurnHeader(1, "You", "明早提醒我", "明早提醒我"),
+                ConversationItem.ToolCallItem(
+                    2, toolName = "mcp__plans__plan_manage", argumentsJson = """{"action":"create"}""",
+                    resultJson = """{"ok":true,"id":"p1"}""", status = ToolCallStatus.DONE, startedAt = 0L,
+                ),
+                ConversationItem.MessageItem(3, TranscriptRole.ASSISTANT, "好，明早 8 点提醒你", final = true),
+                ConversationItem.RuntimePhaseItem(4, "Runtime result COMPLETED", ""),
+            ),
+            running = false,
+        )
+        assertEquals(listOf("asked-1", "fold-1", "item-3", "foot-1", "plan-1-p1"), rows.map { it.key })
+    }
+
+    @Test
+    fun aPageTheTurnDrewShowsBeforeItsAnswer() {
+        val drawn = """{"ok":true,"page":"drawn-pages/c2Vzcw/page-mh3k-abcd.html","title":"三款对比"}"""
+        val rows = phoneRows(
+            listOf(
+                ConversationItem.TurnHeader(1, "You", "比较三款耳机", "比较三款耳机"),
+                ConversationItem.ToolCallItem(2, toolName = "mcp__pages__show_html", argumentsJson = null, resultJson = drawn, status = ToolCallStatus.DONE, startedAt = 0L),
+                ConversationItem.MessageItem(3, TranscriptRole.ASSISTANT, "点上面的标签切换", final = true),
+                ConversationItem.RuntimePhaseItem(4, "Runtime result COMPLETED", "点上面的标签切换"),
+            ),
+            running = false,
+        )
+        assertEquals(listOf("asked-1", "fold-1", "drawn-page-2", "item-3", "foot-1"), rows.map { it.key })
+    }
+
+    @Test
+    fun whatTheRunSaidAsItWentShowsWithoutItsVoiceMarks() {
+        val said = ConversationItem.MessageItem(2, TranscriptRole.ASSISTANT, "我先查一下。TTS: 好，这就排周六一整天。")
+        assertEquals("我先查一下。好，这就排周六一整天。", (said.withoutSpokenMarks() as ConversationItem.MessageItem).content)
+        val thought = ConversationItem.MessageItem(3, TranscriptRole.THINKING, "TTS: 不动")
+        assertEquals(thought, thought.withoutSpokenMarks())
     }
 }

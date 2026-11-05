@@ -64,9 +64,16 @@ internal object UiScale {
     }
 }
 
-/** Gives [content] the design density, keeping the system font scale; recomputed when the configuration changes. */
+/**
+ * Gives [content] the design density, keeping the system font scale; recomputed when the configuration changes. Without
+ * [design] (the phone's screens, on a tablet too) it keeps the platform dp, as a phone does.
+ */
 @Composable
-internal fun DesignDensity(content: @Composable () -> Unit) {
+internal fun DesignDensity(design: Boolean = true, content: @Composable () -> Unit) {
+    if (!design) {
+        content()
+        return
+    }
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val base = LocalDensity.current

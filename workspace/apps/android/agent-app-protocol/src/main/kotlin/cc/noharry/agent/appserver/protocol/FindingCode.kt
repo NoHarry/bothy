@@ -44,6 +44,9 @@ enum class FindingCode : FindingKind {
 
     PLANS_PROBLEM_OFFLINE,
 
+    /** A plan made on the plans page was not kept: too long, nothing to say or do, or the book is full. */
+    PLANS_PROBLEM_NOT_SAVED,
+
     PLANS_PROBLEM_NO_ANSWER,
 
     PLANS_PROBLEM_NO_RESULT,

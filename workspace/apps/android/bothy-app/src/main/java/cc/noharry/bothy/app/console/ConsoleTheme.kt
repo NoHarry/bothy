@@ -3,6 +3,7 @@ import android.app.Activity
 import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SwitchColors
@@ -188,36 +189,35 @@ internal fun ConsoleTheme(content: @Composable () -> Unit) {
         }
     }
     CompositionLocalProvider(LocalConsoleColors provides colors) {
-        MaterialTheme(
-            colorScheme = if (colors.isDark) {
-                darkColorScheme(
-                    primary = colors.accent,
-                    secondary = colors.activity,
-                    surface = colors.panel,
-                    background = colors.bg,
-                    onPrimary = colors.bg,
-                    onSurface = colors.text,
-                    onBackground = colors.text,
-                    error = colors.danger,
-                    outline = colors.border,
-                )
-            } else {
-                lightColorScheme(
-                    primary = colors.accent,
-                    secondary = colors.activity,
-                    surface = colors.panel,
-                    background = colors.bg,
-                    onPrimary = Color.White,
-                    onSurface = colors.text,
-                    onBackground = colors.text,
-                    error = colors.danger,
-                    outline = colors.border,
-                )
-            },
-            typography = ConsoleTypography,
-            content = content,
-        )
+        MaterialTheme(colorScheme = materialColors(colors), typography = ConsoleTypography, content = content)
     }
+}
+
+/** Material's own components (switches, sheets, dialogs) in [colors]: the console's, or the phone's own. */
+internal fun materialColors(colors: ConsoleThemeColors): ColorScheme = if (colors.isDark) {
+    darkColorScheme(
+        primary = colors.accent,
+        secondary = colors.activity,
+        surface = colors.panel,
+        background = colors.bg,
+        onPrimary = colors.bg,
+        onSurface = colors.text,
+        onBackground = colors.text,
+        error = colors.danger,
+        outline = colors.border,
+    )
+} else {
+    lightColorScheme(
+        primary = colors.accent,
+        secondary = colors.activity,
+        surface = colors.panel,
+        background = colors.bg,
+        onPrimary = Color.White,
+        onSurface = colors.text,
+        onBackground = colors.text,
+        error = colors.danger,
+        outline = colors.border,
+    )
 }
 
 /** MaterialTheme default text styles mapped onto the shared type scale. */

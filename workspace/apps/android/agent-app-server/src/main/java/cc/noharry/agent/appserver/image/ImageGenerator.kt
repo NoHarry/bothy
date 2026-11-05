@@ -167,12 +167,12 @@ internal fun deleteSessionGeneratedImages(context: Context, sessionId: String): 
 }
 
 /**
- * `img-` plus the time in base 36 and four random letters. Trace redaction treats a run of ten or more digits,
+ * `img-` (or [prefix]) plus the time in base 36 and four random letters. Trace redaction treats a run of ten or more digits,
  * spaces and dashes as a phone number, so a dated name ("20261009-172728") would reach the transcript, and the
  * overlay, as `[REDACTED_PHONE]`.
  */
-internal fun generatedImageName(nowMillis: Long = System.currentTimeMillis(), random: Random = Random.Default): String =
-    "img-${nowMillis.toString(NAME_RADIX)}-" + (1..NAME_SUFFIX_LETTERS).map { NAME_LETTERS[random.nextInt(NAME_LETTERS.length)] }.joinToString("")
+internal fun generatedImageName(nowMillis: Long = System.currentTimeMillis(), random: Random = Random.Default, prefix: String = "img"): String =
+    "$prefix-${nowMillis.toString(NAME_RADIX)}-" + (1..NAME_SUFFIX_LETTERS).map { NAME_LETTERS[random.nextInt(NAME_LETTERS.length)] }.joinToString("")
 
 internal fun imageRequestBody(config: ImageModelConfig, prompt: String): JsonObject = buildJsonObject {
     put("model", config.model)

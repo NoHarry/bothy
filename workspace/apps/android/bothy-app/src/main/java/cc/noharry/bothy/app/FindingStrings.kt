@@ -15,6 +15,7 @@ internal val FINDING_STRINGS: Map<String, Int> = mapOf(
     FindingCode.PLANS_ACTION_FAILED.name to R.string.plans_action_failed,
     FindingCode.PLANS_ACTION_DENIED.name to R.string.plans_action_denied,
     FindingCode.PLANS_PROBLEM_OFFLINE.name to R.string.plans_problem_offline,
+    FindingCode.PLANS_PROBLEM_NOT_SAVED.name to R.string.plans_problem_not_saved,
     FindingCode.PLANS_PROBLEM_NO_ANSWER.name to R.string.plans_problem_no_answer,
     FindingCode.PLANS_PROBLEM_NO_RESULT.name to R.string.plans_problem_no_result,
     FindingCode.PLANS_PROBLEM_ERROR.name to R.string.plans_problem_error,

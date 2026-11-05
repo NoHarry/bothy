@@ -32,7 +32,7 @@ internal fun SettingsLanguageGroup() {
 
 /** Each language is named in itself, so it can be found from either. */
 @Composable
-private fun AppLanguage.label(): String = when (this) {
+internal fun AppLanguage.label(): String = when (this) {
     AppLanguage.SYSTEM -> stringResource(R.string.settings_language_system)
     AppLanguage.CHINESE -> "中文"
     AppLanguage.ENGLISH -> "English"

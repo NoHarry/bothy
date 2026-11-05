@@ -9,9 +9,11 @@ import cc.noharry.agent.appserver.protocol.DataClearResult
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.FeatureRequests
 import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.ModelListResult
 import cc.noharry.agent.appserver.protocol.ModelSelectParams
+import cc.noharry.agent.appserver.protocol.PlanDraft
 import cc.noharry.agent.appserver.protocol.PreferenceRequests
 import cc.noharry.agent.appserver.protocol.ProviderCreateParams
 import cc.noharry.agent.appserver.protocol.ProviderCreateResult
@@ -28,8 +30,8 @@ import cc.noharry.agent.appserver.protocol.SubagentToolKind
 import cc.noharry.agent.appserver.protocol.TextResult
 import cc.noharry.agent.appserver.protocol.ThreadListResult
 import cc.noharry.agent.appserver.protocol.ThreadSnapshot
-import cc.noharry.agent.appserver.protocol.TrajectoryRaw
 import cc.noharry.agent.appserver.protocol.ThreadStartResult
+import cc.noharry.agent.appserver.protocol.TrajectoryRaw
 import cc.noharry.agent.appserver.protocol.UserQuestion
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcErrorCodes
@@ -110,6 +112,9 @@ interface SettingsBackend {
     fun setPlanEnabled(id: String, enabled: Boolean)
 
     fun deletePlan(id: String)
+
+    /** Keeps a plan made on the plans page; why not, when it could not. */
+    suspend fun createPlan(draft: PlanDraft): Finding? = Finding(FindingCode.PLANS_PROBLEM_NOT_SAVED.name)
 
 
 
@@ -297,6 +302,7 @@ class ServerRoutes(
         on(FeatureRequests.A2A_CLIENT_NEW_CONVERSATION) { done { settings.newAgentConversation() } }
         on(FeatureRequests.PLAN_SET_ENABLED) { done { settings.setPlanEnabled(it.id, it.enabled) } }
         on(FeatureRequests.PLAN_DELETE) { done { settings.deletePlan(it.id) } }
+        on(FeatureRequests.PLAN_CREATE) { SaveResult(settings.createPlan(it)) }
         on(FeatureRequests.MCP_TOOLS_CHANGED) { done { settings.toolsChanged(it.ids) } }
         on(FeatureRequests.APP_IN_FRONT) { done { settings.appInFront(it.on) } }
     }

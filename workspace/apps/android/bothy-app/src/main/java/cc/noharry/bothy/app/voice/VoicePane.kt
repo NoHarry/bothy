@@ -133,11 +133,12 @@ internal fun VoiceStrip() {
 
 /**
  * The mic beside Send, as in Codex: tap to wake, tap again to end; a portrait phone holds it to talk instead
- * ([holdToTalk]). Off: a soft mic. Listening: a red stop button whose ring breathes while the mic hears speech; amber
- * while half duplex waits for the agent. Asks for the mic the first time.
+ * ([holdToTalk]). Off: a soft mic, or only the mic's outline when [plain] (the phone's composer). Listening: a red stop
+ * button whose ring breathes while the mic hears speech; amber while half duplex waits for the agent. Asks for the mic
+ * the first time.
  */
 @Composable
-internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false) {
+internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false, plain: Boolean = false) {
     val context = LocalContext.current
     val server = LocalServer.current
     val state = server.state.voice
@@ -158,7 +159,7 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
     val holdDescription = stringResource(R.string.voice_mic_hold)
     val view = LocalView.current
     val description = stringResource(if (on) R.string.voice_mic_stop else R.string.voice_mic_start)
-    val fill = micFill(on, hold, state.status)
+    val fill = if (plain && !on) Color.Transparent else micFill(on, hold, state.status)
     // The ring grows with loudness, drawn outside the button so the row never shifts.
     val level by animateFloatAsState(if (on) state.micLevels.takeLast(LEVEL_RING_SLICES).maxOrNull() ?: 0f else 0f, tween(LEVEL_EASE_MILLIS), label = "micLevel")
     val gesture = if (hold) {
@@ -182,7 +183,7 @@ internal fun VoiceMicButton(size: Dp, iconSize: Dp, holdToTalk: Boolean = false)
                     if (hold) onClick { press.server.value.send(VoiceRequests.TOGGLE, Empty); true }
                 },
             contentAlignment = Alignment.Center,
-        ) { MicFace(on && !hold, iconSize, if (on) Color.White else ConsoleColors.accent) }
+        ) { MicFace(on && !hold, iconSize, if (on) Color.White else if (plain) ConsoleColors.muted else ConsoleColors.accent) }
     }
 }
 

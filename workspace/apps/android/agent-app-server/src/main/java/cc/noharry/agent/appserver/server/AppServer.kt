@@ -3,6 +3,7 @@ package cc.noharry.agent.appserver.server
 import android.app.Application
 import android.content.Context
 import cc.noharry.agent.appserver.BuildConfig
+import cc.noharry.agent.appserver.pages.PageRoutes
 import cc.noharry.agent.appserver.protocol.ServerInfo
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
@@ -142,4 +143,5 @@ fun coreModules(app: Context): List<RouteModule> = listOf(
     ModelSettingsRoutes(app),
     AppRoutes(app),
     FileRoutes(app),
+    PageRoutes(app),
 )

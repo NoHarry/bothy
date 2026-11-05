@@ -96,6 +96,7 @@
     <string name="plans_action_failed">%1$s没成功（%2$s）</string>
     <string name="plans_action_denied">%1$s没执行（现在的策略不允许自动执行）</string>
     <string name="plans_problem_offline">%1$s 没有开或连不上</string>
+    <string name="plans_problem_not_saved">计划没有保存：要有名字和到点说什么或做什么；计划太多时先删掉一些。</string>
     <string name="plans_problem_no_answer">服务没回应</string>
     <string name="plans_problem_no_result">没有结果</string>
     <string name="plans_problem_error">出错</string>

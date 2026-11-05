@@ -12,6 +12,7 @@ import cc.noharry.agent.appserver.console.*
 import cc.noharry.agent.appserver.console.ui.UiObserverDispatcher
 import cc.noharry.agent.appserver.evidence.*
 import cc.noharry.agent.appserver.image.deleteSessionGeneratedImages
+import cc.noharry.agent.appserver.pages.deleteSessionDrawnPages
 import cc.noharry.agent.appserver.mcp.*
 import cc.noharry.agent.appserver.memory.UserMemoryStore
 import cc.noharry.agent.appserver.model.*
@@ -176,10 +177,11 @@ object RuntimeSession {
             deleteActiveSession = runner::deleteActiveSession,
             dropTrajectory = { repository.dropSession(it); !appSessionEventLogRoot(appContext, it).exists() },
             deletePersistedSession = { sessionCoordinator.deleteSession(appContext, it) },
-            // Generated pictures are this session's artifacts too; `and` runs both deletions.
+            // Generated pictures and drawn pages are this session's artifacts too; `and` runs every deletion.
             deleteArtifacts = {
                 ArtifactStore.deleteSessionArtifacts(appWorkspaceRoot(appContext), it) and
-                    deleteSessionGeneratedImages(appContext, it)
+                    deleteSessionGeneratedImages(appContext, it) and
+                    deleteSessionDrawnPages(appContext, it)
             },
         )
     }

@@ -17,6 +17,8 @@
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Android 16's Live Updates: what 小博 does in the status bar's chip on a phone (phoneassist/PhoneLiveUpdate). -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <!-- Android Use, granted only to a build signed with the device's platform key: the 小博 cursor uses a TYPE_DRAG
          window above the dock, and the 操作屏幕 switch enables the accessibility service itself. Other builds ask the
          user to enable the accessibility service in the system settings. -->
@@ -62,6 +64,46 @@
                 <action android:name="cc.noharry.bothy.ASSISTANT_SURFACE" />
             </intent-filter>
         </receiver>
+        <!-- Bothy as the system's digital assistant: a long press of the power key wakes 小博 (assist/). -->
+        <service
+            android:name="cc.noharry.bothy.app.assist.BothyAssistService"
+            android:enabled="@bool/assist_enabled"
+            android:exported="true"
+            android:label="Bothy"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/bothy_assist" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="cc.noharry.bothy.app.assist.BothyAssistSessionService"
+            android:enabled="@bool/assist_enabled"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+        <service
+            android:name="cc.noharry.bothy.app.assist.BothyRecognitionService"
+            android:enabled="@bool/assist_enabled"
+            android:exported="true"
+            android:label="Bothy">
+            <meta-data
+                android:name="android.speech"
+                android:resource="@xml/bothy_recognizer" />
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+            </intent-filter>
+        </service>
+        <!-- The phone's assistant over other apps: a capsule at the top and a sheet from the bottom (phoneassist/). -->
+        <service
+            android:name="cc.noharry.bothy.app.phoneassist.PhoneAssistantService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Assistant capsule and sheet that answer voice and A2A requests over other apps on a phone" />
+        </service>
         <service
             android:name="cc.noharry.bothy.app.overlay.OverlayService"
             android:exported="false"

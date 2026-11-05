@@ -5,6 +5,7 @@ import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
 import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 import cc.noharry.bothy.app.frontend.FrontEndClient
+import cc.noharry.bothy.app.frontend.ServerAccess
 import cc.noharry.bothy.protocol.VoiceNotifications
 import cc.noharry.bothy.protocol.VoiceView
 import cc.noharry.bothy.protocol.voice
@@ -30,6 +31,8 @@ internal object OverlayConnection {
     private const val CLIENT_NAME = "overlay"
 
     @Volatile private var front: FrontEndClient? = null
+    /** The service that opened [front]: the overlay, or the phone's assistant. */
+    private var owner: Context? = null
     private var follow: CoroutineScope? = null
     private val mutableState = MutableStateFlow(ServerState(connected = false))
     private val mutableDismissals = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -43,7 +46,8 @@ internal object OverlayConnection {
 
     /** Connects for the overlay service; [onState] hears every state on the main thread. */
     fun open(context: Context, onState: (ServerState) -> Unit) {
-        close()
+        disconnect()
+        owner = context
         val opened = FrontEndClient(context, CLIENT_NAME)
         front = opened
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).also { follow = it }
@@ -56,11 +60,20 @@ internal object OverlayConnection {
         }
     }
 
+    /** [state] with this connection to answer through, for panes that read and save where they sit ([ServerAccess]). */
+    fun access(state: ServerState): ServerAccess = ServerAccess(state, front)
+
     fun <P, R> send(method: RequestMethod<P, R>, params: P, onRefused: (JsonRpcException) -> Unit = {}, onAnswer: (R) -> Unit = {}) {
         front?.send(method, params, onRefused, onAnswer)
     }
 
-    fun close() {
+    /** Closes the connection [context] opened; one that the other assistant's service opened since stays. */
+    fun close(context: Context) {
+        if (owner === context) disconnect()
+    }
+
+    private fun disconnect() {
+        owner = null
         follow?.cancel()
         follow = null
         front?.close()

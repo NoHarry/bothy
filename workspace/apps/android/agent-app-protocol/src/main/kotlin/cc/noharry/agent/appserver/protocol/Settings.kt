@@ -152,6 +152,7 @@ object FeatureRequests {
     val A2A_CLIENT_NEW_CONVERSATION = RequestMethod("a2aClient/newConversation", Empty.serializer(), Empty.serializer())
     val PLAN_SET_ENABLED = RequestMethod("plans/setEnabled", EnabledParams.serializer(), Empty.serializer())
     val PLAN_DELETE = RequestMethod("plans/delete", IdParams.serializer(), Empty.serializer())
+    val PLAN_CREATE = RequestMethod("plans/create", PlanDraft.serializer(), SaveResult.serializer())
 
     /** A full-screen front end came to the front ([FlagParams.on]) or left: the one moment the microphone service may start. */
     val APP_IN_FRONT = RequestMethod("app/inFront", FlagParams.serializer(), Empty.serializer())

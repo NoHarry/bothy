@@ -1,5 +1,6 @@
 package cc.noharry.agent.appserver.runtime
 import android.content.Context
+import cc.noharry.agent.appserver.protocol.view.DRAWN_PAGES_DIR
 import cc.noharry.agent.appserver.protocol.view.GENERATED_IMAGES_DIR
 import cc.noharry.agent.appserver.trajectory.DEBUG_SESSION_EVENT_LOG_ROOT_DIR
 import java.io.File
@@ -64,6 +65,8 @@ internal fun runtimeDataDirs(filesDir: File): List<File> =
         File(filesDir, AGENT_RELIABILITY_DIR),
         // Pictures from the image tool, one folder per session, plus settings/adb test generations.
         File(filesDir, GENERATED_IMAGES_DIR),
+        // Pages the agent drew in the conversation, one folder per session.
+        File(filesDir, DRAWN_PAGES_DIR),
     )
 
 /** Runtime data that lives outside `filesDir`: the app-private no-backup EventLog roots. */

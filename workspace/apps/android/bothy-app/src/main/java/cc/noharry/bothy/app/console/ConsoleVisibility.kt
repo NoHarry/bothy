@@ -36,13 +36,20 @@ internal object ConsoleVisibility {
                 main.post { close() }
             }
         } else {
+            // Gone from the front: the next run draws no page, which only the app's own screens show.
+            AppClient.send(app, FeatureRequests.APP_IN_FRONT, FlagParams(false))
             // With 语音唤醒 on 小博 comes back too: the overlay may have closed itself on the way in (its card's 打开页面).
             // A phone has no resting 小博: only a card asked for meanwhile comes up there.
             val open = openCard
-            val resting = !FrontEnd.phone(app) && (restoreOverlay || AppClient.state(app).voice.wakeWordEnabled)
+            val phone = FrontEnd.phone(app)
+            val resting = !phone && (restoreOverlay || AppClient.state(app).voice.wakeWordEnabled)
             restoreOverlay = false
             openCard = false
-            if (open || resting) OverlayControl.start(app, open)
+            when {
+                open || resting -> OverlayControl.start(app, open)
+                // A task left going on a phone shows on its assistant's capsule at the top, the card folded.
+                phone && AppClient.state(app).isRunning -> OverlayControl.start(app, open = false)
+            }
         }
     }
 

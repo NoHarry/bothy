@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bothy as the system's digital assistant: a long press of the power key wakes 小博 (assist/BothyAssist.kt). -->
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:recognitionService="cc.noharry.bothy.app.assist.BothyRecognitionService"
+    android:sessionService="cc.noharry.bothy.app.assist.BothyAssistSessionService"
+    android:supportsAssist="true"
+    android:supportsLaunchVoiceAssistFromKeyguard="false" />

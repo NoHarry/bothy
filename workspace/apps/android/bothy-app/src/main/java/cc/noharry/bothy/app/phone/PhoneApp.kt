@@ -1,6 +1,5 @@
 package cc.noharry.bothy.app.phone
 
-import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,18 +21,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.unit.Density
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.a2a.A2aClientActions
+import cc.noharry.bothy.app.a2ui.LocalPhoneA2ui
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
+import cc.noharry.bothy.app.console.SettingsSection
 import cc.noharry.bothy.app.console.ui.HtmlViewerDialog
+import cc.noharry.bothy.app.page.LocalPageTouch
 import cc.noharry.bothy.app.console.ui.HtmlViewerRequest
 import kotlinx.coroutines.launch
 
@@ -42,9 +37,9 @@ import kotlinx.coroutines.launch
 internal enum class PhoneRoute { CHAT, PLANS, TRAJECTORY, A2A, SETTINGS }
 
 /**
- * Bothy on a phone (docs/phone-portrait/design): screens and navigation of its own over the same state and actions as
- * the tablet's console ([cc.noharry.bothy.app.console.ConsoleScreen]), as one app server drives two front ends. The
- * drawer opens from the conversation; A2A is the client mode itself, on while its page is open.
+ * Bothy on a phone (the Stitch design "Bothy 手机端", v2): screens, navigation and a look of its own ([PhoneTheme]) over
+ * the same state and actions as the tablet's console ([cc.noharry.bothy.app.console.ConsoleScreen]), as one app server
+ * drives two front ends. The drawer opens from the conversation; A2A is the client mode itself, on while its page is open.
  */
 @Composable
 internal fun PhoneApp(
@@ -64,21 +59,26 @@ internal fun PhoneApp(
         route = next
         scope.launch { drawer.close() }
     }
-    LaunchedEffect(route) { if (a2aActions != null && a2aClient.enabled != (route == PhoneRoute.A2A)) a2aActions.setEnabled(route == PhoneRoute.A2A) }
+    // Client mode is on only while A2A's page talks to an agent ([PhoneA2a]).
+    LaunchedEffect(route) { if (a2aActions != null && a2aClient.enabled && route != PhoneRoute.A2A) a2aActions.setEnabled(false) }
     BackHandler(enabled = route != PhoneRoute.CHAT && !drawer.isOpen) { route = PhoneRoute.CHAT }
-    PhoneTypeScale {
+    // A finger on a drawn page is the page's: a sideways drag there moves its slider, not the drawer.
+    val pageTouch = remember { mutableStateOf(false) }
+    PhoneTheme {
         ModalNavigationDrawer(
             drawerState = drawer,
-            gesturesEnabled = route == PhoneRoute.CHAT,
+            gesturesEnabled = route == PhoneRoute.CHAT && !pageTouch.value,
             drawerContent = {
-                ModalDrawerSheet(drawerState = drawer, drawerContainerColor = ConsoleColors.bg) {
+                ModalDrawerSheet(drawerState = drawer, drawerContainerColor = ConsoleColors.panel) {
                     PhoneDrawer(state, drawer.isOpen, showA2a = a2aActions != null, actions = screenActions, onGo = go)
                 }
             },
         ) {
-            Box(Modifier.fillMaxSize().background(phoneBackdrop()).statusBarsPadding().navigationBarsPadding().imePadding()) {
-                PhoneRouteContent(route, state, pendingInput, onPendingInputConsumed, screenActions, a2aClient, a2aActions, navigate = { route = it }) {
-                    scope.launch { drawer.open() }
+            Box(Modifier.fillMaxSize().background(ConsoleColors.bg).statusBarsPadding().navigationBarsPadding().imePadding()) {
+                CompositionLocalProvider(LocalPageTouch provides pageTouch, LocalPhoneA2ui provides true) {
+                    PhoneRouteContent(route, state, pendingInput, onPendingInputConsumed, screenActions, a2aClient, a2aActions, navigate = { route = it }) {
+                        scope.launch { drawer.open() }
+                    }
                 }
             }
         }
@@ -101,41 +101,27 @@ private fun PhoneRouteContent(
     val back = { navigate(PhoneRoute.CHAT) }
     // The turn whose footnote opened the trajectory; null for the latest.
     var trajectoryTurn by rememberSaveable { mutableStateOf<Long?>(null) }
+    // The settings section A2A's page asked for; null for the settings' first page.
+    var settingsStart by rememberSaveable { mutableStateOf<String?>(null) }
+    // However the settings were left (their back, the system's), they open on their first page next time.
+    LaunchedEffect(route) { if (route != PhoneRoute.SETTINGS) settingsStart = null }
     when (route) {
-        PhoneRoute.CHAT -> PhoneChat(state, pendingInput, onPendingInputConsumed, actions, openDrawer) { turn ->
-            trajectoryTurn = turn
-            navigate(PhoneRoute.TRAJECTORY)
+        PhoneRoute.CHAT -> {
+            val links = PhoneLinks(
+                onTrajectory = { turn ->
+                    trajectoryTurn = turn
+                    navigate(PhoneRoute.TRAJECTORY)
+                },
+                onPlans = { navigate(PhoneRoute.PLANS) },
+            )
+            PhoneChat(state, pendingInput, onPendingInputConsumed, actions, openDrawer, links)
         }
         PhoneRoute.PLANS -> PhonePlans(state, actions, back)
         PhoneRoute.TRAJECTORY -> PhoneTrajectory(state, actions, trajectoryTurn, back)
-        PhoneRoute.A2A -> if (a2aActions != null) PhoneA2a(a2aClient, a2aActions, back) else back()
-        PhoneRoute.SETTINGS -> PhoneSettings(state, actions, back)
+        PhoneRoute.A2A -> PhoneA2a(state, a2aClient, a2aActions, onManage = {
+            settingsStart = SettingsSection.CONNECTIONS.name
+            navigate(PhoneRoute.SETTINGS)
+        }, onBack = back)
+        PhoneRoute.SETTINGS -> PhoneSettings(state, actions, onBack = back, startAt = settingsStart?.let(SettingsSection::valueOf))
     }
 }
-
-/** The phone's ground: the console's, washed with its accent at the top and lighter at the foot. */
-@Composable
-private fun phoneBackdrop(): Brush {
-    val colors = ConsoleColors
-    val top = lerp(colors.bg, colors.accentSoft, BACKDROP_WASH)
-    // The status bar takes the backdrop's top, so the wash runs up under the clock, and the console's colour again when
-    // the phone screens go (the layout switched to the console).
-    val view = LocalView.current
-    val ground = colors.bg
-    DisposableEffect(view, top, ground) {
-        val window = (view.context as? Activity)?.window?.takeUnless { view.isInEditMode }
-        window?.statusBarColor = top.toArgb()
-        onDispose { window?.statusBarColor = ground.toArgb() }
-    }
-    return Brush.verticalGradient(listOf(top, colors.bg, colors.panel))
-}
-
-/** The phone reads the console's type a fifth larger, as the phone design sets it; the user's own font scale still applies. */
-@Composable
-private fun PhoneTypeScale(content: @Composable () -> Unit) {
-    val base = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(base.density, base.fontScale * PHONE_TYPE_SCALE), content = content)
-}
-
-private const val PHONE_TYPE_SCALE = 1.2f
-private const val BACKDROP_WASH = 0.6f

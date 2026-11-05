@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,15 +15,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.a2ui.QuestionCards
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.WakeMigrationNote
+import cc.noharry.bothy.protocol.voice
 
 /**
- * The phone's conversation, as the phone design draws it: the top bar, the turns ([PhoneTimeline]) and the composer
- * pill. What is typed while a run goes on steers it, as on the tablet.
+ * The phone's conversation, as the design draws it: the top bar, a greeting with things to ask until something is
+ * asked, then the turns ([PhoneTimeline]), and the composer pill at the foot. What is typed while a run goes on
+ * steers it, as on the tablet.
  */
 @Composable
 internal fun PhoneChat(
@@ -33,7 +35,7 @@ internal fun PhoneChat(
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
     onMenu: () -> Unit,
-    onTrajectory: (turn: Long) -> Unit,
+    links: PhoneLinks,
 ) {
     var input by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(pendingInput) {
@@ -48,24 +50,27 @@ internal fun PhoneChat(
             if (state.isRunning) actions.steer(text) else actions.submit(text)
         }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        PhoneTopBar(state, actions, onMenu)
-        WakeMigrationNote()
-        QuestionCards(state, actions)
-        if (state.items.isEmpty() && !state.isRunning) {
-            PhoneWelcome(onSuggest = { input = it }, modifier = Modifier.weight(1f).fillMaxWidth())
-        } else {
-            PhoneTimeline(state, actions, onTrajectory, Modifier.weight(1f).fillMaxWidth())
-        }
-        Spacer(Modifier.height(8.dp))
-        // 小博 sits on the composer's top edge, as it floats over other apps; the run's activity shows just above.
-        Box(Modifier.fillMaxWidth()) {
-            Column(Modifier.fillMaxWidth()) {
-                PhoneActivityStrip(state)
-                PhoneComposer(input, { input = it }, submit, state, actions)
+    val voice = state.voice
+    val holding = voice.status.isOn && voice.holding
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().padding(horizontal = PHONE_MARGIN)) {
+            PhoneTopBar(state, actions, onMenu)
+            ConsoleTypeOnPhone {
+                WakeMigrationNote()
+                QuestionCards(state, actions)
             }
-            PhoneMascot(state, Modifier.align(Alignment.TopEnd).offset(x = (-64).dp, y = (-46).dp))
+            // A hold dims the conversation behind what is heard.
+            val behind = Modifier.weight(1f).fillMaxWidth().alpha(if (holding) HELD_DIM else 1f)
+            if (state.items.isEmpty() && !state.isRunning) {
+                PhoneWelcome(onSuggest = { input = it }, modifier = behind)
+            } else {
+                PhoneTimeline(state, actions, links, behind)
+            }
+            PhoneComposer(input, { input = it }, submit, state, actions)
+            Spacer(Modifier.height(12.dp))
         }
-        Spacer(Modifier.height(8.dp))
+        if (holding) PhoneHold(voice, Modifier.align(Alignment.BottomCenter))
     }
 }
+
+private const val HELD_DIM = 0.25f

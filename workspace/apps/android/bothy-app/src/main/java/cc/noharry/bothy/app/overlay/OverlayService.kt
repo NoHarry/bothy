@@ -28,8 +28,9 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.*
 
 /**
- * Floating assistant for car landscape HUIs (also fits portrait): 小博 as a small bubble the user can park
- * anywhere, opening into a card when something arrives or when asked, and folding back when done.
+ * Floating assistant for car landscape HUIs and tablets (also fits portrait): 小博 as a small bubble the user can park
+ * anywhere, opening into a card when something arrives or when asked, and folding back when done. A phone has its own
+ * ([cc.noharry.bothy.app.phoneassist.PhoneAssistantService]).
  *
  * One long-lived Compose stage reads two state objects: the HUD projection of the session (or the A2A client in
  * client mode) and the window-side UI state. Renders only replace state, so the A2UI pick surface and scroll
@@ -56,7 +57,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
     private var latestState: ServerState? = null
     private var renderScheduled: Boolean = false
     private var placedLandscape: Boolean? = null
-    private var phoneRest: OverlayPhoneRest? = null
     private var hud by mutableStateOf<OverlayHud?>(null)
     private var ui by mutableStateOf(OverlayUi())
     private var showInput: Boolean = false
@@ -180,6 +180,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
         flight = OverlayFlight(this, windowManager, mascot, overlayWindowType(), stageScale())
         useStage = AndroidUseStage(this, windowManager, mascot, overlayWindowType(), stageScale())
         // The server first: what the card shows comes from it, and a wake waiting for 小博 is sent through it.
+        OverlayControl.owner = this
         OverlayConnection.open(this) { state ->
             val followed = state.delegations != delegations
             latestState = state
@@ -191,7 +192,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
             if (!clientState().inboundFocus && clientState().mirrors.isEmpty()) collapse()
         })
         OverlayControl.androidUse = androidUseOverlay
-        phoneRest = restOnPhone()
         parkedSpot().let { (x, y) -> bubble.showAt(x, y, touchable = true) }
         bubble.driving = true
         OverlayControl.presenter = { command -> if (command == OverlayCommand.SHOW) expand() else collapse() }
@@ -217,10 +217,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     }
 
     override fun onDestroy() {
-        OverlayControl.presenter = null
-        OverlayControl.closer = null
-        OverlayControl.mascotPreview = null
-        OverlayControl.androidUse = null
+        OverlayControl.release(this)
         OverlayControl.readingUntil = 0L
         serviceScope.cancel()
         if (::root.isInitialized) {
@@ -232,7 +229,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
             root.removeCallbacks(flyToCardRunnable)
             root.removeCallbacks(fitPending)
             root.removeCallbacks(useIdle)
-            phoneRest?.stop()
             voice.destroy()
             useStage.destroy()
             flight.destroy()
@@ -241,7 +237,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
             windowManager.removeView(root)
             composeOwner.destroy()
         }
-        OverlayConnection.close()
+        OverlayConnection.close(this)
         super.onDestroy()
     }
 
@@ -450,13 +446,8 @@ class OverlayService : Service(), OverlayBubble.Listener {
         if (wantCard && presence == Presence.BUBBLE) expand()
     }
 
-    /** On a phone the bubble stays hidden, and the overlay goes once folded with nothing under way ([OverlayPhoneRest]). */
-    private fun restOnPhone() = OverlayPhoneRest.on(this, root, bubble, ::stopSelf) {
-        if (presence != Presence.BUBBLE || wantCard) null else useMode != UseMode.OFF || pendingUse != null || AssistantSurface.active || overlayFoldedSignal(resources, delegations) != null
-    }
-
     private fun surfaceChanged(taken: Boolean) {
-        bubble.suppressed = taken || phoneRest != null
+        bubble.suppressed = taken
         if (taken && presence != Presence.BUBBLE) collapse()
         glance.sync()
     }
@@ -599,7 +590,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
                 bubble.driving = true
                 presence = Presence.BUBBLE
                 glance.sync()
-                if (pendingUse != null) enterAndroidUse() else if (wantCard) expand() else phoneRest?.arm()
+                if (pendingUse != null) enterAndroidUse() else if (wantCard) expand()
             }
         }
     }

@@ -980,6 +980,14 @@ export interface OverlayPicture {
   prompt: string;
 }
 
+export interface PageReadParams {
+  reference: string;
+}
+
+export interface PageReadResult {
+  html?: string | null;
+}
+
 export interface Pair {
   first: string;
   second: string;
@@ -1010,6 +1018,13 @@ export interface PlanAction {
   tool: string;
   arguments: Record<string, unknown>;
   label: string;
+}
+
+export interface PlanDraft {
+  title: string;
+  message?: string;
+  instruction?: string | null;
+  trigger: PlanTrigger;
 }
 
 export type PlanEnd = "DONE" | "MISSED";
@@ -2014,6 +2029,7 @@ export interface ClientRequests {
   "files/mounts": { params: Empty; result: FileMountsResult };
   "files/list": { params: PathParams; result: FileListResult };
   "files/read": { params: FileReadParams; result: FileReadResult };
+  "pages/read": { params: PageReadParams; result: PageReadResult };
   "imageModel/read": { params: Empty; result: ImageModelConfig };
   "imageModel/save": { params: ImageModelSaveParams; result: ImageModelSaveResult };
   "imageModel/models": { params: Empty; result: ModelListResult };
@@ -2041,6 +2057,7 @@ export interface ClientRequests {
   "a2aClient/newConversation": { params: Empty; result: Empty };
   "plans/setEnabled": { params: EnabledParams; result: Empty };
   "plans/delete": { params: IdParams; result: Empty };
+  "plans/create": { params: PlanDraft; result: SaveResult };
   "app/inFront": { params: FlagParams; result: Empty };
   "app/languageChanged": { params: Empty; result: Empty };
   "mcp/toolsChanged": { params: IdsParams; result: Empty };

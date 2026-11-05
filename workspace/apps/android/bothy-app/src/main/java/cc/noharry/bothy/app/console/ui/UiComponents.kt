@@ -334,6 +334,7 @@ internal fun HtmlPreviewBox(
                         settings.javaScriptEnabled = false
                         settings.allowFileAccess = false
                         settings.allowContentAccess = false
+                        webViewClient = ShowOnlyClient
                         setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     }
                 },

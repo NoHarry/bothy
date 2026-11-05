@@ -37,6 +37,9 @@
     <string name="overlay_step_noting">Making a note</string>
     <string name="overlay_step_planning">Arranging the plan</string>
     <string name="overlay_step_drawing">Drawing</string>
+    <string name="overlay_step_page">Drawing a page</string>
+    <string name="overlay_capsule_screen">Using the screen</string>
+    <string name="overlay_capsule_step">%1$s · step %2$d</string>
     <string name="overlay_step_navigation">Checking navigation</string>
     <string name="overlay_step_music">Finding music</string>
     <string name="overlay_step_settings">Adjusting settings</string>

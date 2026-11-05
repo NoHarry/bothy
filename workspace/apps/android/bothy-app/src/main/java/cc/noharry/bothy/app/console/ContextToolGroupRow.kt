@@ -39,6 +39,7 @@ import cc.noharry.bothy.app.console.ui.IconFullscreen
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.TurnDividerLine
 import cc.noharry.bothy.app.image.GeneratedImageRow
+import cc.noharry.bothy.app.page.DrawnPageCard
 import kotlinx.coroutines.delay
 
 @Composable
@@ -64,6 +65,7 @@ internal fun ConversationRenderRow(
         is ConversationRenderItem.TurnDivider -> TurnDividerRow(turnNumber)
         is ConversationRenderItem.HtmlArtifact -> HtmlArtifactRow(item.preview, actions)
         is ConversationRenderItem.GeneratedImage -> GeneratedImageRow(item.picture)
+        is ConversationRenderItem.DrawnPage -> DrawnPageCard(item.page, actions.submit, Modifier.padding(vertical = Dimens.spaceXs))
     }
 }
 

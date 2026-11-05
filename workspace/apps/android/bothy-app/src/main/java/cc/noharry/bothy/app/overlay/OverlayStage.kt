@@ -860,26 +860,33 @@ internal fun String.stepPhrase(resources: Resources): String? {
     if (step == "Waiting for approval") return resources.getString(R.string.overlay_step_waiting_approval)
     if (step.startsWith("Worked for")) return resources.overlayShownText(step)
     if (!TOOL_IDENTIFIER.matches(step)) return step
-    val tool = step.lowercase()
-    val phrase = STEP_PHRASES.firstOrNull { (keys, _) -> keys.any { it in tool } }?.second ?: R.string.overlay_step_working
-    return resources.getString(phrase)
+    return resources.getString(stepKind(step).phrase)
+}
+
+/** The kind of work a tool does, by words in its name, with how the overlay says it is under way. */
+internal enum class StepKind(val phrase: Int, vararg val words: String) {
+    PREPARING(R.string.overlay_step_preparing, "search_tools"),
+    PAGE(R.string.overlay_step_page, "show_html"),
+    NOTING(R.string.overlay_step_noting, "user_memory"),
+    PLANNING(R.string.overlay_step_planning, "plan_manage"),
+    DRAWING(R.string.overlay_step_drawing, "image_gen", "draw"),
+    NAVIGATION(R.string.overlay_step_navigation, "navigation", "poi", "route", "map"),
+    MUSIC(R.string.overlay_step_music, "media", "music", "video", "radio", "audio"),
+    SETTINGS(R.string.overlay_step_settings, "hvac", "light", "volume", "brightness", "setting", "system", "display"),
+    READING(R.string.overlay_step_reading, "read_file", "list_dir", "grep"),
+    STEPS(R.string.overlay_step_steps, "update_todo"),
+    WEB(R.string.overlay_step_web, "web"),
+    A2A(R.string.overlay_step_a2a, "a2a"),
+    OTHER(R.string.overlay_step_working),
+}
+
+/** The kind of work the tool named [tool] does; the first kind whose words its name holds. */
+internal fun stepKind(tool: String): StepKind {
+    val name = tool.lowercase()
+    return StepKind.entries.firstOrNull { kind -> kind.words.any { it in name } } ?: StepKind.OTHER
 }
 
 private val TOOL_IDENTIFIER = Regex("""[A-Za-z0-9_.:\-]+""")
-private val STEP_PHRASES = listOf(
-    listOf("search_tools") to R.string.overlay_step_preparing,
-    listOf("user_memory") to R.string.overlay_step_noting,
-    listOf("plan_manage") to R.string.overlay_step_planning,
-    listOf("image_gen", "draw") to R.string.overlay_step_drawing,
-    listOf("navigation", "poi", "route", "map") to R.string.overlay_step_navigation,
-    listOf("media", "music", "video", "radio", "audio") to R.string.overlay_step_music,
-    listOf("hvac", "light", "volume", "brightness", "setting") to R.string.overlay_step_settings,
-    listOf("system", "setting", "brightness", "volume", "display") to R.string.overlay_step_settings,
-    listOf("read_file", "list_dir", "grep") to R.string.overlay_step_reading,
-    listOf("update_todo") to R.string.overlay_step_steps,
-    listOf("web") to R.string.overlay_step_web,
-    listOf("a2a") to R.string.overlay_step_a2a,
-)
 
 private val CardShape = RoundedCornerShape(32.dp)
 /** Room around the glass inside the window, in the stage's dp; the service adds it to the window size. */

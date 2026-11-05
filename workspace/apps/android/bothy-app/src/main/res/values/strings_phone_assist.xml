@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The phone's assistant over other apps (phoneassist/): its capsule and sheet. -->
+    <string name="phone_assist_name">Bothy</string>
+    <string name="phone_assist_avatar">B</string>
+    <string name="phone_assist_listening">Listening</string>
+    <string name="phone_assist_listen_hint">Go ahead, I\'m listening</string>
+    <string name="phone_assist_idle_hint">Tap the mic and talk, or type</string>
+    <string name="phone_assist_tap_stop">Tap to stop</string>
+    <string name="phone_assist_tap_talk">Tap to talk</string>
+    <string name="phone_assist_type">Type</string>
+    <string name="phone_assist_send">Send (hold to stop the task and ask this instead)</string>
+    <string name="phone_assist_fold">Fold</string>
+    <string name="phone_assist_running">Working</string>
+    <string name="phone_assist_done">Done</string>
+    <string name="phone_assist_partly">Partly done</string>
+    <string name="phone_assist_failed">Didn\'t work</string>
+    <string name="phone_assist_stopped">Stopped</string>
+    <string name="phone_assist_took_seconds">%1$d s</string>
+    <string name="phone_assist_took_minutes">%1$d min %2$d s</string>
+    <string name="phone_assist_copy">Copy</string>
+    <string name="phone_assist_copied">Copied</string>
+    <string name="phone_assist_open_app">Open in app</string>
+    <string name="phone_assist_talk">Talk</string>
+    <string name="phone_assist_pending">Needs your OK</string>
+    <string name="phone_assist_allow_session">Allow for this conversation</string>
+    <string name="phone_assist_stop">Stop</string>
+    <string name="phone_assist_live_channel">What Bothy is doing</string>
+    <string name="phone_assist_live_chip">Bothy</string>
+    <string name="phone_settings_power_key">Hold power to wake</string>
+    <string name="phone_settings_power_key_on">On</string>
+    <string name="phone_settings_power_key_off">Set Bothy as assistant</string>
+</resources>

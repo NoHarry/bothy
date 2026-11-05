@@ -42,10 +42,12 @@ import cc.noharry.agent.appserver.model.defaultContextWindow
 import cc.noharry.agent.appserver.model.hasDeepSeekKey
 import cc.noharry.agent.appserver.model.loadContextWindow
 import cc.noharry.agent.appserver.model.loadModelImageInput
+import cc.noharry.agent.appserver.pages.PageToolProvider
 import cc.noharry.agent.appserver.plans.PlanContext
 import cc.noharry.agent.appserver.plans.PlanToolProvider
 import cc.noharry.agent.appserver.protocol.McpProviderState
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.server.AppScreen
 import cc.noharry.agent.appserver.skills.AppSubagents
 import cc.noharry.agent.appserver.skills.SkillToolProvider
 import cc.noharry.agent.appserver.skills.SubagentKind
@@ -160,8 +162,9 @@ fun buildRuntime(
     // The earlier runs already hold the conversation and the skills they loaded; a new session (or one from before a
     // restart) still gets the recap and the previous exchange.
     // The time, the app in front and where delegations stand, all per run (the run context, never the cached system prompt).
+    val drawPages = !subagentChild && pagesOffered(profile)
     val clock = (listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context)) + AppHost.runs.contextLines(context) +
-        a2aBridgeProviders.map(A2aBridgeProvider::runNote))
+        a2aBridgeProviders.map(A2aBridgeProvider::runNote) + listOfNotNull(PAGES_RULE.takeIf { drawPages }))
         .filter(String::isNotBlank).joinToString("\n")
     val verifyAgent = !subagentChild && AppSubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
     val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
@@ -207,6 +210,7 @@ fun buildRuntime(
     .applyMcpProviders(context, mcpProviders, wrapTools, workflows)
     .applyA2aBridgeProviders(a2aBridgeProviders, userInput)
     .applyAndroidUse(context, imageInput)
+    .applyPages(context, offered = drawPages)
     .applyPlans(context)
     .applyUserMemory(context)
     // Semantic VFS stays the workspace; the EventLog gets its own no-backup root so the
@@ -328,6 +332,27 @@ private fun AgentRuntimeBuilder.applyAndroidUse(context: Context, imageInput: Bo
         toolProvider(AndroidUseToolProvider(context, AppAndroidUsePresenter(), AndroidUseOptions(screenshots = imageInput)))
     }
 }
+
+/**
+ * When to draw (owner 2026-11-05: 长段的东西生成式 UI 应该更积极): a rule of the run while pages are offered, since in
+ * the tool's description alone the model kept a 978-character analysis as text and offered a drawing at its end.
+ */
+private const val PAGES_RULE =
+    "用户正看着对话页，可以画界面（show_html）：回答会超过三四百字，或有三个以上并列的要点、层次、步骤，或是比较、" +
+        "数字、时间线、行程、计划、简报、分析时，先用一句话说结论，再把内容画成页面，finish 只补一两句；不要长篇只用文字，" +
+        "也不要问要不要画。一两句能答的、闲聊、要复制的纯文本照常用文字。"
+
+/** 画界面 ([PageToolProvider]), when [offered]. */
+private fun AgentRuntimeBuilder.applyPages(context: Context, offered: Boolean): AgentRuntimeBuilder = apply {
+    if (offered) toolProvider(PageToolProvider(context))
+}
+
+/**
+ * Whether a run may draw pages: only while the app's own screens are in front ([AppScreen]), the one place a page
+ * shows (the overlay and a head unit's surface draw cards, not pages), and with a service's model, as the host's own
+ * on-device models write no page that works.
+ */
+internal fun pagesOffered(profile: ProviderProfile): Boolean = AppScreen.inFront && !AppHost.models.owns(profile.id)
 
 /** 计划: the tool, and today's date with the plans going; registered before 记忆, so its facts always fit. */
 private fun AgentRuntimeBuilder.applyPlans(context: Context): AgentRuntimeBuilder = apply {

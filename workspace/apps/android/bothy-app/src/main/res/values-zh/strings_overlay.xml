@@ -37,6 +37,9 @@
     <string name="overlay_step_noting">正在记下来</string>
     <string name="overlay_step_planning">正在安排计划</string>
     <string name="overlay_step_drawing">正在作画</string>
+    <string name="overlay_step_page">正在画界面</string>
+    <string name="overlay_capsule_screen">正在操作屏幕</string>
+    <string name="overlay_capsule_step">%1$s · 第 %2$d 步</string>
     <string name="overlay_step_navigation">正在查询导航</string>
     <string name="overlay_step_music">正在查找音乐</string>
     <string name="overlay_step_settings">正在调整设置</string>

@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.console.ui
 import android.graphics.Color as AndroidColor
 import android.os.Message
+import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -137,6 +139,23 @@ private object BlockingNavigationClient : WebViewClient() {
     override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean = true
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = true
+
+    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean = dropWebView(view)
+}
+
+/**
+ * A WebView whose renderer is gone (a page in it, or in another WebView of the app, crashed or was ended) is taken
+ * off the screen and destroyed, so the app lives on: the system ends an app that leaves one standing.
+ */
+internal fun dropWebView(view: WebView): Boolean {
+    (view.parent as? ViewGroup)?.removeView(view)
+    view.destroy()
+    return true
+}
+
+/** For a WebView that only shows: nothing but surviving a renderer that is gone ([dropWebView]). */
+internal object ShowOnlyClient : WebViewClient() {
+    override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean = dropWebView(view)
 }
 
 private object BlockingWindowClient : WebChromeClient() {

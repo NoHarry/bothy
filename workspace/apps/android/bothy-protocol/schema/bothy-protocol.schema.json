@@ -237,6 +237,14 @@
           "$ref": "#/$defs/FileReadResult"
         }
       },
+      "pages/read": {
+        "params": {
+          "$ref": "#/$defs/PageReadParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PageReadResult"
+        }
+      },
       "imageModel/read": {
         "params": {
           "$ref": "#/$defs/Empty"
@@ -451,6 +459,14 @@
         },
         "result": {
           "$ref": "#/$defs/Empty"
+        }
+      },
+      "plans/create": {
+        "params": {
+          "$ref": "#/$defs/PlanDraft"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
         }
       },
       "app/inFront": {
@@ -5194,6 +5210,32 @@
         "prompt"
       ]
     },
+    "PageReadParams": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference"
+      ]
+    },
+    "PageReadResult": {
+      "type": "object",
+      "properties": {
+        "html": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "Pair": {
       "type": "object",
       "properties": {
@@ -5331,6 +5373,34 @@
         "tool",
         "arguments",
         "label"
+      ]
+    },
+    "PlanDraft": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "instruction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trigger": {
+          "$ref": "#/$defs/PlanTrigger"
+        }
+      },
+      "required": [
+        "title",
+        "trigger"
       ]
     },
     "PlanEnd": {

@@ -3,7 +3,6 @@ package cc.noharry.bothy.app.phone
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -30,11 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
@@ -101,36 +99,6 @@ internal fun PhoneModelSheet(state: ServerState, actions: ConsoleActions, onDism
     }
 }
 
-/** One of the drawer's other features, as a tile of the "more" sheet. */
-internal class SheetTile(val icon: Painter, val label: String, val onClick: () -> Unit)
-
-/** The drawer's other features as tiles in a row (plans, A2A, the head unit). */
-@Composable
-internal fun PhoneMoreSheet(tiles: List<SheetTile>, onDismiss: () -> Unit) {
-    val colors = ConsoleColors
-    PhoneSheet(onDismiss, title = null) {
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            tiles.forEach { tile ->
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(Dimens.radiusLg))
-                        .clickable(role = Role.Button) { onDismiss(); tile.onClick() }
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(Modifier.size(TILE_ICON_BOX).clip(RoundedCornerShape(TILE_RADIUS)).background(colors.accentSoft), contentAlignment = Alignment.Center) {
-                        Icon(tile.icon, contentDescription = null, tint = colors.accent, modifier = Modifier.size(28.dp))
-                    }
-                    Text(tile.label, style = ConsoleType.meta, color = colors.text, textAlign = TextAlign.Center, maxLines = 2, modifier = Modifier.padding(top = 8.dp))
-                }
-            }
-            // A short row keeps its tiles their size.
-            repeat(MORE_TILES_PER_ROW - tiles.size) { Spacer(Modifier.weight(1f)) }
-        }
-    }
-}
-
 @Composable
 private fun SheetLabel(text: String) {
     Text(text, style = ConsoleType.meta, color = ConsoleColors.muted, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
@@ -146,7 +114,7 @@ private fun SheetRow(title: String, hint: String?, selected: Boolean, dot: Color
             .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(Dimens.radiusLg))
             .background(if (selected) colors.accentSoft else Color.Transparent)
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -179,6 +147,3 @@ private fun SheetChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 private val SHEET_RADIUS = 28.dp
-private val TILE_ICON_BOX = 60.dp
-private val TILE_RADIUS = 18.dp
-private const val MORE_TILES_PER_ROW = 4

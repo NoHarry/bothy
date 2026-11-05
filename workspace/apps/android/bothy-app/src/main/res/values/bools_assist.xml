@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Bothy as the system's digital assistant (a long press of the power key). Before Android 12 the assistant's
+        recognizer also becomes the system's speech recognizer, which would leave other apps' voice input with
+        Bothy's stub, so the assistant's services are off there.
+    -->
+    <bool name="assist_enabled">false</bool>
+</resources>

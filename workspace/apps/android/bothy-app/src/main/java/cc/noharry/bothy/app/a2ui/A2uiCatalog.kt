@@ -59,7 +59,7 @@ import cc.noharry.bothy.app.overlay.OverlayPalette
 /**
  * The host's A2UI catalog: the Material basic catalog plus components it lacks, under the host's own catalog ID.
  * The protocol stays standard; only `Progress`, `Grid` and a trip's `Ticket`, `Stop` and `Stay` are ours. [carLook] is the overlay's glass; without it the
- * stock Material look follows the console's theme.
+ * stock Material look follows the console's theme, and on a phone its text and buttons take the phone's look.
  *
  * Images load pictures saved on the device or public https photos (guarded, through Glide); video, audio and URL
  * opening stay inert.
@@ -94,6 +94,9 @@ internal fun a2uiCatalog(carLook: Boolean = true): A2uiCatalog {
             urlOpener = A2uiUrlOpener { },
             messageFormatter = IcuMessageFormatter,
             localeProvider = A2uiLocaleProvider.Default,
+            // Stock Material on a tablet; the phone's own look where its screens ask for it ([LocalPhoneA2ui]).
+            text = HostA2uiText,
+            button = HostA2uiButton,
         )
     }
     return A2uiCatalog(

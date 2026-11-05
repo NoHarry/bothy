@@ -84,9 +84,13 @@ internal class OverlayVoice(
     var failure: String? = null
         private set
     private var forA2a = false
+    private val waker: (WakeOrigin) -> Unit = { wake(it) }
+
+    /** Promoted to the foreground for an A2A caller ([promoteForA2a]). */
+    val inForeground: Boolean get() = forA2a
 
     init {
-        OverlayControl.waker = ::wake
+        OverlayControl.waker = waker
         scope.launch { OverlayConnection.state.map { it.voice.active }.distinctUntilChanged().collect { onChanged() } }
         scope.launch { OverlayConnection.dismissals.collect { failure = null; onDismissed() } }
         HostConnection.report { copy(ready = true) }
@@ -143,7 +147,8 @@ internal class OverlayVoice(
 
     fun destroy() {
         scope.cancel()
-        OverlayControl.waker = null
+        // The other assistant's service may have come up with a voice of its own meanwhile.
+        if (OverlayControl.waker === waker) OverlayControl.waker = null
         HostConnection.report { copy(ready = false) }
         OverlayConnection.send(VoiceRequests.END_WAKE_SESSION, Empty)
     }

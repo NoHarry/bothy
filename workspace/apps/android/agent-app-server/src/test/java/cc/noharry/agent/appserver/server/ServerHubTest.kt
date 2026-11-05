@@ -9,12 +9,16 @@ import cc.noharry.agent.appserver.protocol.ClientRequests
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
 import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.FeatureRequests
 import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerKind
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ModelSelectParams
 import cc.noharry.agent.appserver.protocol.OverlayCommand
+import cc.noharry.agent.appserver.protocol.PlanDraft
+import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.PresentCardParams
 import cc.noharry.agent.appserver.protocol.PresentResult
 import cc.noharry.agent.appserver.protocol.PresentStartParams
@@ -198,6 +202,17 @@ class ServerHubTest {
         assertRefused(JsonRpcErrorCodes.REJECTED) {
             client.request(SettingsRequests.PROVIDER_FETCH_MODELS, ProviderFetchParams("p", ModelProvider.OPENAI, ProviderEndpoint.CHAT_COMPLETIONS, "", "", "https://down.invalid"))
         }
+    }
+
+    @Test
+    fun aPlanMadeOnThePageIsKeptOrRefusedWithWhy() = runBlocking {
+        backend.publish(start)
+        val client = connect()
+        val trigger = PlanTrigger.Repeat(minuteOfDay = 8 * 60, days = setOf(1, 2, 3, 4, 5))
+        assertNull(client.request(FeatureRequests.PLAN_CREATE, PlanDraft("带伞", message = "记得带伞", trigger = trigger)).error)
+        val refused = client.request(FeatureRequests.PLAN_CREATE, PlanDraft(" ", message = "记得带伞", trigger = trigger)).error
+        assertEquals(FindingCode.PLANS_PROBLEM_NOT_SAVED.name, refused?.code)
+        assertEquals(listOf("plan 带伞", "plan  "), settings.calls)
     }
 
     @Test
@@ -431,6 +446,10 @@ class ServerHubTest {
         override fun newAgentConversation() = Unit
         override fun setPlanEnabled(id: String, enabled: Boolean) = Unit
         override fun deletePlan(id: String) = Unit
+        override suspend fun createPlan(draft: PlanDraft): Finding? {
+            calls += "plan ${draft.title}"
+            return if (draft.title.isBlank()) Finding(FindingCode.PLANS_PROBLEM_NOT_SAVED.name) else null
+        }
         override fun toolsChanged(serverIds: List<String>) = Unit
         override fun appInFront(inFront: Boolean) = Unit
         override fun setSessionPolicy(policy: SessionPolicy) = Unit

@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalConfiguration
 import cc.noharry.agent.appserver.protocol.ClientCapabilities
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.Empty
@@ -82,7 +83,10 @@ class ConsoleActivity : ComponentActivity() {
         }
         server?.send(OnboardingRequests.READ, Empty) { onboarding = it.needed }
         setContent {
-            DesignDensity {
+            // Left to the screen, a tablet held upright shows the phone's screens, at the platform's dp as a phone would.
+            val configuration = LocalConfiguration.current
+            val phone = FrontEnd.phone(phoneScreen, upright = FrontEnd.upright(this, configuration))
+            DesignDensity(design = !phone) {
                 ConsoleTheme {
                     // The setup and the panes read the state and save through the server where they sit
                     // ([LocalServer]); the setup may show before the first state arrives.
@@ -97,7 +101,7 @@ class ConsoleActivity : ComponentActivity() {
                                 OnboardingDraft.clear()
                                 onboarding = false
                             }
-                            false -> known?.let { FrontEndScreen(it) }
+                            false -> known?.let { FrontEndScreen(it, phone) }
                         }
                     }
                 }
@@ -108,12 +112,12 @@ class ConsoleActivity : ComponentActivity() {
     }
 
     /**
-     * One runtime, two front ends: a phone has screens of its own, a tablet and a head unit the console ([FrontEnd]);
-     * switching in the settings swaps them at once.
+     * One runtime, two front ends: a phone, or a tablet held upright, has screens of its own ([phone]), a tablet on its
+     * side and a head unit the console ([FrontEnd]); switching in the settings swaps them at once.
      */
     @Composable
-    private fun FrontEndScreen(state: ServerState) {
-        if (FrontEnd.phone(phoneScreen)) {
+    private fun FrontEndScreen(state: ServerState, phone: Boolean) {
+        if (phone) {
             PhoneApp(state, pendingInput, { pendingInput = "" }, actions(), state.a2aClient, a2aClientActions())
         } else {
             ConsoleScreen(

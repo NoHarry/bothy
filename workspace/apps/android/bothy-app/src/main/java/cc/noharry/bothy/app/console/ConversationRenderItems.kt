@@ -6,7 +6,9 @@ import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.view.ShownPage
 import cc.noharry.agent.appserver.protocol.view.generatedPicture
+import cc.noharry.agent.appserver.protocol.view.shownPage
 import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.R
 import kotlinx.serialization.json.Json
@@ -64,6 +66,14 @@ internal sealed interface ConversationRenderItem {
         override val key: String = "html-artifact-$toolItemId"
     }
 
+    /** A page the agent drew (`show_html`), right after its tool row. */
+    data class DrawnPage(
+        val toolItemId: Long,
+        val page: ShownPage,
+    ) : ConversationRenderItem {
+        override val key: String = "drawn-page-$toolItemId"
+    }
+
     /** A picture from the image tool, right after its tool row; the reference is null while it is drawn. */
     data class GeneratedImage(
         val toolItemId: Long,
@@ -117,6 +127,9 @@ internal fun List<ConversationItem>.toRenderItems(): List<ConversationRenderItem
             }
             tool.generatedPicture()?.let { picture ->
                 renderItems += ConversationRenderItem.GeneratedImage(tool.id, picture)
+            }
+            tool.shownPage()?.let { page ->
+                renderItems += ConversationRenderItem.DrawnPage(tool.id, page)
             }
         }
         businessGroup.clear()
@@ -183,6 +196,7 @@ internal fun ConversationRenderItem.autoScrollKey(isFolded: (ConversationItem) -
         is ConversationRenderItem.TurnDivider -> key
         is ConversationRenderItem.HtmlArtifact -> "$key:${preview.refreshToken}"
         is ConversationRenderItem.GeneratedImage -> "$key:${picture.reference}"
+        is ConversationRenderItem.DrawnPage -> "$key:${page.reference}"
     }
 
 /**

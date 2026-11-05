@@ -1,6 +1,8 @@
 package cc.noharry.bothy.app.console
 
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -18,8 +20,9 @@ import cc.noharry.bothy.app.console.ui.UiScale
 /**
  * 设置 → 通用 → 界面布局: which front end the app shows over the one runtime, the phone's screens
  * ([cc.noharry.bothy.app.phone.PhoneApp]) or the console ([ConsoleScreen]). Picked by the screen until the person
- * chooses. The two also behave differently outside the app: a phone has no resting 小博 over other apps
- * ([cc.noharry.bothy.app.overlay.OverlayPhoneRest]).
+ * chooses: a phone, or a tablet held upright, gets the phone's screens; a head unit keeps the console, upright or not.
+ * The two also behave differently outside the app: a phone has no resting 小博 over other apps
+ * ([cc.noharry.bothy.app.phoneassist.PhoneAssistant]).
  */
 internal object FrontEnd {
     enum class Choice { AUTO, PHONE, CONSOLE }
@@ -40,17 +43,32 @@ internal object FrontEnd {
         loaded = true
     }
 
-    /** Whether [context]'s screen shows the phone's screens: a phone's by default, or what the person chose. */
+    /**
+     * Whether this device behaves as a phone outside the app, with no resting 小博: a phone does by default, or as the
+     * person chose. A tablet held upright shows the phone's screens in the app but stays a tablet here.
+     */
     fun phone(context: Context): Boolean {
         if (!loaded) load(context)
         return resolve(choice, UiScale.phone(context))
     }
 
-    /** As [phone], for a screen already known to be a phone's or not ([phoneScreen]); reads the choice as state. */
-    fun phone(phoneScreen: Boolean): Boolean = resolve(choice, phoneScreen)
+    /**
+     * Whether the app shows the phone's screens on a screen already known to be a phone's or not ([phoneScreen]), held
+     * [upright] or not: left to the screen, a tablet held upright shows them too. Reads the choice as state.
+     */
+    fun phone(phoneScreen: Boolean, upright: Boolean): Boolean = resolve(choice, phoneScreen, upright)
 
-    internal fun resolve(choice: Choice, phoneScreen: Boolean): Boolean = when (choice) {
-        Choice.AUTO -> phoneScreen
+    /**
+     * Whether the screen is upright the way a tablet's is: higher than wide, and not a head unit's (some car screens
+     * are upright, or turn).
+     */
+    fun upright(context: Context, configuration: Configuration): Boolean =
+        configuration.screenHeightDp > configuration.screenWidthDp &&
+            (configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) != Configuration.UI_MODE_TYPE_CAR &&
+            !context.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
+
+    internal fun resolve(choice: Choice, phoneScreen: Boolean, upright: Boolean = false): Boolean = when (choice) {
+        Choice.AUTO -> phoneScreen || upright
         Choice.PHONE -> true
         Choice.CONSOLE -> false
     }

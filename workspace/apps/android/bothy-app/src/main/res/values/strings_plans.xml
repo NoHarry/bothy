@@ -104,6 +104,7 @@
     <string name="plans_action_failed">%1$s failed (%2$s)</string>
     <string name="plans_action_denied">%1$s not run (the current policy doesn\'t allow running it automatically)</string>
     <string name="plans_problem_offline">%1$s is off or unreachable</string>
+    <string name="plans_problem_not_saved">The plan was not kept: give it a name and what to say or do, or delete a few plans first.</string>
     <string name="plans_problem_no_answer">The service didn\'t answer</string>
     <string name="plans_problem_no_result">No result</string>
     <string name="plans_problem_error">Error</string>
