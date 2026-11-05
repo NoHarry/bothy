@@ -40,6 +40,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.NEW_SESSION_TITLE
+import cc.noharry.agent.appserver.protocol.SessionSummary
+import cc.noharry.agent.appserver.protocol.UNTITLED_SESSION_TITLE
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleActions
@@ -57,7 +61,7 @@ import java.util.Locale
 
 @Composable
 internal fun SessionPane(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     settingsSelected: Boolean,
     onShowConversation: () -> Unit,

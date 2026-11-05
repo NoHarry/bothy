@@ -1,5 +1,4 @@
 package cc.noharry.bothy.app.mcp
-import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,7 +49,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,7 +57,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -75,6 +73,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
+import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -82,10 +84,15 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.plans.matches
+import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.app.frontend.ServerAccess
+import cc.noharry.bothy.protocol.ConnectorCatalog
+import cc.noharry.bothy.protocol.ConnectorPage
+import cc.noharry.bothy.protocol.ConnectorRequests
+import cc.noharry.bothy.protocol.ConnectorSignInParams
+import cc.noharry.bothy.protocol.ConnectorStatus
+import cc.noharry.bothy.protocol.ConnectorView
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.google.zxing.qrcode.encoder.Encoder
@@ -93,7 +100,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Sidebar footer: a compact settings button next to the 连接应用 pill (the pill shows how many apps are connected).
@@ -134,31 +140,23 @@ internal fun SidebarFooter(
  */
 @Composable
 internal fun ConnectAppsPill(onShowA2aProfiles: () -> Unit, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
+    val server = LocalServer.current
     var showConnectors by remember { mutableStateOf(false) }
-    val controller = remember { ConnectorController(context.applicationContext) }
-    // Read from what this car knows at once, so the first frame does not show the wrong icons.
-    val live = { DEBUG_CONNECTORS.filter { controller.status(it) is ConnectorStatus.Connected } }
-    var connected by remember { mutableStateOf(live().size) }
-    var shown by remember { mutableStateOf(live().ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)) }
-    fun count() {
-        val now = live()
-        connected = now.size
-        shown = now.ifEmpty { DEBUG_CONNECTORS }.take(PILL_AVATARS)
-    }
+    var catalog by remember { mutableStateOf(ConnectorCatalog()) }
+    val connected = catalog.connectors.filter { catalog.statuses[it.id] is ConnectorStatus.Connected }
+    val shown = connected.ifEmpty { catalog.connectors }.take(PILL_AVATARS)
     // Check with the relay when the console shows and after the dialog closes: a device disconnected from the bot's
     // side loses its A2A profile here instead of keeping a delegation target that no longer answers.
     LaunchedEffect(showConnectors) {
-        count()
-        if (showConnectors) return@LaunchedEffect
-        DEBUG_CONNECTORS.filter { controller.status(it) !is ConnectorStatus.Disconnected }
-            .forEach { runCatching { controller.refresh(it) } }
-        count()
+        val closed = !showConnectors
+        server.send(ConnectorRequests.LIST, Empty) { listed ->
+            catalog = listed
+            if (closed) server.send(ConnectorRequests.REFRESH_ALL, Empty) { catalog = catalog.copy(statuses = it.statuses) }
+        }
     }
-    PillFace(shown, connected, modifier) { showConnectors = true }
+    PillFace(shown, connected.size, modifier) { showConnectors = true }
     if (showConnectors) {
         ConnectorsDialog(
-            controller = controller,
             onDismiss = { showConnectors = false },
             onShowA2aProfiles = {
                 showConnectors = false
@@ -170,7 +168,7 @@ internal fun ConnectAppsPill(onShowA2aProfiles: () -> Unit, modifier: Modifier =
 
 /** The pill itself: its label, a few app icons, and how many are connected. */
 @Composable
-private fun PillFace(shown: List<Connector>, connected: Int, modifier: Modifier, onClick: () -> Unit) {
+private fun PillFace(shown: List<ConnectorView>, connected: Int, modifier: Modifier, onClick: () -> Unit) {
     val colors = ConsoleColors
     Row(
         modifier
@@ -203,18 +201,20 @@ private fun PillFace(shown: List<Connector>, connected: Int, modifier: Modifier,
 /** 连接应用: the market, and for one app its own page (an MCP app's key, an agent's pairing). */
 @Composable
 internal fun ConnectorsDialog(
-    controller: ConnectorController,
     onDismiss: () -> Unit,
     onShowA2aProfiles: () -> Unit,
 ) {
     val colors = ConsoleColors
+    val server = LocalServer.current
+    var connectors by remember { mutableStateOf(emptyList<ConnectorView>()) }
     val statuses = remember { mutableStateMapOf<String, ConnectorStatus>() }
-    var selected by remember { mutableStateOf<Connector?>(null) }
+    var selected by remember { mutableStateOf<ConnectorView?>(null) }
     LaunchedEffect(Unit) {
-        DEBUG_CONNECTORS.forEach { connector ->
-            statuses[connector.id] = controller.status(connector)
-            if (controller.status(connector) !is ConnectorStatus.Disconnected) {
-                runCatching { controller.refresh(connector) }.onSuccess { statuses[connector.id] = it }
+        server.send(ConnectorRequests.LIST, Empty) { listed ->
+            connectors = listed.connectors
+            statuses.putAll(listed.statuses)
+            listed.connectors.filter { listed.statuses[it.id] !is ConnectorStatus.Disconnected }.forEach { connector ->
+                server.send(ConnectorRequests.REFRESH, IdParams(connector.id)) { statuses[connector.id] = it }
             }
         }
     }
@@ -233,12 +233,11 @@ internal fun ConnectorsDialog(
             Column(Modifier.padding(Dimens.spaceXl)) {
                 val current = selected
                 if (current == null) {
-                    ConnectorCatalog(statuses, onOpen = { selected = it }, onShowA2aProfiles, onDismiss)
-                } else if (current.mcp != null) {
+                    ConnectorMarket(connectors, statuses, onOpen = { selected = it }, onShowA2aProfiles, onDismiss)
+                } else if (current.app != null) {
                     McpConnectorDetail(
                         connector = current,
                         status = statuses[current.id] ?: ConnectorStatus.Disconnected,
-                        controller = controller,
                         onStatus = { statuses[current.id] = it },
                         onBack = { selected = null },
                     )
@@ -246,7 +245,6 @@ internal fun ConnectorsDialog(
                     ConnectorDetail(
                         connector = current,
                         status = statuses[current.id] ?: ConnectorStatus.Disconnected,
-                        controller = controller,
                         onStatus = { statuses[current.id] = it },
                         onBack = { selected = null },
                     )
@@ -256,25 +254,21 @@ internal fun ConnectorsDialog(
     }
 }
 
-private val FILTER_ALL = R.string.mcp_filter_all
-private val FILTER_CUSTOM = R.string.mcp_filter_custom
-
-/** The chips over the market: everything, each category in catalog order, then 自定义. */
-private val CONNECTOR_FILTERS: List<Int> =
-    listOf(FILTER_ALL) + DEBUG_CONNECTORS.map { it.category }.distinct() + FILTER_CUSTOM
-
 /** 连接应用 as an app market: a card per app under its category, tapped for the app's own page. */
 @Composable
-private fun ColumnScope.ConnectorCatalog(
+private fun ColumnScope.ConnectorMarket(
+    connectors: List<ConnectorView>,
     statuses: Map<String, ConnectorStatus>,
-    onOpen: (Connector) -> Unit,
+    onOpen: (ConnectorView) -> Unit,
     onShowA2aProfiles: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = ConsoleColors
-    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
-    var filter by remember { mutableIntStateOf(FILTER_ALL) }
+    val filterAll = stringResource(R.string.mcp_filter_all)
+    val filterCustom = stringResource(R.string.mcp_filter_custom)
+    // Everything, each category in catalog order, then 自定义; null is everything.
+    var filter by remember { mutableStateOf<String?>(null) }
     val connected = statuses.values.count { it is ConnectorStatus.Connected }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -308,28 +302,30 @@ private fun ColumnScope.ConnectorCatalog(
         colors = outlinedTextFieldColors(),
     )
     Spacer(Modifier.height(Dimens.spaceMd))
-    FilterChips(filter) { filter = it }
+    val filters = listOf(filterAll) + connectors.map { it.category }.distinct() + filterCustom
+    FilterChips(filters, filter ?: filterAll) { filter = it.takeIf { chosen -> chosen != filterAll } }
     val words = query.trim()
-    val apps = DEBUG_CONNECTORS.filter { (filter == FILTER_ALL || it.category == filter) && it.matches(words, context) }
+    val apps = connectors.filter { (filter == null || it.category == filter) && it.matches(words) }
     val customTitle = stringResource(R.string.mcp_custom_a2a_title)
     val customSummary = stringResource(R.string.mcp_custom_a2a_summary)
-    val customShown = (filter == FILTER_ALL || filter == FILTER_CUSTOM) &&
+    val customShown = (filter == null || filter == filterCustom) &&
         (words.isEmpty() || customTitle.contains(words, true) || customSummary.contains(words, true))
     ConnectorGrid(
         apps, customShown, statuses, onOpen, onShowA2aProfiles,
+        customTitle = filterCustom,
         emptyText = stringResource(R.string.mcp_no_results, words),
     )
 }
 
 @Composable
-private fun FilterChips(selected: Int, onSelect: (Int) -> Unit) {
+private fun FilterChips(filters: List<String>, selected: String, onSelect: (String) -> Unit) {
     val colors = ConsoleColors
     // One line that scrolls sideways: on a phone the chips would otherwise squeeze into letter-wide columns.
     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        CONNECTOR_FILTERS.forEach { entry ->
+        filters.forEach { entry ->
             val active = entry == selected
             Text(
-                stringResource(entry),
+                entry,
                 style = ConsoleType.body,
                 maxLines = 1,
                 softWrap = false,
@@ -345,18 +341,19 @@ private fun FilterChips(selected: Int, onSelect: (Int) -> Unit) {
 }
 
 /** Matches the app's saved name too, so a brand is found in either language. */
-private fun Connector.matches(words: String, context: Context): Boolean =
+private fun ConnectorView.matches(words: String): Boolean =
     words.isEmpty() || name.contains(words, true) ||
-        listOf(title, summary, category).any { context.getString(it).contains(words, true) } ||
-        mcp?.abilities?.any { context.getString(it).contains(words, true) } == true
+        listOf(title, summary, category).any { it.contains(words, true) } ||
+        app?.abilities?.any { it.contains(words, true) } == true
 
 @Composable
 private fun ColumnScope.ConnectorGrid(
-    apps: List<Connector>,
+    apps: List<ConnectorView>,
     customShown: Boolean,
     statuses: Map<String, ConnectorStatus>,
-    onOpen: (Connector) -> Unit,
+    onOpen: (ConnectorView) -> Unit,
     onShowA2aProfiles: () -> Unit,
+    customTitle: String,
     emptyText: String,
 ) {
     LazyVerticalGrid(
@@ -367,13 +364,13 @@ private fun ColumnScope.ConnectorGrid(
     ) {
         apps.groupBy { it.category }.forEach { (category, members) ->
             item(key = "category-$category", span = { GridItemSpan(maxLineSpan) }) {
-                ConnectorSectionTitle(stringResource(category))
+                ConnectorSectionTitle(category)
             }
             items(members, key = { it.id }) { connector ->
                 ConnectorCard(
                     avatar = { ConnectorAvatar(connector, CARD_AVATAR_SIZE) },
-                    title = stringResource(connector.title),
-                    summary = stringResource(connector.summary),
+                    title = connector.title,
+                    summary = connector.summary,
                     status = { StatusChip(statuses[connector.id] ?: ConnectorStatus.Disconnected) },
                     onClick = { onOpen(connector) },
                 )
@@ -381,7 +378,7 @@ private fun ColumnScope.ConnectorGrid(
         }
         if (customShown) {
             item(key = "category-custom", span = { GridItemSpan(maxLineSpan) }) {
-                ConnectorSectionTitle(stringResource(FILTER_CUSTOM))
+                ConnectorSectionTitle(customTitle)
             }
             item(key = "custom-a2a") {
                 ConnectorCard(
@@ -470,59 +467,153 @@ internal fun ConnectorSectionTitle(text: String) {
     )
 }
 
+/** An agent's page: pairing through the relay, the connection test, unpairing and the account. */
 @Composable
 private fun ColumnScope.ConnectorDetail(
-    connector: Connector,
+    connector: ConnectorView,
     status: ConnectorStatus,
-    controller: ConnectorController,
     onStatus: (ConnectorStatus) -> Unit,
     onBack: () -> Unit,
 ) {
-    val colors = ConsoleColors
-    val title = stringResource(connector.title)
-    val scope = rememberCoroutineScope()
-    var busy by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
+    val server = LocalServer.current
+    val title = connector.title
+    val page = rememberAgentPage(connector.id, server, onStatus)
+    val disconnecting = stringResource(R.string.mcp_disconnecting)
     var confirmDisconnect by remember { mutableStateOf(false) }
-    var testing by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-    var progress by remember { mutableStateOf<String?>(null) }
-    var notice by remember { mutableStateOf<String?>(null) }
-    var events by remember(status) { mutableStateOf(controller.events(connector)) }
-    var account by remember(status) { mutableStateOf(controller.account(connector)) }
-    fun unpair() {
-        if (busy) return
-        busy = true
-        error = null
-        scope.launch {
-            notice = controller.disconnect(connector) { progress = it }
-            progress = null
-            events = controller.events(connector)
-            onStatus(ConnectorStatus.Disconnected)
-            busy = false
-        }
-    }
-    fun run(action: suspend () -> ConnectorStatus) {
-        if (busy) return
-        busy = true
-        error = null
-        scope.launch {
-            try {
-                onStatus(action())
-            } catch (failure: ConnectorException) {
-                error = failure.message
-            } finally {
-                busy = false
-            }
-        }
-    }
+    var reload by remember { mutableIntStateOf(0) }
+    var info by remember { mutableStateOf<ConnectorPage?>(null) }
+    LaunchedEffect(status, reload) { server.send(ConnectorRequests.PAGE, IdParams(connector.id)) { info = it } }
+    page.onChanged = { reload += 1 }
     // While pairing, ask the relay every few seconds whether the phone finished; the page needs no car input.
     LaunchedEffect(connector.id, status is ConnectorStatus.Pairing) {
         while (status is ConnectorStatus.Pairing) {
             delay(PAIRING_POLL_MS)
-            runCatching { controller.refresh(connector) }.onSuccess { if (it != status) onStatus(it) }
+            server.send(ConnectorRequests.REFRESH, IdParams(connector.id)) { if (it != status) onStatus(it) }
         }
     }
+    AgentHeader(connector, info?.relayHost.orEmpty(), onBack)
+    Spacer(Modifier.height(Dimens.spaceXl))
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+        when (status) {
+            ConnectorStatus.Disconnected -> {
+                Text(stringResource(R.string.mcp_agent_intro, title), style = ConsoleType.body, color = ConsoleColors.text)
+                Spacer(Modifier.height(Dimens.spaceLg))
+                Button(onClick = { page.change(ConnectorRequests.CONNECT) }, enabled = !page.busy) {
+                    Text(stringResource(R.string.mcp_start_connecting))
+                }
+            }
+            ConnectorStatus.Paused -> Unit
+            is ConnectorStatus.Pairing -> PairingPanel(
+                status = status,
+                busy = page.busy,
+                onRefresh = { page.change(ConnectorRequests.NEW_CODE) },
+                onCancel = { page.unpair(disconnecting) },
+            )
+            is ConnectorStatus.Connected -> ConnectedAgentPanel(title, status, page) { confirmDisconnect = true }
+        }
+        AgentProgress(page)
+        AccountPanel(
+            title = title,
+            account = info?.account,
+            connected = status is ConnectorStatus.Connected,
+            accountPage = info?.accountPage.orEmpty(),
+            busy = page.busy,
+            onSignIn = { name, password, register -> page.signIn(name, password, register) },
+            onSignOut = { page.signOut() },
+        )
+        ConnectionEvents(info?.events.orEmpty())
+    }
+    if (confirmDisconnect) {
+        UnpairDialog(title, onDismiss = { confirmDisconnect = false }) {
+            confirmDisconnect = false
+            page.unpair(disconnecting)
+        }
+    }
+}
+
+/**
+ * What an agent's page is doing: one change at a time ([busy]), its last error, the unpairing's progress and what it
+ * said, and the connection test. [onChanged] hears that the page's events and account may have moved.
+ */
+private class AgentPageState(
+    private val id: String,
+    private val server: ServerAccess,
+    private val onStatus: (ConnectorStatus) -> Unit,
+) {
+    var busy by mutableStateOf(false)
+    var error by mutableStateOf<String?>(null)
+    var progress by mutableStateOf<String?>(null)
+    var notice by mutableStateOf<String?>(null)
+    var testing by mutableStateOf(false)
+    var testResult by mutableStateOf<Pair<Boolean, String>?>(null)
+    var onChanged: () -> Unit = {}
+
+    fun change(method: RequestMethod<IdParams, ConnectorStatus>) = act { refused, answered ->
+        server.send(method, IdParams(id), refused, answered)
+    }
+
+    fun signIn(name: String, password: String, register: Boolean) = act { refused, answered ->
+        server.send(ConnectorRequests.SIGN_IN, ConnectorSignInParams(id, name, password, register), refused, answered)
+    }
+
+    fun signOut() {
+        server.send(ConnectorRequests.SIGN_OUT, IdParams(id), onRefused = { error = it.message; onChanged() }) { onChanged() }
+    }
+
+    fun unpair(working: String? = null) {
+        if (busy) return
+        busy = true
+        error = null
+        progress = working
+        server.send(ConnectorRequests.DISCONNECT, IdParams(id), onRefused = { finishUnpair(it.message.orEmpty()) }) {
+            finishUnpair(it.text)
+        }
+    }
+
+    fun test() {
+        testing = true
+        testResult = null
+        server.send(ConnectorRequests.TEST, IdParams(id), onRefused = { tested(false, it.message.orEmpty()) }) {
+            tested(true, it.text)
+            onStatus(ConnectorStatus.Connected(verified = true))
+        }
+    }
+
+    private fun tested(ok: Boolean, text: String) {
+        testResult = ok to text
+        testing = false
+        onChanged()
+    }
+
+    private fun finishUnpair(said: String) {
+        notice = said
+        progress = null
+        onStatus(ConnectorStatus.Disconnected)
+        busy = false
+        onChanged()
+    }
+
+    private fun act(request: (onRefused: (JsonRpcException) -> Unit, onAnswer: (ConnectorStatus) -> Unit) -> Unit) {
+        if (busy) return
+        busy = true
+        error = null
+        request({ error = it.message; busy = false; onChanged() }) { next ->
+            onStatus(next)
+            busy = false
+            onChanged()
+        }
+    }
+}
+
+@Composable
+private fun rememberAgentPage(id: String, server: ServerAccess, onStatus: (ConnectorStatus) -> Unit): AgentPageState {
+    val current by rememberUpdatedState(onStatus)
+    return remember(id) { AgentPageState(id, server) { current(it) } }
+}
+
+@Composable
+private fun AgentHeader(connector: ConnectorView, relayHost: String, onBack: () -> Unit) {
+    val colors = ConsoleColors
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
             Icon(
@@ -534,150 +625,90 @@ private fun ColumnScope.ConnectorDetail(
         ConnectorAvatar(connector, ROW_AVATAR_SIZE)
         Spacer(Modifier.width(Dimens.spaceMd))
         Column(Modifier.weight(1f)) {
-            Text(title, style = ConsoleType.hero, color = colors.text)
-            Text(stringResource(connector.summary), style = ConsoleType.bodySmall, color = colors.muted)
-            Text(
-                stringResource(R.string.mcp_via_relay, controller.relayHost(connector)),
-                style = ConsoleType.meta,
-                color = colors.tertiary,
-            )
+            Text(connector.title, style = ConsoleType.hero, color = colors.text)
+            Text(connector.summary, style = ConsoleType.bodySmall, color = colors.muted)
+            Text(stringResource(R.string.mcp_via_relay, relayHost), style = ConsoleType.meta, color = colors.tertiary)
         }
     }
-    Spacer(Modifier.height(Dimens.spaceXl))
-    Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-        when (status) {
-            ConnectorStatus.Disconnected -> {
-                Text(stringResource(R.string.mcp_agent_intro, title), style = ConsoleType.body, color = colors.text)
-                Spacer(Modifier.height(Dimens.spaceLg))
-                Button(onClick = { run { controller.connect(connector) } }, enabled = !busy) {
-                    Text(stringResource(R.string.mcp_start_connecting))
-                }
-            }
-            ConnectorStatus.Paused -> Unit
-            is ConnectorStatus.Pairing -> PairingPanel(
-                status = status,
-                busy = busy,
-                onRefresh = { run { controller.refreshCode(connector) } },
-                onCancel = { unpair() },
-            )
-            is ConnectorStatus.Connected -> {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success)
-                    Spacer(Modifier.width(Dimens.spaceSm))
-                    Text(
-                        stringResource(R.string.mcp_connected_to_your, title),
-                        style = ConsoleType.panelTitle,
-                        color = colors.text,
-                    )
-                }
-                Spacer(Modifier.height(Dimens.spaceSm))
-                Text(
-                    stringResource(
-                        if (status.verified) R.string.mcp_agent_verified else R.string.mcp_agent_unverified,
-                        title,
-                    ),
-                    style = ConsoleType.body,
-                    color = colors.muted,
-                )
-                Spacer(Modifier.height(Dimens.spaceLg))
-                Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = {
-                            testing = true
-                            testResult = null
-                            scope.launch {
-                                testResult = try {
-                                    true to controller.test(connector)
-                                } catch (failure: ConnectorException) {
-                                    false to failure.message.orEmpty()
-                                }
-                                if (testResult?.first == true) onStatus(ConnectorStatus.Connected(verified = true))
-                                testing = false
-                            }
-                        },
-                        enabled = !busy && !testing,
-                    ) { Text(stringResource(R.string.mcp_test_connection)) }
-                    OutlinedButton(onClick = { confirmDisconnect = true }, enabled = !busy && !testing) {
-                        Text(stringResource(R.string.mcp_unpair), color = colors.danger)
-                    }
-                }
-                if (testing) {
-                    Spacer(Modifier.height(Dimens.spaceSm))
-                    Text(
-                        stringResource(R.string.mcp_test_waiting, title),
-                        style = ConsoleType.body,
-                        color = colors.muted,
-                    )
-                }
-                testResult?.let { (ok, text) ->
-                    Spacer(Modifier.height(Dimens.spaceSm))
-                    Text(
-                        if (ok) stringResource(R.string.mcp_test_reply, title, text) else text,
-                        style = ConsoleType.body,
-                        color = if (ok) colors.success else colors.danger,
-                    )
-                }
-            }
-        }
-        if (busy) {
-            Spacer(Modifier.height(Dimens.spaceMd))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                progress?.let {
-                    Spacer(Modifier.width(Dimens.spaceSm))
-                    Text(it, style = ConsoleType.body, color = colors.muted)
-                }
-            }
-        }
-        notice?.let {
-            Spacer(Modifier.height(Dimens.spaceMd))
-            Text(it, style = ConsoleType.body, color = colors.text)
-        }
-        error?.let {
-            Spacer(Modifier.height(Dimens.spaceMd))
-            Text(it, style = ConsoleType.body, color = colors.danger)
-        }
-        AccountPanel(
-            connector = connector,
-            account = account,
-            connected = status is ConnectorStatus.Connected,
-            accountPage = controller.accountPage(connector),
-            busy = busy,
-            onSignIn = { name, password, register ->
-                run {
-                    controller.signIn(connector, name, password, register).also {
-                        account = controller.account(connector)
-                        events = controller.events(connector)
-                    }
-                }
-            },
-            onSignOut = {
-                scope.launch {
-                    runCatching { controller.signOut(connector) }.onFailure { error = it.message }
-                    account = controller.account(connector)
-                    events = controller.events(connector)
-                }
-            },
-        )
-        LaunchedEffect(testResult) { events = controller.events(connector) }
-        ConnectionEvents(events)
+}
+
+@Composable
+private fun ConnectedAgentPanel(
+    title: String,
+    status: ConnectorStatus.Connected,
+    page: AgentPageState,
+    onDisconnect: () -> Unit,
+) {
+    val colors = ConsoleColors
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success)
+        Spacer(Modifier.width(Dimens.spaceSm))
+        Text(stringResource(R.string.mcp_connected_to_your, title), style = ConsoleType.panelTitle, color = colors.text)
     }
-    if (confirmDisconnect) {
-        BothyAlertDialog(
-            onDismissRequest = { confirmDisconnect = false },
-            title = { Text(stringResource(R.string.mcp_unpair_title, title)) },
-            text = { Text(stringResource(R.string.mcp_unpair_message, title)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmDisconnect = false
-                    unpair()
-                }) { Text(stringResource(R.string.mcp_unpair), color = colors.danger) }
-            },
-            dismissButton = {
-                TextButton(onClick = { confirmDisconnect = false }) { Text(stringResource(R.string.common_cancel)) }
-            },
+    Spacer(Modifier.height(Dimens.spaceSm))
+    Text(
+        stringResource(if (status.verified) R.string.mcp_agent_verified else R.string.mcp_agent_unverified, title),
+        style = ConsoleType.body,
+        color = colors.muted,
+    )
+    Spacer(Modifier.height(Dimens.spaceLg))
+    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = { page.test() }, enabled = !page.busy && !page.testing) {
+            Text(stringResource(R.string.mcp_test_connection))
+        }
+        OutlinedButton(onClick = onDisconnect, enabled = !page.busy && !page.testing) {
+            Text(stringResource(R.string.mcp_unpair), color = colors.danger)
+        }
+    }
+    if (page.testing) {
+        Spacer(Modifier.height(Dimens.spaceSm))
+        Text(stringResource(R.string.mcp_test_waiting, title), style = ConsoleType.body, color = colors.muted)
+    }
+    page.testResult?.let { (ok, text) ->
+        Spacer(Modifier.height(Dimens.spaceSm))
+        Text(
+            if (ok) stringResource(R.string.mcp_test_reply, title, text) else text,
+            style = ConsoleType.body,
+            color = if (ok) colors.success else colors.danger,
         )
     }
+}
+
+/** The spinner (with what unpairing is doing), what the last change said, and its error. */
+@Composable
+private fun AgentProgress(page: AgentPageState) {
+    val colors = ConsoleColors
+    if (page.busy) {
+        Spacer(Modifier.height(Dimens.spaceMd))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+            page.progress?.let {
+                Spacer(Modifier.width(Dimens.spaceSm))
+                Text(it, style = ConsoleType.body, color = colors.muted)
+            }
+        }
+    }
+    page.notice?.let {
+        Spacer(Modifier.height(Dimens.spaceMd))
+        Text(it, style = ConsoleType.body, color = colors.text)
+    }
+    page.error?.let {
+        Spacer(Modifier.height(Dimens.spaceMd))
+        Text(it, style = ConsoleType.body, color = colors.danger)
+    }
+}
+
+@Composable
+private fun UnpairDialog(title: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    BothyAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.mcp_unpair_title, title)) },
+        text = { Text(stringResource(R.string.mcp_unpair_message, title)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) { Text(stringResource(R.string.mcp_unpair), color = ConsoleColors.danger) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) } },
+    )
 }
 
 /**
@@ -686,7 +717,7 @@ private fun ColumnScope.ConnectorDetail(
  */
 @Composable
 private fun AccountPanel(
-    connector: Connector,
+    title: String,
     account: String?,
     connected: Boolean,
     accountPage: String,
@@ -695,7 +726,6 @@ private fun AccountPanel(
     onSignOut: () -> Unit,
 ) {
     val colors = ConsoleColors
-    val title = stringResource(connector.title)
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     // Typed on a device screen it is easy to mistype; owner 2026-10-12: 「密码加个按钮可以看见」.
@@ -886,11 +916,10 @@ internal fun qrModules(text: String): List<BooleanArray> = runCatching {
 
 /** An app's icon: its mark on its colour, a rounded square like an app icon (a dot in the sidebar pill). */
 @Composable
-internal fun ConnectorAvatar(connector: Connector, size: androidx.compose.ui.unit.Dp) {
+internal fun ConnectorAvatar(connector: ConnectorView, size: androidx.compose.ui.unit.Dp) {
     val small = size < ROW_AVATAR_SIZE
-    val mark = stringResource(connector.mark ?: connector.title).take(1)
     LetterAvatar(
-        mark, Color(connector.color), size, if (small) 10.sp else 22.sp, if (small) CircleShape else APP_ICON_SHAPE,
+        connector.mark, Color(connector.color), size, if (small) 10.sp else 22.sp, if (small) CircleShape else APP_ICON_SHAPE,
     )
 }
 

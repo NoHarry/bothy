@@ -2,7 +2,6 @@
 <!-- Settings → Subagents and a subagent type's page, adding a skill, the built-in skills, and background task lines. -->
 <resources>
     <string name="skills_list_separator">", "</string>
-
     <string name="skills_subagents">Subagents</string>
     <string name="skills_subagents_subtitle">Applies the next time a subagent is started.</string>
     <string name="skills_auto_spawn">Let the AI start subagents</string>
@@ -29,7 +28,6 @@
         <item quantity="other">Up to %1$d lookups · %2$s</item>
     </plurals>
     <string name="skills_no_tools">Can\'t use any tools</string>
-
     <string name="skills_back_to_subagents">‹ Subagents</string>
     <string name="skills_prompt">Prompt</string>
     <string name="skills_prompt_subtitle">runtime-workspace/agents/%1$s/AGENT.md, packaged in the APK; read-only here.</string>
@@ -58,12 +56,6 @@
         <item quantity="other">At most %1$d times</item>
     </plurals>
     <string name="skills_lookups_unused">“Web search” and “Open web pages” aren\'t checked, so this has no effect</string>
-
-    <string name="skills_kind_trip_transport">Trip · Transport</string>
-    <string name="skills_kind_trip_stay">Trip · Stay</string>
-    <string name="skills_kind_trip_days">Trip · Daily plan</string>
-    <string name="skills_kind_web_verify">Online check</string>
-
     <string name="skills_tool_search">Web search</string>
     <string name="skills_tool_search_detail">web_search, or the model service\'s own search</string>
     <string name="skills_tool_fetch">Open web pages</string>
@@ -88,7 +80,6 @@
     <string name="skills_tool_plans_detail">plan_manage</string>
     <string name="skills_tool_delegate">Delegate to a personal assistant</string>
     <string name="skills_tool_delegate_detail">a2a_message_send</string>
-
     <string name="skills_custom_hint">Paste or type a SKILL.md: start with a YAML header between --- lines that gives name (lowercase letters, digits and -) and description (one line: what it does and when to use it), followed by the instructions for Bothy. A saved skill is on and applies from the next request: its description goes into the skill catalog, and the full text is read when needed.</string>
     <string name="skills_custom_check">Check format</string>
     <string name="skills_custom_ok">The format is fine: %1$s</string>
@@ -96,47 +87,28 @@
         <item quantity="one">%1$d thing to fix before it can be saved:</item>
         <item quantity="other">%1$d things to fix before it can be saved:</item>
     </plurals>
-    <string name="skills_custom_save_failed">Couldn\'t save: %1$s</string>
-    <string name="skills_check_empty">The content is empty.</string>
-    <string name="skills_check_too_big">Over 64 KB: the runtime reads only the first 64 KB.</string>
-    <string name="skills_check_first_line">The first line must be ---: start with a YAML header that gives name and description, and end it with a --- line.</string>
-    <string name="skills_check_unclosed">The YAML header doesn\'t end with a --- line.</string>
-    <string name="skills_check_no_name">name is missing.</string>
-    <string name="skills_check_metadata">Under metadata, write “key: value” entries on new, indented lines.</string>
-    <string name="skills_check_scenes">scenes must be written as [\"scene one\", \"scene two\"].</string>
-    <string name="skills_check_empty_body">The body under --- is empty: write how the model should do it.</string>
-    <string name="skills_check_long_body">The body has %1$d lines, more than %2$d; consider trimming it or splitting it into several skills.</string>
-    <string name="skills_check_indent">Line %1$d: indented lines belong only under a field with an empty value, such as metadata.</string>
-    <string name="skills_check_not_field">Line %1$d isn\'t in the form “field: value”.</string>
+    <string name="skills_check_description_brackets">description can\'t contain angle brackets &lt; &gt;.</string>
+    <string name="skills_check_description_line">Write description on the same line as “description:”: the runtime reads line by line.</string>
+    <string name="skills_check_description_long">description is longer than %1$s characters.</string>
+    <string name="skills_check_description_short">description is too short: say what it does and when to use it, so the model knows when to read it.</string>
     <string name="skills_check_duplicate">The field %1$s is written twice.</string>
-    <string name="skills_check_unknown_field">Line %1$d: unknown field “%2$s”; use only %3$s.</string>
-    <string name="skills_check_single_quotes">%1$s: use double quotes or none; the runtime doesn\'t read single quotes.</string>
+    <string name="skills_check_empty">The content is empty.</string>
+    <string name="skills_check_empty_body">The body under --- is empty: write how the model should do it.</string>
+    <string name="skills_check_first_line">The first line must be ---: start with a YAML header that gives name and description, and end it with a --- line.</string>
+    <string name="skills_check_indent">Line %1$s: indented lines belong only under a field with an empty value, such as metadata.</string>
+    <string name="skills_check_long_body">The body has %1$s lines, more than %2$s; consider trimming it or splitting it into several skills.</string>
+    <string name="skills_check_metadata">Under metadata, write “key: value” entries on new, indented lines.</string>
     <string name="skills_check_name_empty">name is empty.</string>
-    <string name="skills_check_name_format">name “%1$s” may use only lowercase letters, digits and -, may not start or end with - or contain --, and has at most %2$d characters.</string>
+    <string name="skills_check_name_format">name “%1$s” may use only lowercase letters, digits and -, may not start or end with - or contain --, and has at most %2$s characters.</string>
     <string name="skills_check_name_taken">There is already a skill named “%1$s”. Pick another name (to change a skill you added, tap Edit in the list).</string>
     <string name="skills_check_no_description">description is missing: one sentence on what it does and when to use it; the model decides from it whether to read the skill.</string>
-    <string name="skills_check_description_line">Write description on the same line as “description:”: the runtime reads line by line.</string>
-    <string name="skills_check_description_long">description is longer than %1$d characters.</string>
-    <string name="skills_check_description_brackets">description can\'t contain angle brackets &lt; &gt;.</string>
-    <string name="skills_check_description_short">description is too short: say what it does and when to use it, so the model knows when to read it.</string>
+    <string name="skills_check_no_name">name is missing.</string>
+    <string name="skills_check_not_field">Line %1$s isn\'t in the form “field: value”.</string>
+    <string name="skills_check_scenes">scenes must be written as [\"scene one\", \"scene two\"].</string>
     <string name="skills_check_sections">“&lt;!-- %1$s --&gt;” and “&lt;!-- /%1$s --&gt;” don\'t come in pairs.</string>
-
-    <string name="skills_voice_progress">Voice progress</string>
-    <string name="skills_voice_progress_about">Spoken progress in Chinese, shared by the UI, ASR and A2A; loaded with each request when on.</string>
-    <string name="skills_task_orchestration">MCP task orchestration</string>
-    <string name="skills_task_orchestration_about">Finds and orchestrates tools by what they can do now, orders their dependencies and checks the user\'s constraints; works in any domain.</string>
-    <string name="skills_travel_planning">Travel planning</string>
-    <string name="skills_travel_planning_about">Loaded to plan a trip of several days: three subagents look up transport, stays and each day\'s places, summed up in a trip card grouped by day with photos, then it asks whether to set reminders.</string>
-    <string name="skills_delegation">Personal agent delegation</string>
-    <string name="skills_delegation_about">Loaded with each request while an A2A delegate is on: what to hand to the user\'s own agent, confirming first what can\'t be undone, and passing on delegation reports from the background.</string>
-    <string name="skills_android_use">Android Use</string>
-    <string name="skills_android_use_about">Loaded with each request while screen control is connected: domain tools first, one action per step, check the result, confirm irreversible actions first.</string>
-    <string name="skills_playground">Playground</string>
-    <string name="skills_playground_about">Back to the head unit, the Virtual home or the navigation screen: how to use playground_open, and what to do when a dialog is in the way or the Playground isn\'t installed.</string>
-
-    <string name="skills_subagent_started">Background task “%1$s” started (%2$s)</string>
-    <string name="skills_subagent_stalled">Background task “%1$s” has made no progress for %2$d s</string>
-    <string name="skills_subagent_stalled_latest">Background task “%1$s” has made no progress for %2$d s; latest: %3$s</string>
-    <string name="skills_subagent_resumed">Background task “%1$s” is making progress again</string>
-    <string name="skills_subagent_finished">Background task “%1$s”: %2$s · %3$s</string>
+    <string name="skills_check_single_quotes">%1$s: use double quotes or none; the runtime doesn\'t read single quotes.</string>
+    <string name="skills_check_too_big">Over 64 KB: the runtime reads only the first 64 KB.</string>
+    <string name="skills_check_unclosed">The YAML header doesn\'t end with a --- line.</string>
+    <string name="skills_check_unknown_field">Line %1$s: unknown field “%2$s”; use only %3$s.</string>
+    <string name="skills_custom_save_failed">Couldn\'t save: %1$s</string>
 </resources>

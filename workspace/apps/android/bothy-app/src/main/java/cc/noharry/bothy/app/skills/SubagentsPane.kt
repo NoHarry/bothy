@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.skills
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,17 +17,19 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import cc.noharry.agent.appserver.protocol.CapabilityRequests
+import cc.noharry.agent.appserver.protocol.DEFAULT_SUBAGENT_LOOKUPS
+import cc.noharry.agent.appserver.protocol.EnabledParams
+import cc.noharry.agent.appserver.protocol.SubagentSettingsView
+import cc.noharry.agent.appserver.protocol.SubagentToolKind
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -34,8 +37,7 @@ import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.SettingsGroup
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
-import cc.noharry.bothy.app.model.ProviderConfig
-import cc.noharry.bothy.app.model.hasDeepSeekKey
+import cc.noharry.bothy.app.frontend.LocalServer
 
 /**
  * Settings → 子 agent (owner 2026-10-17: 子 agent 在设置里面单列一条): whether the agent starts subagents, how they
@@ -54,9 +56,9 @@ internal fun SubagentsPane() {
 
 @Composable
 private fun SubagentsOverview(onOpen: (String) -> Unit) {
-    val context = LocalContext.current
-    val settings by BothySubagents.settings.collectAsState()
-    val save = { next: SubagentSettings -> saveSubagentSettings(context, next) }
+    val server = LocalServer.current
+    val settings = server.state.preferences.subagents
+    val save = { next: SubagentSettingsView -> server.send(CapabilityRequests.SET_SUBAGENTS, next) }
     SettingsGroup(
         title = stringResource(R.string.skills_subagents),
         subtitle = stringResource(R.string.skills_subagents_subtitle),
@@ -79,7 +81,7 @@ private fun SubagentsOverview(onOpen: (String) -> Unit) {
             ) { save(settings.copy(allowDeviceControl = it)) }
             val model = settings.model.ifBlank { stringResource(R.string.skills_same_as_main) }
             Text(
-                pluralStringResource(R.plurals.skills_subagent_model, MAX_CHILD_LOOKUPS, model, MAX_CHILD_LOOKUPS),
+                pluralStringResource(R.plurals.skills_subagent_model, DEFAULT_SUBAGENT_LOOKUPS, model, DEFAULT_SUBAGENT_LOOKUPS),
                 Modifier.padding(Dimens.spaceSm),
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
@@ -108,9 +110,9 @@ private fun SubagentSwitchRow(title: String, checked: Boolean, on: String, off: 
 /** Each kind with its switch and the tools it may call; tapping one opens its page. */
 @Composable
 private fun SubagentKinds(onOpen: (String) -> Unit) {
-    val context = LocalContext.current
-    var kinds by remember { mutableStateOf(loadSubagentKinds(context)) }
-    val deepSeekLookup = remember { ProviderConfig.load(context.applicationContext).hasDeepSeekKey(context) }
+    val server = LocalServer.current
+    val kinds = server.state.preferences.subagentKinds
+    val deepSeekLookup = server.state.preferences.deepSeekLookup
     Column {
         kinds.forEachIndexed { index, kind ->
             if (index > 0) HorizontalDivider(color = ConsoleColors.borderSubtle)
@@ -119,8 +121,7 @@ private fun SubagentKinds(onOpen: (String) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-                    val label = stringResource(kind.label)
-                    Text("$label · ${kind.id}", style = ConsoleType.body, color = ConsoleColors.text)
+                    Text("${kind.label} · ${kind.id}", style = ConsoleType.body, color = ConsoleColors.text)
                     SubagentToolChips(kind.tools)
                     val loaded = when {
                         !kind.enabled -> R.string.skills_kind_not_loaded
@@ -135,8 +136,7 @@ private fun SubagentKinds(onOpen: (String) -> Unit) {
                     )
                 }
                 Switch(kind.enabled, onCheckedChange = {
-                    saveSubagentKind(context, kind.id, it)
-                    kinds = loadSubagentKinds(context)
+                    server.send(CapabilityRequests.SET_SUBAGENT_KIND, EnabledParams(kind.id, it))
                 }, colors = switchColors())
                 Text("›", Modifier.padding(start = Dimens.spaceMd), style = ConsoleType.panelTitle, color = ConsoleColors.muted)
             }
@@ -147,9 +147,9 @@ private fun SubagentKinds(onOpen: (String) -> Unit) {
 /** A type's tools as small tags; a red dot marks the ones that change something (as on the type's page). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SubagentToolChips(tools: Set<SubagentToolGroup>) {
+private fun SubagentToolChips(tools: Set<SubagentToolKind>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXs), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        SubagentToolGroup.entries.filter { it in tools }.forEach { group ->
+        SubagentToolKind.entries.filter { it in tools }.forEach { group ->
             Row(
                 Modifier
                     .background(ConsoleColors.accentSoft, RoundedCornerShape(Dimens.radiusSm))
@@ -157,7 +157,7 @@ private fun SubagentToolChips(tools: Set<SubagentToolGroup>) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Dimens.spaceXxs),
             ) {
-                Text(stringResource(group.screenLabel), style = ConsoleType.meta, color = ConsoleColors.accent)
+                Text(stringResource(group.label), style = ConsoleType.meta, color = ConsoleColors.accent)
                 if (group.changes) ChangesDot()
             }
         }
@@ -172,3 +172,31 @@ private fun SubagentToolChips(tools: Set<SubagentToolGroup>) {
 internal fun ChangesDot() {
     Box(Modifier.size(Dimens.spaceXsMd).background(ConsoleColors.danger, CircleShape))
 }
+
+/** What Settings calls a group of tools. */
+@get:StringRes
+internal val SubagentToolKind.label: Int
+    get() = when (this) {
+        SubagentToolKind.SEARCH -> R.string.skills_tool_search
+        SubagentToolKind.FETCH -> R.string.skills_tool_fetch
+        SubagentToolKind.READ -> R.string.skills_tool_read
+        SubagentToolKind.WRITE -> R.string.skills_tool_write
+        SubagentToolKind.TODO -> R.string.skills_tool_todo
+        SubagentToolKind.DEVICE_QUERY -> R.string.skills_tool_device_query
+        SubagentToolKind.DEVICE_CONTROL -> R.string.skills_tool_device_control
+        SubagentToolKind.SERVICES -> R.string.skills_tool_services
+    }
+
+/** What Settings says a group of tools does. */
+@get:StringRes
+internal val SubagentToolKind.detail: Int
+    get() = when (this) {
+        SubagentToolKind.SEARCH -> R.string.skills_tool_search_detail
+        SubagentToolKind.FETCH -> R.string.skills_tool_fetch_detail
+        SubagentToolKind.READ -> R.string.skills_tool_read_detail
+        SubagentToolKind.WRITE -> R.string.skills_tool_write_detail
+        SubagentToolKind.TODO -> R.string.skills_tool_todo_detail
+        SubagentToolKind.DEVICE_QUERY -> R.string.skills_tool_device_query_detail
+        SubagentToolKind.DEVICE_CONTROL -> R.string.skills_tool_device_control_detail
+        SubagentToolKind.SERVICES -> R.string.skills_tool_services_detail
+    }

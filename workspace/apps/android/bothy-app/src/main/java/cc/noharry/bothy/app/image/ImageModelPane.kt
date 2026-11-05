@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.image
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,18 +24,25 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.GeneratedImageResult
+import cc.noharry.agent.appserver.protocol.ImageModelConfig
+import cc.noharry.agent.appserver.protocol.ImageModelProblem
+import cc.noharry.agent.appserver.protocol.ImageModelRequests
+import cc.noharry.agent.appserver.protocol.ImageModelSaveParams
+import cc.noharry.agent.appserver.protocol.ImageTryResult
+import cc.noharry.agent.appserver.protocol.TextParams
+import cc.noharry.agent.appserver.protocol.looksLikeImageModel
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -43,12 +51,10 @@ import cc.noharry.bothy.app.console.SettingsNote
 import cc.noharry.bothy.app.console.SettingsSaveBar
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.SelectableOptionRow
-import cc.noharry.bothy.app.voice.tts.validationError
+import cc.noharry.bothy.app.frontend.LocalServer
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * Settings → 生图模型: the image model is its own entry, independent of the chat providers, so a device
@@ -57,9 +63,16 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun ImageModelPane() {
-    val context = LocalContext.current
+    val server = LocalServer.current
+    var saved by remember { mutableStateOf<ImageModelConfig?>(null) }
+    LaunchedEffect(Unit) { server.send(ImageModelRequests.READ, Empty) { saved = it } }
+    saved?.let { ImageModelForm(it) { stored -> saved = stored } }
+}
+
+@Composable
+private fun ImageModelForm(saved: ImageModelConfig, onStored: (ImageModelConfig) -> Unit) {
+    val server = LocalServer.current
     val resources = LocalResources.current
-    var saved by remember { mutableStateOf(loadImageModelConfig(context)) }
     var draft by remember { mutableStateOf(ImageModelDraft.of(saved)) }
     // Credentials are never saveable UI state or echoed from storage.
     var key by remember { mutableStateOf("") }
@@ -67,11 +80,12 @@ internal fun ImageModelPane() {
     val savedNote = stringResource(R.string.image_saved)
     val keyDeleted = stringResource(R.string.image_key_deleted)
     val discarded = stringResource(R.string.image_discarded)
-    val apply = { candidate: ImageModelConfig, newKey: String, clearKey: Boolean, done: String ->
-        val error = saveImageModelConfig(context, candidate, newKey, clearKey)
-        note = SettingsNote(error?.let { resources.getString(it.shown) } ?: done, error = error != null)
-        if (error == null) saved = loadImageModelConfig(context)
-        error == null
+    val apply = { candidate: ImageModelConfig, newKey: String, clearKey: Boolean, done: String, then: (ImageModelConfig) -> Unit ->
+        server.send(ImageModelRequests.SAVE, ImageModelSaveParams(candidate, newKey, clearKey)) { result ->
+            note = SettingsNote(result.problem?.let { resources.getString(it.shown) } ?: done, error = result.problem != null)
+            onStored(result.config)
+            if (result.problem == null) then(result.config)
+        }
     }
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -81,16 +95,16 @@ internal fun ImageModelPane() {
             Text(stringResource(R.string.image_intro), color = ConsoleColors.muted)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.image_allow), Modifier.weight(1f), color = ConsoleColors.text)
-                Switch(saved.enabled, { apply(saved.copy(enabled = it), "", false, savedNote) }, colors = switchColors())
+                Switch(saved.enabled, { apply(saved.copy(enabled = it), "", false, savedNote) {} }, colors = switchColors())
             }
             ImageModelField(stringResource(R.string.image_base_url), draft.baseUrl, { draft = draft.copy(baseUrl = it) })
             val keyLabel = if (saved.hasApiKey) R.string.image_api_key_saved else R.string.image_api_key
             ImageModelField(stringResource(keyLabel), key, { key = it }, secret = true)
-            ImageModelPicker(saved) { model -> apply(saved.copy(model = model), "", false, savedNote) }
+            ImageModelPicker(saved) { model -> apply(saved.copy(model = model), "", false, savedNote) {} }
             ImageModelField(stringResource(R.string.image_size), draft.size, { draft = draft.copy(size = it) })
             ImageModelField(stringResource(R.string.image_timeout), draft.timeoutSeconds, { draft = draft.copy(timeoutSeconds = it) })
             TextButton(onClick = {
-                if (apply(saved.copy(enabled = false), "", true, keyDeleted)) key = ""
+                apply(saved.copy(enabled = false), "", true, keyDeleted) { key = "" }
             }, enabled = saved.hasApiKey) { Text(stringResource(R.string.image_delete_key)) }
             ImageModelTestButton(saved)
         }
@@ -98,7 +112,7 @@ internal fun ImageModelPane() {
             unsaved = draft != ImageModelDraft.of(saved) || key.isNotBlank(),
             note = note,
             onSave = {
-                if (apply(draft.applyTo(saved), key, false, savedNote)) { key = ""; draft = ImageModelDraft.of(saved) }
+                apply(draft.applyTo(saved), key, false, savedNote) { stored -> key = ""; draft = ImageModelDraft.of(stored) }
             },
             onDiscard = { draft = ImageModelDraft.of(saved); key = ""; note = SettingsNote(discarded) },
         )
@@ -121,7 +135,7 @@ private data class ImageModelDraft(val baseUrl: String, val size: String, val ti
  */
 @Composable
 private fun ImageModelPicker(saved: ImageModelConfig, onPick: (String) -> Unit) {
-    val context = LocalContext.current
+    val server = LocalServer.current
     var models by remember { mutableStateOf<Result<List<String>>?>(null) }
     var loading by remember { mutableStateOf(false) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -130,8 +144,11 @@ private fun ImageModelPicker(saved: ImageModelConfig, onPick: (String) -> Unit) 
         models = null
         if (!canFetch) return@LaunchedEffect
         loading = true
-        models = fetchImageModels(context, saved.baseUrl)
-        loading = false
+        server.send(
+            ImageModelRequests.MODELS,
+            Empty,
+            onRefused = { models = Result.failure(it); loading = false },
+        ) { models = Result.success(it.models); loading = false }
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
         val current = if (saved.model.isBlank()) stringResource(R.string.image_model_none)
@@ -191,12 +208,11 @@ private fun ImageModelList(ids: List<String>, selected: String, onPick: (String)
 /** One generation with the saved settings; shows elapsed time while waiting and the image when done. */
 @Composable
 private fun ImageModelTestButton(config: ImageModelConfig) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val server = LocalServer.current
     var prompt by remember { mutableStateOf(DEFAULT_TEST_PROMPT) }
     var startedAt by remember { mutableLongStateOf(0L) }
     var elapsed by remember { mutableLongStateOf(0L) }
-    var result by remember { mutableStateOf<ImageResult?>(null) }
+    var result by remember { mutableStateOf<ImageTryResult?>(null) }
     val running = startedAt > 0L
     LaunchedEffect(running) {
         while (running) {
@@ -216,23 +232,25 @@ private fun ImageModelTestButton(config: ImageModelConfig) {
             onClick = {
                 startedAt = System.currentTimeMillis()
                 result = null
-                scope.launch {
-                    result = ImageGenerator(context).generate(config, prompt, IMAGE_TEST_SESSION, keep = TEST_IMAGES_KEPT)
-                    startedAt = 0L
-                }
+                server.send(
+                    ImageModelRequests.TRY,
+                    TextParams(prompt),
+                    onRefused = { result = ImageTryResult(failure = it.message.orEmpty()); startedAt = 0L },
+                ) { result = it; startedAt = 0L }
             },
             enabled = !running && config.hasApiKey && config.validationError() == null,
         ) { Text(stringResource(if (running) R.string.image_generating else R.string.image_test)) }
         if (running) Text("${elapsed / 1000}s", color = ConsoleColors.muted)
         if (!config.hasApiKey) Text(stringResource(R.string.image_save_key_first), color = ConsoleColors.muted)
     }
-    when (val outcome = result) {
-        is ImageResult.Failure -> Text(
-            stringResource(R.string.image_test_failed, outcome.elapsedMillis / 1000, outcome.message),
+    val outcome = result
+    val image = outcome?.image
+    when {
+        image != null -> GeneratedPreview(image)
+        outcome != null -> Text(
+            stringResource(R.string.image_test_failed, outcome.elapsedMillis / 1000, outcome.failure.orEmpty()),
             color = ConsoleColors.danger,
         )
-        is ImageResult.Success -> GeneratedPreview(outcome.image)
-        null -> Unit
     }
 }
 
@@ -270,8 +288,23 @@ private fun ImageModelField(label: String, value: String, change: (String) -> Un
 }
 
 private const val DEFAULT_TEST_PROMPT = "雪山脚下的湖泊，清晨薄雾，电影感，广角"
-/** Test pictures only need to outlive their preview. */
-internal const val TEST_IMAGES_KEPT = 3
 private const val TICK_MS = 250L
 private const val PREVIEW_PX = 768
 private val PREVIEW_SIZE = 360.dp
+
+/** Why the settings were not saved, as the page says it. */
+@get:StringRes
+private val ImageModelProblem.shown: Int
+    get() = when (this) {
+        ImageModelProblem.BASE_URL_SCHEME -> R.string.image_problem_base_url_scheme
+        ImageModelProblem.BASE_URL_PARTS -> R.string.image_problem_base_url_parts
+        ImageModelProblem.MODEL_WHITESPACE -> R.string.image_problem_model_whitespace
+        ImageModelProblem.NO_MODEL -> R.string.image_problem_no_model
+        ImageModelProblem.SIZE -> R.string.image_problem_size
+        ImageModelProblem.TIMEOUT -> R.string.image_problem_timeout
+        ImageModelProblem.NO_KEY -> R.string.image_problem_no_key
+        ImageModelProblem.KEY_WHITESPACE -> R.string.image_problem_key_whitespace
+        ImageModelProblem.KEY_NOT_REMOVED -> R.string.image_problem_key_not_removed
+        ImageModelProblem.NOT_SAVED -> R.string.image_problem_not_saved
+        ImageModelProblem.KEY_NOT_SAVED -> R.string.image_problem_key_not_saved
+    }

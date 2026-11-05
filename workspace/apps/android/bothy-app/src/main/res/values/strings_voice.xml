@@ -4,50 +4,12 @@
   What Bothy says and what the models read stay in the code.
 -->
 <resources>
-    <!-- Jev: connection, tool search -->
-    <string name="voice_jev_endpoint_https">The Jev address must be an https:// address.</string>
-    <string name="voice_jev_endpoint_parts">The Jev address can\'t contain credentials, a query or a fragment.</string>
-    <string name="voice_jev_model_required">Enter a Jev model ID (no spaces).</string>
-    <string name="voice_jev_timeout_range">The Jev timeout must be 500–15000 ms.</string>
-    <string name="voice_jev_min_score_range">The minimum relevance must be between 0 and 1.</string>
-    <string name="voice_jev_domain_score_range">The domain relevance must be between 0 and 1.</string>
-    <string name="voice_jev_max_tools_range">Candidate tools must be 1–24.</string>
-    <string name="voice_jev_key_needed_for_search">Save a Jev API key in Settings → Voice → Keys before turning on tool search.</string>
-    <string name="voice_key_whitespace">The API key can\'t contain spaces.</string>
-    <string name="voice_jev_key_delete_failed">Couldn\'t delete the saved Jev key.</string>
-    <string name="voice_jev_save_failed">Couldn\'t save the Jev settings.</string>
-    <string name="voice_jev_key_save_failed">Couldn\'t save the Jev API key.</string>
     <string name="voice_jev_mode_flat">One pass · pick from all tools</string>
     <string name="voice_jev_mode_two_stage">Two stages · domain first, then tools</string>
     <string name="voice_jev_mode_two_stage_subdomains">Two stages · subdomain first, then tools</string>
-
     <!-- Recognition settings -->
     <string name="voice_engine_local">On-device · sherpa-onnx</string>
     <string name="voice_engine_dashscope">Cloud · Alibaba Cloud Model Studio</string>
-    <string name="voice_local_threads_range">Local threads must be 1–%1$d.</string>
-    <string name="voice_dashscope_endpoint_wss">The Model Studio address must be a wss:// address.</string>
-    <string name="voice_dashscope_endpoint_parts">The Model Studio address can\'t contain credentials, a query or a fragment.</string>
-    <string name="voice_dashscope_model_required">Pick a Model Studio recognition model.</string>
-    <string name="voice_dashscope_key_needed">Save a Model Studio key on the Keys tab before using Model Studio.</string>
-    <string name="voice_history_range">Context messages must be 0–%1$d.</string>
-    <string name="voice_near_gate_range">The near-field gate must be %1$d–%2$d dB.</string>
-    <plurals name="voice_hotwords_max">
-        <item quantity="one">At most %1$d hotword.</item>
-        <item quantity="other">At most %1$d hotwords.</item>
-    </plurals>
-    <string name="voice_key_delete_failed">Couldn\'t delete the saved key.</string>
-    <string name="voice_save_failed">Couldn\'t save the voice settings.</string>
-    <string name="voice_key_save_failed">Couldn\'t save the API key.</string>
-
-    <!-- Why listening can't start -->
-    <string name="voice_mic_permission_needed">Microphone permission needed</string>
-    <string name="voice_realtime_key_needed">The end-to-end demo needs a Doubao Speech key: save one in Settings → Voice → Keys first</string>
-    <string name="voice_dashscope_key_missing">Save a Model Studio API key first</string>
-
-    <!-- Wake notification -->
-    <string name="voice_wake_channel">Bothy voice wake</string>
-    <string name="voice_wake_notification">Say “OK Bothy” to wake; turn it off in Settings → Voice</string>
-
     <!-- The console's voice strip -->
     <string name="voice_mic_denied">Microphone permission not granted</string>
     <string name="voice_mic_stop">End voice</string>
@@ -110,7 +72,6 @@
     <string name="voice_end_wake_phrase">Heard the wake word; earlier words not handed to the agent</string>
     <string name="voice_end_far_speech">Much quieter than the wake, like someone nearby or a video; not handed to the agent</string>
     <string name="voice_end_dismissed">Only said something like “exit”; the conversation ended</string>
-
     <!-- Settings → Voice -->
     <string name="voice_tab_keys">Keys</string>
     <string name="voice_tab_recognition">Recognition and wake</string>
@@ -119,11 +80,6 @@
     <string name="voice_saved">Saved</string>
     <string name="voice_saved_after_restart">Saved · takes effect when you end this session and wake again</string>
     <string name="voice_discarded">Changes discarded</string>
-    <string name="voice_error_recognition">Recognition and recording: %1$s</string>
-    <string name="voice_error_jev">Jev: %1$s</string>
-    <string name="voice_error_tts">Speech: %1$s</string>
-    <string name="voice_error_mimo_key">MiMo key: %1$s</string>
-    <string name="voice_error_doubao_key">Doubao Speech key: %1$s</string>
     <string name="voice_keys_intro">Enter every key voice uses here; the other tabs only change settings. Keys can only be typed, never shown, and are stored in a folder on this device that isn\'t backed up; saving with a field left blank keeps that key as it is.</string>
     <string name="voice_dashscope_title">Model Studio</string>
     <string name="voice_dashscope_key_missing_status">Missing: recognition is set to Model Studio, so voice sessions can\'t start</string>
@@ -140,7 +96,6 @@
     <string name="voice_mimo_key_note">Speaks the replies (MiMo TTS); left blank, the MiMo model service\'s key is used.</string>
     <string name="voice_mimo_key_label_packaged">API key · leave blank to use the built-in MiMo key</string>
     <string name="voice_mimo_key_deleted">Deleted the MiMo key saved here</string>
-    <string name="voice_mimo_key_delete_failed">Couldn\'t delete the MiMo key</string>
     <string name="voice_local_ready">Ready · on-device recognition, audio stays on the device</string>
     <string name="voice_dashscope_ready">Ready · Model Studio %1$s</string>
     <string name="voice_dashscope_key_missing_go">Missing Model Studio key: add it on the Keys tab</string>
@@ -181,27 +136,14 @@
     <string name="voice_voice">Voice</string>
     <string name="voice_other_voice">Other · %1$s</string>
     <string name="voice_mimo_presets_note">Preset voices work only with the mimo-v2.5-tts model.</string>
-    <string name="voice_doubao_key_missing_status">Missing Doubao Speech key: add it on the Keys tab; replies are shown, not spoken, for now</string>
-    <string name="voice_mimo_key_missing_status">Missing MiMo key: add it on the Keys tab; replies are shown, not spoken, for now</string>
-    <string name="voice_off">Off</string>
-    <string name="voice_config_incomplete">Setup incomplete</string>
     <string name="voice_delete_key">Delete key</string>
     <string name="voice_api_key">API key</string>
     <string name="voice_api_key_saved">API key · saved (leave blank to keep it)</string>
     <string name="voice_wake_switch">Say “OK Bothy”, or long-press the floating Bothy to wake it (when off, a long press puts it to rest)</string>
-    <string name="voice_switch_save_failed">Couldn\'t save the switch.</string>
     <string name="voice_wake_explainer">Applies at once, no need to save. A small model on the device listens for the wake word all the time (about 4.6 MB, no audio uploaded). Once woken, Bothy flies to the middle and opens its card, whose input box turns to voice; it ends after %1$d seconds idle or a tap on Collapse, then goes back to listening for the wake word. While operating the screen, what it hears is shown at the top of the screen and hidden in screenshots.</string>
     <string name="voice_wake_status">Status: %1$s</string>
     <string name="voice_wake_sensitivity_save_failed">Couldn\'t save the wake threshold.</string>
     <string name="voice_wake_sensitivity">Wake threshold</string>
-    <string name="voice_phrase_quoted">“%1$s”</string>
-    <string name="voice_phrase_separator">", "</string>
-    <string name="voice_wake_high">High · fewer false wakes</string>
-    <string name="voice_wake_high_detail">Only %1$s, said clearly</string>
-    <string name="voice_wake_standard">Medium · default</string>
-    <string name="voice_wake_standard_detail">Accepts %1$s</string>
-    <string name="voice_wake_low">Low · wakes easily</string>
-    <string name="voice_wake_low_detail">Accepts %1$s, even when not pronounced quite right</string>
     <string name="voice_aec_note">When on, recording uses the call audio source and the system cancels echo and suppresses noise.</string>
     <string name="voice_aec_missing">This device has no system echo cancellation: voice stays half duplex and stops listening while the agent works and speaks.</string>
     <string name="voice_barge_in">Keep listening while speaking and working, so you can interrupt (needs echo cancellation)</string>
@@ -234,62 +176,10 @@
     <string name="voice_doubao_speech">Doubao Speech</string>
     <string name="voice_doubao_key_note">Used when Doubao speaks: the new console\'s API key, or the older Access Token (the App ID goes on the Speech tab).</string>
     <string name="voice_doubao_key_deleted">Deleted the Doubao Speech key saved here</string>
-    <string name="voice_doubao_key_delete_failed">Couldn\'t delete the Doubao Speech key</string>
-
-    <!-- Wake word status -->
-    <string name="voice_wake_paused">Paused: %1$s</string>
-    <string name="voice_wake_waking">Waking Bothy</string>
-    <string name="voice_wake_start_failed">The wake word couldn\'t start</string>
-    <string name="voice_wake_listening_in_session">Also listening for “OK Bothy” during a conversation; say it again to interrupt and start over</string>
-    <string name="voice_wake_listening">Listening for “OK Bothy”</string>
-    <string name="voice_wake_error">Microphone or model error: %1$s</string>
-
     <!-- Speech (TTS) -->
     <string name="tts_provider_mimo">MiMo</string>
     <string name="tts_provider_doubao">Doubao</string>
     <string name="tts_provider_system">Device voice</string>
-    <string name="tts_system_voice_label">Device voice (built in)</string>
-    <string name="tts_endpoint_https">The speech address must be an https:// address.</string>
-    <string name="tts_endpoint_parts">The speech address can\'t contain credentials, a query or a fragment.</string>
-    <string name="tts_model_required">Enter a speech model ID (no spaces).</string>
-    <string name="tts_voice_required">Enter a voice.</string>
-    <string name="tts_save_failed">Couldn\'t save the speech settings.</string>
-    <string name="tts_key_invalid">The API key can\'t be empty or contain spaces.</string>
-    <string name="tts_key_save_failed">Couldn\'t save the speech API key.</string>
-    <string name="tts_voice_lively_female">Lively female voice</string>
-    <string name="tts_voice_refined_female">Refined female voice</string>
-    <string name="tts_voice_sunny_male">Sunny male voice</string>
-    <string name="tts_voice_mature_male">Mature male voice</string>
-    <string name="tts_voice_english_female">English female voice</string>
-    <string name="tts_voice_english_male">English male voice</string>
-    <string name="tts_voice_general_female">General female voice</string>
-    <string name="tts_voice_multilingual_female">Multilingual female voice</string>
-    <string name="tts_voice_general_male">General male voice</string>
-    <string name="tts_voice_female">Female voice</string>
-    <string name="tts_voice_male">Male voice</string>
-    <string name="tts_doubao_resource_required">Enter a Doubao resource ID (such as seed-tts-2.0).</string>
-    <string name="tts_doubao_rate_range">Speed must be between -50 and 100.</string>
-    <string name="tts_app_id_whitespace">The App ID can\'t contain spaces.</string>
-    <string name="tts_doubao_key_save_failed">Couldn\'t save the Doubao Speech key.</string>
-    <string name="tts_system_failed">Device voice synthesis failed</string>
-    <string name="tts_system_no_stream">The device voice can\'t stream</string>
-    <string name="tts_system_error">Device voice synthesis error</string>
-    <string name="tts_system_error_code">Device voice synthesis error (%1$d)</string>
-    <string name="tts_system_no_engine">This device has no usable system voice: install a Chinese voice under Text-to-speech in the system settings, or add a Doubao Speech key on the Keys tab</string>
-
-    <!-- End-to-end voice -->
-    <string name="realtime_label">Doubao end-to-end</string>
-    <string name="realtime_mic_error">Microphone error: %1$s</string>
-    <string name="realtime_closed_by_service">Closed by the service</string>
-    <string name="realtime_server_error">Doubao end-to-end error: %1$s</string>
-    <string name="realtime_closed_early">Doubao end-to-end closed the connection before a session opened</string>
-    <plurals name="realtime_probe_timeout">
-        <item quantity="one">No session opened within %1$d second</item>
-        <item quantity="other">No session opened within %1$d seconds</item>
-    </plurals>
-    <string name="realtime_unreachable">Can\'t reach Doubao end-to-end: %1$s</string>
-    <string name="realtime_key_refused">Doubao end-to-end refused this key (HTTP %1$d): check that end-to-end real-time voice is enabled in its console. %2$s</string>
-    <string name="realtime_connect_failed">Doubao end-to-end connection failed (HTTP %1$d) %2$s</string>
     <string name="realtime_saved_after_restart">Saved · takes effect when you end this conversation and wake again</string>
     <string name="realtime_saved_next_wake">Saved; takes effect from the next wake</string>
     <string name="realtime_persona_text">Persona (edit and save to make it custom; the rules for handing tasks to Bothy and ending the conversation are added after it)</string>
@@ -303,56 +193,108 @@
     <string name="realtime_persona">Persona</string>
     <string name="realtime_custom">Custom</string>
     <string name="realtime_custom_summary">Use the persona you write in the box below</string>
-    <string name="realtime_custom_persona">Custom persona</string>
     <string name="realtime_connecting">Connecting to Doubao end-to-end…</string>
     <string name="realtime_test">Test connection (saved settings)</string>
-    <string name="realtime_failed_no_key">Failed: no Doubao Speech key</string>
-    <string name="realtime_connected">Session opened in %1$d ms · %2$s · %3$s</string>
-    <string name="realtime_failed">Failed: %1$s</string>
-    <string name="realtime_report_line">On · interruptions %1$s · late results %2$s · %3$s · %4$s</string>
-    <string name="realtime_check_off">Not turned on</string>
     <string name="realtime_check_no_key">Missing Doubao Speech key</string>
-    <string name="realtime_check_ok">%1$s · %2$s · interruptions %3$s · session opened in %4$d ms</string>
-    <string name="realtime_persona_warm">Bothy (default)</string>
-    <string name="realtime_persona_warm_summary">Warm, quick-witted, conversational</string>
-    <string name="realtime_persona_savage">Savage buddy</string>
-    <string name="realtime_persona_savage_summary">Truly biting: roasts you first, then gets it done</string>
-    <string name="realtime_persona_butler">Attentive butler</string>
-    <string name="realtime_persona_butler_summary">Composed and proper, addresses you formally, conclusion first</string>
-    <string name="realtime_persona_sunny">Upbeat sidekick</string>
-    <string name="realtime_persona_sunny_summary">Eager to praise, light and playful</string>
-    <string name="realtime_persona_laotie">Northeastern buddy</string>
-    <string name="realtime_persona_laotie_summary">Hearty and funny, full of Northeastern flavor</string>
-    <string name="realtime_persona_gentle">Gentle listener</string>
-    <string name="realtime_persona_gentle_summary">Soft and slow, meets your feelings first; good for late nights</string>
-    <string name="realtime_persona_terse">Cool minimalist</string>
-    <string name="realtime_persona_terse_summary">Fewest words, results only</string>
-    <!-- What bothy-voice reports, worded here -->
-    <string name="voice_local_model_missing">On-device model not installed: assets/%1$s is missing %2$s; add them and rebuild</string>
-    <string name="voice_wake_model_missing">Wake word model not installed: assets/%1$s is missing %2$s; add them and rebuild</string>
-    <string name="voice_native_library_failed">The sherpa-onnx native library failed to load (%1$s); this device\'s ABI may not be among the libraries bothy-voice ships</string>
-    <string name="voice_problem_mic_stopped">The microphone stopped</string>
-    <string name="voice_problem_recognition_failed">Model Studio recognition failed: %1$s %2$s</string>
-    <string name="voice_problem_connection_failed">Model Studio connection failed: %1$s %2$s</string>
+    <string name="realtime_check_off">Not turned on</string>
+    <string name="realtime_check_ok">%1$s · %2$s · interruptions %3$s · session opened in %4$s ms</string>
+    <string name="realtime_connected">Session opened in %1$s ms · %2$s · %3$s</string>
+    <string name="realtime_failed">Failed: %1$s</string>
+    <string name="realtime_failed_no_key">Failed: no Doubao Speech key</string>
+    <string name="tts_app_id_whitespace">The App ID can\'t contain spaces.</string>
+    <string name="tts_doubao_key_save_failed">Couldn\'t save the Doubao Speech key.</string>
+    <string name="tts_doubao_rate_range">Speed must be between -50 and 100.</string>
+    <string name="tts_doubao_resource_required">Enter a Doubao resource ID (such as seed-tts-2.0).</string>
+    <string name="tts_endpoint_https">The speech address must be an https:// address.</string>
+    <string name="tts_endpoint_parts">The speech address can\'t contain credentials, a query or a fragment.</string>
+    <string name="tts_key_invalid">The API key can\'t be empty or contain spaces.</string>
+    <string name="tts_key_save_failed">Couldn\'t save the speech API key.</string>
+    <string name="tts_model_required">Enter a speech model ID (no spaces).</string>
+    <string name="tts_save_failed">Couldn\'t save the speech settings.</string>
+    <string name="tts_system_voice_label">Device voice (built in)</string>
+    <string name="tts_voice_required">Enter a voice.</string>
+    <string name="voice_config_incomplete">Setup incomplete</string>
+    <string name="voice_dashscope_endpoint_parts">The Model Studio address can\'t contain credentials, a query or a fragment.</string>
+    <string name="voice_dashscope_endpoint_wss">The Model Studio address must be a wss:// address.</string>
+    <string name="voice_dashscope_key_missing">Save a Model Studio API key first</string>
+    <string name="voice_dashscope_key_needed">Save a Model Studio key on the Keys tab before using Model Studio.</string>
+    <string name="voice_dashscope_model_required">Pick a Model Studio recognition model.</string>
+    <string name="voice_doubao_key_delete_failed">Couldn\'t delete the Doubao Speech key</string>
+    <string name="voice_doubao_key_missing_status">Missing Doubao Speech key: add it on the Keys tab; replies are shown, not spoken, for now</string>
+    <string name="voice_error_doubao_key">Doubao Speech key: %1$s</string>
+    <string name="voice_error_jev">Jev: %1$s</string>
+    <string name="voice_error_mimo_key">MiMo key: %1$s</string>
+    <string name="voice_error_recognition">Recognition and recording: %1$s</string>
+    <string name="voice_error_tts">Speech: %1$s</string>
+    <string name="voice_history_range">Context messages must be 0–%1$s.</string>
     <string name="voice_hotword_blank">A hotword can\'t be empty.</string>
     <plurals name="voice_hotword_too_many_chars">
-        <item quantity="one">“%1$s” is longer than %2$d character.</item>
-        <item quantity="other">“%1$s” is longer than %2$d characters.</item>
+        <item quantity="one">“%1$s” is longer than %2$s character.</item>
+        <item quantity="other">“%1$s” is longer than %2$s characters.</item>
     </plurals>
     <plurals name="voice_hotword_too_many_words">
-        <item quantity="one">“%1$s” has more than %2$d word.</item>
-        <item quantity="other">“%1$s” has more than %2$d words.</item>
+        <item quantity="one">“%1$s” has more than %2$s word.</item>
+        <item quantity="other">“%1$s” has more than %2$s words.</item>
     </plurals>
-    <string name="voice_threshold_score_range">Scores must be between 0 and 1.</string>
-    <string name="voice_threshold_eos_floor">The end-of-turn floor cannot exceed the end-of-turn threshold.</string>
-    <string name="voice_threshold_side_above_agent">The side-talk bound cannot exceed the agent bound.</string>
-    <string name="voice_threshold_durations">Durations must be positive.</string>
-    <string name="voice_threshold_silence_caps">Silence caps must exceed the quiet window, and holding must not shorten them.</string>
-    <string name="voice_threshold_longest_turn">The longest turn cannot be shorter than the silence cap.</string>
+    <plurals name="voice_hotwords_max">
+        <item quantity="one">At most %1$s hotword.</item>
+        <item quantity="other">At most %1$s hotwords.</item>
+    </plurals>
+    <string name="voice_jev_domain_score_range">The domain relevance must be between 0 and 1.</string>
+    <!-- Jev: connection, tool search -->
+    <string name="voice_jev_endpoint_https">The Jev address must be an https:// address.</string>
+    <string name="voice_jev_endpoint_parts">The Jev address can\'t contain credentials, a query or a fragment.</string>
+    <string name="voice_jev_key_delete_failed">Couldn\'t delete the saved Jev key.</string>
+    <string name="voice_jev_key_needed_for_search">Save a Jev API key in Settings → Voice → Keys before turning on tool search.</string>
+    <string name="voice_jev_key_save_failed">Couldn\'t save the Jev API key.</string>
+    <string name="voice_jev_max_tools_range">Candidate tools must be 1–24.</string>
+    <string name="voice_jev_min_score_range">The minimum relevance must be between 0 and 1.</string>
+    <string name="voice_jev_model_required">Enter a Jev model ID (no spaces).</string>
+    <string name="voice_jev_save_failed">Couldn\'t save the Jev settings.</string>
+    <string name="voice_jev_timeout_range">The Jev timeout must be 500–15000 ms.</string>
+    <string name="voice_key_delete_failed">Couldn\'t delete the saved key.</string>
+    <string name="voice_key_save_failed">Couldn\'t save the API key.</string>
+    <string name="voice_key_whitespace">The API key can\'t contain spaces.</string>
+    <!-- What bothy-voice reports, worded here -->
+    <string name="voice_local_model_missing">On-device model not installed: assets/%1$s is missing %2$s; add them and rebuild</string>
+    <string name="voice_local_threads_range">Local threads must be 1–%1$s.</string>
+    <!-- Why listening can't start -->
+    <string name="voice_mic_permission_needed">Microphone permission needed</string>
+    <string name="voice_mimo_key_delete_failed">Couldn\'t delete the MiMo key</string>
+    <string name="voice_mimo_key_missing_status">Missing MiMo key: add it on the Keys tab; replies are shown, not spoken, for now</string>
+    <string name="voice_native_library_failed">The sherpa-onnx native library failed to load (%1$s); this device\'s ABI may not be among the libraries bothy-voice ships</string>
+    <string name="voice_near_gate_range">The near-field gate must be %1$s–%2$s dB.</string>
+    <string name="voice_off">Off</string>
+    <string name="voice_problem_connection_failed">Model Studio connection failed: %1$s %2$s</string>
+    <string name="voice_problem_mic_stopped">The microphone stopped</string>
+    <string name="voice_problem_recognition_failed">Model Studio recognition failed: %1$s %2$s</string>
+    <string name="voice_realtime_key_needed">The end-to-end demo needs a Doubao Speech key: save one in Settings → Voice → Keys first</string>
+    <string name="voice_save_failed">Couldn\'t save the voice settings.</string>
+    <string name="voice_switch_save_failed">Couldn\'t save the switch.</string>
     <string name="voice_threshold_agent_turn">A turn for the assistant cannot be capped shorter than any other.</string>
+    <string name="voice_threshold_durations">Durations must be positive.</string>
+    <string name="voice_threshold_eos_floor">The end-of-turn floor cannot exceed the end-of-turn threshold.</string>
+    <string name="voice_threshold_longest_turn">The longest turn cannot be shorter than the silence cap.</string>
+    <string name="voice_threshold_score_range">Scores must be between 0 and 1.</string>
+    <string name="voice_threshold_side_above_agent">The side-talk bound cannot exceed the agent bound.</string>
+    <string name="voice_threshold_silence_caps">Silence caps must exceed the quiet window, and holding must not shorten them.</string>
     <string name="voice_threshold_unsettled_wait">The unsettled wait must lie between the quiet window and the silence cap.</string>
-    <string name="voice_asr_model_paraformer_v2">Paraformer real-time v2</string>
-    <string name="voice_asr_model_qwen_audio_flash">Qwen-Audio 3.0 ASR Flash</string>
-    <string name="voice_engine_label_local">On-device · sherpa-onnx Zipformer Small</string>
+    <string name="voice_wake_error">Microphone or model error: %1$s</string>
+    <string name="voice_wake_listening">Listening for “OK Bothy”</string>
+    <string name="voice_wake_listening_in_session">Also listening for “OK Bothy” during a conversation; say it again to interrupt and start over</string>
+    <string name="voice_wake_model_missing">Wake word model not installed: assets/%1$s is missing %2$s; add them and rebuild</string>
+    <!-- Wake word status -->
+    <string name="voice_wake_paused">Paused: %1$s</string>
+    <string name="voice_wake_start_failed">The wake word couldn\'t start</string>
+    <string name="voice_wake_waking">Waking Bothy</string>
     <string name="voice_engine_label_dashscope">Cloud · Model Studio %1$s</string>
+    <string name="voice_engine_label_local">On-device · sherpa-onnx Zipformer Small</string>
+    <string name="voice_phrase_quoted">“%1$s”</string>
+    <string name="voice_phrase_separator">", "</string>
+    <string name="voice_wake_high">High · fewer false wakes</string>
+    <string name="voice_wake_high_detail">Only %1$s, said clearly</string>
+    <string name="voice_wake_low">Low · wakes easily</string>
+    <string name="voice_wake_low_detail">Accepts %1$s, even when not pronounced quite right</string>
+    <string name="voice_wake_standard">Medium · default</string>
+    <string name="voice_wake_standard_detail">Accepts %1$s</string>
 </resources>

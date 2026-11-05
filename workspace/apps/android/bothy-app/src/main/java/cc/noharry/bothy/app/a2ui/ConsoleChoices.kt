@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalA2aClientApi::class)
-
 package cc.noharry.bothy.app.a2ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,24 +17,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.a2a.A2aTask
-import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.appserver.protocol.view.DisplayChoice
+import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.view.PickableReply
+import cc.noharry.agent.appserver.protocol.view.replyText
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.A2aClientItem
-import cc.noharry.bothy.app.a2a.A2aClientState
-import cc.noharry.bothy.app.a2a.currentTurnItems
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.image.GeneratedImageRow
 import cc.noharry.bothy.app.overlay.OverlayA2uiCard
 import cc.noharry.bothy.app.overlay.OverlayA2uiPanel
-import cc.noharry.bothy.app.overlay.OverlayPicture
-import cc.noharry.bothy.app.overlay.PickableReply
-import cc.noharry.bothy.app.overlay.currentTurnItems
-import cc.noharry.bothy.app.overlay.appPickableReply
 import cc.noharry.bothy.app.overlay.iconFrom
-import cc.noharry.bothy.app.overlay.overlayHudMultiline
 
 /**
  * The finished reply's picks in the full-screen console, the same host-compiled A2UI surface as the overlay card in
@@ -110,19 +102,4 @@ private fun ConsoleWidgetColumn(pickable: PickableReply, onReply: (String) -> Un
             ConsoleChoices(pickable.reply.choices, { choice -> onReply(choice.replyText) }, pickable.icons)
         }
     }
-}
-
-/**
- * Client mode's pickable reply, the overlay card's rule: the current task has ended (not cancelled), nothing runs
- * or is mirrored, and its display text lists picks.
- */
-internal fun A2aClientState.pickableDisplay(): PickableReply? {
-    if (running || mirrors.isNotEmpty()) return null
-    val turn = currentTurnItems()
-    val terminal = turn.lastOrNull { it is A2aClientItem.Terminal } as? A2aClientItem.Terminal ?: return null
-    if (terminal.state == A2aTask.Status.CANCELLED) return null
-    val display = turn.lastOrNull { it is A2aClientItem.Display } as? A2aClientItem.Display ?: return null
-    // This car's own server registered the offer under the A2A context's session; a remote server's never is.
-    val offer = contextId?.let { OfferStore.latest("a2a-$it") }
-    return appPickableReply(display.id, display.text.overlayHudMultiline(Int.MAX_VALUE), offer)
 }

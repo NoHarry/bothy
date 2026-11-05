@@ -284,10 +284,6 @@
     <string name="trajectory_timeline_description">Trajectory timeline, %1$d lane items, %2$d markers, %3$s mode, %4$s</string>
     <string name="trajectory_item_span">duration span</string>
     <string name="trajectory_item_point">point in time</string>
-    <string name="androiduse_status_off">Off</string>
-    <string name="androiduse_status_connected">Connected · the assistant can see and operate the screen</string>
-    <string name="androiduse_status_waiting">On · waiting for the system to connect the accessibility service</string>
-    <string name="androiduse_status_failed">Couldn\'t turn on · needs WRITE_SECURE_SETTINGS granted by the platform signature</string>
     <string name="console_stream_on">stream</string>
     <string name="console_stream_off">non-stream</string>
     <string name="console_backend_live">live model</string>
@@ -336,4 +332,8 @@
     <string name="phone_suggest_nearby">Coffee nearby</string>
     <string name="phone_suggest_navigate">To the airport</string>
     <string name="phone_suggest_news">Today\'s news</string>
+    <string name="androiduse_status_connected">Connected · the assistant can see and operate the screen</string>
+    <string name="androiduse_status_failed">Couldn\'t turn on · needs WRITE_SECURE_SETTINGS granted by the platform signature</string>
+    <string name="androiduse_status_off">Off</string>
+    <string name="androiduse_status_waiting">On · waiting for the system to connect the accessibility service</string>
 </resources>

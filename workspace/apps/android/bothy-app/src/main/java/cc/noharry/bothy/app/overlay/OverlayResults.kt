@@ -1,6 +1,7 @@
 package cc.noharry.bothy.app.overlay
 
-import cc.noharry.bothy.app.plans.reading
+import cc.noharry.agent.appserver.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.OverlayHud
 /** What the card shows for the session's state, and its chips (see [OverlayResultMemory]). */
 internal data class OverlayShownResult(
     val hud: OverlayHud,

@@ -10,17 +10,18 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.SessionPolicy
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -30,10 +31,9 @@ import cc.noharry.bothy.app.console.switchColors
 
 /** 设置 → 通用 → 会话: when a wake starts a new conversation, and how many are kept ([SessionPolicy]). */
 @Composable
-internal fun SettingsSessionGroup() {
-    val context = LocalContext.current
-    val policy by SessionSettings.policy.collectAsState()
-    fun save(next: SessionPolicy) = SessionSettings.save(context, next)
+internal fun SettingsSessionGroup(state: ServerState, actions: ConsoleActions) {
+    val policy = state.preferences.sessionPolicy
+    fun save(next: SessionPolicy) = actions.setSessionPolicy(next)
     SettingsGroup(
         title = stringResource(R.string.session_settings_title),
         subtitle = stringResource(R.string.session_settings_subtitle),

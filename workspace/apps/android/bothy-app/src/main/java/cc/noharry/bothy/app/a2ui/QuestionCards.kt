@@ -1,5 +1,3 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.a2ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,56 +17,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.kernel.api.SessionEventPayload
+import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
+import cc.noharry.agent.appserver.protocol.UserQuestion
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.view.questionCards
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.Dimens
-import cc.noharry.bothy.app.session.UiState
-import cc.noharry.bothy.app.trajectory.TrajectorySnapshot
-
-/** Derived only from canonical interaction records, including after a cold history load. */
-internal data class UserQuestion(
-    val id: String,
-    val runId: String,
-    val sessionId: String,
-    val title: String,
-    val options: List<String>,
-    val state: String,
-)
-
-internal fun TrajectorySnapshot.userQuestions(): List<UserQuestion> = runGroups.flatMap { group ->
-    val questions = linkedMapOf<String, UserQuestion>()
-    group.records.sortedBy { it.sequence }.forEach { record ->
-        val fact = record.rich?.rawEvent?.payload as? SessionEventPayload.UserInteraction ?: return@forEach
-        if (fact.kind == "QUESTION") questions[fact.questionId] = UserQuestion(
-            fact.questionId, group.runId, group.sessionId, fact.text, fact.options, fact.state,
-        )
-    }
-    questions.values.toList()
-}
-
-/** How a card may be answered: into the running run, as a new turn after the run ended, or not at all. */
-internal enum class QuestionAnswerMode { ACTIVE, LATE, NONE }
-
-/**
- * Only the active run's questions, or when idle the latest run's questions, are shown. A question whose run
- * ended without an answer stays answerable as a late reply that starts a new turn quoting the question.
- */
-internal fun TrajectorySnapshot.questionCards(activeRunId: String?): List<Pair<UserQuestion, QuestionAnswerMode>> {
-    val all = userQuestions()
-    val active = all.filter { it.runId == activeRunId }
-    if (active.isNotEmpty()) return active.map { it to if (it.state == "PENDING") QuestionAnswerMode.ACTIVE else QuestionAnswerMode.NONE }
-    if (activeRunId != null) return emptyList()
-    // Only the session's most recent run may still be answered late; once a later turn exists, older cards go away.
-    val latestRun = (runGroups.firstOrNull { it.isActive } ?: runGroups.maxByOrNull { it.startedAtEpochMillis ?: Long.MIN_VALUE })?.runId
-        ?: return emptyList()
-    return all.filter { it.runId == latestRun }.map {
-        it to if (it.state == "PENDING" || it.state == "EXPIRED") QuestionAnswerMode.LATE else QuestionAnswerMode.NONE
-    }
-}
 
 @Composable
-internal fun QuestionCards(state: UiState, actions: ConsoleActions) {
+internal fun QuestionCards(state: ServerState, actions: ConsoleActions) {
     val activeRun = state.currentRequest?.requestId.takeIf { state.isRunning }
     val cards = remember(state.trajectory.sessionId, state.trajectory.revision, activeRun) { state.trajectory.questionCards(activeRun) }
     if (cards.isEmpty()) return

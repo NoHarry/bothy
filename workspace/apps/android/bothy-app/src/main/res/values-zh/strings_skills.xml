@@ -2,7 +2,6 @@
 <!-- Settings → Subagents and a subagent type's page, adding a skill, the built-in skills, and background task lines. -->
 <resources>
     <string name="skills_list_separator">、</string>
-
     <string name="skills_subagents">子 agent</string>
     <string name="skills_subagents_subtitle">下一次派子 agent 时生效。</string>
     <string name="skills_auto_spawn">AI 自主开子 agent</string>
@@ -27,7 +26,6 @@
         <item quantity="other">最多查 %1$d 次 · %2$s</item>
     </plurals>
     <string name="skills_no_tools">不能用任何工具</string>
-
     <string name="skills_back_to_subagents">‹ 子 agent</string>
     <string name="skills_prompt">提示词</string>
     <string name="skills_prompt_subtitle">runtime-workspace/agents/%1$s/AGENT.md，随 APK 打包，这里只读。</string>
@@ -54,12 +52,6 @@
         <item quantity="other">最多 %1$d 次</item>
     </plurals>
     <string name="skills_lookups_unused">没勾「联网搜索」和「打开网页」，这一项不起作用</string>
-
-    <string name="skills_kind_trip_transport">行程 · 交通</string>
-    <string name="skills_kind_trip_stay">行程 · 住宿</string>
-    <string name="skills_kind_trip_days">行程 · 每天安排</string>
-    <string name="skills_kind_web_verify">网上核实</string>
-
     <string name="skills_tool_search">联网搜索</string>
     <string name="skills_tool_search_detail">web_search，或模型服务自带的搜索</string>
     <string name="skills_tool_fetch">打开网页</string>
@@ -84,54 +76,34 @@
     <string name="skills_tool_plans_detail">plan_manage</string>
     <string name="skills_tool_delegate">委托个人助手</string>
     <string name="skills_tool_delegate_detail">a2a_message_send</string>
-
     <string name="skills_custom_hint">粘贴或输入 SKILL.md：开头用 --- 包住的 YAML 头写 name（小写字母、数字和 -）和 description（一行，写清做什么、什么时候用），下面是给小博的做法。保存后默认开启，下一次请求生效：description 进技能目录，用到时再读全文。</string>
     <string name="skills_custom_check">检查格式</string>
     <string name="skills_custom_ok">格式没问题：%1$s</string>
     <plurals name="skills_custom_errors">
         <item quantity="other">有 %1$d 处要改，改好才能保存：</item>
     </plurals>
-    <string name="skills_custom_save_failed">无法保存：%1$s</string>
-    <string name="skills_check_empty">内容是空的。</string>
-    <string name="skills_check_too_big">超过 64 KB：运行时只读得到前 64 KB。</string>
-    <string name="skills_check_first_line">第一行要是 ---：开头是 YAML 头，写 name 和 description，再用一行 --- 结束。</string>
-    <string name="skills_check_unclosed">YAML 头没有用一行 --- 结束。</string>
-    <string name="skills_check_no_name">缺少 name。</string>
-    <string name="skills_check_metadata">metadata 下面要换行、缩进写「键: 值」。</string>
-    <string name="skills_check_scenes">scenes 要写成 [\"场景一\", \"场景二\"]。</string>
-    <string name="skills_check_empty_body">--- 下面的正文是空的：写上要模型怎么做。</string>
-    <string name="skills_check_long_body">正文有 %1$d 行，超过 %2$d 行，建议精简或拆成几个技能。</string>
-    <string name="skills_check_indent">第 %1$d 行：缩进的内容只能写在 metadata 这样空着值的字段下面。</string>
-    <string name="skills_check_not_field">第 %1$d 行不是「字段: 值」的格式。</string>
+    <string name="skills_check_description_brackets">description 里不能有尖括号 &lt; &gt;。</string>
+    <string name="skills_check_description_line">description 要写在「description:」同一行：运行时按行读。</string>
+    <string name="skills_check_description_long">description 超过 %1$s 个字符。</string>
+    <string name="skills_check_description_short">description 太短：写清做什么、什么时候用，模型才知道什么时候读它。</string>
     <string name="skills_check_duplicate">字段 %1$s 写了两遍。</string>
-    <string name="skills_check_unknown_field">第 %1$d 行：不认识的字段「%2$s」，只能用 %3$s。</string>
-    <string name="skills_check_single_quotes">%1$s 用双引号或不加引号：运行时不认单引号。</string>
+    <string name="skills_check_empty">内容是空的。</string>
+    <string name="skills_check_empty_body">--- 下面的正文是空的：写上要模型怎么做。</string>
+    <string name="skills_check_first_line">第一行要是 ---：开头是 YAML 头，写 name 和 description，再用一行 --- 结束。</string>
+    <string name="skills_check_indent">第 %1$s 行：缩进的内容只能写在 metadata 这样空着值的字段下面。</string>
+    <string name="skills_check_long_body">正文有 %1$s 行，超过 %2$s 行，建议精简或拆成几个技能。</string>
+    <string name="skills_check_metadata">metadata 下面要换行、缩进写「键: 值」。</string>
     <string name="skills_check_name_empty">name 是空的。</string>
-    <string name="skills_check_name_format">name「%1$s」只能用小写英文字母、数字和 -，不能以 - 开头或结尾，不能连着写 --，最长 %2$d 个字符。</string>
+    <string name="skills_check_name_format">name「%1$s」只能用小写英文字母、数字和 -，不能以 - 开头或结尾，不能连着写 --，最长 %2$s 个字符。</string>
     <string name="skills_check_name_taken">已经有叫「%1$s」的技能，换个名字（改自己加的技能请在列表里点编辑）。</string>
     <string name="skills_check_no_description">缺少 description：一句话写清做什么、什么时候用，模型靠它决定要不要读这个技能。</string>
-    <string name="skills_check_description_line">description 要写在「description:」同一行：运行时按行读。</string>
-    <string name="skills_check_description_long">description 超过 %1$d 个字符。</string>
-    <string name="skills_check_description_brackets">description 里不能有尖括号 &lt; &gt;。</string>
-    <string name="skills_check_description_short">description 太短：写清做什么、什么时候用，模型才知道什么时候读它。</string>
+    <string name="skills_check_no_name">缺少 name。</string>
+    <string name="skills_check_not_field">第 %1$s 行不是「字段: 值」的格式。</string>
+    <string name="skills_check_scenes">scenes 要写成 [\"场景一\", \"场景二\"]。</string>
     <string name="skills_check_sections">「&lt;!-- %1$s --&gt;」和「&lt;!-- /%1$s --&gt;」没有成对出现。</string>
-
-    <string name="skills_voice_progress">语音进度</string>
-    <string name="skills_voice_progress_about">UI、ASR、A2A 共用的中文播报进度；启用后随请求加载。</string>
-    <string name="skills_task_orchestration">MCP 任务编排</string>
-    <string name="skills_task_orchestration_about">根据当前工具能力发现、编排依赖并核对用户约束，适用于不同业务领域。</string>
-    <string name="skills_travel_planning">旅行规划</string>
-    <string name="skills_travel_planning_about">要规划几天的旅行时加载：三路子 agent 查交通、住宿和每天的去处，汇总成按天分组、带照片的行程卡片，再问要不要设提醒。</string>
-    <string name="skills_delegation">个人助手委托</string>
-    <string name="skills_delegation_about">启用了 A2A 委托目标时随请求加载：哪些事交给用户自己的 agent、做了收不回的事先确认、转告后台的【委托回报】。</string>
-    <string name="skills_android_use">Android Use</string>
-    <string name="skills_android_use_about">操作屏幕已连接时随请求加载：领域工具优先、一步一个动作、核对结果、不可撤销操作先确认。</string>
-    <string name="skills_playground">Playground</string>
-    <string name="skills_playground_about">回到车机、虚拟小家或导航界面：playground_open 怎么用，弹框挡住或没装 Playground 时怎么办。</string>
-
-    <string name="skills_subagent_started">后台任务「%1$s」开始（%2$s）</string>
-    <string name="skills_subagent_stalled">后台任务「%1$s」%2$d 秒没有进展</string>
-    <string name="skills_subagent_stalled_latest">后台任务「%1$s」%2$d 秒没有进展，最近：%3$s</string>
-    <string name="skills_subagent_resumed">后台任务「%1$s」又有进展了</string>
-    <string name="skills_subagent_finished">后台任务「%1$s」%2$s：%3$s</string>
+    <string name="skills_check_single_quotes">%1$s 用双引号或不加引号：运行时不认单引号。</string>
+    <string name="skills_check_too_big">超过 64 KB：运行时只读得到前 64 KB。</string>
+    <string name="skills_check_unclosed">YAML 头没有用一行 --- 结束。</string>
+    <string name="skills_check_unknown_field">第 %1$s 行：不认识的字段「%2$s」，只能用 %3$s。</string>
+    <string name="skills_custom_save_failed">无法保存：%1$s</string>
 </resources>

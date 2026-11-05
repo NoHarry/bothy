@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  设置 → 语音、端到端语音、控制台的语音条、唤醒词的状态和通知。小博说的话和模型读的文字留在代码里。
+-->
+<resources>
+    <string name="voice_jev_mode_flat">一次检索 · 在全部工具里选</string>
+    <string name="voice_jev_mode_two_stage">两段 · 先选领域，再选工具</string>
+    <string name="voice_jev_mode_two_stage_subdomains">两段 · 先选子领域，再选工具</string>
+    <!-- Wake notification -->
+    <string name="voice_wake_channel">小博语音唤醒</string>
+    <string name="voice_wake_notification">说「你好，小博」或「OK Bothy」唤醒；在 设置 → 语音 关闭</string>
+    <string name="tts_provider_doubao">豆包</string>
+    <string name="tts_system_voice_label">系统语音（设备自带）</string>
+    <string name="tts_voice_lively_female">活泼女声</string>
+    <string name="tts_voice_refined_female">知性女声</string>
+    <string name="tts_voice_sunny_male">阳光男声</string>
+    <string name="tts_voice_mature_male">成熟男声</string>
+    <string name="tts_voice_english_female">英文女声</string>
+    <string name="tts_voice_english_male">英文男声</string>
+    <string name="tts_voice_general_female">通用女声</string>
+    <string name="tts_voice_multilingual_female">多语种女声</string>
+    <string name="tts_voice_general_male">通用男声</string>
+    <string name="tts_voice_female">女声</string>
+    <string name="tts_voice_male">男声</string>
+    <string name="tts_system_failed">系统语音合成失败</string>
+    <string name="tts_system_no_stream">系统语音不支持流式播放</string>
+    <string name="tts_system_error">系统语音合成出错</string>
+    <string name="tts_system_error_code">系统语音合成出错（%1$d）</string>
+    <string name="tts_system_no_engine">这台设备没有可用的系统语音：到系统设置的「文字转语音」装一个中文语音，或者在「密钥」页填豆包语音 key</string>
+    <!-- End-to-end voice -->
+    <string name="realtime_label">豆包端到端</string>
+    <string name="realtime_mic_error">麦克风出错：%1$s</string>
+    <string name="realtime_closed_by_service">服务端关闭了连接</string>
+    <string name="realtime_server_error">豆包端到端报错：%1$s</string>
+    <string name="realtime_closed_early">豆包端到端没有建立会话就关闭了连接</string>
+    <plurals name="realtime_probe_timeout">
+        <item quantity="other">%1$d 秒内没有建立会话</item>
+    </plurals>
+    <string name="realtime_unreachable">连不上豆包端到端：%1$s</string>
+    <string name="realtime_key_refused">豆包端到端拒绝了这个 key（HTTP %1$d）：确认控制台已开通端到端实时语音。%2$s</string>
+    <string name="realtime_connect_failed">豆包端到端连接失败（HTTP %1$d）%2$s</string>
+    <string name="realtime_custom_persona">自定义人设</string>
+    <string name="realtime_report_line">开 · 允许打断%1$s · 补播报%2$s · %3$s · %4$s</string>
+    <string name="realtime_persona_warm">小博（默认）</string>
+    <string name="realtime_persona_warm_summary">温暖、机灵，口语化</string>
+    <string name="realtime_persona_savage">毒舌损友</string>
+    <string name="realtime_persona_savage_summary">特别刻毒：开口先损你一句，再把事办了</string>
+    <string name="realtime_persona_butler">贴心管家</string>
+    <string name="realtime_persona_butler_summary">沉稳得体，称呼「您」，先说结论</string>
+    <string name="realtime_persona_sunny">元气搭子</string>
+    <string name="realtime_persona_sunny_summary">热情爱夸人，轻快俏皮</string>
+    <string name="realtime_persona_laotie">东北老铁</string>
+    <string name="realtime_persona_laotie_summary">豪爽幽默，一股东北味儿</string>
+    <string name="realtime_persona_gentle">温柔树洞</string>
+    <string name="realtime_persona_gentle_summary">轻声慢语，先接住情绪，适合深夜</string>
+    <string name="realtime_persona_terse">极简高冷</string>
+    <string name="realtime_persona_terse_summary">话最少，只说结果</string>
+    <string name="voice_asr_model_paraformer_v2">Paraformer 实时 v2</string>
+    <string name="voice_asr_model_qwen_audio_flash">Qwen-Audio 3.0 ASR Flash</string>
+</resources>

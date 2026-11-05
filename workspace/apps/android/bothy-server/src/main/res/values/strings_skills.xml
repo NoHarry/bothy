@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Subagents and a subagent type's page, adding a skill, the built-in skills, and background task lines. -->
+<resources>
+    <string name="skills_kind_trip_transport">Trip · Transport</string>
+    <string name="skills_kind_trip_stay">Trip · Stay</string>
+    <string name="skills_kind_trip_days">Trip · Daily plan</string>
+    <string name="skills_kind_web_verify">Online check</string>
+    <string name="skills_voice_progress">Voice progress</string>
+    <string name="skills_voice_progress_about">Spoken progress in Chinese, shared by the UI, ASR and A2A; loaded with each request when on.</string>
+    <string name="skills_task_orchestration">MCP task orchestration</string>
+    <string name="skills_task_orchestration_about">Finds and orchestrates tools by what they can do now, orders their dependencies and checks the user\'s constraints; works in any domain.</string>
+    <string name="skills_travel_planning">Travel planning</string>
+    <string name="skills_travel_planning_about">Loaded to plan a trip of several days: three subagents look up transport, stays and each day\'s places, summed up in a trip card grouped by day with photos, then it asks whether to set reminders.</string>
+    <string name="skills_delegation">Personal agent delegation</string>
+    <string name="skills_delegation_about">Loaded with each request while an A2A delegate is on: what to hand to the user\'s own agent, confirming first what can\'t be undone, and passing on delegation reports from the background.</string>
+    <string name="skills_android_use">Android Use</string>
+    <string name="skills_android_use_about">Loaded with each request while screen control is connected: domain tools first, one action per step, check the result, confirm irreversible actions first.</string>
+    <string name="skills_playground">Playground</string>
+    <string name="skills_playground_about">Back to the head unit, the Virtual home or the navigation screen: how to use playground_open, and what to do when a dialog is in the way or the Playground isn\'t installed.</string>
+</resources>

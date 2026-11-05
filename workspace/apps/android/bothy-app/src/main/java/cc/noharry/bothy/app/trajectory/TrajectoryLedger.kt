@@ -1,5 +1,3 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.trajectory
 import android.content.res.Resources
 import androidx.compose.foundation.BorderStroke
@@ -10,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +30,12 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.TrajectoryKind
+import cc.noharry.agent.appserver.protocol.TrajectoryRecord
+import cc.noharry.agent.appserver.protocol.TrajectoryRecordId
+import cc.noharry.agent.appserver.protocol.TrajectoryRunGroup
+import cc.noharry.agent.appserver.protocol.TrajectorySnapshot
+import cc.noharry.agent.appserver.protocol.view.toolCallSummary
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -40,8 +43,6 @@ import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.console.ui.Disclosure
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.runtime.append
 
 /**
  * Run groups and record rows.
@@ -259,28 +260,6 @@ private fun TrajectoryRecordRow(
             modifier = Modifier.weight(1f),
         )
     }
-}
-
-/** `toolName · duration · status` for a collapsed tool call, matching the run-header summary shape. */
-internal fun TrajectoryRunGroup.toolCallSummary(callId: String?): String {
-    if (callId == null) return ""
-    val phases = records.filter { it.correlation.toolCallId == callId }
-    val toolName = phases.firstNotNullOfOrNull { it.safeMetadata["toolName"] } ?: phases.firstOrNull()?.title.orEmpty()
-    val duration = toolCallDurationMs(records, callId)?.let(::formatTrajectoryDuration) ?: "—"
-    val finish = phases.firstOrNull { it.kind == TrajectoryKind.TOOL_FINISH }
-    val status = finish?.safeMetadata?.get("status") ?: finish?.status ?: "running"
-    return "$toolName · $duration · $status"
-}
-
-internal fun toolCallDurationMs(records: List<TrajectoryRecord>, callId: String?): Long? {
-    if (callId.isNullOrBlank()) return null
-    val start = records.firstOrNull {
-        it.correlation.toolCallId == callId && it.kind == TrajectoryKind.TOOL_START
-    }?.occurredAtEpochMillis ?: return null
-    val finish = records.firstOrNull {
-        it.correlation.toolCallId == callId && it.kind == TrajectoryKind.TOOL_FINISH
-    }?.occurredAtEpochMillis ?: return null
-    return (finish - start).coerceAtLeast(0L)
 }
 
 @Composable

@@ -25,14 +25,10 @@
     <string name="plans_example_umbrella">「下雨的时候提醒我带伞」</string>
     <string name="plans_example_air">「空气质量变好的时候提醒我开窗」</string>
     <string name="plans_footer">到点时小博会弹出卡片并念出提醒；「去办」的计划由小博执行一轮；「自动」的计划直接执行操作，不经过模型。状态类计划能看什么，取决于当前已加载的 MCP 服务（设置 → 连接 → MCP 或 连接应用）：资源按设定的间隔读取，只有查询工具的服务按间隔调用（最快 5 分钟一次）；只在小博运行时检查。设备关着时错过的一次性提醒，2 小时内开机会补上，更久就记为已错过。</string>
-
     <string name="plans_kind_auto">自动</string>
     <string name="plans_kind_once">一次</string>
     <string name="plans_kind_repeat">重复</string>
     <string name="plans_kind_watch">状态</string>
-    <string name="plans_kind_task">去办</string>
-    <string name="plans_kind_reminder">提醒</string>
-
     <string name="plans_history_title">最近触发</string>
     <string name="plans_does_auto_due">到点自动：%1$s</string>
     <string name="plans_does_auto_triggered">触发时自动：%1$s</string>
@@ -42,7 +38,6 @@
     <string name="plans_does_remind_triggered">触发时提醒：%1$s</string>
     <string name="plans_list_separator">、</string>
     <string name="plans_clause_separator">；</string>
-
     <string name="plans_state_last">上次 %1$s</string>
     <string name="plans_state_done">已完成</string>
     <string name="plans_state_missed">已错过 · 本该在 %1$s</string>
@@ -64,13 +59,11 @@
     <plurals name="plans_until_days">
         <item quantity="other">%1$d 天后</item>
     </plurals>
-
     <string name="plans_feed_offline">未连接</string>
     <string name="plans_feed_pending">订阅中</string>
     <string name="plans_feed_live">实时</string>
     <string name="plans_feed_refused">不支持推送</string>
     <string name="plans_feed_polled">定时读取</string>
-
     <string name="plans_moment_today">今天 %1$s</string>
     <string name="plans_moment_tomorrow">明天 %1$s</string>
     <string name="plans_moment_day_after">后天 %1$s</string>
@@ -94,16 +87,7 @@
     </plurals>
     <string name="plans_watch_every_time">%1$s，每次</string>
     <string name="plans_watch_once">%1$s，一次</string>
-
-    <string name="plans_notice_handed">交给小博：%1$s</string>
-    <string name="plans_notice_running">执行：%1$s</string>
-    <string name="plans_notice_sample_title">示例计划</string>
-    <string name="plans_notice_sample_said">提醒你：计划到点时就是这样</string>
-
     <string name="plans_note_handed">交给小博去办</string>
-    <plurals name="plans_note_late">
-        <item quantity="other">晚了 %1$d 分钟提醒（设备当时没开）</item>
-    </plurals>
     <string name="plans_note_reminded">已提醒</string>
     <string name="plans_note_paused_due">暂停期间到点，没有提醒</string>
     <string name="plans_note_missed">设备没开，错过了</string>
@@ -116,4 +100,11 @@
     <string name="plans_problem_no_result">没有结果</string>
     <string name="plans_problem_error">出错</string>
     <string name="plans_problem_refused">被拒绝了</string>
+    <plurals name="plans_note_late">
+        <item quantity="other">晚了 %1$s 分钟提醒（设备当时没开）</item>
+    </plurals>
+    <string name="plans_kind_task">去办</string>
+    <string name="plans_kind_reminder">提醒</string>
+    <string name="plans_notice_handed">交给小博：%1$s</string>
+    <string name="plans_notice_running">执行：%1$s</string>
 </resources>

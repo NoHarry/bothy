@@ -2,9 +2,10 @@ package cc.noharry.bothy.app.console
 import android.app.Application
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.TranscriptRole
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.foldedByDefault
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -78,7 +79,6 @@ class ConversationRenderItemsTest {
             id = 3,
             role = TranscriptRole.RUNTIME,
             content = "Runtime MCP evidence\npath=/tmp",
-            collapsed = true,
         )
 
         val items = listOf<ConversationItem>(intake, result, evidence).toRenderItems()
@@ -92,8 +92,8 @@ class ConversationRenderItemsTest {
     fun statusMessagesAreNotProjectedIntoTimeline() {
         val items = listOf(
             ConversationItem.TurnHeader(1, "You", "hi", "hi"),
-            ConversationItem.MessageItem(2, TranscriptRole.STATUS, "Models loaded: 3", collapsed = true),
-            ConversationItem.MessageItem(3, TranscriptRole.STATUS, "Worked for 12s", collapsed = true),
+            ConversationItem.MessageItem(2, TranscriptRole.STATUS, "Models loaded: 3"),
+            ConversationItem.MessageItem(3, TranscriptRole.STATUS, "Worked for 12s"),
             ConversationItem.MessageItem(4, TranscriptRole.ASSISTANT, "done"),
         ).toRenderItems()
 
@@ -133,13 +133,12 @@ class ConversationRenderItemsTest {
             id = 1,
             role = TranscriptRole.THINKING,
             content = "I will call the thermostat tool next",
-            collapsed = true,
         )
         val items = listOf<ConversationItem>(thinking).toRenderItems()
         val single = items.single() as ConversationRenderItem.Single
         val msg = single.item as ConversationItem.MessageItem
         assertEquals(TranscriptRole.THINKING, msg.role)
-        assertTrue(msg.collapsed)
+        assertTrue(msg.foldedByDefault)
     }
 
     @Test
@@ -149,7 +148,6 @@ class ConversationRenderItemsTest {
             id = 2,
             role = TranscriptRole.THINKING,
             content = "planning",
-            collapsed = true,
         )
         val assistant = ConversationItem.MessageItem(
             id = 3,

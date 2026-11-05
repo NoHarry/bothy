@@ -21,6 +21,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConfirmationStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.statusDetail
@@ -29,10 +33,6 @@ import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.overlay.Mascot
 import cc.noharry.bothy.app.overlay.MascotAction
 import cc.noharry.bothy.app.overlay.MascotPose
-import cc.noharry.bothy.app.session.ConfirmationStatus
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.UiState
 import kotlinx.coroutines.delay
 
 /**
@@ -40,7 +40,7 @@ import kotlinx.coroutines.delay
  * Nothing shows between runs.
  */
 @Composable
-internal fun PhoneActivityStrip(state: UiState) {
+internal fun PhoneActivityStrip(state: ServerState) {
     if (!state.isRunning) return
     val colors = ConsoleColors
     val startedAt = state.runStartedAtEpochMillis ?: remember { System.currentTimeMillis() }
@@ -74,7 +74,7 @@ internal fun clock(millis: Long): String {
  * while an approval waits, pleased for a moment once it is done (worried if it failed), then idle.
  */
 @Composable
-internal fun PhoneMascot(state: UiState, modifier: Modifier = Modifier) {
+internal fun PhoneMascot(state: ServerState, modifier: Modifier = Modifier) {
     val pose = remember { MascotPose() }
     val running = state.isRunning
     var finished by remember { mutableStateOf<MascotAction?>(null) }
@@ -92,7 +92,7 @@ internal fun PhoneMascot(state: UiState, modifier: Modifier = Modifier) {
     }
 }
 
-internal fun phoneMascotAction(state: UiState, finished: MascotAction?): MascotAction {
+internal fun phoneMascotAction(state: ServerState, finished: MascotAction?): MascotAction {
     val waiting = state.items.any { it is ConversationItem.ConfirmationItem && it.status == ConfirmationStatus.PENDING }
     if (waiting) return MascotAction.ASKING
     if (!state.isRunning) return finished ?: MascotAction.IDLE

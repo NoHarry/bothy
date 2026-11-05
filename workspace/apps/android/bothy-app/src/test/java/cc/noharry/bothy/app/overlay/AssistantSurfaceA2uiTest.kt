@@ -1,9 +1,11 @@
 package cc.noharry.bothy.app.overlay
-import cc.noharry.bothy.app.a2ui.CardItem
-import cc.noharry.bothy.app.a2ui.CardLayout
-import cc.noharry.bothy.app.a2ui.DisplayChoice
-import cc.noharry.bothy.app.a2ui.WidgetCard
+import cc.noharry.agent.appserver.protocol.view.CardItem
+import cc.noharry.agent.appserver.protocol.view.CardLayout
+import cc.noharry.agent.appserver.protocol.view.DisplayChoice
+import cc.noharry.agent.appserver.protocol.view.OverlayPhase
+import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.bothy.app.console.ui.icon
+import cc.noharry.bothy.protocol.view.OverlayHud
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject

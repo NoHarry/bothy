@@ -16,17 +16,25 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.CapabilityRequests
+import cc.noharry.agent.appserver.protocol.EnabledParams
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.MAX_SUBAGENT_LOOKUPS
+import cc.noharry.agent.appserver.protocol.MIN_SUBAGENT_LOOKUPS
+import cc.noharry.agent.appserver.protocol.SubagentKindView
+import cc.noharry.agent.appserver.protocol.SubagentSettingsView
+import cc.noharry.agent.appserver.protocol.SubagentToolKind
+import cc.noharry.agent.appserver.protocol.SubagentToolsParams
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -35,6 +43,7 @@ import cc.noharry.bothy.app.console.SettingsGroup
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.Markdown
+import cc.noharry.bothy.app.frontend.LocalServer
 
 /**
  * A subagent type's page (owner 2026-10-18: 把它可用的工具也标出来，点击一个子智能体能进他的详情页): whether it is
@@ -43,15 +52,14 @@ import cc.noharry.bothy.app.console.ui.Markdown
  */
 @Composable
 internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val settings by BothySubagents.settings.collectAsState()
-    var kind by remember(id) { mutableStateOf(loadSubagentKinds(context).first { it.id == id }) }
-    val reload = { kind = loadSubagentKinds(context).first { it.id == id } }
-    val save = { tools: Set<SubagentToolGroup>, lookups: Int ->
-        saveSubagentKindTools(context, id, tools, lookups)
-        reload()
-    }
+    val server = LocalServer.current
+    val settings = server.state.preferences.subagents
+    val kind = server.state.preferences.subagentKinds.firstOrNull { it.id == id }
     BackHandler(onBack = onBack)
+    if (kind == null) return
+    val save = { tools: Set<SubagentToolKind>, lookups: Int ->
+        server.send(CapabilityRequests.SET_SUBAGENT_TOOLS, SubagentToolsParams(id, tools, lookups))
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceLg)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             Text(
@@ -61,29 +69,23 @@ internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
                 color = ConsoleColors.accent,
             )
             Text("›", style = ConsoleType.body, color = ConsoleColors.muted)
-            Text(stringResource(kind.label), style = ConsoleType.body, color = ConsoleColors.text)
+            Text(kind.label, style = ConsoleType.body, color = ConsoleColors.text)
         }
-        KindBasics(kind, settings) {
-            saveSubagentKind(context, id, it)
-            reload()
-        }
+        KindBasics(kind, settings) { server.send(CapabilityRequests.SET_SUBAGENT_KIND, EnabledParams(id, it)) }
         KindTools(kind, settings.allowDeviceControl) { tools -> save(tools, kind.maxLookups) }
         KindLookups(kind) { lookups -> save(kind.tools, lookups) }
-        val instructions = remember(id) { subagentKindText(context, kind) }
+        var instructions by remember(id) { mutableStateOf("") }
+        LaunchedEffect(id) { server.send(CapabilityRequests.SUBAGENT_KIND_TEXT, IdParams(id)) { instructions = it.text } }
         SettingsGroup(stringResource(R.string.skills_prompt), stringResource(R.string.skills_prompt_subtitle, kind.id)) {
             Markdown(instructions, Modifier.padding(Dimens.spaceMd))
         }
-        val defaults = subagentKindDefaults(id)
-        if (defaults != null && (defaults.tools != kind.tools || defaults.maxLookups != kind.maxLookups)) {
+        if (kind.defaultTools != kind.tools || kind.defaultLookups != kind.maxLookups) {
             val separator = stringResource(R.string.skills_list_separator)
-            val tools = SubagentToolGroup.entries.filter { it in defaults.tools }
-                .map { stringResource(it.screenLabel) }.joinToString(separator)
-            TextButton(onClick = {
-                resetSubagentKindTools(context, id)
-                reload()
-            }) {
+            val tools = SubagentToolKind.entries.filter { it in kind.defaultTools }
+                .map { stringResource(it.label) }.joinToString(separator)
+            TextButton(onClick = { server.send(CapabilityRequests.RESET_SUBAGENT_TOOLS, IdParams(id)) }) {
                 Text(
-                    pluralStringResource(R.plurals.skills_reset_tools, defaults.maxLookups, tools, defaults.maxLookups),
+                    pluralStringResource(R.plurals.skills_reset_tools, kind.defaultLookups, tools, kind.defaultLookups),
                     style = ConsoleType.body,
                     color = ConsoleColors.accent,
                 )
@@ -94,8 +96,8 @@ internal fun SubagentKindPage(id: String, onBack: () -> Unit) {
 
 /** Whether it is offered, what the main agent reads about it, and the model and search it follows. */
 @Composable
-private fun KindBasics(kind: SubagentKind, settings: SubagentSettings, onEnabled: (Boolean) -> Unit) {
-    SettingsGroup(title = stringResource(kind.label), subtitle = kind.id) {
+private fun KindBasics(kind: SubagentKindView, settings: SubagentSettingsView, onEnabled: (Boolean) -> Unit) {
+    SettingsGroup(title = kind.label, subtitle = kind.id) {
         Column {
             Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -126,7 +128,7 @@ private fun KindBasics(kind: SubagentKind, settings: SubagentSettings, onEnabled
                 stringResource(R.string.skills_kind_search),
                 stringResource(
                     when {
-                        !kind.searches -> R.string.skills_kind_no_search
+                        SubagentToolKind.SEARCH !in kind.tools -> R.string.skills_kind_no_search
                         kind.searchApi ?: settings.searchApi -> R.string.skills_kind_search_api
                         else -> R.string.skills_kind_search_same
                     },
@@ -138,21 +140,21 @@ private fun KindBasics(kind: SubagentKind, settings: SubagentSettings, onEnabled
 
 /** The tool groups it may call, then what only the main agent has, greyed. */
 @Composable
-private fun KindTools(kind: SubagentKind, deviceControlAllowed: Boolean, onChange: (Set<SubagentToolGroup>) -> Unit) {
+private fun KindTools(kind: SubagentKindView, deviceControlAllowed: Boolean, onChange: (Set<SubagentToolKind>) -> Unit) {
     SettingsGroup(
         title = stringResource(R.string.skills_kind_tools),
         subtitle = stringResource(R.string.skills_kind_tools_subtitle),
     ) {
         Column {
             val offNote = stringResource(R.string.skills_device_control_off_note)
-            KindToolGrid(SubagentToolGroup.entries) { group ->
+            KindToolGrid(SubagentToolKind.entries) { group ->
                 KindToolCell(
-                    label = stringResource(group.screenLabel),
+                    label = stringResource(group.label),
                     detail = stringResource(group.detail),
                     checked = group in kind.tools,
                     changes = group.changes,
                     note = offNote.takeIf {
-                        group == SubagentToolGroup.DEVICE_CONTROL && group in kind.tools && !deviceControlAllowed
+                        group == SubagentToolKind.DEVICE_CONTROL && group in kind.tools && !deviceControlAllowed
                     },
                 ) { on -> onChange(if (on) kind.tools + group else kind.tools - group) }
             }
@@ -163,7 +165,7 @@ private fun KindTools(kind: SubagentKind, deviceControlAllowed: Boolean, onChang
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
-            KindToolGrid(DEBUG_MAIN_AGENT_ONLY_TOOLS) { (label, detail) ->
+            KindToolGrid(MAIN_AGENT_ONLY_TOOLS) { (label, detail) ->
                 KindToolCell(
                     label = stringResource(label),
                     detail = stringResource(detail),
@@ -176,8 +178,8 @@ private fun KindTools(kind: SubagentKind, deviceControlAllowed: Boolean, onChang
 }
 
 @Composable
-private fun KindLookups(kind: SubagentKind, onChange: (Int) -> Unit) {
-    val looksUp = kind.tools.any { it == SubagentToolGroup.SEARCH || it == SubagentToolGroup.FETCH }
+private fun KindLookups(kind: SubagentKindView, onChange: (Int) -> Unit) {
+    val looksUp = kind.tools.any { it == SubagentToolKind.SEARCH || it == SubagentToolKind.FETCH }
     SettingsGroup(
         title = stringResource(R.string.skills_lookups),
         subtitle = stringResource(R.string.skills_lookups_subtitle),
@@ -193,10 +195,10 @@ private fun KindLookups(kind: SubagentKind, onChange: (Int) -> Unit) {
                 style = ConsoleType.body,
                 color = if (looksUp) ConsoleColors.text else ConsoleColors.muted,
             )
-            TextButton(onClick = { onChange(kind.maxLookups - 1) }, enabled = looksUp && kind.maxLookups > MIN_LOOKUPS) {
+            TextButton(onClick = { onChange(kind.maxLookups - 1) }, enabled = looksUp && kind.maxLookups > MIN_SUBAGENT_LOOKUPS) {
                 Text("−", style = ConsoleType.panelTitle)
             }
-            TextButton(onClick = { onChange(kind.maxLookups + 1) }, enabled = looksUp && kind.maxLookups < MAX_LOOKUPS) {
+            TextButton(onClick = { onChange(kind.maxLookups + 1) }, enabled = looksUp && kind.maxLookups < MAX_SUBAGENT_LOOKUPS) {
                 Text("+", style = ConsoleType.panelTitle)
             }
         }
@@ -256,6 +258,14 @@ private fun KindToolCell(
         }
     }
 }
+
+/** Tools only the main agent has, whatever a type allows: shown greyed on a type's page. */
+private val MAIN_AGENT_ONLY_TOOLS = listOf(
+    R.string.skills_tool_ask to R.string.skills_tool_ask_detail,
+    R.string.skills_tool_cards to R.string.skills_tool_cards_detail,
+    R.string.skills_tool_plans to R.string.skills_tool_plans_detail,
+    R.string.skills_tool_delegate to R.string.skills_tool_delegate_detail,
+)
 
 @Composable
 private fun checkboxColors(): CheckboxColors = CheckboxDefaults.colors(

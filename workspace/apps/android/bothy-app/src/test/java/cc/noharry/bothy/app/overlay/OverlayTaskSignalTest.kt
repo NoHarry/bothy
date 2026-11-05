@@ -3,9 +3,9 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.app.a2a.DelegationStage
-import cc.noharry.bothy.app.a2a.DelegationStep
-import cc.noharry.bothy.app.a2a.DelegationView
+import cc.noharry.agent.appserver.protocol.DelegationStage
+import cc.noharry.agent.appserver.protocol.DelegationStep
+import cc.noharry.agent.appserver.protocol.DelegationView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull

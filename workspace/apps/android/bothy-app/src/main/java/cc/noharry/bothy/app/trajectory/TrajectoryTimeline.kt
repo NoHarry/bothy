@@ -22,20 +22,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.TrajectoryLane
+import cc.noharry.agent.appserver.protocol.TrajectoryRecordId
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimeRange
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineItem
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineProjection
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.runtime.append
 
 /**
  * Input / Model / Tools lanes for the focused run.

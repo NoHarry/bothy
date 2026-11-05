@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Plans tab, the plan popup and the plans' history lines. What the model reads stays in the code. -->
+<resources>
+    <string name="plans_notice_sample_title">Sample plan</string>
+    <string name="plans_notice_sample_said">Reminder: this is what a plan coming due looks like</string>
+</resources>

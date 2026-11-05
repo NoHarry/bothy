@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 计划页、计划弹窗和最近触发的文字。模型读的文字留在代码里。 -->
+<resources>
+    <string name="plans_notice_sample_title">示例计划</string>
+    <string name="plans_notice_sample_said">提醒你：计划到点时就是这样</string>
+</resources>

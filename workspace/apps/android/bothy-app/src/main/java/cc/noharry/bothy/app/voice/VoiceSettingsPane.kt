@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.voice
-import android.content.Context
+import android.content.Intent
+import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -26,11 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,14 +37,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.voice.DashScopeAsrModel
-import cc.noharry.bothy.voice.WakeSensitivity
-import cc.noharry.bothy.voice.echoCancellerAvailable
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.agent.appserver.protocol.TextParams
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -55,38 +56,30 @@ import cc.noharry.bothy.app.console.SettingsSaveBar
 import cc.noharry.bothy.app.console.SettingsTabs
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.SelectableOptionRow
-import cc.noharry.bothy.app.model.ProviderConfig
-import cc.noharry.bothy.app.plans.number
-import cc.noharry.bothy.app.runtime.RuntimeSession
-import cc.noharry.bothy.app.voice.tts.DOUBAO_TTS_SPEECH_RATE
-import cc.noharry.bothy.app.voice.tts.DOUBAO_TTS_VOICE
-import cc.noharry.bothy.app.voice.tts.DoubaoTtsSettings
-import cc.noharry.bothy.app.voice.tts.DoubaoTtsVoice
-import cc.noharry.bothy.app.voice.tts.MIMO_TTS_ENABLED
-import cc.noharry.bothy.app.voice.tts.MIMO_TTS_STREAM
-import cc.noharry.bothy.app.voice.tts.MIMO_TTS_VOICE
-import cc.noharry.bothy.app.voice.tts.MimoTtsVoice
-import cc.noharry.bothy.app.voice.tts.SystemTts
-import cc.noharry.bothy.app.voice.tts.TTS_PROVIDER
-import cc.noharry.bothy.app.voice.tts.TtsConfig
-import cc.noharry.bothy.app.voice.tts.TtsProvider
-import cc.noharry.bothy.app.voice.tts.clearDoubaoTtsKey
-import cc.noharry.bothy.app.voice.tts.clearTtsKey
-import cc.noharry.bothy.app.voice.tts.loadDoubaoTtsKey
-import cc.noharry.bothy.app.voice.tts.loadTtsKey
-import cc.noharry.bothy.app.voice.tts.saveDoubaoTtsKey
-import cc.noharry.bothy.app.voice.tts.saveTtsChoice
-import cc.noharry.bothy.app.voice.tts.saveTtsKey
-import cc.noharry.bothy.app.voice.tts.saveTtsSettings
-import cc.noharry.bothy.app.voice.tts.ttsConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.app.frontend.ServerAccess
+import cc.noharry.bothy.app.words
+import cc.noharry.bothy.protocol.DoubaoTtsView
+import cc.noharry.bothy.protocol.JevConnectionDraft
+import cc.noharry.bothy.protocol.JevSettings
+import cc.noharry.bothy.protocol.SettingsOption
+import cc.noharry.bothy.protocol.TtsChoice
+import cc.noharry.bothy.protocol.TtsChoiceParams
+import cc.noharry.bothy.protocol.TtsProvider
+import cc.noharry.bothy.protocol.TtsSettings
+import cc.noharry.bothy.protocol.VoiceEngine
+import cc.noharry.bothy.protocol.VoiceKey
+import cc.noharry.bothy.protocol.VoiceKeyParams
+import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.VoiceSettings
+import cc.noharry.bothy.protocol.VoiceSettingsRequests
+import cc.noharry.bothy.protocol.VoiceSettingsSaveParams
+import cc.noharry.bothy.protocol.VoiceSettingsView
+import cc.noharry.bothy.protocol.parseHotwords
+import cc.noharry.bothy.protocol.voice
 
 private enum class VoiceSettingsTab(@StringRes val label: Int) {
     KEYS(R.string.voice_tab_keys),
@@ -95,8 +88,8 @@ private enum class VoiceSettingsTab(@StringRes val label: Int) {
     SPEECH(R.string.voice_tab_speech),
 }
 
-/** Saves one choice of the voice config at once, leaving typed edits pending. */
-private typealias VoiceChoice = ((VoiceConfig) -> VoiceConfig) -> Unit
+/** Saves one choice of the voice settings at once, leaving typed edits pending. */
+private typealias VoiceChoice = ((VoiceSettings) -> VoiceSettings) -> Unit
 
 /**
  * Settings → 语音. 密钥 holds every key a voice turn needs, with whether each is there: 百炼 (cloud recognition), Jev
@@ -106,11 +99,19 @@ private typealias VoiceChoice = ((VoiceConfig) -> VoiceConfig) -> Unit
  */
 @Composable
 internal fun VoiceSettingsPane() {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val state = remember { VoiceSettingsState(context, scope) }
+    val server = LocalServer.current
+    var loaded by remember { mutableStateOf<VoiceSettingsView?>(null) }
+    LaunchedEffect(Unit) { server.send(VoiceSettingsRequests.READ, Empty) { loaded = it } }
+    loaded?.let { VoiceSettingsPage(it) }
+}
+
+@Composable
+private fun VoiceSettingsPage(first: VoiceSettingsView) {
+    val server = LocalServer.current
+    val resources = LocalResources.current
+    val state = remember { VoiceSettingsState(server, resources, first) }
+    state.server = server
     var tabName by rememberSaveable { mutableStateOf(VoiceSettingsTab.KEYS.name) }
-    LaunchedEffect(Unit) { state.tts = TtsForm.load(context) }
     val tab = VoiceSettingsTab.valueOf(tabName)
     val unsaved = unsavedTabs(state.forms, state.tts)
     Column(Modifier.fillMaxSize()) {
@@ -123,180 +124,181 @@ internal fun VoiceSettingsPane() {
             Modifier.weight(1f).widthIn(max = 880.dp).verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
         ) {
-            val onForms = { next: VoiceForms -> state.forms = next }
-            val onTts = { next: TtsForm -> state.tts = next }
-            val onMessage = { text: String -> state.note = SettingsNote(text) }
             when (tab) {
-                VoiceSettingsTab.KEYS -> VoiceKeysTab(state.forms, state.tts, onForms, onTts, onMessage)
-                VoiceSettingsTab.RECOGNITION -> VoiceRecognitionTab(state.forms, onForms, state::chooseVoice)
-                VoiceSettingsTab.TURNS -> VoiceTurnsTab(state.forms, onForms, state::chooseVoice)
-                VoiceSettingsTab.SPEECH -> VoiceSpeechTab(state.tts, onTts, state::chooseTts, onMessage)
+                VoiceSettingsTab.KEYS -> VoiceKeysTab(state)
+                VoiceSettingsTab.RECOGNITION -> VoiceRecognitionTab(state)
+                VoiceSettingsTab.TURNS -> VoiceTurnsTab(state.forms, { state.forms = it }, state::chooseVoice)
+                VoiceSettingsTab.SPEECH -> VoiceSpeechTab(state)
             }
         }
         SettingsSaveBar(unsaved.isNotEmpty(), state.note, state::save, state::discard)
     }
 }
 
-/** The page's forms and its last note: a choice is saved when tapped, typed edits on [save]. */
-private class VoiceSettingsState(private val context: Context, private val scope: CoroutineScope) {
-    var forms by mutableStateOf(VoiceForms.load(context))
-    var tts by mutableStateOf<TtsForm?>(null)
+/** The page as the server last answered, its forms and its last note: a choice is saved when tapped, typed edits on [save]. */
+private class VoiceSettingsState(
+    var server: ServerAccess,
+    private val resources: Resources,
+    first: VoiceSettingsView,
+) {
+    var view by mutableStateOf(first)
+    var forms by mutableStateOf(VoiceForms.of(first))
+    var tts by mutableStateOf(TtsForm.of(first))
     var note by mutableStateOf(SettingsNote())
 
-    fun chooseVoice(change: (VoiceConfig) -> VoiceConfig) {
-        val error = saveVoiceConfig(context, change(forms.saved))
-        note = SettingsNote(error ?: savedNote(context), error = error != null)
-        if (error == null) forms = forms.withSaved(loadVoiceConfig(context))
+    fun message(text: String) {
+        note = SettingsNote(text)
     }
 
-    fun chooseTts(name: String, value: String) {
-        scope.launch {
-            val ok = withContext(Dispatchers.IO) { saveTtsChoice(context, name, value) }
-            note = if (ok) {
-                SettingsNote(savedNote(context))
-            } else {
-                SettingsNote(context.getString(R.string.tts_save_failed), error = true)
-            }
-            if (!ok) return@launch
-            val fresh = TtsForm.load(context)
-            tts = tts?.let { typed -> fresh.copy(draft = typed.draft.withChoicesFrom(fresh.effective), key = typed.key) } ?: fresh
-            RuntimeSession.refreshTts(context)
+    fun chooseVoice(change: (VoiceSettings) -> VoiceSettings) {
+        server.send(VoiceSettingsRequests.SAVE_VOICE, change(forms.saved)) { result ->
+            noted(result.error)
+            view = result.view
+            if (result.error == null) forms = forms.withSaved(result.view.voice)
+        }
+    }
+
+    fun chooseTts(choice: TtsChoice, value: String) {
+        server.send(VoiceSettingsRequests.CHOOSE_TTS, TtsChoiceParams(choice, value)) { result ->
+            noted(result.error)
+            if (result.error != null) return@send
+            view = result.view
+            val fresh = TtsForm.of(result.view)
+            tts = fresh.copy(draft = tts.draft.withChoicesFrom(fresh.effective), key = tts.key)
         }
     }
 
     fun save() {
-        scope.launch {
-            val error = withContext(Dispatchers.IO) { saveVoiceForms(context, forms, tts) }
-            note = SettingsNote(error ?: savedNote(context), error = error != null)
-            if (error == null) {
-                forms = VoiceForms.load(context)
-                tts = TtsForm.load(context)
-                RuntimeSession.refreshTts(context)
-            }
+        server.send(VoiceSettingsRequests.SAVE, saveParams(forms, tts)) { result ->
+            noted(result.error)
+            if (result.error == null) reset(result.view)
         }
     }
 
     fun discard() {
-        scope.launch {
-            forms = VoiceForms.load(context)
-            tts = TtsForm.load(context)
-            note = SettingsNote(context.getString(R.string.voice_discarded))
+        server.send(VoiceSettingsRequests.READ, Empty) { fresh ->
+            reset(fresh)
+            message(resources.getString(R.string.voice_discarded))
         }
+    }
+
+    /** Deletes [key]; [done] says it in words and [then] updates the forms from what is now stored. */
+    fun deleteKey(key: VoiceKey, done: String, then: (VoiceSettingsView) -> Unit) {
+        server.send(VoiceSettingsRequests.DELETE_KEY, VoiceKeyParams(key)) { result ->
+            message(result.error?.let(resources::words) ?: done)
+            view = result.view
+            if (result.error == null) then(result.view)
+        }
+    }
+
+    fun setWakeLevel(id: String, onSaved: (failed: Boolean) -> Unit) {
+        server.send(VoiceSettingsRequests.SET_WAKE_LEVEL, TextParams(id)) { result ->
+            view = result.view
+            if (result.error == null) forms = forms.withSaved(result.view.voice)
+            onSaved(result.error != null)
+        }
+    }
+
+    private fun reset(fresh: VoiceSettingsView) {
+        view = fresh
+        forms = VoiceForms.of(fresh)
+        tts = TtsForm.of(fresh)
+    }
+
+    private fun noted(error: Finding?) {
+        val saved = if (server.state.voice.listening) R.string.voice_saved_after_restart else R.string.voice_saved
+        note = SettingsNote(error?.let(resources::words) ?: resources.getString(saved), error = error != null)
     }
 }
 
-private fun savedNote(context: Context): String =
-    context.getString(if (VoiceController.listening) R.string.voice_saved_after_restart else R.string.voice_saved)
-
 /** The tabs whose typed fields differ from what is saved; a typed key counts until it is saved. */
-private fun unsavedTabs(forms: VoiceForms, tts: TtsForm?): Set<VoiceSettingsTab> {
+private fun unsavedTabs(forms: VoiceForms, tts: TtsForm): Set<VoiceSettingsTab> {
     val saved = VoiceDraft.of(forms.saved)
     val draft = forms.voice
     return buildSet {
-        if (forms.asrKey.isNotBlank() || forms.jevKey.isNotBlank() || tts?.key?.isNotBlank() == true || tts?.doubaoKey?.isNotBlank() == true) {
+        if (forms.asrKey.isNotBlank() || forms.jevKey.isNotBlank() || tts.key.isNotBlank() || tts.doubaoKey.isNotBlank()) {
             add(VoiceSettingsTab.KEYS)
         }
         if (draft.recognitionTyped() != saved.recognitionTyped()) add(VoiceSettingsTab.RECOGNITION)
         if (draft.turnsTyped() != saved.turnsTyped() || forms.jev.differsFrom(forms.jevSaved)) add(VoiceSettingsTab.TURNS)
-        if (tts != null && tts.draft.typed() != tts.effective.typed()) add(VoiceSettingsTab.SPEECH)
+        if (tts.draft.typed() != tts.effective.typed()) add(VoiceSettingsTab.SPEECH)
     }
 }
 
-private fun TtsConfig.typed() = listOf(baseUrl, model, style, doubao.appId, doubao.resourceId)
+private fun TtsSettings.typed() = listOf(baseUrl, model, style, doubao.appId, doubao.resourceId)
 
-private fun TtsConfig.withChoicesFrom(saved: TtsConfig) = copy(
+private fun TtsSettings.withChoicesFrom(saved: TtsSettings) = copy(
     enabled = saved.enabled, voice = saved.voice, stream = saved.stream, provider = saved.provider,
     doubao = doubao.copy(voice = saved.doubao.voice, speechRate = saved.doubao.speechRate),
 )
 
 /** Settings → 语音 as typed. Keys are never saveable state or echoed from storage; each is written only when typed. */
 private data class VoiceForms(
-    val saved: VoiceConfig,
+    val saved: VoiceSettings,
     val voice: VoiceDraft,
     val asrKey: String,
-    val jevSaved: JevConfig,
+    val jevSaved: JevSettings,
     val jev: JevDraft,
     val jevKey: String,
 ) {
-    /** After a choice was saved: the saved config, with the draft's choices following it and its typed edits kept. */
-    fun withSaved(next: VoiceConfig): VoiceForms = copy(saved = next, voice = voice.withChoicesFrom(next))
+    /** After a choice was saved: the saved settings, with the draft's choices following them and its typed edits kept. */
+    fun withSaved(next: VoiceSettings): VoiceForms = copy(saved = next, voice = voice.withChoicesFrom(next))
 
     companion object {
-        fun load(context: Context): VoiceForms {
-            val saved = loadVoiceConfig(context)
-            val jev = loadJevConfig(context)
-            return VoiceForms(saved, VoiceDraft.of(saved), "", jev, JevDraft.of(jev), "")
-        }
+        fun of(view: VoiceSettingsView) = VoiceForms(view.voice, VoiceDraft.of(view.voice), "", view.jev, JevDraft.of(view.jev), "")
     }
 }
 
 /** The Jev connection as typed; tool search's own settings stay on 工具与技能 → 工具检索. */
 private data class JevDraft(val endpoint: String, val model: String, val timeout: String) {
-    fun differsFrom(saved: JevConfig): Boolean =
+    fun differsFrom(saved: JevSettings): Boolean =
         endpoint.trim() != saved.endpoint || model.trim() != saved.model || timeout.trim() != saved.timeoutMillis.toString()
 
     companion object {
-        fun of(config: JevConfig) = JevDraft(config.endpoint, config.model, config.timeoutMillis.toString())
+        fun of(config: JevSettings) = JevDraft(config.endpoint, config.model, config.timeoutMillis.toString())
     }
 }
 
 /** What replies are spoken with now ([effective]: app settings over local.properties) and the form as typed. */
 private data class TtsForm(
-    val effective: TtsConfig,
-    val draft: TtsConfig,
+    val effective: TtsSettings,
+    val draft: TtsSettings,
     val key: String,
     val keyStored: Boolean,
     val doubaoKey: String = "",
     val doubaoKeyStored: Boolean = false,
 ) {
     companion object {
-        suspend fun load(context: Context): TtsForm = withContext(Dispatchers.IO) {
-            val effective = ProviderConfig.load(context).ttsConfig()
-            TtsForm(effective, effective, "", loadTtsKey(context).isNotEmpty(), "", loadDoubaoTtsKey(context).isNotEmpty())
-        }
+        fun of(view: VoiceSettingsView) = TtsForm(view.tts, view.tts, "", view.ttsKeyStored, "", view.doubaoKeyStored)
     }
 }
 
-/** Null when every tab saved, else what did not, one line per service. Jev and TTS are written only when changed. */
-private fun saveVoiceForms(context: Context, forms: VoiceForms, tts: TtsForm?): String? {
-    val jevChanged = forms.jev.differsFrom(forms.jevSaved) || forms.jevKey.isNotBlank()
-    return listOfNotNull(
-        saveVoiceConfig(context, forms.voice.applyTo(forms.saved), forms.asrKey)
-            ?.let { context.getString(R.string.voice_error_recognition, it) },
-        if (jevChanged) {
-            val timeout = forms.jev.timeout.trim().toLongOrNull() ?: 0
-            saveJevConnection(context, forms.jev.endpoint, forms.jev.model, timeout, forms.jevKey)
-                ?.let { context.getString(R.string.voice_error_jev, it) }
-        } else {
-            null
-        },
-        tts?.takeIf { it.draft.typed() != it.effective.typed() }?.let { saveTtsSettings(context, it.draft) }
-            ?.let { context.getString(R.string.voice_error_tts, it) },
-        tts?.key?.takeIf(String::isNotBlank)?.let { saveTtsKey(context, it) }
-            ?.let { context.getString(R.string.voice_error_mimo_key, it) },
-        tts?.doubaoKey?.takeIf(String::isNotBlank)?.let { saveDoubaoTtsKey(context, it) }
-            ?.let { context.getString(R.string.voice_error_doubao_key, it) },
-    ).joinToString("\n").ifEmpty { null }
-}
+/** What 保存 sends: everything typed; Jev and speech only when they changed, keys only when typed. */
+private fun saveParams(forms: VoiceForms, tts: TtsForm) = VoiceSettingsSaveParams(
+    voice = forms.voice.applyTo(forms.saved),
+    asrKey = forms.asrKey,
+    jev = if (forms.jev.differsFrom(forms.jevSaved) || forms.jevKey.isNotBlank()) {
+        JevConnectionDraft(forms.jev.endpoint, forms.jev.model, forms.jev.timeout.trim().toLongOrNull() ?: 0, forms.jevKey)
+    } else {
+        null
+    },
+    tts = tts.draft.takeIf { it.typed() != tts.effective.typed() },
+    ttsKey = tts.key,
+    doubaoKey = tts.doubaoKey,
+)
 
 @Composable
-private fun VoiceKeysTab(
-    forms: VoiceForms,
-    tts: TtsForm?,
-    onForms: (VoiceForms) -> Unit,
-    onTts: (TtsForm) -> Unit,
-    onMessage: (String) -> Unit,
-) {
+private fun VoiceKeysTab(state: VoiceSettingsState) {
     Text(stringResource(R.string.voice_keys_intro), color = ConsoleColors.muted)
-    DashScopeKeyCard(forms, onForms, onMessage)
-    JevKeyCard(forms, onForms, onMessage)
-    MimoKeyCard(tts, onTts, onMessage)
-    DoubaoKeyCard(tts, onTts, onMessage)
+    DashScopeKeyCard(state)
+    JevKeyCard(state)
+    MimoKeyCard(state)
+    DoubaoKeyCard(state)
 }
 
 @Composable
-private fun DashScopeKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
+private fun DashScopeKeyCard(state: VoiceSettingsState) {
+    val forms = state.forms
     val saved = forms.saved
     val status = when {
         saved.hasDashscopeKey -> stringResource(R.string.voice_saved) to ConsoleColors.success
@@ -307,20 +309,19 @@ private fun DashScopeKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, o
     val deleted = stringResource(R.string.voice_dashscope_key_deleted)
     VoiceCard(stringResource(R.string.voice_dashscope_title), status) {
         VoiceNote(stringResource(R.string.voice_dashscope_key_note))
-        VoiceField(keyLabel(saved.hasDashscopeKey), forms.asrKey, { onForms(forms.copy(asrKey = it)) }, secret = true)
+        VoiceField(keyLabel(saved.hasDashscopeKey), forms.asrKey, { state.forms = forms.copy(asrKey = it) }, secret = true)
         DeleteKeyButton(saved.hasDashscopeKey) {
-            val error = saveVoiceConfig(context, saved.copy(engine = VoiceEngine.LOCAL), clearKey = true)
-            onMessage(error ?: deleted)
-            if (error == null) {
-                onForms(forms.copy(saved = loadVoiceConfig(context), voice = forms.voice.copy(engine = VoiceEngine.LOCAL), asrKey = ""))
+            state.deleteKey(VoiceKey.DASHSCOPE, deleted) { stored ->
+                val now = state.forms
+                state.forms = now.copy(saved = stored.voice, voice = now.voice.copy(engine = VoiceEngine.LOCAL), asrKey = "")
             }
         }
     }
 }
 
 @Composable
-private fun JevKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
+private fun JevKeyCard(state: VoiceSettingsState) {
+    val forms = state.forms
     val saved = forms.jevSaved
     val status = if (saved.hasApiKey) {
         stringResource(R.string.voice_saved) to ConsoleColors.success
@@ -332,53 +333,39 @@ private fun JevKeyCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit, onMessa
     )
     VoiceCard("Jev", status) {
         VoiceNote(stringResource(R.string.voice_jev_key_note))
-        VoiceField(keyLabel(saved.hasApiKey), forms.jevKey, { onForms(forms.copy(jevKey = it)) }, secret = true)
+        VoiceField(keyLabel(saved.hasApiKey), forms.jevKey, { state.forms = forms.copy(jevKey = it) }, secret = true)
         DeleteKeyButton(saved.hasApiKey) {
-            val error = saveJevConnection(context, saved.endpoint, saved.model, saved.timeoutMillis, clearKey = true)
-            onMessage(error ?: deleted)
-            if (error == null) onForms(forms.copy(jevSaved = loadJevConfig(context), jevKey = ""))
+            state.deleteKey(VoiceKey.JEV, deleted) { stored -> state.forms = state.forms.copy(jevSaved = stored.jev, jevKey = "") }
         }
     }
 }
 
 @Composable
-private fun MimoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val packaged = tts != null && !tts.keyStored && tts.effective.apiKey.isNotBlank()
+private fun MimoKeyCard(state: VoiceSettingsState) {
+    val tts = state.tts
+    val packaged = !tts.keyStored && tts.effective.hasApiKey
     val status = when {
-        tts == null -> stringResource(R.string.voice_loading) to ConsoleColors.muted
         tts.keyStored -> stringResource(R.string.voice_saved) to ConsoleColors.success
         packaged -> stringResource(R.string.voice_mimo_key_packaged) to ConsoleColors.success
         else -> stringResource(R.string.voice_key_missing_silent) to ConsoleColors.danger
     }
     val deleted = stringResource(R.string.voice_mimo_key_deleted)
-    val deleteFailed = stringResource(R.string.voice_mimo_key_delete_failed)
     VoiceCard("MiMo", status) {
         VoiceNote(stringResource(R.string.voice_mimo_key_note))
-        if (tts == null) return@VoiceCard
         val label = if (packaged) stringResource(R.string.voice_mimo_key_label_packaged) else keyLabel(tts.keyStored)
-        VoiceField(label, tts.key, { onTts(tts.copy(key = it)) }, secret = true)
-        DeleteKeyButton(tts.keyStored) {
-            scope.launch {
-                val cleared = withContext(Dispatchers.IO) { clearTtsKey(context) }
-                onMessage(if (cleared) deleted else deleteFailed)
-                if (cleared) {
-                    onTts(TtsForm.load(context))
-                    RuntimeSession.refreshTts(context)
-                }
-            }
-        }
+        VoiceField(label, tts.key, { state.tts = tts.copy(key = it) }, secret = true)
+        DeleteKeyButton(tts.keyStored) { state.deleteKey(VoiceKey.MIMO, deleted) { state.tts = TtsForm.of(it) } }
     }
 }
 
 @Composable
-private fun VoiceRecognitionTab(forms: VoiceForms, onForms: (VoiceForms) -> Unit, choose: VoiceChoice) {
-    val context = LocalContext.current
-    val localError = remember { localAsrUnavailable(context) }
+private fun VoiceRecognitionTab(state: VoiceSettingsState) {
+    val forms = state.forms
+    val localError = state.view.localAsrProblem?.let { words(it) }
     val saved = forms.saved
     val draft = forms.voice
-    val onDraft = { next: VoiceDraft -> onForms(forms.copy(voice = next)) }
+    val choose: VoiceChoice = state::chooseVoice
+    val onDraft = { next: VoiceDraft -> state.forms = forms.copy(voice = next) }
     val status = when {
         saved.engine == VoiceEngine.LOCAL -> (localError ?: stringResource(R.string.voice_local_ready)) to
             (if (localError == null) ConsoleColors.success else ConsoleColors.danger)
@@ -392,14 +379,20 @@ private fun VoiceRecognitionTab(forms: VoiceForms, onForms: (VoiceForms) -> Unit
             val label = stringResource(R.string.voice_cpu_threads)
             VoiceField(label, draft.threads, { onDraft(draft.copy(threads = it)) }, number = true)
         } else {
-            DashScopeSettings(draft, onDraft, choose)
+            DashScopeSettings(state.view.asrModels, draft, onDraft, choose)
         }
     }
+    VoiceCaptureCard(state.view.echoCancellerAvailable, saved, draft, onDraft, choose)
+    VoiceCard(stringResource(R.string.voice_wake_title)) { VoiceWakeSection(state) }
+}
+
+@Composable
+private fun VoiceCaptureCard(aecAvailable: Boolean, saved: VoiceSettings, draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
     VoiceCard(stringResource(R.string.voice_capture)) {
         VoiceSwitchRow(stringResource(R.string.voice_echo_cancel), draft.echoCancel) { on ->
             choose { it.copy(echoCancel = on) }
         }
-        EchoCancelNote()
+        EchoCancelNote(aecAvailable)
         VoiceSwitchRow(stringResource(R.string.voice_near_gate), saved.nearGate) { on ->
             choose { it.copy(nearGate = on) }
         }
@@ -408,19 +401,18 @@ private fun VoiceRecognitionTab(forms: VoiceForms, onForms: (VoiceForms) -> Unit
             VoiceField(label, draft.nearBelow, { onDraft(draft.copy(nearBelow = it)) }, number = true)
         }
     }
-    VoiceCard(stringResource(R.string.voice_wake_title)) { VoiceWakeSection() }
 }
 
 @Composable
 private fun VoiceEngineOptions(selected: VoiceEngine, localError: String?, onSelect: (VoiceEngine) -> Unit) {
     SelectableOptionRow(
-        stringResource(VoiceEngine.LOCAL.label),
+        stringResource(R.string.voice_engine_local),
         selected == VoiceEngine.LOCAL,
         { onSelect(VoiceEngine.LOCAL) },
         subtitle = localError ?: stringResource(R.string.voice_engine_local_detail),
     )
     SelectableOptionRow(
-        stringResource(VoiceEngine.DASHSCOPE.label),
+        stringResource(R.string.voice_engine_dashscope),
         selected == VoiceEngine.DASHSCOPE,
         { onSelect(VoiceEngine.DASHSCOPE) },
         subtitle = stringResource(R.string.voice_engine_dashscope_detail),
@@ -428,11 +420,10 @@ private fun VoiceEngineOptions(selected: VoiceEngine, localError: String?, onSel
 }
 
 @Composable
-private fun DashScopeSettings(draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
+private fun DashScopeSettings(models: List<SettingsOption>, draft: VoiceDraft, onDraft: (VoiceDraft) -> Unit, choose: VoiceChoice) {
     Text(stringResource(R.string.voice_recognition_model), style = ConsoleType.label, color = ConsoleColors.muted)
-    DashScopeAsrModel.entries.forEach { model ->
-        val label = stringResource(model.displayLabel())
-        SelectableOptionRow(label, draft.model == model.id, { choose { it.copy(dashscopeModel = model.id) } }, subtitle = model.id)
+    models.forEach { model ->
+        SelectableOptionRow(model.label, draft.model == model.id, { choose { it.copy(dashscopeModel = model.id) } }, subtitle = model.id)
     }
     VoiceField(stringResource(R.string.voice_websocket_address), draft.endpoint, { onDraft(draft.copy(endpoint = it)) })
     VoiceField(
@@ -483,22 +474,19 @@ private fun JevConnectionCard(forms: VoiceForms, onForms: (VoiceForms) -> Unit) 
 }
 
 @Composable
-private fun VoiceSpeechTab(tts: TtsForm?, onTts: (TtsForm) -> Unit, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
-    if (tts == null) {
-        VoiceNote(stringResource(R.string.voice_loading))
-        return
-    }
-    val context = LocalContext.current
-    TtsProviderPicker(tts.effective.provider) { choose(TTS_PROVIDER, it.wireName) }
-    if (tts.effective.provider == TtsProvider.DOUBAO) return DoubaoSpeechCard(tts, onTts, choose, onMessage)
-    if (tts.effective.provider == TtsProvider.SYSTEM) return SystemSpeechCard(tts, choose, onMessage)
-    val status = ttsStatusLine(context, tts.effective) to
-        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+private fun VoiceSpeechTab(state: VoiceSettingsState) {
+    val tts = state.tts
+    val onTts = { next: TtsForm -> state.tts = next }
+    val choose: (TtsChoice, String) -> Unit = state::chooseTts
+    TtsProviderPicker(tts.effective.provider) { choose(TtsChoice.PROVIDER, it.wireName) }
+    if (tts.effective.provider == TtsProvider.DOUBAO) return DoubaoSpeechCard(state)
+    if (tts.effective.provider == TtsProvider.SYSTEM) return SystemSpeechCard(state)
+    val status = tts.effective.status?.let { words(it) }.orEmpty() to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
     VoiceCard(stringResource(R.string.voice_speech_mimo_title), status) {
         val draft = tts.draft
-        val edit = { next: TtsConfig -> onTts(tts.copy(draft = next)) }
+        val edit = { next: TtsSettings -> onTts(tts.copy(draft = next)) }
         VoiceSwitchRow(stringResource(R.string.voice_speak_replies), draft.enabled) {
-            choose(MIMO_TTS_ENABLED, it.toString())
+            choose(TtsChoice.ENABLED, it.toString())
         }
         VoiceFieldRow(
             {
@@ -507,43 +495,40 @@ private fun VoiceSpeechTab(tts: TtsForm?, onTts: (TtsForm) -> Unit, choose: (Str
             },
             { VoiceField(stringResource(R.string.voice_model), draft.model, { edit(draft.copy(model = it)) }, it) },
         )
-        MimoVoicePicker(draft.voice) { choose(MIMO_TTS_VOICE, it) }
+        MimoVoicePicker(state.view.mimoVoices, draft.voice) { choose(TtsChoice.VOICE, it) }
         val style = stringResource(R.string.voice_tts_style)
         VoiceField(style, draft.style, { edit(draft.copy(style = it)) }, singleLine = false)
         VoiceSwitchRow(stringResource(R.string.voice_tts_stream), draft.stream) {
-            choose(MIMO_TTS_STREAM, it.toString())
+            choose(TtsChoice.STREAM, it.toString())
         }
         VoiceNote(stringResource(R.string.voice_speech_note))
-        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, onMessage)
+        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, state::message)
     }
 }
 
 /** 试听: speaks a line with the saved settings; [onMessage] hears [starting], then whether speech started. */
 @Composable
 private fun PreviewButton(enabled: Boolean, @StringRes starting: Int, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
+    val server = LocalServer.current
     val startingText = stringResource(starting)
     val started = stringResource(R.string.voice_preview_started)
     val failed = stringResource(R.string.voice_preview_failed)
     TextButton(enabled = enabled, onClick = {
         onMessage(startingText)
-        RuntimeSession.previewTts(context, "你好，我是小博，播报正常。") { ok ->
-            onMessage(if (ok) started else failed)
-        }
+        server.send(VoiceSettingsRequests.PREVIEW, Empty, onRefused = { onMessage(failed) }) { onMessage(if (it.on) started else failed) }
     }) { Text(stringResource(R.string.voice_preview)) }
 }
 
 /** 音色: the mimo-v2.5-tts presets as chips; a voice set elsewhere (local.properties, the provider file) keeps a chip. */
 @Composable
-private fun MimoVoicePicker(selected: String, onSelect: (String) -> Unit) {
-    val context = LocalContext.current
+private fun MimoVoicePicker(voices: List<SettingsOption>, selected: String, onSelect: (String) -> Unit) {
     Text(stringResource(R.string.voice_voice), style = ConsoleType.label, color = ConsoleColors.muted)
-    MimoTtsVoice.entries.partition { it.chinese }.toList().forEach { voices ->
+    voices.partition { it.summary == CHINESE_VOICE }.toList().forEach { group ->
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            voices.forEach { voice -> VoiceChip(voice.label(context), selected == voice.id) { onSelect(voice.id) } }
+            group.forEach { voice -> VoiceChip(voice.label, selected == voice.id) { onSelect(voice.id) } }
         }
     }
-    if (selected.isNotBlank() && MimoTtsVoice.entries.none { it.id == selected }) {
+    if (selected.isNotBlank() && voices.none { it.id == selected }) {
         VoiceChip(stringResource(R.string.voice_other_voice, selected), selected = true) {}
     }
     VoiceNote(stringResource(R.string.voice_mimo_presets_note))
@@ -564,16 +549,6 @@ private fun VoiceChip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(label, style = ConsoleType.bodySmall, color = if (selected) ConsoleColors.accent else ConsoleColors.text)
     }
-}
-
-internal fun ttsStatusLine(context: Context, config: TtsConfig): String = when {
-    config.ready -> context.getString(R.string.voice_ready_detail, config.label(context))
-    config.provider == TtsProvider.DOUBAO && config.doubao.key.isBlank() ->
-        context.getString(R.string.voice_doubao_key_missing_status)
-    config.provider == TtsProvider.MIMO && config.apiKey.isBlank() ->
-        context.getString(R.string.voice_mimo_key_missing_status)
-    !config.enabled -> context.getString(R.string.voice_off)
-    else -> context.getString(R.string.voice_config_incomplete)
 }
 
 /** A titled panel; [status] is one line in the colour that says whether it is good news. */
@@ -612,66 +587,46 @@ private fun keyLabel(stored: Boolean): String =
  * listened for on the device whether or not the overlay runs (the system mic indicator stays lit).
  */
 @Composable
-private fun VoiceWakeSection() {
-    val context = LocalContext.current
-    val enabled by WakeWord.enabled.collectAsState()
-    val status by WakeWord.status.collectAsState()
+private fun VoiceWakeSection(state: VoiceSettingsState) {
+    val server = LocalServer.current
+    val resources = LocalResources.current
+    val voice = server.state.voice
     var message by remember { mutableStateOf("") }
-    var migrated by remember { mutableStateOf(wakeMigrationNotice(context)) }
-    // The switch as saved, even before the overlay has started.
-    LaunchedEffect(Unit) { WakeWord.load(context) }
-    val switchFailed = stringResource(R.string.voice_switch_save_failed)
     val sensitivityFailed = stringResource(R.string.voice_wake_sensitivity_save_failed)
-    if (migrated) {
+    if (voice.wakeMigrated) {
         Text(stringResource(R.string.voice_wake_migrated_off), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
     }
-    VoiceSwitchRow(stringResource(R.string.voice_wake_switch), enabled) { on ->
-        clearWakeMigrationNotice(context)
-        migrated = false
-        message = if (WakeWord.setEnabled(context, on)) "" else switchFailed
+    VoiceSwitchRow(stringResource(R.string.voice_wake_switch), voice.wakeWordEnabled) { on ->
+        server.send(VoiceRequests.SET_WAKE_WORD, FlagParams(on)) { message = it.error?.let(resources::words).orEmpty() }
     }
     Text(
-        stringResource(R.string.voice_wake_explainer, WAKE_IDLE_END_MILLIS / 1000),
+        stringResource(R.string.voice_wake_explainer, state.view.wakeIdleEndSeconds),
         style = ConsoleType.bodySmall,
         color = ConsoleColors.muted,
     )
     Text(
-        listOf(if (enabled) stringResource(R.string.voice_wake_status, status.message) else "", message)
+        listOf(if (voice.wakeWordEnabled) stringResource(R.string.voice_wake_status, voice.wakeStatus?.let { words(it) }.orEmpty()) else "", message)
             .filter(String::isNotEmpty).joinToString(" · "),
         style = ConsoleType.bodySmall,
-        color = if (status.listening) ConsoleColors.success else ConsoleColors.muted,
+        color = if (voice.wakeListening) ConsoleColors.success else ConsoleColors.muted,
     )
-    WakeSensitivityOptions { failed -> message = if (failed) sensitivityFailed else "" }
+    WakeSensitivityOptions(state) { failed -> message = if (failed) sensitivityFailed else "" }
 }
 
 /** 唤醒阈值: how readily the wake word wakes, applied at once; the spotter starts again with it. */
 @Composable
-private fun WakeSensitivityOptions(onSaved: (failed: Boolean) -> Unit) {
-    val context = LocalContext.current
-    var selected by remember { mutableStateOf(loadVoiceConfig(context).wakeSensitivity) }
+private fun WakeSensitivityOptions(state: VoiceSettingsState, onSaved: (failed: Boolean) -> Unit) {
+    val selected = state.view.voice.wakeSensitivity
     Text(stringResource(R.string.voice_wake_sensitivity), style = ConsoleType.label, color = ConsoleColors.muted)
-    WakeSensitivity.entries.forEach { sensitivity ->
-        val (label, subtitle) = sensitivity.labels()
-        SelectableOptionRow(label, selected == sensitivity, {
-            val saved = WakeWord.setSensitivity(context, sensitivity)
-            if (saved) selected = sensitivity
-            onSaved(!saved)
-        }, subtitle = subtitle)
-    }
-}
-
-@Composable
-private fun WakeSensitivity.labels(): Pair<String, String> {
-    val phrases = XIAOBO_WAKE_PROFILE.phrasesFor(this).map { it.phrase }.distinct()
-        .map { stringResource(R.string.voice_phrase_quoted, it) }
-        .joinToString(stringResource(R.string.voice_phrase_separator))
-    return when (this) {
-        WakeSensitivity.HIGH ->
-            stringResource(R.string.voice_wake_high) to stringResource(R.string.voice_wake_high_detail, phrases)
-        WakeSensitivity.STANDARD ->
-            stringResource(R.string.voice_wake_standard) to stringResource(R.string.voice_wake_standard_detail, phrases)
-        WakeSensitivity.LOW ->
-            stringResource(R.string.voice_wake_low) to stringResource(R.string.voice_wake_low_detail, phrases)
+    val separator = stringResource(R.string.voice_phrase_separator)
+    state.view.wakeLevels.forEach { level ->
+        val (label, detail) = when (level.id) {
+            "high" -> R.string.voice_wake_high to R.string.voice_wake_high_detail
+            "low" -> R.string.voice_wake_low to R.string.voice_wake_low_detail
+            else -> R.string.voice_wake_standard to R.string.voice_wake_standard_detail
+        }
+        val phrases = level.phrases.map { stringResource(R.string.voice_phrase_quoted, it) }.joinToString(separator)
+        SelectableOptionRow(stringResource(label), selected == level.id, { state.setWakeLevel(level.id, onSaved) }, subtitle = stringResource(detail, phrases))
     }
 }
 
@@ -696,7 +651,7 @@ private data class VoiceDraft(
     val sideBound: String,
     val silenceCapSeconds: String,
 ) {
-    fun applyTo(saved: VoiceConfig): VoiceConfig = saved.copy(
+    fun applyTo(saved: VoiceSettings): VoiceSettings = saved.copy(
         engine = engine,
         localThreads = threads.toIntOrNull() ?: 0,
         dashscopeEndpoint = endpoint,
@@ -720,7 +675,7 @@ private data class VoiceDraft(
     )
 
     /** The choices as saved in [config]; typed fields stay as typed. */
-    fun withChoicesFrom(config: VoiceConfig): VoiceDraft = copy(
+    fun withChoicesFrom(config: VoiceSettings): VoiceDraft = copy(
         engine = config.engine,
         model = config.dashscopeModel,
         autoSubmit = config.autoSubmit,
@@ -735,7 +690,7 @@ private data class VoiceDraft(
     fun turnsTyped() = listOf(eos, eosFloor, agentBound, sideBound, silenceCapSeconds, history, bargeInScore)
 
     companion object {
-        fun of(config: VoiceConfig) = VoiceDraft(
+        fun of(config: VoiceSettings) = VoiceDraft(
             engine = config.engine,
             threads = config.localThreads.toString(),
             endpoint = config.dashscopeEndpoint,
@@ -759,8 +714,7 @@ private data class VoiceDraft(
 }
 
 @Composable
-private fun EchoCancelNote() {
-    val aecAvailable = remember { echoCancellerAvailable() }
+private fun EchoCancelNote(aecAvailable: Boolean) {
     Text(
         if (aecAvailable) stringResource(R.string.voice_aec_note)
         else stringResource(R.string.voice_aec_missing),
@@ -867,25 +821,27 @@ private fun TtsProviderPicker(selected: TtsProvider, onSelect: (TtsProvider) -> 
     Text(stringResource(R.string.voice_tts_provider), style = ConsoleType.label, color = ConsoleColors.muted)
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         TtsProvider.entries.forEach { provider ->
-            VoiceChip(stringResource(provider.label), selected == provider) { onSelect(provider) }
+            VoiceChip(stringResource(provider.screenName), selected == provider) { onSelect(provider) }
         }
     }
 }
 
 /** The device's own voice: nothing to set but whether replies are spoken, and Android's page for its engine. */
 @Composable
-private fun SystemSpeechCard(tts: TtsForm, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
+private fun SystemSpeechCard(state: VoiceSettingsState) {
     val context = LocalContext.current
-    val status = ttsStatusLine(context, tts.effective) to
-        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+    val tts = state.tts
+    val status = tts.effective.status?.let { words(it) }.orEmpty() to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
     VoiceCard(stringResource(R.string.voice_speech_system_title), status) {
         VoiceSwitchRow(stringResource(R.string.voice_speak_replies), tts.draft.enabled) {
-            choose(MIMO_TTS_ENABLED, it.toString())
+            state.chooseTts(TtsChoice.ENABLED, it.toString())
         }
         VoiceNote(stringResource(R.string.voice_system_speech_note))
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            PreviewButton(enabled = true, starting = R.string.voice_preview_system, onMessage = onMessage)
-            TextButton(onClick = { runCatching { context.startActivity(SystemTts.settingsIntent()) } }) {
+            PreviewButton(enabled = true, starting = R.string.voice_preview_system, onMessage = state::message)
+            TextButton(onClick = {
+                runCatching { context.startActivity(Intent(TTS_SETTINGS_ACTION).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }) {
                 Text(stringResource(R.string.voice_system_tts_settings))
             }
         }
@@ -894,15 +850,14 @@ private fun SystemSpeechCard(tts: TtsForm, choose: (String, String) -> Unit, onM
 
 /** 豆包语音合成: switch, App ID (only for an App ID + Access Token pair), resource, voice, speed, 试听. */
 @Composable
-private fun DoubaoSpeechCard(tts: TtsForm, onTts: (TtsForm) -> Unit, choose: (String, String) -> Unit, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
-    val status = ttsStatusLine(context, tts.effective) to
-        (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
+private fun DoubaoSpeechCard(state: VoiceSettingsState) {
+    val tts = state.tts
+    val status = tts.effective.status?.let { words(it) }.orEmpty() to (if (tts.effective.ready) ConsoleColors.success else ConsoleColors.danger)
     VoiceCard(stringResource(R.string.voice_speech_doubao_title), status) {
         val draft = tts.draft
-        val edit = { next: DoubaoTtsSettings -> onTts(tts.copy(draft = draft.copy(doubao = next))) }
+        val edit = { next: DoubaoTtsView -> state.tts = tts.copy(draft = draft.copy(doubao = next)) }
         VoiceSwitchRow(stringResource(R.string.voice_speak_replies), draft.enabled) {
-            choose(MIMO_TTS_ENABLED, it.toString())
+            state.chooseTts(TtsChoice.ENABLED, it.toString())
         }
         VoiceFieldRow(
             {
@@ -914,62 +869,48 @@ private fun DoubaoSpeechCard(tts: TtsForm, onTts: (TtsForm) -> Unit, choose: (St
                 VoiceField(label, draft.doubao.appId, { edit(draft.doubao.copy(appId = it)) }, it)
             },
         )
-        DoubaoVoicePicker(draft.doubao.voice) { choose(DOUBAO_TTS_VOICE, it) }
+        DoubaoVoicePicker(state.view.doubaoVoices, draft.doubao.voice) { state.chooseTts(TtsChoice.DOUBAO_VOICE, it) }
         Text(stringResource(R.string.voice_speech_rate), style = ConsoleType.label, color = ConsoleColors.muted)
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
             DOUBAO_SPEEDS.forEach { (label, rate) ->
                 VoiceChip(stringResource(label), draft.doubao.speechRate == rate) {
-                    choose(DOUBAO_TTS_SPEECH_RATE, rate.toString())
+                    state.chooseTts(TtsChoice.DOUBAO_SPEECH_RATE, rate.toString())
                 }
             }
         }
         VoiceNote(stringResource(R.string.voice_doubao_note))
-        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, onMessage)
+        PreviewButton(tts.effective.ready, R.string.voice_preview_saved, state::message)
     }
 }
 
 /** 音色: some 豆包 2.0 voices as chips; an id typed elsewhere (local.properties) keeps a chip. */
 @Composable
-private fun DoubaoVoicePicker(selected: String, onSelect: (String) -> Unit) {
-    val context = LocalContext.current
+private fun DoubaoVoicePicker(voices: List<SettingsOption>, selected: String, onSelect: (String) -> Unit) {
     Text(stringResource(R.string.voice_voice), style = ConsoleType.label, color = ConsoleColors.muted)
-    DoubaoTtsVoice.entries.chunked(DOUBAO_VOICES_PER_ROW).forEach { voices ->
+    voices.chunked(DOUBAO_VOICES_PER_ROW).forEach { row ->
         Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            voices.forEach { voice -> VoiceChip(voice.label(context), selected == voice.id) { onSelect(voice.id) } }
+            row.forEach { voice -> VoiceChip(voice.label, selected == voice.id) { onSelect(voice.id) } }
         }
     }
-    if (selected.isNotBlank() && DoubaoTtsVoice.entries.none { it.id == selected }) {
+    if (selected.isNotBlank() && voices.none { it.id == selected }) {
         VoiceChip(stringResource(R.string.voice_other_voice, selected), selected = true) {}
     }
 }
 
 @Composable
-private fun DoubaoKeyCard(tts: TtsForm?, onTts: (TtsForm) -> Unit, onMessage: (String) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val packaged = tts != null && !tts.doubaoKeyStored && tts.effective.doubao.key.isNotBlank()
+private fun DoubaoKeyCard(state: VoiceSettingsState) {
+    val tts = state.tts
+    val packaged = !tts.doubaoKeyStored && tts.effective.doubao.hasKey
     val status = when {
-        tts == null -> stringResource(R.string.voice_loading) to ConsoleColors.muted
         tts.doubaoKeyStored -> stringResource(R.string.voice_saved) to ConsoleColors.success
         packaged -> stringResource(R.string.voice_doubao_key_packaged) to ConsoleColors.success
         else -> stringResource(R.string.voice_doubao_key_optional) to ConsoleColors.muted
     }
     val deleted = stringResource(R.string.voice_doubao_key_deleted)
-    val deleteFailed = stringResource(R.string.voice_doubao_key_delete_failed)
     VoiceCard(stringResource(R.string.voice_doubao_speech), status) {
         VoiceNote(stringResource(R.string.voice_doubao_key_note))
-        if (tts == null) return@VoiceCard
-        VoiceField(keyLabel(tts.doubaoKeyStored), tts.doubaoKey, { onTts(tts.copy(doubaoKey = it)) }, secret = true)
-        DeleteKeyButton(tts.doubaoKeyStored) {
-            scope.launch {
-                val cleared = withContext(Dispatchers.IO) { clearDoubaoTtsKey(context) }
-                onMessage(if (cleared) deleted else deleteFailed)
-                if (cleared) {
-                    onTts(TtsForm.load(context))
-                    RuntimeSession.refreshTts(context)
-                }
-            }
-        }
+        VoiceField(keyLabel(tts.doubaoKeyStored), tts.doubaoKey, { state.tts = tts.copy(doubaoKey = it) }, secret = true)
+        DeleteKeyButton(tts.doubaoKeyStored) { state.deleteKey(VoiceKey.DOUBAO, deleted) { state.tts = TtsForm.of(it) } }
     }
 }
 
@@ -980,3 +921,17 @@ private val DOUBAO_SPEEDS = listOf(
     R.string.voice_speed_very_fast to 50,
 )
 private const val DOUBAO_VOICES_PER_ROW = 4
+
+/** [SettingsOption.summary] the server gives MiMo's Chinese voices. */
+private const val CHINESE_VOICE = "zh"
+
+/** Android's page for the system speech engine. */
+private const val TTS_SETTINGS_ACTION = "com.android.settings.TTS_SETTINGS"
+
+@get:StringRes
+private val TtsProvider.screenName: Int
+    get() = when (this) {
+        TtsProvider.MIMO -> R.string.tts_provider_mimo
+        TtsProvider.DOUBAO -> R.string.tts_provider_doubao
+        TtsProvider.SYSTEM -> R.string.tts_provider_system
+    }

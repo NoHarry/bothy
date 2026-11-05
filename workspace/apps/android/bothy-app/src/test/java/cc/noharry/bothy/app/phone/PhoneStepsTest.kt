@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.phone
 
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

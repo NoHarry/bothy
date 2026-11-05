@@ -2,27 +2,25 @@ package cc.noharry.bothy.app.phone
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,22 +34,22 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.A2aClientState
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aClientActions
 import cc.noharry.bothy.app.a2a.A2aClientPane
-import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.console.ConsoleActions
-import cc.noharry.bothy.app.console.SettingsSectionContent
-import cc.noharry.bothy.app.console.switchColors
-import cc.noharry.bothy.app.console.labelRes
+import cc.noharry.bothy.app.console.ConsoleAppearance
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
-import cc.noharry.bothy.app.console.ConsoleAppearance
 import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.console.SettingsSection
-import cc.noharry.bothy.app.session.UiState
-import cc.noharry.bothy.app.voice.WakeWord
+import cc.noharry.bothy.app.console.SettingsSectionContent
+import cc.noharry.bothy.app.console.labelRes
+import cc.noharry.bothy.app.console.switchColors
+import cc.noharry.bothy.protocol.voice
 
 /**
  * Settings on a phone, as the phone design draws them: what is changed most (the theme, holding the mic, the wake
@@ -59,14 +57,14 @@ import cc.noharry.bothy.app.voice.WakeWord
  * tablet's own settings for it ([SettingsSectionContent]).
  */
 @Composable
-internal fun PhoneSettings(state: UiState, actions: ConsoleActions, onBack: () -> Unit) {
+internal fun PhoneSettings(state: ServerState, actions: ConsoleActions, onBack: () -> Unit) {
     var sectionName by rememberSaveable { mutableStateOf<String?>(null) }
     val section = sectionName?.let { SettingsSection.valueOf(it) }
     val open = { next: SettingsSection -> sectionName = next.name }
     BackHandler(enabled = section != null) { sectionName = null }
     if (section == null) {
         PhonePage(stringResource(R.string.common_settings), onBack) {
-            SettingsHome(state, Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), open)
+            SettingsHome(state, actions, Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), open)
         }
     } else {
         PhonePage(stringResource(section.label), onBack = { sectionName = null }) {
@@ -85,7 +83,7 @@ internal fun PhoneA2a(state: A2aClientState, actions: A2aClientActions, onBack: 
 }
 
 @Composable
-private fun SettingsHome(state: UiState, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
+private fun SettingsHome(state: ServerState, actions: ConsoleActions, modifier: Modifier, onOpen: (SettingsSection) -> Unit) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         HomeGroup(stringResource(R.string.settings_group_appearance)) {
             val context = LocalContext.current
@@ -102,7 +100,7 @@ private fun SettingsHome(state: UiState, modifier: Modifier, onOpen: (SettingsSe
             HomeRow(stringResource(R.string.voice_mic_hold), stringResource(R.string.voice_hold_to_talk)) {
                 Text(stringResource(R.string.common_on), style = ConsoleType.meta, color = ConsoleColors.accent, fontWeight = FontWeight.SemiBold)
             }
-            WakeRow()
+            WakeRow(state, actions)
         }
         HomeGroup(stringResource(R.string.settings_group_model)) {
             val model = state.configEditor.model.ifBlank { stringResource(R.string.console_choose_model) }
@@ -166,12 +164,9 @@ private fun Chevron() {
 
 /** The wake word, applied at once as in 设置 → 语音. */
 @Composable
-private fun WakeRow() {
-    val context = LocalContext.current
-    val enabled by WakeWord.enabled.collectAsState()
-    LaunchedEffect(Unit) { WakeWord.load(context) }
+private fun WakeRow(state: ServerState, actions: ConsoleActions) {
     HomeRow(stringResource(R.string.settings_wake_word), stringResource(R.string.settings_wake_word_note)) {
-        Switch(checked = enabled, onCheckedChange = { WakeWord.setEnabled(context, it) }, colors = switchColors())
+        Switch(checked = state.voice.wakeWordEnabled, onCheckedChange = actions.setWakeWord, colors = switchColors())
     }
 }
 

@@ -2,13 +2,13 @@ package cc.noharry.bothy.app.phone
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -39,20 +39,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
-import cc.noharry.bothy.app.console.consoleLayoutPolicy
-import cc.noharry.bothy.app.trajectory.TrajectoryScreen
-import cc.noharry.bothy.app.console.labelRes
-import cc.noharry.bothy.app.console.businessToolLineLabel
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
+import cc.noharry.bothy.app.console.businessToolLineLabel
 import cc.noharry.bothy.app.console.color
+import cc.noharry.bothy.app.console.consoleLayoutPolicy
+import cc.noharry.bothy.app.console.labelRes
 import cc.noharry.bothy.app.console.ui.CodeBlock
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.trajectory.TrajectoryScreen
 
 /**
  * The trajectory on a phone, as the phone design draws it: a turn's tool calls as cards (the kind of work, the tool
@@ -60,7 +60,7 @@ import cc.noharry.bothy.app.session.UiState
  * else the latest. The full trajectory, with every session and run, is one tap further; back from it returns to the cards.
  */
 @Composable
-internal fun PhoneTrajectory(state: UiState, actions: ConsoleActions, turn: Long?, onBack: () -> Unit) {
+internal fun PhoneTrajectory(state: ServerState, actions: ConsoleActions, turn: Long?, onBack: () -> Unit) {
     var full by rememberSaveable { mutableStateOf(false) }
     BackHandler(enabled = full) { full = false }
     PhonePage(stringResource(R.string.console_view_trajectory), onBack = { if (full) full = false else onBack() }) {
@@ -75,7 +75,7 @@ internal fun PhoneTrajectory(state: UiState, actions: ConsoleActions, turn: Long
 }
 
 @Composable
-private fun TurnCalls(state: UiState, turn: Long?, onFull: () -> Unit, modifier: Modifier) {
+private fun TurnCalls(state: ServerState, turn: Long?, onFull: () -> Unit, modifier: Modifier) {
     val calls = remember(state.items, turn) { turnCalls(state.items, turn) }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         item(key = "summary") {

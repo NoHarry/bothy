@@ -10,28 +10,7 @@
     <string name="companion_service_custom">Custom (OpenAI-compatible)</string>
     <string name="companion_service_custom_hint">Any OpenAI-compatible /chat/completions service</string>
     <string name="companion_mode_observe">Log only, don\'t route (see whether the judgement is right first)</string>
-    <string name="companion_mode_observe_short">Log only, don\'t route</string>
     <string name="companion_mode_route">Send small talk to the companion service</string>
-
-    <string name="companion_error_threshold">Sensitivity must be between 0.5 and 1</string>
-    <string name="companion_error_no_address">%1$s has no address yet</string>
-    <string name="companion_error_no_model">%1$s has no model yet</string>
-    <string name="companion_error_no_key">%1$s has no API key</string>
-    <string name="companion_error_key_whitespace">The API key can\'t contain whitespace</string>
-    <string name="companion_error_key_not_saved">Couldn\'t save the API key</string>
-    <string name="companion_error_url_invalid">The address isn\'t valid</string>
-    <string name="companion_error_url_https">The address must start with https:// (http:// only for this device)</string>
-    <string name="companion_error_extra_not_object">Extra parameters must be a JSON object</string>
-    <string name="companion_error_extra_invalid">Extra parameters aren\'t valid JSON</string>
-    <plurals name="companion_error_timeout">
-        <item quantity="one">The companion service didn\'t answer for %1$d second</item>
-        <item quantity="other">The companion service didn\'t answer for %1$d seconds</item>
-    </plurals>
-    <string name="companion_http_with_message">HTTP %1$d: %2$s</string>
-    <string name="companion_http_with_hint">%1$s. %2$s</string>
-    <string name="companion_http_hint_key">Check the API key (a Qwen sk-ws- workspace key needs the workspace address)</string>
-    <string name="companion_http_hint_address">Check the address and model name</string>
-
     <string name="companion_intro">Small talk in voice (chatting, venting, jokes) goes to the companion service and is answered in Bothy\'s own voice; requests to do something still go to Bothy. Jev gives each turn one more score for “is this small talk”, and turns that mention navigation, the AC, playing music and the like, or that come right after Bothy asked a question, always go to Bothy; when the companion service fails or judges that something should be done, the turn goes back to Bothy too.</string>
     <string name="companion_enable">Turn on companion chat</string>
     <string name="companion_service">Companion service</string>
@@ -58,16 +37,34 @@
     <string name="companion_decision_line">%1$s %2$s · %3$s · “%4$s”</string>
     <string name="companion_route_companion">Companion</string>
     <string name="companion_route_agent">Bothy</string>
-    <string name="companion_reason_off">off</string>
-    <string name="companion_reason_not_scored">not scored</string>
-    <string name="companion_reason_below">small_talk %1$.2f &lt; %2$.2f</string>
-    <string name="companion_reason_task_word">task word 「%1$s」</string>
-    <string name="companion_reason_answers_agent">answers the agent\'s question</string>
-    <string name="companion_reason_observing">observe: would chat (%1$.2f)</string>
-    <string name="companion_reason_small_talk">small_talk %1$.2f</string>
-
-    <string name="companion_check_off">Off</string>
-    <string name="companion_check_realtime">Not used in end-to-end mode: Doubao answers small talk itself</string>
     <string name="companion_check_empty">%1$s · the service replied with nothing</string>
-    <string name="companion_check_ok">%1$s · replied in %2$d ms</string>
+    <string name="companion_check_off">Off</string>
+    <string name="companion_check_ok">%1$s · replied in %2$s ms</string>
+    <string name="companion_check_realtime">Not used in end-to-end mode: Doubao answers small talk itself</string>
+    <string name="companion_error_extra_invalid">Extra parameters aren\'t valid JSON</string>
+    <string name="companion_error_extra_not_object">Extra parameters must be a JSON object</string>
+    <string name="companion_error_key_not_saved">Couldn\'t save the API key</string>
+    <string name="companion_error_key_whitespace">The API key can\'t contain whitespace</string>
+    <string name="companion_error_no_address">%1$s has no address yet</string>
+    <string name="companion_error_no_key">%1$s has no API key</string>
+    <string name="companion_error_no_model">%1$s has no model yet</string>
+    <string name="companion_error_threshold">Sensitivity must be between 0.5 and 1</string>
+    <plurals name="companion_error_timeout">
+        <item quantity="one">The companion service didn\'t answer for %1$s second</item>
+        <item quantity="other">The companion service didn\'t answer for %1$s seconds</item>
+    </plurals>
+    <string name="companion_error_url_https">The address must start with https:// (http:// only for this device)</string>
+    <string name="companion_error_url_invalid">The address isn\'t valid</string>
+    <string name="companion_http_hint_address">Check the address and model name</string>
+    <string name="companion_http_hint_key">Check the API key (a Qwen sk-ws- workspace key needs the workspace address)</string>
+    <string name="companion_http_with_hint">%1$s. %2$s</string>
+    <string name="companion_http_with_message">HTTP %1$s: %2$s</string>
+    <string name="companion_mode_observe_short">Log only, don\'t route</string>
+    <string name="companion_reason_answers_agent">answers the agent\'s question</string>
+    <string name="companion_reason_below">small_talk %1$.2f &lt; %2$.2f</string>
+    <string name="companion_reason_not_scored">not scored</string>
+    <string name="companion_reason_observing">observe: would chat (%1$.2f)</string>
+    <string name="companion_reason_off">off</string>
+    <string name="companion_reason_small_talk">small_talk %1$.2f</string>
+    <string name="companion_reason_task_word">task word 「%1$s」</string>
 </resources>

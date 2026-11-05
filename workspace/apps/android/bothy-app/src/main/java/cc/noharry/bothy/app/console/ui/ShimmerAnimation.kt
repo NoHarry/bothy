@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
-import cc.noharry.bothy.app.a2ui.initialValue
+import cc.noharry.agent.appserver.protocol.view.initialValue
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.color
 

@@ -27,7 +27,6 @@
     <string name="memory_clear_all_failed">Not everything was cleared: a task didn\'t stop or storage failed. Please try again.</string>
     <string name="memory_cleared">Memories cleared</string>
     <string name="memory_clear_failed">Not cleared: device storage failed</string>
-
     <string name="memory_summary_empty">Nothing remembered yet</string>
     <plurals name="memory_summary_count">
         <item quantity="one">Bothy remembers %1$d thing</item>
@@ -41,7 +40,6 @@
     <string name="memory_metric_said">From you</string>
     <string name="memory_metric_kinds">Topics</string>
     <string name="memory_metric_latest">Last updated</string>
-
     <string name="memory_category_identity">Name and identity</string>
     <string name="memory_category_identity_hint">What to call you, your job, your birthday</string>
     <string name="memory_category_places">Places</string>
@@ -58,7 +56,6 @@
     <string name="memory_category_other_hint">Other lasting information</string>
     <string name="memory_source_said">You said</string>
     <string name="memory_source_typed">Added by hand</string>
-
     <string name="memory_back">‹ Memory</string>
     <string name="memory_info_source">Source</string>
     <string name="memory_info_said">Your words</string>
@@ -76,15 +73,6 @@
     <string name="memory_note_added">Added</string>
     <string name="memory_note_saved">Saved</string>
     <string name="memory_note_deleted">Deleted</string>
-    <string name="memory_refused_empty">The content is empty</string>
-    <string name="memory_refused_too_long">Too long: a memory is at most %1$d characters</string>
-    <string name="memory_refused_secret">Passwords, verification codes and the like aren\'t remembered</string>
-    <string name="memory_refused_long_number">ID numbers, bank card numbers and other long numbers aren\'t remembered</string>
-    <string name="memory_refused_full">Already %1$d memories, which is the most: delete some in Settings → Memory first</string>
-    <string name="memory_refused_category_full">“%1$s” already has %2$d memories: change or delete an old one first</string>
-    <string name="memory_refused_missing">No such memory (%1$s)</string>
-    <string name="memory_refused_not_saved">Not saved: device storage failed</string>
-
     <string name="memory_lessons_note">Lessons Bothy sums up after finishing tasks, such as which service answers a kind of request fastest or which one keeps failing. A lesson takes effect only after it holds up in several tasks; it is used only to get things done faster and more reliably and has nothing to do with your personal information.</string>
     <string name="memory_lessons_loading">Loading…</string>
     <string name="memory_lessons_empty">No lessons yet</string>
@@ -94,4 +82,12 @@
         <item quantity="one">%1$s · confidence %2$d%% · verified %3$d time</item>
         <item quantity="other">%1$s · confidence %2$d%% · verified %3$d times</item>
     </plurals>
+    <string name="memory_refused_category_full">“%1$s” already has %2$s memories: change or delete an old one first</string>
+    <string name="memory_refused_empty">The content is empty</string>
+    <string name="memory_refused_full">Already %1$s memories, which is the most: delete some in Settings → Memory first</string>
+    <string name="memory_refused_long_number">ID numbers, bank card numbers and other long numbers aren\'t remembered</string>
+    <string name="memory_refused_missing">No such memory (%1$s)</string>
+    <string name="memory_refused_not_saved">Not saved: device storage failed</string>
+    <string name="memory_refused_secret">Passwords, verification codes and the like aren\'t remembered</string>
+    <string name="memory_refused_too_long">Too long: a memory is at most %1$s characters</string>
 </resources>

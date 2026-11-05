@@ -98,20 +98,29 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.DelegationView
+import cc.noharry.agent.appserver.protocol.view.CARDS_PER_ROW
+import cc.noharry.agent.appserver.protocol.view.DisplayChoice
+import cc.noharry.agent.appserver.protocol.view.HIDDEN_THINKING_STEP
+import cc.noharry.agent.appserver.protocol.view.OVERLAY_GRID_MIN_CHOICES
+import cc.noharry.agent.appserver.protocol.view.OverlayBoardRow
+import cc.noharry.agent.appserver.protocol.view.OverlayPhase
+import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.view.OverlayPlanStatus
+import cc.noharry.agent.appserver.protocol.view.OverlaySize
+import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
+import cc.noharry.agent.appserver.protocol.view.WidgetCard
+import cc.noharry.agent.appserver.protocol.view.overlayCardRows
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.a2ui.A2uiChoice
-import cc.noharry.bothy.app.a2ui.DisplayChoice
-import cc.noharry.bothy.app.a2ui.WidgetCard
 import cc.noharry.bothy.app.a2ui.titleAndDetail
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.durationLabelText
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.console.ui.icon
+import cc.noharry.bothy.app.console.ui.prettyToolPayload
 import cc.noharry.bothy.app.image.rememberPicture
-import cc.noharry.bothy.app.plans.matches
-import cc.noharry.bothy.app.runtime.append
-import cc.noharry.bothy.app.tools.prettyToolPayload
+import cc.noharry.bothy.protocol.view.OverlayHud
 
 /** Window-side state the stage cannot derive from the HUD. */
 internal data class OverlayUi(

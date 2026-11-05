@@ -17,6 +17,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,10 +25,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.CapabilityRequests
+import cc.noharry.agent.appserver.protocol.EnabledParams
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.RuntimeSkillView
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -36,18 +40,14 @@ import cc.noharry.bothy.app.console.SettingsNote
 import cc.noharry.bothy.app.console.SettingsSaveBar
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.switchColors
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.skills.CustomSkillForm
-import cc.noharry.bothy.app.skills.CustomSkills
-import cc.noharry.bothy.app.skills.RuntimeSkill
-import cc.noharry.bothy.app.skills.loadRuntimeSkills
-import cc.noharry.bothy.app.skills.runtimeSkillText
-import cc.noharry.bothy.app.skills.saveRuntimeSkill
-import cc.noharry.bothy.app.voice.JevConfig
-import cc.noharry.bothy.app.voice.JevMode
-import cc.noharry.bothy.app.voice.loadJevConfig
-import cc.noharry.bothy.app.voice.saveJevToolSearch
+import cc.noharry.bothy.app.words
+import cc.noharry.bothy.protocol.JevSearchMode
+import cc.noharry.bothy.protocol.JevSettings
+import cc.noharry.bothy.protocol.ToolSearchRequests
+import cc.noharry.bothy.protocol.toolSearch
 
 /**
  * Settings → 工具与技能 → 运行时技能, in two groups (owner 2026-10-20: 「自己后续添加的需要可以删除，预置的不行，可以区分下」):
@@ -56,20 +56,19 @@ import cc.noharry.bothy.app.voice.saveJevToolSearch
  */
 @Composable
 internal fun RuntimeSkillsPane() {
-    val context = LocalContext.current
-    var skills by remember { mutableStateOf(loadRuntimeSkills(context)) }
+    val server = LocalServer.current
+    val skills = server.state.preferences.runtimeSkills
     var expanded by remember { mutableStateOf<String?>(null) }
     var editing by rememberSaveable { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf<String?>(null) }
     editing?.let { name ->
-        CustomSkillForm(name.ifEmpty { null }, onDone = { editing = null; skills = loadRuntimeSkills(context) }, Modifier.fillMaxSize())
+        CustomSkillForm(name.ifEmpty { null }, onDone = { editing = null }, Modifier.fillMaxSize())
         return
     }
-    val (added, preset) = skills.partition { it.file != null }
-    val row = @Composable { skill: RuntimeSkill, actions: (@Composable () -> Unit)? ->
+    val (added, preset) = skills.partition { it.custom }
+    val row = @Composable { skill: RuntimeSkillView, actions: (@Composable () -> Unit)? ->
         SkillRow(skill, expanded == skill.id, { expanded = if (expanded == skill.id) null else skill.id }, actions) {
-            saveRuntimeSkill(context, skill.id, it)
-            skills = loadRuntimeSkills(context)
+            server.send(CapabilityRequests.SET_SKILL, EnabledParams(skill.id, it))
         }
     }
     Column(
@@ -90,9 +89,8 @@ internal fun RuntimeSkillsPane() {
                 // Two taps: the first asks, the second deletes.
                 TextButton(onClick = {
                     if (deleting == skill.id) {
-                        CustomSkills.delete(context, skill.id)
+                        server.send(CapabilityRequests.DELETE_SKILL, IdParams(skill.id))
                         deleting = null
-                        skills = loadRuntimeSkills(context)
                     } else {
                         deleting = skill.id
                     }
@@ -117,13 +115,17 @@ private fun SkillGroupTitle(@StringRes title: Int, @StringRes note: Int) {
 /** One skill: its switch, its text on tap, and [actions] (编辑 and 删除) for one added on the device. */
 @Composable
 private fun SkillRow(
-    skill: RuntimeSkill,
+    skill: RuntimeSkillView,
     expanded: Boolean,
     onTap: () -> Unit,
     actions: (@Composable () -> Unit)?,
     onSwitch: (Boolean) -> Unit,
 ) {
-    val context = LocalContext.current
+    val server = LocalServer.current
+    var text by remember(skill.id) { mutableStateOf<String?>(null) }
+    LaunchedEffect(expanded, skill.id) {
+        if (expanded && text == null) server.send(CapabilityRequests.SKILL_TEXT, IdParams(skill.id)) { text = it.text }
+    }
     Column {
         Row(Modifier.fillMaxWidth().padding(Dimens.spaceMd), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f).clickable(onClick = onTap)) {
@@ -141,7 +143,7 @@ private fun SkillRow(
             Switch(skill.enabled, onCheckedChange = onSwitch, colors = switchColors())
         }
         actions?.let { Row(Modifier.padding(horizontal = Dimens.spaceSm)) { it() } }
-        if (expanded) Text(runtimeSkillText(context, skill), Modifier.padding(Dimens.spaceMd), color = ConsoleColors.text)
+        if (expanded) text?.let { Text(it, Modifier.padding(Dimens.spaceMd), color = ConsoleColors.text) }
         HorizontalDivider(color = ConsoleColors.borderSubtle)
     }
 }
@@ -153,16 +155,17 @@ private fun SkillRow(
  */
 @Composable
 internal fun JevToolSearchPane() {
-    val context = LocalContext.current
+    val server = LocalServer.current
     val resources = LocalResources.current
-    var saved by remember { mutableStateOf(loadJevConfig(context)) }
+    val saved = server.state.toolSearch
     var draft by remember { mutableStateOf(ToolSearchDraft.of(saved)) }
     var note by remember { mutableStateOf(SettingsNote()) }
-    val apply = { next: JevConfig ->
-        val error = saveJevToolSearch(context, next)
-        note = SettingsNote(error ?: resources.getString(R.string.runtime_saved_next_request), error = error != null)
-        if (error == null) saved = loadJevConfig(context)
-        error == null
+    val apply = { next: JevSettings, saved: () -> Unit ->
+        server.send(ToolSearchRequests.SET, next) { result ->
+            val error = result.error?.let(resources::words)
+            note = SettingsNote(error ?: resources.getString(R.string.runtime_saved_next_request), error = error != null)
+            if (error == null) saved()
+        }
     }
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -170,9 +173,9 @@ internal fun JevToolSearchPane() {
             verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm),
         ) {
             ToolSearchIntro(saved)
-            JevEnabledSwitch(saved.enabled) { apply(saved.copy(enabled = it)) }
-            JevModeSelector(saved.mode) { apply(saved.copy(mode = it)) }
-            if (saved.mode != JevMode.FLAT) {
+            JevEnabledSwitch(saved.enabled) { apply(saved.copy(enabled = it)) {} }
+            JevModeSelector(saved.mode) { apply(saved.copy(mode = it)) {} }
+            if (saved.mode != JevSearchMode.FLAT) {
                 JevField(stringResource(R.string.runtime_jev_domain_min_score), draft.domainMinScore) { draft = draft.copy(domainMinScore = it) }
             }
             JevField(stringResource(R.string.runtime_jev_min_score), draft.minScore) { draft = draft.copy(minScore = it) }
@@ -181,7 +184,10 @@ internal fun JevToolSearchPane() {
         SettingsSaveBar(
             unsaved = draft != ToolSearchDraft.of(saved),
             note = note,
-            onSave = { if (apply(draft.applyTo(saved))) draft = ToolSearchDraft.of(saved) },
+            onSave = {
+                val next = draft.applyTo(saved)
+                apply(next) { draft = ToolSearchDraft.of(next) }
+            },
             onDiscard = {
                 draft = ToolSearchDraft.of(saved)
                 note = SettingsNote(resources.getString(R.string.runtime_changes_discarded))
@@ -191,7 +197,7 @@ internal fun JevToolSearchPane() {
 }
 
 @Composable
-private fun ToolSearchIntro(saved: JevConfig) {
+private fun ToolSearchIntro(saved: JevSettings) {
     Text(stringResource(R.string.runtime_tool_search_intro), color = ConsoleColors.muted)
     Text(
         if (saved.hasApiKey) stringResource(R.string.runtime_tool_search_connection, saved.model, saved.endpoint)
@@ -203,14 +209,14 @@ private fun ToolSearchIntro(saved: JevConfig) {
 
 /** The numbers as typed; they stay text until saved, where validation says what is wrong. */
 private data class ToolSearchDraft(val minScore: String, val maxTools: String, val domainMinScore: String) {
-    fun applyTo(saved: JevConfig): JevConfig = saved.copy(
+    fun applyTo(saved: JevSettings): JevSettings = saved.copy(
         minScore = minScore.toDoubleOrNull() ?: Double.NaN,
         maxTools = maxTools.toIntOrNull() ?: 0,
         domainMinScore = domainMinScore.toDoubleOrNull() ?: Double.NaN,
     )
 
     companion object {
-        fun of(config: JevConfig) = ToolSearchDraft(config.minScore.toString(), config.maxTools.toString(), config.domainMinScore.toString())
+        fun of(config: JevSettings) = ToolSearchDraft(config.minScore.toString(), config.maxTools.toString(), config.domainMinScore.toString())
     }
 }
 
@@ -223,12 +229,12 @@ private fun JevEnabledSwitch(enabled: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun JevModeSelector(mode: JevMode, onChange: (JevMode) -> Unit) {
+private fun JevModeSelector(mode: JevSearchMode, onChange: (JevSearchMode) -> Unit) {
     Column {
-        JevMode.entries.forEach { option ->
+        JevSearchMode.entries.forEach { option ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RadioButton(selected = mode == option, onClick = { onChange(option) })
-                Text(stringResource(option.label), Modifier.clickable { onChange(option) }, color = ConsoleColors.text)
+                Text(stringResource(option.labelRes()), Modifier.clickable { onChange(option) }, color = ConsoleColors.text)
             }
         }
     }
@@ -240,4 +246,11 @@ private fun JevField(label: String, value: String, change: (String) -> Unit) {
         value = value, onValueChange = change, label = { Text(label) }, modifier = Modifier.fillMaxWidth(),
         singleLine = true, colors = outlinedTextFieldColors(),
     )
+}
+
+@StringRes
+private fun JevSearchMode.labelRes(): Int = when (this) {
+    JevSearchMode.FLAT -> R.string.voice_jev_mode_flat
+    JevSearchMode.TWO_STAGE -> R.string.voice_jev_mode_two_stage
+    JevSearchMode.TWO_STAGE_SUBDOMAINS -> R.string.voice_jev_mode_two_stage_subdomains
 }

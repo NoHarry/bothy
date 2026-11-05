@@ -1,5 +1,3 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.trajectory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -18,8 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,14 +31,22 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.SettingsRequests
+import cc.noharry.agent.appserver.protocol.TrajectoryHealth
+import cc.noharry.agent.appserver.protocol.TrajectoryRawParams
+import cc.noharry.agent.appserver.protocol.TrajectoryRecord
+import cc.noharry.agent.appserver.protocol.view.TrajectoryInspectorTab
+import cc.noharry.agent.appserver.protocol.view.inspectorTabsFor
+import cc.noharry.agent.appserver.protocol.view.paginateRawText
+import cc.noharry.agent.appserver.protocol.view.trajectoryInspectorSummaryEntries
+import cc.noharry.agent.appserver.protocol.view.trajectoryInspectorTimingEntries
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.runtime.formatWorkedDuration
+import cc.noharry.bothy.app.frontend.LocalServer
 
 /**
  * Record details projected from the same canonical SessionEvent as the ledger.
@@ -233,7 +241,20 @@ private fun PreviewTab(preview: String?, hashKeys: List<String>, record: Traject
 @Composable
 private fun RawTab(record: TrajectoryRecord) {
     val colors = ConsoleColors
-    val raw = record.rich?.rawText.orEmpty()
+    val server = LocalServer.current
+    // The event in full is asked for when the tab shows it: sent with every record, it would ride each change of a run.
+    var loaded by remember(record.id) { mutableStateOf<String?>(null) }
+    LaunchedEffect(record.id) {
+        val eventId = record.eventId
+        if (eventId == null) {
+            loaded = ""
+        } else {
+            server.send(SettingsRequests.TRAJECTORY_RAW, TrajectoryRawParams(record.sessionId, eventId), onRefused = { loaded = "" }) {
+                loaded = it.text.orEmpty()
+            }
+        }
+    }
+    val raw = loaded ?: return
     if (raw.isBlank()) {
         Text(
             text = stringResource(R.string.trajectory_no_payload),
@@ -271,75 +292,6 @@ private fun RawTab(record: TrajectoryRecord) {
 private fun TimingTab(record: TrajectoryRecord, durationMs: Long?) {
     TrajectoryMetaRow(trajectoryInspectorTimingEntries(record, durationMs))
 }
-
-internal fun trajectoryInspectorSummaryEntries(
-    record: TrajectoryRecord,
-    health: TrajectoryHealth?,
-    durationMs: Long?,
-): List<Pair<String, String>> = buildList {
-    add("id" to record.id.value)
-    add("kind" to record.kind.name)
-    add("lane" to record.lane.name)
-    record.status?.let { add("status" to it) }
-    add("sequence" to (record.sequence?.toString() ?: "not persisted"))
-    add("duration" to formatTrajectoryDurationLabel(durationMs))
-    add("sources" to record.sources.joinToString { it.name })
-    record.correlation.toolCallId?.let { add("toolCallId" to it) }
-    record.correlation.modelCallId?.let { add("modelCallId" to it) }
-    record.correlation.lifecyclePhase?.let { add("phase" to it) }
-    if (record.sourceEventSequences.isNotEmpty()) {
-        add("causedBy" to record.sourceEventSequences.joinToString())
-    }
-    health?.let { add("eventLog" to it.badgeLabel) }
-    add("details" to record.richAvailability.name)
-}
-
-internal fun trajectoryInspectorTimingEntries(
-    record: TrajectoryRecord,
-    durationMs: Long?,
-): List<Pair<String, String>> = buildList {
-    add("time" to (record.occurredAtEpochMillis?.toString() ?: "unknown"))
-    add("timeQuality" to record.timeQuality.name)
-    add("duration" to formatTrajectoryDurationLabel(durationMs))
-    durationMs?.let { add("durationMs" to it.toString()) }
-    record.rich?.timing?.forEach { (key, value) ->
-        if (key != DURATION_MS_KEY) add(key to value.toString())
-    }
-}
-
-internal fun trajectoryDurationMs(
-    record: TrajectoryRecord,
-    siblings: List<TrajectoryRecord>,
-): Long? {
-    recordedDurationMs(record)?.let { return it }
-    toolCallDurationMs(siblings, record.correlation.toolCallId)?.let { return it }
-    val modelId = record.correlation.modelCallId ?: return null
-    return siblings.firstNotNullOfOrNull { sibling ->
-        sibling.takeIf { it.correlation.modelCallId == modelId }?.let(::recordedDurationMs)
-    }
-}
-
-internal fun recordedDurationMs(record: TrajectoryRecord): Long? =
-    record.safeMetadata[DURATION_MS_KEY]?.toLongOrNull()
-        ?: record.rich?.timing?.get(DURATION_MS_KEY)
-
-internal fun formatTrajectoryDuration(durationMs: Long): String {
-    val ms = durationMs.coerceAtLeast(0L)
-    if (ms < MILLIS_PER_SECOND) return "${ms}ms"
-    if (ms < MILLIS_PER_MINUTE) {
-        val hundredths = (ms % MILLIS_PER_SECOND) / 10L
-        return "${ms / MILLIS_PER_SECOND}.${hundredths.toString().padStart(2, '0')}s"
-    }
-    return formatWorkedDuration(ms)
-}
-
-internal fun formatTrajectoryDurationLabel(durationMs: Long?): String =
-    durationMs?.let(::formatTrajectoryDuration) ?: UNKNOWN_DURATION_LABEL
-
-private const val DURATION_MS_KEY = "durationMs"
-private const val UNKNOWN_DURATION_LABEL = "—"
-private const val MILLIS_PER_SECOND = 1000L
-private const val MILLIS_PER_MINUTE = 60_000L
 
 @Composable
 private fun InspectorTabChip(tab: TrajectoryInspectorTab, selected: Boolean, onClick: () -> Unit) {

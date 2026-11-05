@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.phone
 
+import cc.noharry.agent.appserver.protocol.SessionSummary
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.session.SessionSummary
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

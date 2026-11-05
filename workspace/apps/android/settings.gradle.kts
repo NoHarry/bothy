@@ -24,6 +24,11 @@ if (agentRuntimeDir.isNotEmpty() && file(agentRuntimeDir).resolve("settings.grad
     includeBuild(agentRuntimeDir)
 }
 
+include(":agent-app-protocol")
+include(":bothy-protocol")
+include(":agent-app-server")
+include(":bothy-server")
+include(":agent-app-sample")
 include(":bothy-app")
 include(":bothy-voice")
 include(":bothy-llm")

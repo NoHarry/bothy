@@ -21,7 +21,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +30,16 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.LessonEntry
+import cc.noharry.agent.appserver.protocol.MAX_MEMORY_CHARS
+import cc.noharry.agent.appserver.protocol.MemoryCategory
+import cc.noharry.agent.appserver.protocol.MemoryLessons
+import cc.noharry.agent.appserver.protocol.MemoryRequests
+import cc.noharry.agent.appserver.protocol.MemoryWriteParams
+import cc.noharry.agent.appserver.protocol.MemoryWriteResult
+import cc.noharry.agent.appserver.protocol.UserMemory
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -38,31 +47,26 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.SettingsNote
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.console.loadRuntimeMemoryEvidence
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.evidence.RuntimeMemoryEvidence
-import cc.noharry.bothy.app.session.LessonEntry
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.usage.UsageCard
 import cc.noharry.bothy.app.usage.UsageSegmented
+import cc.noharry.bothy.app.words
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** One memory's own page: what it says, where it came from and when, then changing or deleting it. */
 @Composable
 internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val server = LocalServer.current
     var confirmDelete by remember { mutableStateOf(false) }
     TextButton(onClick = onBack) { Text(stringResource(R.string.memory_back)) }
     UsageCard(null) {
         CategoryPill(memory.category)
         Text(memory.content, style = ConsoleType.hero, color = ConsoleColors.text)
         HorizontalDivider(color = ConsoleColors.borderSubtle)
-        InfoRow(stringResource(R.string.memory_info_source), stringResource(memory.source.label))
+        InfoRow(stringResource(R.string.memory_info_source), stringResource(memory.source.screenLabel))
         memory.said?.let { said ->
             InfoRow(stringResource(R.string.memory_info_said), stringResource(R.string.memory_quoted, said))
         }
@@ -73,8 +77,8 @@ internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
     }
     UsageCard(stringResource(R.string.memory_edit_title)) {
         val saveLabel = stringResource(R.string.memory_save_changes)
-        MemoryEditor(memory.category, memory.content, saveLabel = saveLabel, resetOnSave = false) { category, content ->
-            UserMemoryStore.write(context) { it.update(memory.id, content, category, MemorySource.TYPED) }
+        MemoryEditor(memory.category, memory.content, saveLabel = saveLabel, resetOnSave = false) { category, content, done ->
+            server.send(MemoryRequests.WRITE, MemoryWriteParams(category, content, memory.id), onAnswer = done)
         }
     }
     TextButton(onClick = { confirmDelete = true }) {
@@ -88,7 +92,7 @@ internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
             confirmButton = {
                 TextButton(onClick = {
                     confirmDelete = false
-                    scope.launch { withContext(Dispatchers.IO) { UserMemoryStore.write(context) { it.forget(memory.id) } } }
+                    server.send(MemoryRequests.DELETE, IdParams(memory.id))
                 }) { Text(stringResource(R.string.common_delete), color = ConsoleColors.danger) }
             },
             dismissButton = {
@@ -101,36 +105,36 @@ internal fun MemoryDetail(memory: UserMemory, onBack: () -> Unit) {
 /** Typing a memory by hand into [category] (changeable here); back to the profile once saved. */
 @Composable
 internal fun MemoryAdd(category: MemoryCategory, onDone: () -> Unit) {
-    val context = LocalContext.current
+    val server = LocalServer.current
     TextButton(onClick = onDone) { Text(stringResource(R.string.memory_back)) }
     Text(stringResource(R.string.memory_add_title), style = ConsoleType.hero, color = ConsoleColors.text)
     Text(stringResource(R.string.memory_add_note), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
     UsageCard(null) {
         val saveLabel = stringResource(R.string.common_add)
-        MemoryEditor(category, "", saveLabel = saveLabel, resetOnSave = true) { kind, content ->
-            UserMemoryStore.write(context) { it.remember(kind, content, MemorySource.TYPED) }.also { result ->
-                if (result is MemoryWrite.Saved) withContext(Dispatchers.Main) { onDone() }
+        MemoryEditor(category, "", saveLabel = saveLabel, resetOnSave = true) { kind, content, done ->
+            server.send(MemoryRequests.WRITE, MemoryWriteParams(kind, content)) { result ->
+                done(result)
+                if (result.saved) onDone()
             }
         }
     }
 }
 
-/** The kind as pills and the words in a field; [save] runs off the main thread and its refusal shows under the field. */
+/** The kind as pills and the words in a field; [save] answers through its callback, and a refusal shows under the field. */
 @Composable
 private fun MemoryEditor(
     initialCategory: MemoryCategory,
     initialContent: String,
     saveLabel: String,
     resetOnSave: Boolean,
-    save: suspend (MemoryCategory, String) -> MemoryWrite,
+    save: (MemoryCategory, String, (MemoryWriteResult) -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     var category by remember(initialCategory) { mutableStateOf(initialCategory) }
     var content by remember(initialContent) { mutableStateOf(initialContent) }
     var note by remember { mutableStateOf(SettingsNote()) }
     Row(Modifier.horizontalScroll(rememberScrollState())) {
-        val labels = MemoryCategory.entries.associateWith { stringResource(it.title) }
+        val labels = MemoryCategory.entries.associateWith { stringResource(it.screenTitle) }
         UsageSegmented(MemoryCategory.entries, category, { labels.getValue(it) }) { category = it }
     }
     OutlinedTextField(
@@ -144,10 +148,9 @@ private fun MemoryEditor(
     Row(verticalAlignment = Alignment.CenterVertically) {
         Button(
             onClick = {
-                scope.launch {
-                    val result = withContext(Dispatchers.IO) { save(category, content) }
+                save(category, content) { result ->
                     note = editorNote(context, result)
-                    if (result is MemoryWrite.Saved && resetOnSave) content = ""
+                    if (result.saved && resetOnSave) content = ""
                 }
             },
             enabled = content.isNotBlank() && (category != initialCategory || content.trim() != initialContent),
@@ -160,33 +163,16 @@ private fun MemoryEditor(
     }
 }
 
-private fun editorNote(context: Context, result: MemoryWrite): SettingsNote = when (result) {
-    is MemoryWrite.Saved ->
-        SettingsNote(context.getString(if (result.created) R.string.memory_note_added else R.string.memory_note_saved))
-    is MemoryWrite.Removed -> SettingsNote(context.getString(R.string.memory_note_deleted))
-    is MemoryWrite.Refused -> SettingsNote(refusalText(context, result), error = true)
-}
-
-/** A refused write in the page's language; [MemoryWrite.Refused.reason] is 小博's. */
-internal fun refusalText(context: Context, refused: MemoryWrite.Refused): String = when (val why = refused.why) {
-    MemoryRefusal.Empty -> context.getString(R.string.memory_refused_empty)
-    MemoryRefusal.TooLong -> context.getString(R.string.memory_refused_too_long, MAX_MEMORY_CHARS)
-    MemoryRefusal.Secret -> context.getString(R.string.memory_refused_secret)
-    MemoryRefusal.LongNumber -> context.getString(R.string.memory_refused_long_number)
-    MemoryRefusal.Full -> context.getString(R.string.memory_refused_full, MAX_MEMORIES)
-    is MemoryRefusal.CategoryFull -> {
-        val title = context.getString(why.category.title)
-        context.getString(R.string.memory_refused_category_full, title, MAX_PER_CATEGORY)
-    }
-    is MemoryRefusal.Missing -> context.getString(R.string.memory_refused_missing, why.id)
-    MemoryRefusal.NotSaved -> context.getString(R.string.memory_refused_not_saved)
-    MemoryRefusal.Arguments -> refused.reason
+private fun editorNote(context: Context, result: MemoryWriteResult): SettingsNote = when {
+    !result.saved -> SettingsNote(result.refusal?.let(context.resources::words).orEmpty(), error = true)
+    result.created -> SettingsNote(context.getString(R.string.memory_note_added))
+    else -> SettingsNote(context.getString(R.string.memory_note_saved))
 }
 
 @Composable
 private fun CategoryPill(category: MemoryCategory) {
     Text(
-        stringResource(category.title),
+        stringResource(category.screenTitle),
         style = ConsoleType.meta,
         color = ConsoleColors.accent,
         modifier = Modifier.background(ConsoleColors.accentSoft, RoundedCornerShape(Dimens.radiusFull))
@@ -208,9 +194,9 @@ private fun InfoRow(label: String, value: String) {
  */
 @Composable
 internal fun MemoryLessonsTab() {
-    val context = LocalContext.current
-    var evidence by remember { mutableStateOf<RuntimeMemoryEvidence?>(null) }
-    LaunchedEffect(Unit) { evidence = withContext(Dispatchers.IO) { runCatching { loadRuntimeMemoryEvidence(context) }.getOrNull() } }
+    val server = LocalServer.current
+    var evidence by remember { mutableStateOf<MemoryLessons?>(null) }
+    LaunchedEffect(Unit) { server.send(MemoryRequests.LESSONS, Empty) { evidence = it } }
     Text(
         stringResource(R.string.memory_lessons_note),
         style = ConsoleType.bodySmall,

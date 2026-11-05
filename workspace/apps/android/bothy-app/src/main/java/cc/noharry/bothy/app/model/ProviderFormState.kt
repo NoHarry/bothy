@@ -3,13 +3,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import cc.noharry.bothy.app.session.ModelProvider
+import cc.noharry.agent.appserver.protocol.ModelProvider
+import cc.noharry.agent.appserver.protocol.ModelSettingsView
+import cc.noharry.agent.appserver.protocol.ProviderConnection
+import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.protocol.normalizeProviderModels
+import cc.noharry.agent.appserver.protocol.parseContextWindow
 
+/**
+ * A provider profile as typed. Each model's context window and image input come from the server ([applySettings]):
+ * until then the window is blank (its default) and images are on.
+ */
 internal class ProviderFormState(
     initial: ProviderDraft,
-    private val loadWindow: (String) -> String = { "" },
-    private val loadImageInput: (String) -> Boolean = { true },
 ) {
+    val id = initial.id
+    /** The profile has a key saved on the server; a blank [apiKey] keeps it. */
+    val hasSavedKey = initial.hasSavedKey
     var label by mutableStateOf(initial.label)
     var provider by mutableStateOf(initial.provider)
     var endpoint by mutableStateOf(initial.endpoint)
@@ -21,11 +31,31 @@ internal class ProviderFormState(
         private set
     var baseUrl by mutableStateOf(initial.baseUrl)
     val windowInputs = mutableStateMapOf<String, String>().apply {
-        modelOptions.forEach { put(it, loadWindow(it)) }
+        modelOptions.forEach { put(it, "") }
     }
     /** 图片输入 per model: true = 文本+图片 (default), false = 仅文本. */
     val imageInputs = mutableStateMapOf<String, Boolean>().apply {
-        modelOptions.forEach { put(it, loadImageInput(it)) }
+        modelOptions.forEach { put(it, true) }
+    }
+    /** Each model's own context window, for the field's placeholder. */
+    val defaultWindows = mutableStateMapOf<String, Long>()
+    private val loaded = mutableSetOf<String>()
+
+    /** The listed models whose settings the server has not given yet. */
+    fun modelsToLoad(): List<String> = modelOptions.filter { it !in loaded }
+
+    /** The server's settings for [models], each taken once. */
+    fun applySettings(models: List<ModelSettingsView>) {
+        models.filter { loaded.add(it.model) }.forEach { settings ->
+            windowInputs[settings.model] = settings.windowOverride?.toString().orEmpty()
+            imageInputs[settings.model] = settings.imageInput
+            defaultWindows[settings.model] = settings.defaultWindow
+        }
+    }
+
+    /** Each listed model's settings as typed, to save. */
+    fun modelSettings(): List<ModelSettingsView> = modelOptions.map { model ->
+        ModelSettingsView(model, parseContextWindow(windowInputs[model].orEmpty()), imageInput = imageInputs[model] ?: true)
     }
 
     fun selectProvider(selected: ModelProvider) {
@@ -60,8 +90,8 @@ internal class ProviderFormState(
 
     private fun showModels(models: List<String>) {
         modelOptions = models
-        models.forEach { if (it !in windowInputs) windowInputs[it] = loadWindow(it) }
-        models.forEach { if (it !in imageInputs) imageInputs[it] = loadImageInput(it) }
+        models.forEach { if (it !in windowInputs) windowInputs[it] = "" }
+        models.forEach { if (it !in imageInputs) imageInputs[it] = true }
     }
 
     fun syncModelOptions(initial: ProviderDraft) {
@@ -73,11 +103,11 @@ internal class ProviderFormState(
 
     fun toDraft(initial: ProviderDraft): ProviderDraft =
         ProviderDraft(initial.id, label, provider, endpoint, apiKey, model, baseUrl, initial.canDelete,
-            normalizeProviderModels(modelOptions + listOf(pendingModel)))
+            normalizeProviderModels(modelOptions + listOf(pendingModel)), hasSavedKey)
 
     fun connectionIdentity(): List<Any> = listOf(provider, endpoint, apiKey, baseUrl)
 
     /** The profile as filled in, for the DeepSeek check; its passthrough check needs a model, the selected one or the first. */
-    fun probeProfile(id: String): ProviderProfile =
-        ProviderProfile(id, label, provider, apiKey, model.ifBlank { modelOptions.firstOrNull().orEmpty() }, baseUrl.trim(), endpoint)
+    fun probeConnection(id: String): ProviderConnection =
+        ProviderConnection(id, label, provider, endpoint, apiKey, model.ifBlank { modelOptions.firstOrNull().orEmpty() }, baseUrl.trim())
 }

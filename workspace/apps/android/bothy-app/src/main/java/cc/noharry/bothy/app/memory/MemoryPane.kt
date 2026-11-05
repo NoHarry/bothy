@@ -27,12 +27,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +47,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.agent.appserver.protocol.MAX_MEMORIES
+import cc.noharry.agent.appserver.protocol.MAX_PER_CATEGORY
+import cc.noharry.agent.appserver.protocol.MemoryCategory
+import cc.noharry.agent.appserver.protocol.MemoryRequests
+import cc.noharry.agent.appserver.protocol.MemorySource
+import cc.noharry.agent.appserver.protocol.UserMemory
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -57,32 +62,27 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
-import cc.noharry.bothy.app.model.summary
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.usage.UsageCard
 import cc.noharry.bothy.app.usage.UsageSegmented
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * Settings → 记忆, beside 用量与费用: what 小博 remembers about the user as a profile (a header, then a card per kind;
  * a memory tapped opens its own page to change or delete it) and, on 操作经验, what the runtime learned about doing
- * tasks on this car. Writes go through [UserMemoryStore], the same book 小博's `user_memory` tool writes. The foot
+ * tasks on this car. Writes go to the server, into the same book 小博's `user_memory` tool writes. The foot
  * clears the memories alone or, through [onClearAll] (清除运行数据 with the memories, once every run has stopped),
  * every conversation with them; it reports whether all of it went.
  */
 @Composable
 internal fun MemoryPane(onClearAll: (done: (Boolean) -> Unit) -> Unit) {
-    val context = LocalContext.current
-    val memories by UserMemoryStore.memories.collectAsState()
+    val memories = LocalServer.current.state.memory.memories
     var tab by rememberSaveable { mutableStateOf(MemoryTab.PROFILE.name) }
     var openId by rememberSaveable { mutableStateOf<String?>(null) }
     var addingTo by rememberSaveable { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) { withContext(Dispatchers.IO) { UserMemoryStore.book(context) } }
     // A memory forgotten meanwhile (by voice, or deleted on its page) closes its page.
     val open = openId?.let { id -> memories.firstOrNull { it.id == id } }
     val adding = MemoryCategory.byId(addingTo)
@@ -129,12 +129,9 @@ private fun ProfileTab(
     onAdd: (MemoryCategory) -> Unit,
     onClearAll: (done: (Boolean) -> Unit) -> Unit,
 ) {
-    val context = LocalContext.current
-    var enabled by remember { mutableStateOf(userMemoryEnabled(context)) }
-    ProfileHeader(memories, enabled) { on ->
-        setUserMemoryEnabled(context, on)
-        enabled = on
-    }
+    val server = LocalServer.current
+    val enabled = server.state.memory.enabled
+    ProfileHeader(memories, enabled) { on -> server.send(MemoryRequests.SET_ENABLED, FlagParams(on)) }
     if (!enabled) {
         Text(stringResource(R.string.memory_off_note), style = ConsoleType.bodySmall, color = ConsoleColors.warning)
     } else if (memories.isEmpty()) {
@@ -228,10 +225,10 @@ private fun CategoryCard(
             TextButton(onClick = { onAdd(category) }) { Text(stringResource(R.string.memory_add_button)) }
         }
     }
-    val title = stringResource(category.title)
+    val title = stringResource(category.screenTitle)
     UsageCard(if (items.isEmpty()) title else "$title · ${items.size}", add) {
         if (items.isEmpty()) {
-            Text(stringResource(category.hint), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+            Text(stringResource(category.screenHint), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
         }
         items.sortedByDescending { it.updatedAtMillis }.forEach { memory -> MemoryRow(memory) { onOpen(memory) } }
     }
@@ -248,7 +245,7 @@ private fun MemoryRow(memory: UserMemory, onClick: () -> Unit) {
     ) {
         Text(memory.content, style = ConsoleType.body, color = ConsoleColors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(
-            "${stringResource(memory.source.label)} · ${shortDay(memory.updatedAtMillis)}",
+            "${stringResource(memory.source.screenLabel)} · ${shortDay(memory.updatedAtMillis)}",
             style = ConsoleType.meta,
             color = ConsoleColors.tertiary,
         )
@@ -263,8 +260,7 @@ private enum class MemoryClear(@StringRes val label: Int) {
 
 @Composable
 private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolean) -> Unit) -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val server = LocalServer.current
     var confirm by remember { mutableStateOf<MemoryClear?>(null) }
     // The words and whether they report success.
     var note by remember { mutableStateOf("" to true) }
@@ -300,9 +296,8 @@ private fun ProfileFooter(memories: List<UserMemory>, onClearAll: (done: (Boolea
                 note = clearing to true
                 onClearAll { done -> note = if (done) clearedAll to true else clearAllFailed to false }
             } else {
-                scope.launch {
-                    val done = withContext(Dispatchers.IO) { UserMemoryStore.clear(context.applicationContext) }
-                    note = if (done) cleared to true else clearFailed to false
+                server.send(MemoryRequests.CLEAR, Empty, onRefused = { note = clearFailed to false }) {
+                    note = if (it.done) cleared to true else clearFailed to false
                 }
             }
         }
@@ -367,3 +362,35 @@ private val AVATAR_SIZE = 56.dp
 private val SWITCH_LABEL_WIDTH = 140.dp
 private val AVATAR_FONT = 24.sp
 private val TWO_COLUMNS = 640.dp
+
+/** What the page calls a kind of memory, and what it says such memories hold. */
+@get:StringRes
+internal val MemoryCategory.screenTitle: Int
+    get() = when (this) {
+        MemoryCategory.IDENTITY -> R.string.memory_category_identity
+        MemoryCategory.PLACES -> R.string.memory_category_places
+        MemoryCategory.HOME -> R.string.memory_category_home
+        MemoryCategory.MEDIA -> R.string.memory_category_media
+        MemoryCategory.TRAVEL -> R.string.memory_category_travel
+        MemoryCategory.PEOPLE -> R.string.memory_category_people
+        MemoryCategory.OTHER -> R.string.memory_category_other
+    }
+
+@get:StringRes
+internal val MemoryCategory.screenHint: Int
+    get() = when (this) {
+        MemoryCategory.IDENTITY -> R.string.memory_category_identity_hint
+        MemoryCategory.PLACES -> R.string.memory_category_places_hint
+        MemoryCategory.HOME -> R.string.memory_category_home_hint
+        MemoryCategory.MEDIA -> R.string.memory_category_media_hint
+        MemoryCategory.TRAVEL -> R.string.memory_category_travel_hint
+        MemoryCategory.PEOPLE -> R.string.memory_category_people_hint
+        MemoryCategory.OTHER -> R.string.memory_category_other_hint
+    }
+
+@get:StringRes
+internal val MemorySource.screenLabel: Int
+    get() = when (this) {
+        MemorySource.SAID -> R.string.memory_source_said
+        MemorySource.TYPED -> R.string.memory_source_typed
+    }

@@ -11,19 +11,19 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import cc.noharry.agent.appserver.protocol.view.Control
+import cc.noharry.agent.appserver.protocol.view.DisplayChoice
+import cc.noharry.agent.appserver.protocol.view.WidgetCard
+import cc.noharry.agent.appserver.protocol.view.offerKey
+import cc.noharry.agent.appserver.protocol.view.panelReply
 import cc.noharry.bothy.app.a2ui.A2uiChoice
 import cc.noharry.bothy.app.a2ui.A2uiChoiceSurface
 import cc.noharry.bothy.app.a2ui.BothyA2uiSurface
-import cc.noharry.bothy.app.a2ui.Control
-import cc.noharry.bothy.app.a2ui.DisplayChoice
-import cc.noharry.bothy.app.a2ui.WidgetCard
 import cc.noharry.bothy.app.a2ui.a2uiCardMessages
 import cc.noharry.bothy.app.a2ui.a2uiChoiceMessages
 import cc.noharry.bothy.app.a2ui.a2uiLabels
 import cc.noharry.bothy.app.a2ui.a2uiPanelMessages
 import cc.noharry.bothy.app.a2ui.controlValues
-import cc.noharry.bothy.app.a2ui.offerKey
-import cc.noharry.bothy.app.a2ui.panelReply
 
 /**
  * Compose needs lifecycle and saved-state owners on the view tree; an overlay window added by a Service has none.
@@ -110,4 +110,3 @@ internal fun DisplayChoice.iconFrom(icons: Map<String, String>): String? {
     return icons.entries.filter { (offered, _) -> offered.offerKey().let { it.isNotEmpty() && line.startsWith(it) } }
         .maxByOrNull { it.key.length }?.value
 }
-

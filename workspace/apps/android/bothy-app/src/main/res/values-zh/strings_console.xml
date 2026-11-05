@@ -274,10 +274,6 @@
     <string name="trajectory_timeline_description">轨迹时间线，%1$d 个泳道项，%2$d 个标记，%3$s模式，%4$s</string>
     <string name="trajectory_item_span">时间段</string>
     <string name="trajectory_item_point">时间点</string>
-    <string name="androiduse_status_off">已关闭</string>
-    <string name="androiduse_status_connected">已连接 · 助手可查看并操作屏幕</string>
-    <string name="androiduse_status_waiting">已启用 · 等待系统连接无障碍服务</string>
-    <string name="androiduse_status_failed">未能启用 · 需要平台签名授予 WRITE_SECURE_SETTINGS</string>
     <string name="console_stream_on">流式</string>
     <string name="console_stream_off">非流式</string>
     <string name="console_backend_live">真实模型</string>
@@ -322,4 +318,8 @@
     <string name="phone_suggest_nearby">附近的咖啡</string>
     <string name="phone_suggest_navigate">导航去机场</string>
     <string name="phone_suggest_news">今天有什么新闻</string>
+    <string name="androiduse_status_connected">已连接 · 助手可查看并操作屏幕</string>
+    <string name="androiduse_status_failed">未能启用 · 需要平台签名授予 WRITE_SECURE_SETTINGS</string>
+    <string name="androiduse_status_off">已关闭</string>
+    <string name="androiduse_status_waiting">已启用 · 等待系统连接无障碍服务</string>
 </resources>

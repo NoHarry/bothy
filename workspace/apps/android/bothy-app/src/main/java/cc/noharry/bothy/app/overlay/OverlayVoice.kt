@@ -3,11 +3,9 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.pm.ServiceInfo
 import android.content.res.Resources
 import android.os.Build
-import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
@@ -40,32 +38,30 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.bothy.voice.VoiceHandOverMode
-import cc.noharry.bothy.voice.VoiceSegmentLabel
-import cc.noharry.bothy.voice.VoiceSessionState
-import cc.noharry.bothy.voice.VoiceSessionStatus
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.voice.VoiceController
-import cc.noharry.bothy.app.voice.VoiceFeedback
-import cc.noharry.bothy.app.voice.VoiceLog
-import cc.noharry.bothy.app.voice.VoiceOrigin
-import cc.noharry.bothy.app.voice.WakeAck
-import cc.noharry.bothy.app.voice.WakeSource
-import cc.noharry.bothy.app.voice.WakeWord
-import cc.noharry.bothy.app.voice.realtime.RealtimeShown
-import cc.noharry.bothy.app.voice.tts.TtsActivity
+import cc.noharry.bothy.app.words
+import cc.noharry.bothy.protocol.SegmentHandOver
+import cc.noharry.bothy.protocol.SegmentLabel
+import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.VoiceStatus
+import cc.noharry.bothy.protocol.VoiceView
+import cc.noharry.bothy.protocol.VoiceWakeParams
+import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -90,47 +86,53 @@ internal class OverlayVoice(
     private var forA2a = false
 
     init {
-        WakeWord.attach(service, ::wake)
-        WakeAck.prepare(service)
         OverlayControl.waker = ::wake
-        scope.launch { VoiceController.active.collect { onChanged() } }
-        scope.launch { VoiceController.dismissals.collect { failure = null; onDismissed() } }
+        scope.launch { OverlayConnection.state.map { it.voice.active }.distinctUntilChanged().collect { onChanged() } }
+        scope.launch { OverlayConnection.dismissals.collect { failure = null; onDismissed() } }
+        HostConnection.report { copy(ready = true) }
     }
 
     /** The card's request line (and the Android Use caption) belong to voice. */
-    val shown: Boolean get() = VoiceController.listening || failure != null
+    val shown: Boolean get() = OverlayConnection.voice.listening || failure != null
 
     /** A long press on 小博 wakes when the switch is on; false keeps the old meaning (小博 goes to sleep). */
     fun longPress(): Boolean {
-        if (!WakeWord.enabled.value) return false
-        wake(WakeSource.LONG_PRESS)
+        if (!OverlayConnection.voice.wakeWordEnabled) return false
+        wake(WakeOrigin.LONG_PRESS)
         return true
     }
 
     /**
      * A tap on 小博 while it is not listening wakes it, whether or not the wake word is on (owner 2026-10-25: 「没唤醒的时候
-     * 点击头像直接唤醒」). False when it listens already, or cannot listen (said in a toast): the tap opens the card to type.
+     * 点击头像直接唤醒」). False when it listens already: the tap opens the card to type, as [cannotListen] does when it
+     * cannot listen (said in a toast).
      */
-    fun tap(): Boolean {
-        if (VoiceController.listening) return false
-        VoiceController.cannotListen(service)?.let { why ->
-            val text = service.getString(R.string.overlay_voice_unavailable, why.trimEnd('。', '.'))
-            Toast.makeText(service, text, Toast.LENGTH_SHORT).show()
-            return false
+    fun tap(cannotListen: () -> Unit): Boolean {
+        if (OverlayConnection.voice.listening) return false
+        OverlayConnection.send(VoiceRequests.WAKE, VoiceWakeParams(WakeOrigin.TAP, onlyIfCanListen = true)) { result ->
+            if (result.started) {
+                failure = result.failure?.let(service.resources::words)
+                onWoken()
+            } else {
+                val why = result.failure?.let(service.resources::words).orEmpty()
+                Toast.makeText(service, service.getString(R.string.overlay_voice_unavailable, why.trimEnd('。', '.')), Toast.LENGTH_SHORT).show()
+                cannotListen()
+            }
         }
-        wake(WakeSource.TAP)
         return true
     }
 
-    fun wake(source: WakeSource) {
-        failure = startWokenVoice(service, source)
-        onWoken()
+    fun wake(origin: WakeOrigin) {
+        OverlayConnection.send(VoiceRequests.WAKE, VoiceWakeParams(origin)) { result ->
+            failure = result.failure?.let(service.resources::words)
+            onWoken()
+        }
     }
 
-    /** The user closed the card: voice ends with it ([VoiceController.closedByHand]). */
+    /** The user closed the card: voice ends with it (the server's `voice/closedByHand`). */
     fun cardClosed() {
         failure = null
-        VoiceController.closedByHand()
+        OverlayConnection.send(VoiceRequests.CLOSED_BY_HAND, Empty)
     }
 
     /** Started from the background for an A2A caller: it must run in the foreground anyway. */
@@ -142,33 +144,10 @@ internal class OverlayVoice(
     fun destroy() {
         scope.cancel()
         OverlayControl.waker = null
-        WakeWord.detach()
-        if (VoiceController.wakeSession) VoiceController.stop()
+        HostConnection.report { copy(ready = false) }
+        OverlayConnection.send(VoiceRequests.END_WAKE_SESSION, Empty)
     }
 
-}
-
-/**
- * A wake (你好，小博 or OK Bothy, a long press, adb): stops what 小博 is doing, answers (in English to OK Bothy), and
- * starts (or restarts) a woken session. The overlay shows it on its card; without the overlay the console's voice strip
- * does. Why it could not listen, or null.
- */
-internal fun startWokenVoice(context: Context, source: WakeSource): String? {
-    val interrupted = VoiceController.interruptForWake(context)
-    // Every wake chimes at once (owner 2026-10-25: 「唤醒和退出要一个提示音」); the spoken answer follows the chime, before
-    // listening is set up, which takes a few hundred milliseconds, and is taken back if it cannot listen.
-    VoiceFeedback.woke()
-    val answered = WakeAck.play(context, interrupted, english = source == WakeSource.ENGLISH_WORD)
-    val settingUp = SystemClock.elapsedRealtime()
-    val failure = if (VoiceController.listening) {
-        VoiceController.restart(context)
-    } else {
-        VoiceController.start(context, VoiceOrigin.WAKE)
-    }
-    if (failure != null && answered) TtsActivity.interrupt()
-    val took = SystemClock.elapsedRealtime() - settingUp
-    VoiceLog.i("DebugVoice", "overlay woken by $source${if (interrupted) " (interrupting)" else ""}, listening set up in $took ms${failure?.let { ": $it" }.orEmpty()}")
-    return failure
 }
 
 /** Runs the overlay as a foreground service (an A2A caller started it from the background); false when refused. */
@@ -207,13 +186,13 @@ internal data class OverlayVoiceLine(val text: String, val tone: OverlayVoiceTon
  */
 internal fun overlayVoiceLine(
     resources: Resources,
-    state: VoiceSessionState,
+    state: VoiceView,
     failure: String?,
     nowMillis: Long,
 ): OverlayVoiceLine {
-    if (state.status == VoiceSessionStatus.IDLE || state.status == VoiceSessionStatus.ERROR) {
+    if (state.status == VoiceStatus.IDLE || state.status == VoiceStatus.ERROR) {
         return failure?.let { OverlayVoiceLine(it, OverlayVoiceTone.WARN) }
-            ?: state.message?.takeIf { state.status == VoiceSessionStatus.ERROR }?.let { OverlayVoiceLine(it, OverlayVoiceTone.WARN) }
+            ?: state.problem?.takeIf { state.status == VoiceStatus.ERROR }?.let { OverlayVoiceLine(resources.words(it), OverlayVoiceTone.WARN) }
             ?: OverlayVoiceLine(resources.getString(R.string.overlay_voice_ended), OverlayVoiceTone.HINT)
     }
     if (state.liveText.isNotBlank()) return OverlayVoiceLine(state.liveText.takeLast(MAX_LIVE_CHARS), OverlayVoiceTone.LIVE)
@@ -221,12 +200,12 @@ internal fun overlayVoiceLine(
     if (recent != null) {
         val text = recent.text.takeLast(MAX_LIVE_CHARS)
         return when {
-            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.APPEND ->
+            recent.label == SegmentLabel.AGENT && recent.handOver == SegmentHandOver.APPEND ->
                 OverlayVoiceLine(resources.getString(R.string.overlay_voice_appended, text), OverlayVoiceTone.SENT)
-            recent.label == VoiceSegmentLabel.AGENT && recent.handOver == VoiceHandOverMode.REPLACE ->
+            recent.label == SegmentLabel.AGENT && recent.handOver == SegmentHandOver.REPLACE ->
                 OverlayVoiceLine(resources.getString(R.string.overlay_voice_replaced, text), OverlayVoiceTone.SENT)
-            recent.label == VoiceSegmentLabel.AGENT -> OverlayVoiceLine(text, OverlayVoiceTone.SENT)
-            recent.label == VoiceSegmentLabel.SIDE -> OverlayVoiceLine(
+            recent.label == SegmentLabel.AGENT -> OverlayVoiceLine(text, OverlayVoiceTone.SENT)
+            recent.label == SegmentLabel.SIDE -> OverlayVoiceLine(
                 resources.getString(R.string.overlay_voice_not_a_request, text),
                 OverlayVoiceTone.IGNORED,
             )
@@ -235,7 +214,7 @@ internal fun overlayVoiceLine(
         }
     }
     val hint = when {
-        state.status == VoiceSessionStatus.STARTING -> R.string.overlay_voice_opening_mic
+        state.status == VoiceStatus.STARTING -> R.string.overlay_voice_opening_mic
         state.assistantSpeaking && !state.fullDuplex -> R.string.overlay_voice_after_speaking
         state.agentWorking -> R.string.overlay_voice_add_or_change
         else -> R.string.overlay_voice_listening
@@ -250,9 +229,10 @@ internal fun overlayVoiceLine(
  */
 @Composable
 internal fun OverlayVoiceAsked(request: String?, failure: String?) {
-    val state by VoiceController.state.collectAsState()
+    val shown by OverlayConnection.state.collectAsState()
+    val state = shown.voice
     // 端到端演示模式: a turn 豆包 answered itself has no run behind it, so its words and reply show here.
-    val exchange by RealtimeShown.exchange.collectAsState()
+    val exchange = state.realtime
     val resources = LocalContext.current.resources
     val heard = request ?: exchange?.heard?.takeIf(String::isNotBlank)
     val line = voiceAskedLine(resources, state, failure, heard, System.currentTimeMillis())
@@ -284,17 +264,17 @@ internal fun OverlayVoiceAsked(request: String?, failure: String?) {
 /** What the request line says while voice is on (see [OverlayVoiceAsked]); quoted like a request. */
 internal fun voiceAskedLine(
     resources: Resources,
-    state: VoiceSessionState,
+    state: VoiceView,
     failure: String?,
     request: String?,
     nowMillis: Long,
 ): OverlayVoiceLine {
-    val listening = state.status == VoiceSessionStatus.LISTENING || state.status == VoiceSessionStatus.BUSY
+    val listening = state.status == VoiceStatus.LISTENING || state.status == VoiceStatus.BUSY
     val recent = state.segments.lastOrNull()?.takeIf { nowMillis - it.endedAtEpochMillis < RECENT_SEGMENT_MILLIS }
     return when {
         !listening && failure != null -> OverlayVoiceLine(failure, OverlayVoiceTone.WARN)
         state.liveText.isNotBlank() -> OverlayVoiceLine("“${state.liveText.takeLast(MAX_LIVE_CHARS)}”", OverlayVoiceTone.LIVE)
-        recent != null && recent.label != VoiceSegmentLabel.AGENT ->
+        recent != null && recent.label != SegmentLabel.AGENT ->
             OverlayVoiceLine(
                 resources.getString(R.string.overlay_voice_not_a_request, recent.text.takeLast(MAX_LIVE_CHARS)),
                 OverlayVoiceTone.IGNORED,
@@ -311,7 +291,8 @@ internal fun voiceAskedLine(
  */
 @Composable
 internal fun OverlayVoiceCaption(modifier: Modifier) {
-    val state by VoiceController.state.collectAsState()
+    val shown by OverlayConnection.state.collectAsState()
+    val state = shown.voice
     val line = overlayVoiceLine(LocalContext.current.resources, state, null, System.currentTimeMillis())
     Row(
         verticalAlignment = Alignment.CenterVertically,

@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aProfilesPane
 import cc.noharry.bothy.app.companion.CompanionPane
@@ -48,7 +49,6 @@ import cc.noharry.bothy.app.runtime.BasicToolsPane
 import cc.noharry.bothy.app.runtime.JevToolSearchPane
 import cc.noharry.bothy.app.runtime.RuntimeSkillsPane
 import cc.noharry.bothy.app.session.SettingsSessionGroup
-import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.skills.SubagentsPane
 import cc.noharry.bothy.app.usage.UsagePane
 import cc.noharry.bothy.app.voice.VoiceSettingsPane
@@ -71,7 +71,7 @@ internal enum class SettingsSection(@StringRes val label: Int) {
 }
 
 @Composable
-internal fun SettingsShell(state: UiState, actions: ConsoleActions, onBack: () -> Unit, modifier: Modifier) {
+internal fun SettingsShell(state: ServerState, actions: ConsoleActions, onBack: () -> Unit, modifier: Modifier) {
     var sectionName by rememberSaveable { mutableStateOf(SettingsSection.GENERAL.name) }
     // A phone lists the sections and opens one at a time (owner 2026-11-02: 做一套手机适配的界面).
     var opened by rememberSaveable { mutableStateOf(false) }
@@ -119,7 +119,7 @@ private fun SettingsSectionList(selected: SettingsSection?, modifier: Modifier, 
 @Composable
 internal fun SettingsSectionContent(
     section: SettingsSection,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     openSection: (SettingsSection) -> Unit,
 ) {
@@ -129,7 +129,7 @@ internal fun SettingsSectionContent(
             SettingsLayoutGroup()
             SettingsLanguageGroup()
             SettingsRuntimeGroup(state, actions)
-            SettingsSessionGroup()
+            SettingsSessionGroup(state, actions)
         }
         SettingsSection.DATA -> SettingsScrollableContent {
             SettingsWorkspaceGroup(state, actions)
@@ -150,7 +150,7 @@ internal fun SettingsSectionContent(
 }
 
 @Composable
-private fun SettingsModelsContent(state: UiState, actions: ConsoleActions) {
+private fun SettingsModelsContent(state: ServerState, actions: ConsoleActions) {
     var pageName by rememberSaveable { mutableStateOf(SettingsPage.PROVIDERS.name) }
     var profileId by rememberSaveable { mutableStateOf<String?>(null) }
     val navigation = SettingsNavigationState(SettingsPage.valueOf(pageName), profileId)
@@ -191,7 +191,7 @@ private fun SettingsCapabilitiesContent() {
 }
 
 @Composable
-private fun SettingsConnectionsContent(state: UiState, actions: ConsoleActions) {
+private fun SettingsConnectionsContent(state: ServerState, actions: ConsoleActions) {
     var tab by rememberSaveable { mutableStateOf("MCP") }
     Column(Modifier.fillMaxSize()) {
         SettingsTabs(listOf("MCP", "A2A"), tab) { tab = it }

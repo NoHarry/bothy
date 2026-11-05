@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Models and services: the service pages and the on-device model. values-zh holds the Chinese. -->
+<resources>
+    <!-- On-device model -->
+    <string name="model_on_device">On-device model</string>
+    <string name="model_on_device_missing">On-device model %1$s isn\'t downloaded: Settings → Models and services → On-device model → %1$s → Download (about %2$s GB).</string>
+    <string name="model_publisher_qwen">Alibaba Qwen</string>
+    <string name="model_publisher_minicpm">ModelBest</string>
+    <string name="model_note_gemma_4_e4b">Steadiest in tests: never said something was done without calling the tool, and asks when unsure.</string>
+    <string name="model_note_qwen3_4b">Quickest to act in tests, but now and then says something is done without having called the tool.</string>
+    <string name="model_note_minicpm5_2b">Finds tools on its own in tests and never falsely said something was done; thinks before each step, so it\'s slower.</string>
+</resources>

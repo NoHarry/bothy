@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Words used across the screens. English is the default; values-zh holds the Chinese. -->
+<resources>
+    <string name="common_on">On</string>
+    <string name="common_off">Off</string>
+</resources>

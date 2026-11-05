@@ -38,6 +38,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.view.PickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -48,10 +51,7 @@ import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.turnHeaderLabel
 import cc.noharry.bothy.app.console.ui.CodeBlock
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.overlay.PickableReply
 import cc.noharry.bothy.app.overlay.stepPhrase
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
 
 @Composable
 internal fun PhoneRowView(row: PhoneRow, actions: ConsoleActions, pickable: PickableReply?, onTrajectory: (turn: Long) -> Unit) {
@@ -78,13 +78,13 @@ private fun AskedRow(header: ConversationItem.TurnHeader, actions: ConsoleAction
             Surface(
                 color = colors.userBubble,
                 shape = RoundedCornerShape(BUBBLE_RADIUS),
-                modifier = Modifier.widthIn(max = widest).clickable { actions.toggleItem(header.copy(collapsed = !header.collapsed)) },
+                modifier = Modifier.widthIn(max = widest).clickable { actions.toggleItem(header) },
             ) {
                 Text(
-                    text = if (header.collapsed) header.preview else header.fullText,
+                    text = if (actions.isFolded(header)) header.preview else header.fullText,
                     style = ConsoleType.body,
                     color = colors.text,
-                    maxLines = if (header.collapsed) 3 else Int.MAX_VALUE,
+                    maxLines = if (actions.isFolded(header)) 3 else Int.MAX_VALUE,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
                 )

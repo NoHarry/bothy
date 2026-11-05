@@ -71,10 +71,15 @@ Playground 的地图和导航用高德 SDK，要用你自己申请的免费 key�
 
 | 模块 | 做什么 |
 |------|--------|
-| `bothy-app` | 演示 App（平板优先）：调试控制台、设置、计划、语音、悬浮助手卡片 |
+| `bothy-app` | 演示 App 的界面（平板优先）：调试控制台、手机界面、设置、悬浮助手卡片 |
+| `bothy-server` | 界面下面 Bothy 的服务端：下面的通用服务端，加上 Bothy 的语音、本机模型、检查和 Playground |
+| `agent-app-server` | 通用的服务端：会话、模型、MCP、计划、记忆、A2A，跑在运行时上，任何 agent App 都可以拿来做底座 |
+| `agent-app-sample` | 这个服务端上最小的 App：一个界面，不带 Bothy，独立的 agent App 从这里起步 |
+| `bothy-protocol` | 界面和服务端之间说的话：下面的协议，加上 Bothy 自己的方法和分区 |
+| `agent-app-protocol` | 通用服务端的协议，仿 Codex 的 app-server（会话、轮次、条目） |
 | `bothy-playground` | 第二个演示 App：用本机 MCP 服务提供一辆虚构的车和一个虚构的家，给 Bothy 操作（见[下文](#bothy-playground)） |
 
-sample 依赖运行时的构件（`cc.noharry:agent-*`）；playground 不依赖任何模块，Bothy 像连其他 MCP 服务一样连它。
+服务端依赖运行时的构件（`cc.noharry:agent-*`）；playground 不依赖任何模块，Bothy 像连其他 MCP 服务一样连它。
 
 ## 演示 App 能看到什么
 
@@ -139,7 +144,7 @@ Bothy 本身的界面是一个类似 Codex 的开发者控制台。对话区列�
 - **计划**：提醒、定时任务，以及监听服务状态（MCP 资源，或按间隔调用的只读工具）。比如「深圳飞成都 11 月 7 日的最低价低于 800 元时提醒我」就跑在 Kiwi.com 的公开搜索上。
 - **语音**：设备端唤醒词（「你好，小博」或英文「OK Bothy」，默认关闭，在设置里打开）和识别、轮次判断（可选的判断服务决定你是否说完、是不是在对小博说）、插话打断、语音播报；也可以切换到端到端语音模型。
 - **你自己的云端 agent**：通过 `workspace/apps/android/tools/agent-relay` 里自部署的中转，配对你的个人 agent（例如 Grok Bot），把需要个人账号的事交给它。
-- **离线**：也可以用模拟模型和 `bothy-app/src/main/assets/mcp/tools.json` 里的示例工具完全离线运行。
+- **离线**：也可以用模拟模型和 `bothy-server/src/main/assets/mcp/tools.json` 里的示例工具完全离线运行。
 
 ## Bothy Playground
 
@@ -182,7 +187,7 @@ cd bothy/workspace/apps/android
 ./gradlew :bothy-playground:assembleDebug   # 可选：给 Bothy 操作的车和家
 ```
 
-模型服务预置来自 `bothy-app/src/main/assets/model-provider-profiles.json`，它会打进 APK，所以**不含任何 API key**。
+模型服务预置来自 `bothy-server/src/main/assets/model-provider-profiles.json`，它会打进 APK，所以**不含任何 API key**。
 key 写在被 Git 忽略的 `workspace/apps/android/local.properties`：
 
 ```properties

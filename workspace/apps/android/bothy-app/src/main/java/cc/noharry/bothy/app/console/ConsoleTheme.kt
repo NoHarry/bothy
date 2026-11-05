@@ -2,10 +2,6 @@ package cc.noharry.bothy.app.console
 import android.app.Activity
 import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -19,23 +15,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.bothy.app.a2a.A2aProfileDraft
-import cc.noharry.bothy.app.a2ui.UserQuestion
-import cc.noharry.bothy.app.mcp.McpServerDraft
-import cc.noharry.bothy.app.model.ProviderEditState
-import cc.noharry.bothy.app.model.ProviderEndpoint
-import cc.noharry.bothy.app.session.ConfirmationMode
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ModelProvider
+import androidx.core.view.WindowCompat
+import cc.noharry.agent.appserver.protocol.A2aProfileDraft
+import cc.noharry.agent.appserver.protocol.ConfirmationMode
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.McpServerDraft
+import cc.noharry.agent.appserver.protocol.ModelProvider
+import cc.noharry.agent.appserver.protocol.ProviderEditState
+import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.protocol.SessionPolicy
+import cc.noharry.agent.appserver.protocol.UserQuestion
+import cc.noharry.agent.appserver.protocol.foldedByDefault
 
 /**
  * Bothy's console look, after a mountain shelter at dusk:
@@ -310,18 +312,21 @@ internal data class ConsoleActions(
     val selectBackend: (Boolean) -> Unit,
     val reloadConfig: () -> Unit,
     val saveConfig: (ModelProvider, String, String, String, ProviderEndpoint) -> Unit,
-    val saveNewProfile: (String, ModelProvider, ProviderEndpoint, String, String, String) -> String,
+    /** Saves a new profile (label, provider, endpoint, key, model, base URL), then gives its id. */
+    val saveNewProfile: (String, ModelProvider, ProviderEndpoint, String, String, String, (String) -> Unit) -> Unit,
     val deleteProfile: (String) -> Unit,
     val fetchModels: ProviderFetchAction,
     val saveProviderModels: (ProviderEditState, List<String>) -> Unit,
+    /** Opens a folded item, or folds an open one, for this person ([isFolded] tells which it is now). */
     val toggleItem: (ConversationItem) -> Unit,
+    val isFolded: (ConversationItem) -> Boolean = { it.foldedByDefault },
     val setMcpProviderEnabled: (String, Boolean) -> Unit,
-    /** Adds or edits a configured MCP server (设置 → 连接 → MCP); returns a validation error or null. */
-    val saveMcpServer: (McpServerDraft) -> String? = { null },
+    /** Adds or edits a configured MCP server (设置 → 连接 → MCP), then gives a validation error or null. */
+    val saveMcpServer: (McpServerDraft, (String?) -> Unit) -> Unit = { _, done -> done(null) },
     val deleteMcpServer: (String) -> Unit = {},
     val setA2aProfileEnabled: (String, Boolean) -> Unit,
-    /** Persists a user A2A profile (label, moduleId, endpoint, allowLoopback); returns a validation error or null. */
-    val saveA2aProfile: (A2aProfileDraft) -> String?,
+    /** Persists a user A2A profile (label, moduleId, endpoint, allowLoopback), then gives a validation error or null. */
+    val saveA2aProfile: (A2aProfileDraft, (String?) -> Unit) -> Unit,
     val deleteA2aProfile: (String) -> Unit,
     val pickSafWorkspace: () -> Unit,
     val clearSafWorkspace: () -> Unit,
@@ -331,6 +336,13 @@ internal data class ConsoleActions(
     /** Grouped so the read-only Trajectory view does not keep widening this constructor. */
     val trajectory: TrajectoryActions = TrajectoryActions(),
     val answerQuestion: (UserQuestion, String) -> Unit = { _, _ -> },
+    /** 计划: pauses or resumes a plan. */
+    val setPlanEnabled: (String, Boolean) -> Unit = { _, _ -> },
+    val deletePlan: (String) -> Unit = {},
+    /** 设置 → 语音唤醒: saved, then applied at once. */
+    val setWakeWord: (Boolean) -> Unit = {},
+    /** 设置 → 通用 → 会话. */
+    val setSessionPolicy: (SessionPolicy) -> Unit = {},
 )
 
 internal data class TrajectoryActions(

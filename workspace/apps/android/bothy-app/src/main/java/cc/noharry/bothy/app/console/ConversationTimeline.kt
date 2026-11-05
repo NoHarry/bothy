@@ -6,11 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -36,6 +36,11 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConfirmationStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.view.PickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
@@ -43,13 +48,7 @@ import cc.noharry.bothy.app.console.ui.CodeBlock
 import cc.noharry.bothy.app.console.ui.Disclosure
 import cc.noharry.bothy.app.console.ui.Markdown
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.overlay.PickableReply
-import cc.noharry.bothy.app.session.ConfirmationStatus
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.TranscriptRole
-import cc.noharry.bothy.app.tools.prettyToolPayload
+import cc.noharry.bothy.app.console.ui.prettyToolPayload
 import kotlinx.coroutines.delay
 
 @Composable
@@ -71,7 +70,7 @@ internal fun ConversationItemView(
 @Composable
 private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleActions) {
     val colors = ConsoleColors
-    val body = if (item.collapsed) item.preview else item.fullText
+    val body = if (actions.isFolded(item)) item.preview else item.fullText
     Column(
         Modifier
             .fillMaxWidth()
@@ -79,8 +78,8 @@ private fun TurnHeaderRow(item: ConversationItem.TurnHeader, actions: ConsoleAct
     ) {
         Text(turnHeaderLabel(item.label), style = ConsoleType.label, color = colors.tertiary)
         Spacer(Modifier.height(Dimens.spaceXs))
-        UserTurnBubble(body, collapsed = item.collapsed) {
-            actions.toggleItem(item.copy(collapsed = !item.collapsed))
+        UserTurnBubble(body, collapsed = actions.isFolded(item)) {
+            actions.toggleItem(item)
         }
     }
 }
@@ -140,19 +139,19 @@ private fun MessageRow(
         // 显示思考过程 off: the model's thinking is not shown at all.
         if (!DisplaySettings.showThinking.collectAsState().value) return
         val streaming = isStreamingThinking
-        val expanded = !streaming && !item.collapsed
+        val expanded = !streaming && !actions.isFolded(item)
         val line = thinkingDisplayLine(
             LocalContext.current.resources,
             item.content,
             streaming = streaming,
-            collapsed = item.collapsed,
+            collapsed = actions.isFolded(item),
         )
         TimelineRow(
             accent = if (streaming) colors.activity else colors.tertiary,
             onClick = if (streaming) {
                 null
             } else {
-                { actions.toggleItem(item.copy(collapsed = !item.collapsed)) }
+                { actions.toggleItem(item) }
             },
         ) {
             Row(
@@ -192,8 +191,8 @@ private fun MessageRow(
         return
     }
     val expandable = item.role != TranscriptRole.ERROR
-    val collapsed = expandable && item.collapsed
-    val toggle = if (expandable) ({ actions.toggleItem(item.copy(collapsed = !item.collapsed)) }) else null
+    val collapsed = expandable && actions.isFolded(item)
+    val toggle = if (expandable) ({ actions.toggleItem(item) }) else null
     val rowColor = if (item.role == TranscriptRole.ERROR) colors.danger else colors.muted
     TimelineRow(item.role.color(), toggle) {
         Text(stringResource(item.role.titleRes()), style = ConsoleType.meta, color = rowColor)
@@ -239,11 +238,11 @@ internal fun turnHeaderLabel(label: String): String = when (label) {
 @Composable
 private fun RuntimePhaseRow(item: ConversationItem.RuntimePhaseItem, actions: ConsoleActions) {
     val colors = ConsoleColors
-    TimelineRow(colors.muted, { actions.toggleItem(item.copy(collapsed = !item.collapsed)) }) {
+    TimelineRow(colors.muted, { actions.toggleItem(item) }) {
         Text(item.title, style = ConsoleType.meta, color = colors.muted)
         Spacer(Modifier.height(Dimens.spaceXs))
         when {
-            item.collapsed -> PreviewText(item.body)
+            actions.isFolded(item) -> PreviewText(item.body)
             item.markdown -> Markdown(item.body)
             else -> CodeBlock(item.body)
         }
@@ -259,7 +258,7 @@ private fun ToolRow(
     val elapsed = toolElapsedLabel(item)
     val running = item.status == ToolCallStatus.RUNNING
     val statusColor = if (running) colors.activity else item.status.color()
-    val expanded = !item.collapsed
+    val expanded = !actions.isFolded(item)
     // Expanded always shows args/result when present. Users open a tool card
     // specifically to inspect the payload — e.g. web_search query.
     val summary = item.businessToolLineLabel()
@@ -279,7 +278,7 @@ private fun ToolRow(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { actions.toggleItem(item.copy(collapsed = !item.collapsed)) }
+                    .clickable { actions.toggleItem(item) }
                     .padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceXs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

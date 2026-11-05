@@ -30,7 +30,6 @@ import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.runtime.append
 
 /**
  * Codex / Claude Code–style assistant body: merged paragraphs, inline styles,

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Subagents and a subagent type's page, adding a skill, the built-in skills, and background task lines. -->
+<resources>
+    <string name="skills_kind_trip_transport">行程 · 交通</string>
+    <string name="skills_kind_trip_stay">行程 · 住宿</string>
+    <string name="skills_kind_trip_days">行程 · 每天安排</string>
+    <string name="skills_kind_web_verify">网上核实</string>
+    <string name="skills_voice_progress">语音进度</string>
+    <string name="skills_voice_progress_about">UI、ASR、A2A 共用的中文播报进度；启用后随请求加载。</string>
+    <string name="skills_task_orchestration">MCP 任务编排</string>
+    <string name="skills_task_orchestration_about">根据当前工具能力发现、编排依赖并核对用户约束，适用于不同业务领域。</string>
+    <string name="skills_travel_planning">旅行规划</string>
+    <string name="skills_travel_planning_about">要规划几天的旅行时加载：三路子 agent 查交通、住宿和每天的去处，汇总成按天分组、带照片的行程卡片，再问要不要设提醒。</string>
+    <string name="skills_delegation">个人助手委托</string>
+    <string name="skills_delegation_about">启用了 A2A 委托目标时随请求加载：哪些事交给用户自己的 agent、做了收不回的事先确认、转告后台的【委托回报】。</string>
+    <string name="skills_android_use">Android Use</string>
+    <string name="skills_android_use_about">操作屏幕已连接时随请求加载：领域工具优先、一步一个动作、核对结果、不可撤销操作先确认。</string>
+    <string name="skills_playground">Playground</string>
+    <string name="skills_playground_about">回到车机、虚拟小家或导航界面：playground_open 怎么用，弹框挡住或没装 Playground 时怎么办。</string>
+</resources>

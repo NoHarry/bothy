@@ -7,13 +7,14 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import cc.noharry.bothy.app.a2ui.SAVED_PICTURE
-import cc.noharry.bothy.app.plans.matches
+import cc.noharry.agent.appserver.protocol.view.GENERATED_IMAGES_DIR
+import cc.noharry.agent.appserver.protocol.view.SAVED_PICTURE
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.integration.okhttp3.OkHttpUrlLoader
 import com.bumptech.glide.load.model.GlideUrl
 import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy
+import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.net.Inet6Address
@@ -57,7 +58,7 @@ internal fun rememberPicture(reference: String, maxDimension: Int): State<ImageB
 
 /** What Glide loads for [reference]: the saved file, the checked URL, or null for anything else. */
 internal fun pictureModel(context: Context, reference: String): Any? = when {
-    SAVED_PICTURE.matches(reference) -> generatedImageFile(context, reference)
+    SAVED_PICTURE.matches(reference) -> savedPictureFile(context, reference)
     remotePictureUrl(reference) != null -> GlideUrl(reference)
     else -> null
 }
@@ -163,3 +164,10 @@ private val LOCAL_SUFFIXES = listOf(".local", ".localhost", ".lan", ".internal",
 internal const val MAX_PICTURE_URL_CHARS = 2048
 private const val MAX_PICTURE_BYTES = 8L * 1024 * 1024
 private const val TAG = "DebugPicture"
+
+/** The file behind a saved picture's reference (the server writes them under the app's files); null outside its folder. */
+internal fun savedPictureFile(context: Context, reference: String): File? {
+    val root = File(context.filesDir, GENERATED_IMAGES_DIR).canonicalFile
+    val file = File(context.filesDir, reference).canonicalFile
+    return file.takeIf { it.parentFile?.parentFile == root && it.isFile }
+}

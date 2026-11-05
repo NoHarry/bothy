@@ -1,7 +1,6 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.console
-import androidx.compose.foundation.BorderStroke
+import android.content.res.Resources
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +18,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -38,7 +36,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.runtime.SubagentStatus
+import cc.noharry.agent.appserver.protocol.ArtifactPreview
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.LessonEntry
+import cc.noharry.agent.appserver.protocol.McpProviderState
+import cc.noharry.agent.appserver.protocol.RuntimeDemoState
+import cc.noharry.agent.appserver.protocol.SessionBoardState
+import cc.noharry.agent.appserver.protocol.SkillEntry
+import cc.noharry.agent.appserver.protocol.SubagentLane
+import cc.noharry.agent.appserver.protocol.SubagentRunState
+import cc.noharry.agent.appserver.protocol.TodoEntry
+import cc.noharry.agent.appserver.protocol.TokenUsageState
+import cc.noharry.agent.appserver.protocol.WorkspaceSelectionState
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.pendingConfirmationActionIds
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.ActivityDot
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
@@ -48,30 +59,19 @@ import cc.noharry.bothy.app.console.ui.SectionLabel
 import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.formatTurnCount
-import cc.noharry.bothy.app.mcp.DEBUG_CONNECTORS
-import cc.noharry.bothy.app.mcp.McpProviderState
-import cc.noharry.bothy.app.runtime.RuntimeDemoState
-import cc.noharry.bothy.app.runtime.WorkspaceSelectionState
-import cc.noharry.bothy.app.runtime.pendingConfirmationActionIds
-import cc.noharry.bothy.app.session.LessonEntry
-import cc.noharry.bothy.app.session.SessionBoardState
-import cc.noharry.bothy.app.session.SkillEntry
-import cc.noharry.bothy.app.session.TodoEntry
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.session.sessionTitleText
-import cc.noharry.bothy.app.skills.BothySubagents
-import cc.noharry.bothy.app.usage.TokenUsageState
+import cc.noharry.bothy.protocol.ConnectorRequests
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun BoardPane(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     onOpenMcpProviders: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val subagentBoard by BothySubagents.board.collectAsState()
-    val subagents = subagentBoard[state.activeSessionId].orEmpty()
+    val subagents = state.subagents[state.activeSessionId].orEmpty()
     val sections = boardSections().filter { state.shouldShowBoardSection(it) }
         .filterNot { it == BoardSection.SUBAGENTS && subagents.isEmpty() }
     PanelBox(stringResource(R.string.console_board), modifier) {
@@ -142,11 +142,15 @@ private fun WorkspaceOneLiner(selection: WorkspaceSelectionState, actions: Conso
 @Composable
 private fun McpOneLiner(providers: List<McpProviderState>, onOpen: () -> Unit) {
     val colors = ConsoleColors
+    val server = LocalServer.current
     val enabled = providers.filter { it.enabled }
     // A catalog app's server is saved under its Chinese name, which the model reads; the board shows its title.
-    val names = enabled.map { provider ->
-        DEBUG_CONNECTORS.firstOrNull { it.name == provider.label }?.let { stringResource(it.title) } ?: provider.label
-    }.joinToString().ifBlank { stringResource(R.string.common_none) }
+    var titles by remember { mutableStateOf(emptyMap<String, String>()) }
+    LaunchedEffect(Unit) {
+        server.send(ConnectorRequests.LIST, Empty) { catalog -> titles = catalog.connectors.associate { it.name to it.title } }
+    }
+    val names = enabled.map { provider -> titles[provider.label] ?: provider.label }
+        .joinToString().ifBlank { stringResource(R.string.common_none) }
     BoardSectionCard("MCP", Modifier.clickable(onClick = onOpen)) {
         Text(
             stringResource(R.string.console_mcp_loaded, enabled.size, providers.size, names),
@@ -171,7 +175,7 @@ private fun McpOneLiner(providers: List<McpProviderState>, onOpen: () -> Unit) {
 
 /** The conversation's background subagents: state, time, latest step; a tap shows the task and the result. */
 @Composable
-private fun SubagentCard(rows: List<SubagentStatus>) {
+private fun SubagentCard(rows: List<SubagentLane>) {
     val colors = ConsoleColors
     val running = rows.any { !it.state.finished }
     // Running ones count their seconds even between events.
@@ -187,7 +191,7 @@ private fun SubagentCard(rows: List<SubagentStatus>) {
             var open by remember(row.id) { mutableStateOf(false) }
             Column(Modifier.fillMaxWidth().clickable { open = !open }.padding(vertical = Dimens.spaceXs)) {
                 Text(
-                    "● ${row.label} · ${stringResource(row.state.labelRes())}",
+                    "● ${row.label} · ${stringResource(row.state.boardLabel())}",
                     style = ConsoleType.meta,
                     color = row.state.wireName.planStatusColor(),
                     fontWeight = FontWeight.SemiBold,
@@ -195,7 +199,7 @@ private fun SubagentCard(rows: List<SubagentStatus>) {
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    resources.subagentLogText(row, now),
+                    resources.subagentLine(row, now),
                     style = ConsoleType.meta,
                     color = colors.muted,
                     maxLines = 2,
@@ -220,6 +224,32 @@ private fun SubagentCard(rows: List<SubagentStatus>) {
             }
         }
     }
+}
+
+@StringRes
+private fun SubagentRunState.boardLabel(): Int = when (this) {
+    SubagentRunState.RUNNING -> R.string.console_subagent_running
+    SubagentRunState.STALLED -> R.string.console_subagent_stalled
+    SubagentRunState.COMPLETED -> R.string.console_subagent_completed
+    SubagentRunState.FAILED -> R.string.console_subagent_failed
+    SubagentRunState.CANCELLED -> R.string.console_subagent_cancelled
+    SubagentRunState.TIMED_OUT -> R.string.console_subagent_timed_out
+}
+
+/** Seconds, tool and model calls, tokens and cache hit, and the error if any. */
+private fun Resources.subagentLine(row: SubagentLane, now: Long): String {
+    val end = if (row.finishedAtEpochMillis > 0) row.finishedAtEpochMillis else now
+    val seconds = (end - row.startedAtEpochMillis) / MILLIS_PER_SECOND
+    val line = if (row.inputTokens > 0) {
+        val cache = row.cachedTokens * PERCENT / row.inputTokens
+        getString(
+            R.string.console_subagent_log_cached,
+            seconds, row.toolCalls, row.modelCalls, row.inputTokens, cache, row.outputTokens,
+        )
+    } else {
+        getString(R.string.console_subagent_log, seconds, row.toolCalls, row.modelCalls, row.inputTokens, row.outputTokens)
+    }
+    return if (row.error.isNotEmpty()) "$line · ${row.error}" else line
 }
 
 @Composable
@@ -293,7 +323,7 @@ private fun ArtifactPreviewCard(preview: ArtifactPreview?, actions: ConsoleActio
 }
 
 @Composable
-private fun SessionCard(board: SessionBoardState, state: UiState) {
+private fun SessionCard(board: SessionBoardState, state: ServerState) {
     val session = board.activeSession
     BoardSectionCard(stringResource(R.string.console_run)) {
         SessionStatusHeader(state = state, sessionTitle = session?.title?.let { sessionTitleText(it) })
@@ -319,7 +349,7 @@ private fun SessionCard(board: SessionBoardState, state: UiState) {
 }
 
 @Composable
-private fun SessionStatusHeader(state: UiState, sessionTitle: String?) {
+private fun SessionStatusHeader(state: ServerState, sessionTitle: String?) {
     val colors = ConsoleColors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         if (state.isRunning) {
@@ -333,7 +363,7 @@ private fun SessionStatusHeader(state: UiState, sessionTitle: String?) {
                 ShimmerText(text = statusHeader(state), baseColor = colors.muted, highlightColor = colors.text)
             } else {
                 Text(
-                    text = state.lastRunSummary?.takeIf { it.isNotBlank() }?.let { runSummaryText(it) }
+                    text = state.lastRun?.let { runResultText(it) }
                         ?: stringResource(R.string.console_ready),
                     style = ConsoleType.meta,
                     color = colors.text,
@@ -546,6 +576,8 @@ private val USAGE_BAR_HEIGHT = 3.dp
 private val MANAGE_CHEVRON_SIZE = 16.dp
 private const val MAX_CONFIRMATION_ACTION_ROWS = 3
 private const val SUBAGENT_TICK_MS = 1_000L
+private const val MILLIS_PER_SECOND = 1000L
+private const val PERCENT = 100
 private const val SUBAGENT_RESULT_PREVIEW_CHARS = 600
 private const val MAX_PLAN_ROWS = 8
 private const val MAX_MEMORY_ROWS = 3

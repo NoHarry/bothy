@@ -1,14 +1,12 @@
 package cc.noharry.bothy.app.overlay
 
+import cc.noharry.agent.appserver.protocol.ConfirmationStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
+import cc.noharry.agent.appserver.protocol.view.formatWorkedDuration
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.runtime.formatWorkedDuration
-import cc.noharry.bothy.app.session.CompactEntry
-import cc.noharry.bothy.app.session.ConfirmationStatus
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.TranscriptRole
-import cc.noharry.bothy.app.session.compactLabel
-import cc.noharry.bothy.app.session.compactTitle
 /**
  * Overlay projection of a conversation item.
  * Tools keep Arguments/Result for expand-in-place (same priority as fullscreen ToolRow).

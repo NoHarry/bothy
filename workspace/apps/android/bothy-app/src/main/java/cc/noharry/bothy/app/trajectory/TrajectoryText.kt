@@ -1,12 +1,19 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.trajectory
 
 import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.appserver.protocol.EventLogHealthStatus
+import cc.noharry.agent.appserver.protocol.TrajectoryHealth
+import cc.noharry.agent.appserver.protocol.TrajectoryKind
+import cc.noharry.agent.appserver.protocol.TrajectoryLane
+import cc.noharry.agent.appserver.protocol.TrajectoryRecord
+import cc.noharry.agent.appserver.protocol.TrajectoryRichAvailability
+import cc.noharry.agent.appserver.protocol.view.TrajectoryInspectorTab
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineMode
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineProjection
+import cc.noharry.agent.appserver.protocol.view.formatTrajectoryDurationLabel
 import cc.noharry.bothy.app.R
 
 /**
@@ -60,12 +67,12 @@ internal fun TrajectoryInspectorTab.labelRes(): Int = when (this) {
 
 /** The screen's form of [TrajectoryHealth.badgeLabel]. */
 @StringRes
-internal fun SessionEventLogHealthStatus.labelRes(): Int = when (this) {
-    SessionEventLogHealthStatus.COMPLETE -> R.string.trajectory_health_complete
-    SessionEventLogHealthStatus.DEGRADED -> R.string.trajectory_health_degraded
-    SessionEventLogHealthStatus.UNAVAILABLE -> R.string.trajectory_health_unavailable
-    SessionEventLogHealthStatus.VOLATILE -> R.string.trajectory_health_volatile
-    SessionEventLogHealthStatus.UNKNOWN -> R.string.trajectory_health_unknown
+internal fun EventLogHealthStatus.labelRes(): Int = when (this) {
+    EventLogHealthStatus.COMPLETE -> R.string.trajectory_health_complete
+    EventLogHealthStatus.DEGRADED -> R.string.trajectory_health_degraded
+    EventLogHealthStatus.UNAVAILABLE -> R.string.trajectory_health_unavailable
+    EventLogHealthStatus.VOLATILE -> R.string.trajectory_health_volatile
+    EventLogHealthStatus.UNKNOWN -> R.string.trajectory_health_unknown
 }
 
 @StringRes

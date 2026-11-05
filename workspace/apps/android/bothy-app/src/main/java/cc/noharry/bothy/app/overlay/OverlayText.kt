@@ -2,8 +2,10 @@ package cc.noharry.bothy.app.overlay
 
 import android.content.res.Resources
 import androidx.annotation.StringRes
+import cc.noharry.agent.appserver.protocol.DelegationStage
+import cc.noharry.agent.appserver.protocol.view.PARTLY_DONE_HEADLINE
+import cc.noharry.agent.appserver.protocol.view.WAITING_FOR_RUN_TEXT
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.DelegationStage
 import cc.noharry.bothy.app.console.runSummaryText
 
 /**

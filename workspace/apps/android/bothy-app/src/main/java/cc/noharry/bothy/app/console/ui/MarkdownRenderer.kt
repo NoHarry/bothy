@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.console.ui
 
-import cc.noharry.bothy.app.runtime.append
-import cc.noharry.bothy.app.session.normalizeTextEscapes
+import cc.noharry.agent.appserver.protocol.view.normalizeTextEscapes
+
 /** Normalizes model-emitted markdown before parsing (escapes + fullwidth markers). */
 internal fun normalizeMarkdown(source: String): String =
     source.normalizeTextEscapes()

@@ -1,8 +1,8 @@
 package cc.noharry.bothy.app.overlay
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.tools.prettyToolPayload
+import cc.noharry.bothy.app.console.ui.prettyToolPayload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

@@ -19,38 +19,28 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.vfs.VfsEntry
-import cc.noharry.agent.vfs.VfsFileSystem
-import cc.noharry.agent.vfs.VfsListResult
-import cc.noharry.agent.vfs.VfsReadResult
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.FileListResult
+import cc.noharry.agent.appserver.protocol.FileReadParams
+import cc.noharry.agent.appserver.protocol.FileRequests
+import cc.noharry.agent.appserver.protocol.PathParams
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2ui.initialValue
 import cc.noharry.bothy.app.console.ui.IconFile
 import cc.noharry.bothy.app.console.ui.IconFolder
-import cc.noharry.bothy.app.runtime.appWorkspaceRoot
-import cc.noharry.bothy.app.runtime.workspaceVfs
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import cc.noharry.bothy.app.frontend.LocalServer
 
 /**
  * Mounted-workspace file browser: mount shortcut chips on top, directory listing below.
@@ -62,23 +52,16 @@ internal fun FilesPane(
     modifier: Modifier = Modifier,
 ) {
     val colors = ConsoleColors
-    val context = LocalContext.current.applicationContext
-    val vfs by produceState<VfsFileSystem?>(initialValue = null, context) {
-        value = withContext(Dispatchers.IO) {
-            val workspaceRoot = appWorkspaceRoot(context)
-            workspaceVfs(context, workspaceRoot)
-        }
-    }
-    val mountTargets by produceState(initialValue = listOf("/"), context) {
-        value = withContext(Dispatchers.IO) { workspaceMountTargets(context) }
-    }
+    val server = LocalServer.current
+    var mountTargets by remember { mutableStateOf(listOf("/")) }
+    LaunchedEffect(Unit) { server.send(FileRequests.MOUNTS, Empty) { mountTargets = it.targets } }
     var currentPath by rememberSaveable { mutableStateOf("/") }
     var refreshTick by remember { mutableIntStateOf(0) }
-    val scope = rememberCoroutineScope()
-
-    val listing by produceState<VfsListResult?>(initialValue = null, vfs, currentPath, refreshTick) {
-        val workspace = vfs ?: return@produceState
-        value = withContext(Dispatchers.IO) { workspace.list(currentPath) }
+    var listing by remember { mutableStateOf<FileListResult?>(null) }
+    LaunchedEffect(currentPath, refreshTick) {
+        server.send(FileRequests.LIST, PathParams(currentPath), onRefused = { listing = FileListResult(error = it.message.orEmpty()) }) {
+            listing = it
+        }
     }
 
     Column(modifier.fillMaxSize()) {
@@ -117,19 +100,19 @@ internal fun FilesPane(
             )
         }
         Spacer(Modifier.height(Dimens.spaceXs))
-        when (val result = listing) {
-            null -> Text(stringResource(R.string.common_loading), style = ConsoleType.meta, color = colors.muted)
-            is VfsListResult.Error -> Text(
-                stringResource(R.string.console_files_unavailable, result.message),
+        val result = listing
+        val error = result?.error
+        when {
+            result == null -> Text(stringResource(R.string.common_loading), style = ConsoleType.meta, color = colors.muted)
+            error != null -> Text(
+                stringResource(R.string.console_files_unavailable, error),
                 style = ConsoleType.meta,
                 color = colors.danger,
             )
-            VfsListResult.InvalidPath,
-            VfsListResult.NotFound,
-            -> Text(stringResource(R.string.console_files_empty), style = ConsoleType.meta, color = colors.muted)
-            is VfsListResult.Entries -> {
-                val directories = result.entries.filter { it.type == VFS_DIR_TYPE }
-                val files = result.entries.filter { it.type != VFS_DIR_TYPE }
+            result.missing -> Text(stringResource(R.string.console_files_empty), style = ConsoleType.meta, color = colors.muted)
+            else -> {
+                val directories = result.entries.filter { it.directory }
+                val files = result.entries.filterNot { it.directory }
                 LazyColumn(
                     Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs),
@@ -147,20 +130,14 @@ internal fun FilesPane(
                     items(directories + files, key = { it.name }) { entry ->
                         FileEntryRow(
                             name = entry.name,
-                            isDirectory = entry.type == VFS_DIR_TYPE,
+                            isDirectory = entry.directory,
                             sizeBytes = entry.sizeBytes,
                             onClick = {
                                 val child = childVfsPath(currentPath, entry.name)
                                 when {
-                                    entry.type == VFS_DIR_TYPE -> currentPath = child
-                                    child.isHtmlPath() && vfs != null -> scope.launch {
-                                        val read = withContext(Dispatchers.IO) {
-                                            vfs?.read(child, 0L, MAX_HTML_PREVIEW_BYTES)
-                                        }
-                                        when (read) {
-                                            is VfsReadResult.Found -> actions.openHtmlViewer(child, read.text)
-                                            else -> Unit
-                                        }
+                                    entry.directory -> currentPath = child
+                                    child.isHtmlPath() -> server.send(FileRequests.READ, FileReadParams(child, MAX_HTML_PREVIEW_BYTES)) { read ->
+                                        read.text?.let { actions.openHtmlViewer(child, it) }
                                     }
                                 }
                             },
@@ -231,18 +208,6 @@ private fun FileEntryRow(
     }
 }
 
-/** Directory mount targets from the workspace manifest (file mounts excluded). */
-private fun workspaceMountTargets(context: android.content.Context): List<String> =
-    runCatching {
-        val text = context.assets.open("$WORKSPACE_ASSET_ROOT_PATH/$WORKSPACE_MANIFEST_FILE")
-            .use { it.readBytes().toString(Charsets.UTF_8) }
-        val mounts = MountsJson.parseToJsonElement(text).jsonObject["mounts"]?.jsonArray.orEmpty()
-        mounts.mapNotNull { element ->
-            val target = element.jsonObject["target"]?.jsonPrimitive?.content ?: return@mapNotNull null
-            target.takeIf { path -> path.split('/').last().none { it == '.' } || path == "/" }
-        }.distinct().sorted()
-    }.getOrDefault(listOf("/"))
-
 private fun childVfsPath(parent: String, name: String): String =
     if (parent == "/") "/$name" else "$parent/$name"
 
@@ -257,9 +222,5 @@ private fun String.isHtmlPath(): Boolean {
     return lower.endsWith(".html") || lower.endsWith(".htm")
 }
 
-private val MountsJson = Json { ignoreUnknownKeys = true }
 private val FILE_ENTRY_ICON_SIZE = 18.dp
-private const val WORKSPACE_ASSET_ROOT_PATH = "runtime-workspace"
-private const val WORKSPACE_MANIFEST_FILE = "workspace.json"
-private const val VFS_DIR_TYPE = "dir"
 private const val MAX_HTML_PREVIEW_BYTES = 512 * 1024

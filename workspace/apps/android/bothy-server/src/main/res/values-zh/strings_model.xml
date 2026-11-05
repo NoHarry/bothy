@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置 → 模型与服务：服务页和本机模型。 -->
+<resources>
+    <!-- 本机模型 -->
+    <string name="model_on_device">本机模型</string>
+    <string name="model_on_device_missing">本机模型 %1$s 还没下载：设置 → 模型与服务 → 本机模型 → %1$s → 下载（约 %2$s GB）。</string>
+    <string name="model_publisher_qwen">阿里通义千问</string>
+    <string name="model_publisher_minicpm">面壁智能</string>
+    <string name="model_note_gemma_4_e4b">实测最稳：没调用工具时没说过已经办好，拿不准就先问。</string>
+    <string name="model_note_qwen3_4b">实测最干脆：动手快，但偶尔说办好了却没真的调用工具。</string>
+    <string name="model_note_minicpm5_2b">实测会自己找工具，没说过假的办好；每步先思考，慢一些。</string>
+</resources>

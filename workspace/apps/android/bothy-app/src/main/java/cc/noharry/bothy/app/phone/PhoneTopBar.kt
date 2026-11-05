@@ -42,15 +42,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.ConfirmationStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.session.ConfirmationStatus
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.session.sessionTitleText
 
 /**
@@ -58,7 +58,7 @@ import cc.noharry.bothy.app.session.sessionTitleText
  * chat.
  */
 @Composable
-internal fun PhoneTopBar(state: UiState, actions: ConsoleActions, onMenu: () -> Unit) {
+internal fun PhoneTopBar(state: ServerState, actions: ConsoleActions, onMenu: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         RoundButton(Icons.Filled.Menu, stringResource(R.string.console_open_menu), onMenu)
         TitleAndModel(Modifier.weight(1f)) {
@@ -97,7 +97,7 @@ private fun TitleAndModel(modifier: Modifier, content: @Composable () -> Unit) {
 
 /** How the session is doing, under its title, with the dot's colour. */
 @Composable
-private fun phoneStatus(state: UiState): Pair<String, androidx.compose.ui.graphics.Color> {
+private fun phoneStatus(state: ServerState): Pair<String, androidx.compose.ui.graphics.Color> {
     val colors = ConsoleColors
     val waiting = state.items.any { it is ConversationItem.ConfirmationItem && it.status == ConfirmationStatus.PENDING }
     return when {
@@ -124,7 +124,7 @@ internal fun PhonePage(title: String, onBack: () -> Unit, content: @Composable C
  * approval. A warning approval keeps its amber dot on the pill.
  */
 @Composable
-private fun PhoneModelPill(state: UiState, actions: ConsoleActions) {
+private fun PhoneModelPill(state: ServerState, actions: ConsoleActions) {
     val colors = ConsoleColors
     var open by remember { mutableStateOf(false) }
     val model = state.configEditor.model.ifBlank { stringResource(R.string.console_choose_model) }
@@ -176,7 +176,7 @@ internal fun RoundButton(icon: Painter, label: String, onClick: () -> Unit) {
 
 /** The open session's title, or "New chat" until something is asked in it. */
 @Composable
-private fun phoneTitle(state: UiState): String {
+private fun phoneTitle(state: ServerState): String {
     val session = state.sessions.firstOrNull { it.sessionId == state.activeSessionId }?.takeIf { it.turnCount > 0 || state.items.isNotEmpty() }
     return session?.title?.takeIf { it.isNotBlank() }?.let { sessionTitleText(it) } ?: stringResource(R.string.console_new_chat)
 }

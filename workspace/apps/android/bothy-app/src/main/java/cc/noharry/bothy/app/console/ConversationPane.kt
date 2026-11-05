@@ -56,6 +56,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConfirmationMode
+import cc.noharry.agent.appserver.protocol.DEFAULT_DEBUG_VARIANT_ID
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.ProviderEditState
+import cc.noharry.agent.appserver.protocol.RunActivity
+import cc.noharry.agent.appserver.protocol.RunResult
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.variantChoices
+import cc.noharry.agent.appserver.protocol.view.headerWords
+import cc.noharry.agent.appserver.protocol.view.pickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionCards
 import cc.noharry.bothy.app.console.ui.PopupDot
@@ -65,23 +75,17 @@ import cc.noharry.bothy.app.console.ui.PopupSectionLabel
 import cc.noharry.bothy.app.console.ui.SelectorChip
 import cc.noharry.bothy.app.console.ui.ShimmerText
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.model.ProviderEditState
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.overlay.pickableReply
-import cc.noharry.bothy.app.voice.clearWakeMigrationNotice
-import cc.noharry.bothy.app.voice.wakeMigrationNotice
-import cc.noharry.bothy.app.runtime.DEFAULT_DEBUG_VARIANT_ID
-import cc.noharry.bothy.app.runtime.variantChoices
-import cc.noharry.bothy.app.session.ConfirmationMode
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.usage.ContextUsageIndicator
 import cc.noharry.bothy.app.voice.VoiceMicButton
 import cc.noharry.bothy.app.voice.VoiceStrip
+import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun ConversationPane(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -121,7 +125,7 @@ private fun RegularConversationPane(
     input: String,
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     short: Boolean,
     modifier: Modifier,
@@ -142,7 +146,7 @@ private fun RegularConversationPane(
         }
         // The same open picks as the overlay card, drawn under the reply that offers them.
         val pickable = remember(state) { state.pickableReply() }
-        val latestScrollKey = renderItems.lastOrNull()?.autoScrollKey()
+        val latestScrollKey = renderItems.lastOrNull()?.autoScrollKey(actions.isFolded)
         LaunchedEffect(latestScrollKey, state.isRunning) {
             if (bottomFirstItems.isNotEmpty()) {
                 // Index 0 is the visual bottom when reverseLayout is true.
@@ -182,7 +186,7 @@ private fun RegularConversationPane(
             }
         }
         AnimatedVisibility(
-            visible = state.isRunning || !state.lastRunSummary.isNullOrBlank(),
+            visible = state.isRunning || state.lastRun != null,
             enter = fadeIn() + slideInVertically { it / 2 },
             exit = fadeOut() + slideOutVertically { it / 2 },
         ) {
@@ -191,7 +195,7 @@ private fun RegularConversationPane(
                 if (state.isRunning) {
                     ActiveStatusBar(state)
                 } else {
-                    CompletedStatusBar(state.lastRunSummary.orEmpty())
+                    CompletedStatusBar(state.lastRun)
                 }
             }
         }
@@ -241,9 +245,8 @@ private fun ConversationEmptyState(modifier: Modifier = Modifier) {
 
 @Composable
 internal fun WakeMigrationNote() {
-    val context = LocalContext.current
-    var wakeNote by remember { mutableStateOf(wakeMigrationNotice(context)) }
-    if (!wakeNote) return
+    val server = LocalServer.current
+    if (!server.state.voice.wakeMigrated) return
     Row(
         Modifier.fillMaxWidth().padding(bottom = Dimens.spaceSm),
         verticalAlignment = Alignment.CenterVertically,
@@ -254,10 +257,7 @@ internal fun WakeMigrationNote() {
             color = ConsoleColors.text,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = {
-            clearWakeMigrationNotice(context)
-            wakeNote = false
-        }) { Text(stringResource(R.string.common_ok)) }
+        TextButton(onClick = { server.send(VoiceRequests.CLEAR_WAKE_MIGRATION, Empty) }) { Text(stringResource(R.string.common_ok)) }
     }
 }
 
@@ -269,7 +269,7 @@ private fun CondensedConversationPane(
     input: String,
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     modifier: Modifier,
 ) {
@@ -298,15 +298,14 @@ private fun CondensedConversationPane(
 }
 
 @Composable
-private fun ConversationStatus(state: UiState) {
+private fun ConversationStatus(state: ServerState) {
     val colors = ConsoleColors
     // Keep a single quiet meta line; live Working / Worked-for live in the bar above the composer.
     val run = when {
         state.isRunning -> statusHeader(state)
-        !state.lastRunSummary.isNullOrBlank() -> runSummaryText(state.lastRunSummary)
-        else -> stringResource(R.string.console_ready)
+        else -> state.lastRun?.let { runResultText(it) } ?: stringResource(R.string.console_ready)
     }
-    val text = "$run · ${state.providerLabel} · ${streamLabelText(state.streamLabel)}"
+    val text = "$run · ${state.providerLabel} · ${streamText(state.stream)}"
     Text(
         text = text,
         style = ConsoleType.meta,
@@ -394,7 +393,7 @@ private fun ConversationInputBar(
     text: String,
     onTextChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     short: Boolean,
 ) {
@@ -463,7 +462,7 @@ internal fun MessageField(
 private fun CondensedComposerActions(
     text: String,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth().height(CONDENSED_ACTIONS_HEIGHT)) {
@@ -492,7 +491,7 @@ private fun CondensedComposerActions(
 private fun CompactComposerActions(
     text: String,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -520,7 +519,7 @@ private fun CompactComposerActions(
 private fun WideComposerActions(
     text: String,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
 ) {
     Row(
@@ -702,7 +701,7 @@ internal fun String.variantLabel(): String =
  * `[●] ShimmerHeader · detail          (elapsed)`
  */
 @Composable
-private fun ActiveStatusBar(state: UiState) {
+private fun ActiveStatusBar(state: ServerState) {
     val colors = ConsoleColors
     val elapsedSec = rememberElapsedSeconds(state.runStartedAtEpochMillis)
     Surface(
@@ -720,8 +719,8 @@ private fun ActiveStatusBar(state: UiState) {
 }
 
 @Composable
-private fun CompletedStatusBar(summary: String) {
-    val summaryText = runSummaryText(summary)
+private fun CompletedStatusBar(result: RunResult?) {
+    val summaryText = result?.let { runResultText(it) }.orEmpty()
     val colors = ConsoleColors
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -797,69 +796,30 @@ private fun ActiveStatusBarContent(header: String, detail: String?, elapsedLabel
 }
 
 @Composable
-internal fun statusDetail(state: UiState): String? {
-    val status = state.status.trim()
-    return when {
-        status.startsWith("Tool running:", ignoreCase = true) -> null
-        status.startsWith("Thinking", ignoreCase = true) -> state.providerLabel.takeIf { it.isNotBlank() }
-        status.contains("confirmation", ignoreCase = true) -> stringResource(R.string.console_status_respond_in_card)
-        status.isBlank() || status.equals("Running", ignoreCase = true) -> null
-        status.equals(statusHeaderWords(status), ignoreCase = true) -> null
-        // The runner's start line, "Running <profile> <stream>"; other raw statuses are runtime event names.
-        status.startsWith(RUNNING_TOOL_PREFIX) && status.trimEnd().count { it == ' ' } >= 2 && status.length <= 72 -> {
-            val rest = status.removePrefix(RUNNING_TOOL_PREFIX)
-            stringResource(
-                R.string.console_status_running_profile,
-                rest.substringBeforeLast(' '),
-                streamLabelText(rest.substringAfterLast(' ')),
-            )
-        }
-        else -> status.takeIf { it.length <= 72 }
+internal fun statusDetail(state: ServerState): String? = when (state.activity) {
+    RunActivity.THINKING -> state.providerLabel.takeIf { it.isNotBlank() }
+    RunActivity.WAITING_FOR_APPROVAL -> stringResource(R.string.console_status_respond_in_card)
+    RunActivity.STARTING -> stringResource(R.string.console_status_running_profile, state.providerLabel, streamText(state.stream))
+    RunActivity.RUNNING_TOOL -> null
+    // Otherwise the runtime's own line (an event's name) as the debug console's detail, when it says more than the header.
+    else -> state.runtimeStatus.trim().takeIf {
+        it.isNotBlank() && it.length <= 72 && !it.equals("Running", ignoreCase = true) &&
+            !it.equals(state.activity.headerWords(state.activityTool), ignoreCase = true)
     }
 }
 
 /** The run's status header in the screen's language. */
 @Composable
-internal fun statusHeader(state: UiState): String = LocalContext.current.resources.statusHeaderText(state.status)
+internal fun statusHeader(state: ServerState): String =
+    LocalContext.current.resources.statusHeaderText(state.activity, state.activityTool)
 
-/** [statusHeaderWords] in the screen's language, for code that shows it outside Compose. */
-internal fun Resources.statusHeaderText(status: String): String {
-    val words = statusHeaderWords(status)
-    return when (words) {
-        "Working" -> getString(R.string.console_status_working)
-        "Thinking" -> getString(R.string.console_status_thinking)
-        "Failed" -> getString(R.string.console_status_failed)
-        "Stopped" -> getString(R.string.console_status_stopped)
-        "Waiting for approval" -> getString(R.string.console_status_waiting_for_approval)
-        "Blocked" -> getString(R.string.console_status_blocked)
-        else -> if (words.startsWith(RUNNING_TOOL_PREFIX)) {
-            getString(R.string.console_status_running_tool, words.removePrefix(RUNNING_TOOL_PREFIX))
-        } else {
-            runSummaryText(words)
-        }
-    }
+/** What the run is doing in the screen's language, for code that shows it outside Compose; [tool] is the tool running. */
+internal fun Resources.statusHeaderText(activity: RunActivity, tool: String): String = when (activity) {
+    RunActivity.THINKING -> getString(R.string.console_status_thinking)
+    RunActivity.FAILED -> getString(R.string.console_status_failed)
+    RunActivity.STOPPED -> getString(R.string.console_status_stopped)
+    RunActivity.WAITING_FOR_APPROVAL -> getString(R.string.console_status_waiting_for_approval)
+    RunActivity.BLOCKED -> getString(R.string.console_status_blocked)
+    RunActivity.RUNNING_TOOL -> getString(R.string.console_status_running_tool, tool)
+    RunActivity.IDLE, RunActivity.STARTING, RunActivity.WORKING -> getString(R.string.console_status_working)
 }
-
-/** The runtime's status reduced to a short English header; the code compares it with the raw status. */
-internal fun statusHeaderWords(status: String): String =
-    when {
-        status.startsWith("Tool running:", ignoreCase = true) -> {
-            // Codex uses the verb "Running" + tool name
-            val toolName = status.substringAfter(":").trim()
-            "$RUNNING_TOOL_PREFIX$toolName"
-        }
-        status.startsWith("Tool finished:", ignoreCase = true) -> "Working"
-        status.startsWith("Thinking", ignoreCase = true) -> "Thinking"
-        status.startsWith("Started", ignoreCase = true) -> "Working"
-        status.startsWith("Worked for", ignoreCase = true) -> status
-        status.startsWith("Failed after", ignoreCase = true) -> "Failed"
-        status.startsWith("Stopped after", ignoreCase = true) -> "Stopped"
-        status.startsWith("Failed", ignoreCase = true) -> "Failed"
-        // AgentEvent.Finished sets "Finished <runId>" while tools may still be winding down.
-        status.startsWith("Finished", ignoreCase = true) -> "Working"
-        status.contains("confirmation", ignoreCase = true) -> "Waiting for approval"
-        status.contains("blocked", ignoreCase = true) -> "Blocked"
-        else -> "Working"
-    }
-
-private const val RUNNING_TOOL_PREFIX = "Running "

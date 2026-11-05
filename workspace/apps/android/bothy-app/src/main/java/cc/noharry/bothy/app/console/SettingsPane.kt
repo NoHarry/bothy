@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,10 +18,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -52,21 +49,21 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.agent.appserver.protocol.ModelSettingsRequests
+import cc.noharry.agent.appserver.protocol.ProviderEditState
+import cc.noharry.agent.appserver.protocol.ProviderProfileOption
+import cc.noharry.agent.appserver.protocol.WebLookupView
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.endpointLabel
 import cc.noharry.bothy.app.console.ui.SectionLabel
-import cc.noharry.bothy.app.model.FetchFallback
-import cc.noharry.bothy.app.model.ON_DEVICE_PROFILE_ID
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.model.OnDeviceModelDetail
-import cc.noharry.bothy.app.model.ProviderConfig
 import cc.noharry.bothy.app.model.ProviderDetail
 import cc.noharry.bothy.app.model.ProviderDraft
-import cc.noharry.bothy.app.model.ProviderEditState
-import cc.noharry.bothy.app.model.ProviderProfileOption
-import cc.noharry.bothy.app.model.SearchBackend
-import cc.noharry.bothy.app.model.hasDeepSeekKey
 import cc.noharry.bothy.app.session.ClearRuntimeDataDialog
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.protocol.ON_DEVICE_PROFILE_ID
 
 internal enum class SettingsPage {
     OVERVIEW,
@@ -108,7 +105,7 @@ internal data class SettingsNavigationState(
 
 @Composable
 internal fun SettingsPane(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -137,7 +134,7 @@ internal fun SettingsFeaturePages(onOpenSkills: () -> Unit, onOpenJev: () -> Uni
 }
 
 @Composable
-internal fun SettingsRuntimeGroup(state: UiState, actions: ConsoleActions) {
+internal fun SettingsRuntimeGroup(state: ServerState, actions: ConsoleActions) {
     SettingsGroup(
         title = stringResource(R.string.settings_runtime),
         subtitle = stringResource(R.string.settings_applies_immediately),
@@ -146,24 +143,23 @@ internal fun SettingsRuntimeGroup(state: UiState, actions: ConsoleActions) {
             Column {
                 SettingsStateRow(
                     title = stringResource(R.string.settings_stream),
-                    value = streamLabelText(state.streamLabel),
+                    value = streamText(state.stream),
                     onClick = actions.toggleStream,
                 )
                 SettingsStateRow(
                     title = stringResource(R.string.settings_backend),
-                    value = backendLabelText(state.backendLabel),
+                    value = backendText(state.simulated),
                     onClick = { actions.selectBackend(false) },
                 )
                 ShowThinkingRow()
-                SearchBackendRow()
-                FetchFallbackRow()
+                WebLookupRows()
             }
         }
     }
 }
 
 @Composable
-internal fun SettingsWorkspaceGroup(state: UiState, actions: ConsoleActions) {
+internal fun SettingsWorkspaceGroup(state: ServerState, actions: ConsoleActions) {
     val selection = state.workspaceSelection
     val workspace = if (selection.safEnabled) selection.label else stringResource(R.string.console_workspace_app_private)
     SettingsGroup(title = stringResource(R.string.console_workspace), subtitle = workspace) {
@@ -191,8 +187,8 @@ internal fun SettingsWorkspaceGroup(state: UiState, actions: ConsoleActions) {
 }
 
 @Composable
-internal fun SettingsAdvancedGroup(state: UiState, actions: ConsoleActions) {
-    SettingsGroup(title = "Advanced", subtitle = state.configLabel) {
+internal fun SettingsAdvancedGroup(state: ServerState, actions: ConsoleActions) {
+    SettingsGroup(title = "Advanced", subtitle = state.configSummary()) {
         SettingsActionRow(
             title = "Provider configuration",
             value = null,
@@ -290,7 +286,7 @@ private fun SettingsActionRow(
 
 @Composable
 internal fun ProviderSettingsContent(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     navigation: SettingsNavigationState,
     twoPane: Boolean,
@@ -637,14 +633,21 @@ private fun ShowThinkingRow() {
     }
 }
 
+/** 联网搜索 and the fetch fallback, as the server has them for the active profile; each switch applies at once. */
+@Composable
+private fun WebLookupRows() {
+    val server = LocalServer.current
+    var lookup by remember { mutableStateOf<WebLookupView?>(null) }
+    LaunchedEffect(Unit) { server.send(ModelSettingsRequests.LOOKUP_READ, Empty) { lookup = it } }
+    val shown = lookup ?: return
+    SearchBackendRow(shown) { on -> server.send(ModelSettingsRequests.LOOKUP_SET_SEARCH_API, FlagParams(on)) { lookup = it } }
+    FetchFallbackRow(shown) { on -> server.send(ModelSettingsRequests.LOOKUP_SET_FETCH_FALLBACK, FlagParams(on)) { lookup = it } }
+}
+
 /** 联网搜索 for the active profile: the provider's server-side search, or DeepSeek's Search API with visible results. */
 @Composable
-private fun SearchBackendRow() {
-    val context = LocalContext.current
-    val profile = remember { ProviderConfig.load(context.applicationContext).activeProfile }
-    val usesApi by SearchBackend.usesApi.collectAsState()
-    LaunchedEffect(Unit) { SearchBackend.load(context) }
-    val api = usesApi[profile.id] == true
+private fun SearchBackendRow(lookup: WebLookupView, onChange: (Boolean) -> Unit) {
+    val api = lookup.searchApi
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.settings_search_api), style = ConsoleType.body, color = ConsoleColors.text)
@@ -652,30 +655,27 @@ private fun SearchBackendRow() {
                 when {
                     api -> stringResource(R.string.settings_search_api_on)
                     // The on-device model and the No web_search profile have no search of their own.
-                    !profile.serverSideSearch || profile.searchCapability == "none" ->
-                        stringResource(R.string.settings_search_api_off_no_search, profile.displayLabel)
-                    else -> stringResource(R.string.settings_search_api_off, profile.displayLabel)
+                    !lookup.ownSearch -> stringResource(R.string.settings_search_api_off_no_search, lookup.profileLabel)
+                    else -> stringResource(R.string.settings_search_api_off, lookup.profileLabel)
                 },
                 style = ConsoleType.meta,
                 color = ConsoleColors.muted,
             )
         }
-        Switch(checked = api, onCheckedChange = { SearchBackend.set(context, profile.id, it) }, colors = switchColors())
+        Switch(checked = api, onCheckedChange = onChange, colors = switchColors())
     }
 }
 
 /** Pages that refuse the device (携程 answers it with 432) read through DeepSeek's Fetch API, for every agent. */
 @Composable
-private fun FetchFallbackRow() {
-    val context = LocalContext.current
-    var on by remember { mutableStateOf(FetchFallback.enabled(context)) }
-    val keyed = remember { ProviderConfig.load(context.applicationContext).hasDeepSeekKey(context) }
+private fun FetchFallbackRow(lookup: WebLookupView, onChange: (Boolean) -> Unit) {
+    val on = lookup.fetchFallback
     Row(Modifier.fillMaxWidth().padding(Dimens.spaceSm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.settings_fetch_fallback), style = ConsoleType.body, color = ConsoleColors.text)
             Text(
                 when {
-                    on && !keyed -> stringResource(R.string.settings_fetch_fallback_no_key)
+                    on && !lookup.deepSeekKey -> stringResource(R.string.settings_fetch_fallback_no_key)
                     on -> stringResource(R.string.settings_fetch_fallback_on)
                     else -> stringResource(R.string.settings_fetch_fallback_off)
                 },
@@ -683,10 +683,7 @@ private fun FetchFallbackRow() {
                 color = ConsoleColors.muted,
             )
         }
-        Switch(checked = on, onCheckedChange = {
-            FetchFallback.set(context, it)
-            on = it
-        }, colors = switchColors())
+        Switch(checked = on, onCheckedChange = onChange, colors = switchColors())
     }
 }
 
@@ -779,7 +776,7 @@ private fun ProviderProfileMain(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) {
             ProviderProfileTitle(option)
             Text(
-                "${option.providerLabel} · ${option.endpointLabel} · " +
+                "${option.provider.label} · ${option.endpoint.label} · " +
                     option.model.ifBlank { stringResource(R.string.settings_no_model) },
                 style = ConsoleType.meta,
                 color = colors.muted,
@@ -837,3 +834,9 @@ private val PROFILE_SELECTED_BAR_WIDTH = 3.dp
 private val PROFILE_SELECTED_BAR_HEIGHT = 24.dp
 private val NAV_BACK_ICON_SIZE = 20.dp
 private val NAV_BACK_TOUCH_SIZE = 32.dp
+
+
+/** The loaded provider config, as the advanced settings list it: where it came from and what it selects. */
+private fun ServerState.configSummary(): String = with(configEditor) {
+    "Config: ${configSource.ifBlank { "missing" }} | $profileLabel model=$model variant=${variant.ifBlank { "default" }}"
+}

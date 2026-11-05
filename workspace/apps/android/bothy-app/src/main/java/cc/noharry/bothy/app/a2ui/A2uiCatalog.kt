@@ -45,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.icon
-import cc.noharry.bothy.app.image.GENERATED_IMAGES_DIR
 import cc.noharry.bothy.app.image.rememberPicture
 import cc.noharry.bothy.app.overlay.CarA2uiButton
 import cc.noharry.bothy.app.overlay.CarA2uiChoicePicker
@@ -56,7 +55,6 @@ import cc.noharry.bothy.app.overlay.CarA2uiSlider
 import cc.noharry.bothy.app.overlay.CarA2uiSwitch
 import cc.noharry.bothy.app.overlay.CarA2uiText
 import cc.noharry.bothy.app.overlay.OverlayPalette
-import cc.noharry.bothy.app.plans.number
 
 /**
  * The host's A2UI catalog: the Material basic catalog plus components it lacks, under the host's own catalog ID.
@@ -251,9 +249,6 @@ private object IcuMessageFormatter : A2uiMessageFormatter {
     override fun format(pattern: String, locale: java.util.Locale, arguments: Map<String, Any>): String =
         MessageFormat(pattern, locale).format(arguments)
 }
-
-/** A picture the device saved itself; `show_card.image` takes this or a public https URL ([remotePictureUrl]). */
-internal val SAVED_PICTURE = Regex("$GENERATED_IMAGES_DIR/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+\\.(?:jpg|png|webp)")
 
 /** Our catalog's ID: createSurface must name it, or the engine creates no surface and reports nothing. */
 internal const val DEBUG_A2UI_CATALOG_URI = "urn:bothy:a2ui:glass-catalog:v1"

@@ -10,27 +10,7 @@
     <string name="companion_service_custom">自定义（OpenAI 兼容）</string>
     <string name="companion_service_custom_hint">任何 OpenAI 兼容的 /chat/completions 服务</string>
     <string name="companion_mode_observe">只记录，不分流（先看判断准不准）</string>
-    <string name="companion_mode_observe_short">只记录，不分流</string>
     <string name="companion_mode_route">闲聊交给陪聊服务</string>
-
-    <string name="companion_error_threshold">灵敏度要在 0.5 到 1 之间</string>
-    <string name="companion_error_no_address">%1$s还没填地址</string>
-    <string name="companion_error_no_model">%1$s还没填模型</string>
-    <string name="companion_error_no_key">%1$s 没有 API key</string>
-    <string name="companion_error_key_whitespace">API key 不能包含空白字符</string>
-    <string name="companion_error_key_not_saved">API key 没能保存</string>
-    <string name="companion_error_url_invalid">地址格式不对</string>
-    <string name="companion_error_url_https">地址要以 https:// 开头（http:// 只能连本机）</string>
-    <string name="companion_error_extra_not_object">额外参数要是一个 JSON 对象</string>
-    <string name="companion_error_extra_invalid">额外参数不是合法的 JSON</string>
-    <plurals name="companion_error_timeout">
-        <item quantity="other">陪聊服务 %1$d 秒没有回应</item>
-    </plurals>
-    <string name="companion_http_with_message">HTTP %1$d：%2$s</string>
-    <string name="companion_http_with_hint">%1$s，%2$s</string>
-    <string name="companion_http_hint_key">检查 API key（千问的 sk-ws- 工作空间 key 要用工作空间地址）</string>
-    <string name="companion_http_hint_address">检查地址和模型名</string>
-
     <string name="companion_intro">语音里的闲聊（聊天、倾诉、讲笑话）交给陪聊服务，用小博自己的声音回答；要办事的话照常交给小博。Jev 每轮多打一个「是不是闲聊」的分，说到导航、空调、放歌这类词或小博刚问了问题时一律交给小博；陪聊服务失败或判断是要办事时也会转回小博。</string>
     <string name="companion_enable">启用陪聊</string>
     <string name="companion_service">陪聊服务</string>
@@ -57,16 +37,33 @@
     <string name="companion_decision_line">%1$s %2$s · %3$s · 「%4$s」</string>
     <string name="companion_route_companion">陪聊</string>
     <string name="companion_route_agent">小博</string>
-    <string name="companion_reason_off">没打开</string>
-    <string name="companion_reason_not_scored">没打分</string>
-    <string name="companion_reason_below">闲聊分 %1$.2f &lt; %2$.2f</string>
-    <string name="companion_reason_task_word">办事词「%1$s」</string>
-    <string name="companion_reason_answers_agent">在回答小博的问题</string>
-    <string name="companion_reason_observing">观察：会交给陪聊（%1$.2f）</string>
-    <string name="companion_reason_small_talk">闲聊分 %1$.2f</string>
-
-    <string name="companion_check_off">没打开</string>
-    <string name="companion_check_realtime">端到端模式下不用陪聊：闲聊由豆包自己回答</string>
     <string name="companion_check_empty">%1$s · 服务回了空内容</string>
-    <string name="companion_check_ok">%1$s · 回复用了 %2$d ms</string>
+    <string name="companion_check_off">没打开</string>
+    <string name="companion_check_ok">%1$s · 回复用了 %2$s ms</string>
+    <string name="companion_check_realtime">端到端模式下不用陪聊：闲聊由豆包自己回答</string>
+    <string name="companion_error_extra_invalid">额外参数不是合法的 JSON</string>
+    <string name="companion_error_extra_not_object">额外参数要是一个 JSON 对象</string>
+    <string name="companion_error_key_not_saved">API key 没能保存</string>
+    <string name="companion_error_key_whitespace">API key 不能包含空白字符</string>
+    <string name="companion_error_no_address">%1$s还没填地址</string>
+    <string name="companion_error_no_key">%1$s 没有 API key</string>
+    <string name="companion_error_no_model">%1$s还没填模型</string>
+    <string name="companion_error_threshold">灵敏度要在 0.5 到 1 之间</string>
+    <plurals name="companion_error_timeout">
+        <item quantity="other">陪聊服务 %1$s 秒没有回应</item>
+    </plurals>
+    <string name="companion_error_url_https">地址要以 https:// 开头（http:// 只能连本机）</string>
+    <string name="companion_error_url_invalid">地址格式不对</string>
+    <string name="companion_http_hint_address">检查地址和模型名</string>
+    <string name="companion_http_hint_key">检查 API key（千问的 sk-ws- 工作空间 key 要用工作空间地址）</string>
+    <string name="companion_http_with_hint">%1$s，%2$s</string>
+    <string name="companion_http_with_message">HTTP %1$s：%2$s</string>
+    <string name="companion_mode_observe_short">只记录，不分流</string>
+    <string name="companion_reason_answers_agent">在回答小博的问题</string>
+    <string name="companion_reason_below">闲聊分 %1$.2f &lt; %2$.2f</string>
+    <string name="companion_reason_not_scored">没打分</string>
+    <string name="companion_reason_observing">观察：会交给陪聊（%1$.2f）</string>
+    <string name="companion_reason_off">没打开</string>
+    <string name="companion_reason_small_talk">闲聊分 %1$.2f</string>
+    <string name="companion_reason_task_word">办事词「%1$s」</string>
 </resources>

@@ -1,6 +1,5 @@
 package cc.noharry.bothy.app.overlay
 import android.content.Context
-import android.graphics.BitmapFactory
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
@@ -23,29 +22,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.view.OverlayPhase
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.protocol.view.OverlayHud
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.PI
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
@@ -159,7 +147,7 @@ internal enum class MascotEffect(val millis: Int) {
 
 internal fun OverlayHud.mascotAction(ui: OverlayUi): MascotAction = when {
     phase == OverlayPhase.LIVE && headline.startsWith("等待回答") -> MascotAction.ASKING
-    phase == OverlayPhase.LIVE && picture != null && picture.reference == null -> MascotAction.DRAWING
+    phase == OverlayPhase.LIVE && picture?.let { it.reference == null } == true -> MascotAction.DRAWING
     phase == OverlayPhase.LIVE -> toolLines.lastOrNull { it.running }?.name?.let(::toolAct) ?: MascotAction.THINKING
     (choices.isNotEmpty() && !ui.choicesAnswered) || (controls.isNotEmpty() && !ui.panelAnswered) -> MascotAction.PICKING
     phase == OverlayPhase.DONE && headline == "等待你的回复" -> MascotAction.ASKING

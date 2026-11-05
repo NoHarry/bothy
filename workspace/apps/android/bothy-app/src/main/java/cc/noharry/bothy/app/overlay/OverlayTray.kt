@@ -24,9 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.DelegationStage
+import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.DelegationStage
-import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
 

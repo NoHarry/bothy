@@ -34,16 +34,15 @@
     <string name="image_view_larger">放大查看</string>
     <string name="image_generating_picture">正在生成图片…</string>
     <string name="image_file_cleared">图片文件已清理</string>
-
-    <string name="image_problem_base_url_scheme">Base URL 必须是 https://，或 127.0.0.1 上的 http://（adb reverse）。</string>
     <string name="image_problem_base_url_parts">Base URL 不能包含账号密码、查询参数或片段。</string>
+    <string name="image_problem_base_url_scheme">Base URL 必须是 https://，或 127.0.0.1 上的 http://（adb reverse）。</string>
+    <string name="image_problem_key_not_removed">无法删除已保存的 key。</string>
+    <string name="image_problem_key_not_saved">无法保存 API key。</string>
+    <string name="image_problem_key_whitespace">API key 不能包含空白字符。</string>
     <string name="image_problem_model_whitespace">模型 ID 不能包含空白字符。</string>
+    <string name="image_problem_no_key">先添加 API key，再开启生图。</string>
     <string name="image_problem_no_model">先选一个模型，再开启生图。</string>
+    <string name="image_problem_not_saved">无法保存生图模型设置。</string>
     <string name="image_problem_size">Size 要写成 1024x1024 这样，或者留空。</string>
     <string name="image_problem_timeout">超时要在 10–300 秒之间。</string>
-    <string name="image_problem_no_key">先添加 API key，再开启生图。</string>
-    <string name="image_problem_key_whitespace">API key 不能包含空白字符。</string>
-    <string name="image_problem_key_not_removed">无法删除已保存的 key。</string>
-    <string name="image_problem_not_saved">无法保存生图模型设置。</string>
-    <string name="image_problem_key_not_saved">无法保存 API key。</string>
 </resources>

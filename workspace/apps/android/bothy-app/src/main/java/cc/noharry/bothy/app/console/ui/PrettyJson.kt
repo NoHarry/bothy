@@ -1,6 +1,5 @@
 package cc.noharry.bothy.app.console.ui
 
-import cc.noharry.bothy.app.runtime.append
 internal fun prettyJsonString(src: String): String {
     val out = StringBuilder(src.length + src.length / 4)
     var indent = 0
@@ -80,4 +79,15 @@ private fun String.prevNonSpace(from: Int): Int {
 
 private fun StringBuilder.appendIndent(level: Int) {
     repeat(level) { append("  ") }
+}
+
+/**
+ * Shared pretty-print for tool Arguments/Result (fullscreen + overlay).
+ * Pure-Kotlin so JVM unit tests and device share the same path.
+ */
+internal fun prettyToolPayload(raw: String): String {
+    val trimmed = raw.trim()
+    if (trimmed.isEmpty()) return raw
+    if (!(trimmed.startsWith("{") || trimmed.startsWith("["))) return raw
+    return runCatching { prettyJsonString(trimmed) }.getOrDefault(raw)
 }

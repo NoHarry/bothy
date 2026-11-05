@@ -29,12 +29,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,64 +48,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import cc.noharry.agent.androiduse.AndroidUseAccessibility
-import cc.noharry.agent.device.DeviceMediaMcpProvider
-import cc.noharry.bothy.app.androiduse.saveAndroidUseEnabled
+import cc.noharry.agent.appserver.protocol.CapabilityRequests
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.agent.appserver.protocol.TextParams
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.evidence.CheckState
-import cc.noharry.bothy.app.evidence.checkChatModel
 import cc.noharry.bothy.app.evidence.openSystemScreen
-import cc.noharry.bothy.app.model.ProviderConfig
-import cc.noharry.bothy.app.overlay.OverlayControl
-import cc.noharry.bothy.app.runtime.RuntimeSession
-import cc.noharry.bothy.app.tools.PLAYGROUND_PACKAGE
-import cc.noharry.bothy.app.voice.WakeWord
-import cc.noharry.bothy.app.voice.tts.loadDoubaoTtsKey
-import cc.noharry.bothy.app.voice.tts.saveDoubaoTtsKey
-import kotlinx.coroutines.Dispatchers
+import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.protocol.OnboardingRequests
+import cc.noharry.bothy.protocol.OnboardingView
+import cc.noharry.bothy.protocol.PLAYGROUND_PACKAGE
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-
-/**
- * The first launch without a model key (owner 2026-10-25: someone who installs it should need one model key and nothing
- * more to try 小博 on their own tablet): the DeepSeek key, checked at once; a 豆包语音 key, recommended, skippable; the
- * permissions, each with its status and the screen that grants it; and what to say first. Done, it never shows again.
- */
-internal object Onboarding {
-    /**
-     * Whether the setup shows: on a launch without a model key, and from then on until 开始使用, so leaving it for a
-     * settings screen (the app maybe recycled meanwhile) comes back to it, not to a console with permissions missing.
-     */
-    fun needed(context: Context): Boolean {
-        val prefs = prefs(context)
-        if (prefs.getBoolean(DONE, false)) return false
-        if (prefs.getBoolean(STARTED, false)) return true
-        val config = ProviderConfig.load(context)
-        if (config.isReady(config.activeProfile)) return false
-        prefs.edit().putBoolean(STARTED, true).apply()
-        return true
-    }
-
-    /**
-     * 开始使用. Wake word stays off until the person turns it on in 设置 → 语音. A fresh install used to switch it on
-     * here whenever the microphone was already granted.
-     */
-    fun finish(context: Context) {
-        prefs(context).edit().putBoolean(DONE, true).apply()
-        OverlayControl.ensureRunning(context)
-    }
-
-    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-    private const val PREFS = "debug_onboarding"
-    private const val DONE = "done"
-    private const val STARTED = "started"
-}
 
 @Composable
 internal fun OnboardingScreen(onDone: () -> Unit) {
@@ -141,9 +98,8 @@ internal object OnboardingDraft {
 /** 1. The DeepSeek key, saved to the selected model service and checked against its model list. */
 @Composable
 private fun ModelKeyStep() {
-    val context = LocalContext.current
+    val server = LocalServer.current
     val resources = LocalResources.current
-    val scope = rememberCoroutineScope()
     var key by OnboardingDraft.modelKey
     var status by remember { mutableStateOf<Pair<String, Color>?>(null) }
     val good = ConsoleColors.success
@@ -160,16 +116,11 @@ private fun ModelKeyStep() {
         KeyField("DeepSeek API key", key) { key = it }
         Button(enabled = key.isNotBlank(), onClick = {
             status = checking to waiting
-            scope.launch {
-                val profile = ProviderConfig.load(context).activeProfile
-                RuntimeSession.saveProviderOverride(context, profile.provider, key.trim(), profile.model, profile.baseUrl, profile.endpoint)
-                val result = withContext(Dispatchers.IO) { checkChatModel(context) }
-                status = if (result.state == CheckState.OK) {
-                    resources.getString(R.string.onboarding_model_ready, result.detail) to good
-                } else {
-                    result.detail to bad
-                }
-            }
+            server.send(
+                OnboardingRequests.SAVE_MODEL_KEY,
+                TextParams(key),
+                onRefused = { status = it.message.orEmpty() to bad },
+            ) { checked -> status = resources.words(checked.finding) to if (checked.failed) bad else good }
         }) { Text(stringResource(R.string.onboarding_save_and_check)) }
         status?.let { (text, color) -> Text(text, style = ConsoleType.bodySmall, color = color) }
     }
@@ -178,9 +129,11 @@ private fun ModelKeyStep() {
 /** 2. A 豆包语音 key: 小博's voice, and the 端到端 voice mode. Without it the device's own voice speaks. */
 @Composable
 private fun DoubaoKeyStep() {
-    val context = LocalContext.current
+    val server = LocalServer.current
+    val resources = LocalResources.current
     var key by OnboardingDraft.doubaoKey
-    var saved by remember { mutableStateOf(loadDoubaoTtsKey(context).isNotEmpty()) }
+    var saved by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { server.send(OnboardingRequests.READ, Empty) { saved = saved || it.doubaoKeySaved } }
     var problem by remember { mutableStateOf<String?>(null) }
     OnboardingStep(stringResource(R.string.onboarding_step_doubao_key), done = saved) {
         Text(
@@ -191,8 +144,10 @@ private fun DoubaoKeyStep() {
         LinkButton(stringResource(R.string.onboarding_doubao_link), DOUBAO_CONSOLE_URL)
         KeyField(stringResource(R.string.onboarding_doubao_key_label), key) { key = it }
         Button(enabled = key.isNotBlank(), onClick = {
-            problem = saveDoubaoTtsKey(context, key)
-            saved = problem == null
+            server.send(OnboardingRequests.SAVE_DOUBAO_KEY, TextParams(key)) { result ->
+                problem = result.error?.let(resources::words)
+                saved = result.error == null
+            }
         }) { Text(stringResource(R.string.common_save)) }
         when {
             problem != null -> Text(problem.orEmpty(), style = ConsoleType.bodySmall, color = ConsoleColors.danger)
@@ -205,7 +160,9 @@ private fun DoubaoKeyStep() {
 @Composable
 private fun PermissionsStep() {
     val context = LocalContext.current
+    val server = LocalServer.current
     var round by remember { mutableIntStateOf(0) }
+    val granted = grantsAsRead(round)
     ReadAgainOnResume { round++ }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { round++ }
     val packageUri = Uri.fromParts("package", context.packageName, null)
@@ -229,16 +186,16 @@ private fun PermissionsStep() {
             PermissionRow(
                 stringResource(R.string.onboarding_permission_notifications),
                 stringResource(R.string.onboarding_permission_notifications_note),
-                DeviceMediaMcpProvider.notificationAccessGranted(context),
+                granted.notificationAccess,
             ) {
-                openSystemScreen(context, DeviceMediaMcpProvider.notificationAccessIntent())
+                openSystemScreen(context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
             PermissionRow(
                 stringResource(R.string.onboarding_permission_accessibility),
                 stringResource(R.string.onboarding_permission_accessibility_note),
-                AndroidUseAccessibility.isEnabled(context),
+                granted.accessibilityEnabled,
             ) {
-                saveAndroidUseEnabled(context, true)
+                server.send(CapabilityRequests.SET_ANDROID_USE, FlagParams(true))
                 openSystemScreen(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             }
             PermissionRow(
@@ -250,6 +207,15 @@ private fun PermissionsStep() {
             }
         }
     }
+}
+
+/** What the server reads back of the grants, again for each [round]. */
+@Composable
+private fun grantsAsRead(round: Int): OnboardingView {
+    val server = LocalServer.current
+    var granted by remember { mutableStateOf(OnboardingView()) }
+    LaunchedEffect(round) { server.send(OnboardingRequests.READ, Empty) { granted = it } }
+    return granted
 }
 
 /** 4. What to say first, and the virtual head unit when it is installed. */

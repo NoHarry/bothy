@@ -14,8 +14,8 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,16 +26,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
+import cc.noharry.agent.appserver.protocol.A2aClientState
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.a2a.A2aClientActions
-import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ui.HtmlViewerDialog
 import cc.noharry.bothy.app.console.ui.HtmlViewerRequest
-import cc.noharry.bothy.app.session.UiState
 import kotlinx.coroutines.launch
 
 /** Where a phone is: the conversation is home, and the rest open over it and go back to it. */
@@ -48,7 +48,7 @@ internal enum class PhoneRoute { CHAT, PLANS, TRAJECTORY, A2A, SETTINGS }
  */
 @Composable
 internal fun PhoneApp(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -89,7 +89,7 @@ internal fun PhoneApp(
 @Composable
 private fun PhoneRouteContent(
     route: PhoneRoute,
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -106,7 +106,7 @@ private fun PhoneRouteContent(
             trajectoryTurn = turn
             navigate(PhoneRoute.TRAJECTORY)
         }
-        PhoneRoute.PLANS -> PhonePlans(back)
+        PhoneRoute.PLANS -> PhonePlans(state, actions, back)
         PhoneRoute.TRAJECTORY -> PhoneTrajectory(state, actions, trajectoryTurn, back)
         PhoneRoute.A2A -> if (a2aActions != null) PhoneA2a(a2aClient, a2aActions, back) else back()
         PhoneRoute.SETTINGS -> PhoneSettings(state, actions, back)

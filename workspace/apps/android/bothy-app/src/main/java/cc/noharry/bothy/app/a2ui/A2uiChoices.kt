@@ -16,6 +16,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import cc.noharry.agent.appserver.protocol.view.ChoiceOffer
+import cc.noharry.agent.appserver.protocol.view.Control
+import cc.noharry.agent.appserver.protocol.view.SliderOffer
+import cc.noharry.agent.appserver.protocol.view.SwitchOffer
 import cc.noharry.bothy.app.console.ui.icon
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonArrayBuilder

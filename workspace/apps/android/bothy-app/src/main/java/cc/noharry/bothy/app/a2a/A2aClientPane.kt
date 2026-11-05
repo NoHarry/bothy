@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalA2aClientApi::class)
-
 package cc.noharry.bothy.app.a2a
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,13 +33,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.a2a.A2aTask
-import cc.noharry.agent.a2a.ExperimentalA2aClientApi
+import cc.noharry.agent.appserver.protocol.A2aClientItem
+import cc.noharry.agent.appserver.protocol.A2aClientState
+import cc.noharry.agent.appserver.protocol.A2aInputSource
+import cc.noharry.agent.appserver.protocol.A2aTaskStatus
+import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
+import cc.noharry.agent.appserver.protocol.view.PickableReply
+import cc.noharry.agent.appserver.protocol.view.endpointLabel
+import cc.noharry.agent.appserver.protocol.view.formatWorkedDuration
+import cc.noharry.agent.appserver.protocol.view.line
+import cc.noharry.agent.appserver.protocol.view.pickableDisplay
+import cc.noharry.agent.appserver.protocol.view.wireLabel
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
-import cc.noharry.bothy.app.a2ui.QuestionAnswerMode
-import cc.noharry.bothy.app.a2ui.pickableDisplay
-import cc.noharry.bothy.app.a2ui.questionCards
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
@@ -49,10 +53,9 @@ import cc.noharry.bothy.app.console.PanelBox
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.Markdown
-import cc.noharry.bothy.app.overlay.PickableReply
-import cc.noharry.bothy.app.runtime.formatWorkedDuration
+import cc.noharry.bothy.app.frontend.LocalServer
 
-/** Client-mode actions; all of them go through [A2aClientConsole], never the local runtime. */
+/** Client-mode actions; all of them go to the server's client mode, never the local runtime. */
 internal data class A2aClientActions(
     val setEnabled: (Boolean) -> Unit,
     val send: (String) -> Unit,
@@ -69,7 +72,7 @@ internal data class A2aClientActions(
 internal fun a2aClientStatusLine(state: A2aClientState): String {
     val run = when {
         state.running || state.mirrors.isNotEmpty() -> stringResource(R.string.a2a_status_running)
-        state.lastOutcome != null -> state.lastOutcome
+        state.lastOutcome != null -> state.lastOutcome?.line().orEmpty()
         else -> stringResource(R.string.a2a_status_ready)
     }
     val speech = stringResource(if (state.speechReady) R.string.a2a_tts_speaks else R.string.a2a_tts_not_set_up)
@@ -113,7 +116,8 @@ internal fun A2aClientPane(
                 state.items.filterIsInstance<A2aClientItem.Display>().map { it.taskId }.toSet()
             }
             // The overlay card's open picks; a tap answers the pending question, or goes out as the next message.
-            val pickable = remember(state) { state.pickableDisplay() }
+            val offers = LocalServer.current.state.offers
+            val pickable = remember(state, offers) { state.pickableDisplay(offers) }
             val reply: (String) -> Unit = { text ->
                 val question = state.questionCards.lastOrNull { it.second == QuestionAnswerMode.ACTIVE }?.first
                 if (question != null) actions.answer(question.questionId, text) else actions.send(text)
@@ -207,7 +211,7 @@ private fun A2aUserRow(item: A2aClientItem.User) {
                 .background(colors.userBubble, RoundedCornerShape(Dimens.radiusMd))
                 .padding(Dimens.spaceSm),
         ) {
-            val source = stringResource(item.source.label)
+            val source = stringResource(item.source.screenName)
             val header = when (item.kind) {
                 A2aClientItem.User.Kind.MESSAGE -> source
                 A2aClientItem.User.Kind.STEER -> stringResource(R.string.a2a_user_steer, source)
@@ -246,8 +250,8 @@ private fun A2aTerminalRow(item: A2aClientItem.Terminal, taskHasDisplay: Boolean
             style = ConsoleType.meta,
             fontWeight = FontWeight.SemiBold,
             color = when (item.state) {
-                A2aTask.Status.FAILED -> colors.danger
-                A2aTask.Status.CANCELLED, A2aTask.Status.INPUT_REQUIRED -> colors.warning
+                A2aTaskStatus.FAILED -> colors.danger
+                A2aTaskStatus.CANCELLED, A2aTaskStatus.INPUT_REQUIRED -> colors.warning
                 else -> colors.success
             },
         )
@@ -343,3 +347,14 @@ private fun A2aClientControls(state: A2aClientState, actions: A2aClientActions) 
 }
 
 private val INTRO_MIN_WIDTH = 240.dp
+
+/** Where a message came from, as the client page names it. */
+private val A2aInputSource.screenName: Int
+    get() = when (this) {
+        A2aInputSource.CONSOLE -> R.string.a2a_source_console
+        A2aInputSource.OVERLAY -> R.string.a2a_source_overlay
+        A2aInputSource.ADB -> R.string.a2a_source_adb
+        A2aInputSource.ASR -> R.string.a2a_source_asr
+        A2aInputSource.PC -> R.string.a2a_source_pc
+        A2aInputSource.EXTERNAL -> R.string.a2a_source_external
+    }

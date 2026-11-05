@@ -26,6 +26,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ArtifactPreview
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.view.PickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.Disclosure
 import cc.noharry.bothy.app.console.ui.HtmlPreviewBox
@@ -34,11 +39,6 @@ import cc.noharry.bothy.app.console.ui.IconFullscreen
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.TurnDividerLine
 import cc.noharry.bothy.app.image.GeneratedImageRow
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.overlay.PickableReply
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.TranscriptRole
 import kotlinx.coroutines.delay
 
 @Composable

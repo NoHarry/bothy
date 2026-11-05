@@ -25,7 +25,6 @@
     <string name="memory_clear_all_failed">没清除完：有任务没停下来或存储出错，请再试一次</string>
     <string name="memory_cleared">已清除记忆</string>
     <string name="memory_clear_failed">没清除：设备存储出错了</string>
-
     <string name="memory_summary_empty">还没有记住什么</string>
     <plurals name="memory_summary_count">
         <item quantity="other">小博记住了 %1$d 件事</item>
@@ -37,7 +36,6 @@
     <string name="memory_metric_said">你说的</string>
     <string name="memory_metric_kinds">涉及方面</string>
     <string name="memory_metric_latest">最近更新</string>
-
     <string name="memory_category_identity">称呼与身份</string>
     <string name="memory_category_identity_hint">怎么称呼你、职业、生日</string>
     <string name="memory_category_places">常去地点</string>
@@ -54,7 +52,6 @@
     <string name="memory_category_other_hint">别的长期信息</string>
     <string name="memory_source_said">你说的</string>
     <string name="memory_source_typed">手动添加</string>
-
     <string name="memory_back">‹ 记忆</string>
     <string name="memory_info_source">来源</string>
     <string name="memory_info_said">原话</string>
@@ -72,15 +69,6 @@
     <string name="memory_note_added">已添加</string>
     <string name="memory_note_saved">已保存</string>
     <string name="memory_note_deleted">已删除</string>
-    <string name="memory_refused_empty">内容是空的</string>
-    <string name="memory_refused_too_long">太长了：一条记忆不超过 %1$d 个字</string>
-    <string name="memory_refused_secret">不记密码、验证码这类信息</string>
-    <string name="memory_refused_long_number">不记身份证号、银行卡号这类长号码</string>
-    <string name="memory_refused_full">已经记了 %1$d 件事，记满了：先在 设置 → 记忆 删掉一些</string>
-    <string name="memory_refused_category_full">「%1$s」已经记了 %2$d 件事：先改掉或删掉一条旧的</string>
-    <string name="memory_refused_missing">没有这条记忆（%1$s）</string>
-    <string name="memory_refused_not_saved">没存上：设备存储出错了</string>
-
     <string name="memory_lessons_note">小博办完事后总结的操作经验，比如某类请求用哪个接口最快、哪个接口一直失败。同一条经验在几次任务里都得到验证才会生效，只用来把事办得更快更稳，和你的个人信息无关。</string>
     <string name="memory_lessons_loading">正在读取…</string>
     <string name="memory_lessons_empty">还没有操作经验</string>
@@ -89,4 +77,12 @@
     <plurals name="memory_lesson_meta">
         <item quantity="other">%1$s · 可信度 %2$d%% · 验证 %3$d 次</item>
     </plurals>
+    <string name="memory_refused_category_full">「%1$s」已经记了 %2$s 件事：先改掉或删掉一条旧的</string>
+    <string name="memory_refused_empty">内容是空的</string>
+    <string name="memory_refused_full">已经记了 %1$s 件事，记满了：先在 设置 → 记忆 删掉一些</string>
+    <string name="memory_refused_long_number">不记身份证号、银行卡号这类长号码</string>
+    <string name="memory_refused_missing">没有这条记忆（%1$s）</string>
+    <string name="memory_refused_not_saved">没存上：设备存储出错了</string>
+    <string name="memory_refused_secret">不记密码、验证码这类信息</string>
+    <string name="memory_refused_too_long">太长了：一条记忆不超过 %1$s 个字</string>
 </resources>

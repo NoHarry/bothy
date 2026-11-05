@@ -13,31 +13,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.ModelPrice
+import cc.noharry.agent.appserver.protocol.ModelPriceParams
+import cc.noharry.agent.appserver.protocol.PriceBook
+import cc.noharry.agent.appserver.protocol.PriceSyncResult
+import cc.noharry.agent.appserver.protocol.RateParams
+import cc.noharry.agent.appserver.protocol.UsageDays
+import cc.noharry.agent.appserver.protocol.UsageRequests
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
-import cc.noharry.bothy.app.model.ProviderConfig
+import cc.noharry.bothy.app.frontend.LocalServer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /** 模型价格: the dollar rate, the models.dev sync, and every seen model's price, editable. */
 @Composable
@@ -64,9 +64,8 @@ internal fun UsagePricesTab(usage: UsageDays, book: PriceBook) {
 
 @Composable
 private fun UsageSyncRow(book: PriceBook) {
-    val context = LocalContext.current
+    val server = LocalServer.current
     val resources = LocalResources.current
-    val scope = rememberCoroutineScope()
     var rate by remember(book.usdToCny) { mutableStateOf(book.usdToCny.toString()) }
     var message by remember { mutableStateOf("") }
     var syncing by remember { mutableStateOf(false) }
@@ -79,25 +78,24 @@ private fun UsageSyncRow(book: PriceBook) {
             if (value == null || value <= 0) {
                 message = resources.getString(R.string.usage_rate_invalid)
             } else {
-                UsageStore.setUsdToCny(value).also { message = resources.getString(R.string.usage_rate_saved) }
+                server.send(UsageRequests.SET_RATE, RateParams(value))
+                message = resources.getString(R.string.usage_rate_saved)
             }
         }) { Text(stringResource(R.string.usage_save_rate)) }
         TextButton(enabled = !syncing, onClick = {
             syncing = true
             message = resources.getString(R.string.usage_syncing_message)
-            scope.launch {
-                val active = withContext(Dispatchers.IO) {
-                    runCatching { ProviderConfig.load(context).let { it.modelRef(it.activeProfile).modelId } }.getOrNull()
-                }
-                val result = suspendCoroutine { done -> UsageStore.syncPrices(listOfNotNull(active)) { done.resume(it) } }
-                message = result.fold(
-                    { (matched, total) ->
-                        context.resources.getQuantityString(R.plurals.usage_synced, total, matched, total)
-                    },
-                    { resources.getString(R.string.usage_sync_failed, it.message) },
-                )
+            val synced = { result: PriceSyncResult ->
+                message = result.failure?.let { resources.getString(R.string.usage_sync_failed, it) }
+                    ?: resources.getQuantityString(R.plurals.usage_synced, result.total, result.matched, result.total)
                 syncing = false
             }
+            server.send(
+                UsageRequests.SYNC_PRICES,
+                Empty,
+                onRefused = { synced(PriceSyncResult(failure = it.message.orEmpty())) },
+                onAnswer = synced,
+            )
         }) { Text(stringResource(if (syncing) R.string.usage_syncing else R.string.usage_sync_prices)) }
     }
     val synced = book.syncedAtEpochMillis?.let { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.CHINA).format(Date(it)) }
@@ -113,6 +111,7 @@ private fun UsageSyncRow(book: PriceBook) {
 /** One model's price, editable; typing one makes it hand-set, and 恢复同步价 hands it back to the next sync. */
 @Composable
 private fun PriceRow(model: String, price: ModelPrice?) {
+    val server = LocalServer.current
     var input by remember(price) { mutableStateOf(price?.input?.toString().orEmpty()) }
     var cache by remember(price) { mutableStateOf(price?.cacheRead?.toString().orEmpty()) }
     var output by remember(price) { mutableStateOf(price?.output?.toString().orEmpty()) }
@@ -129,12 +128,12 @@ private fun PriceRow(model: String, price: ModelPrice?) {
             UsageNumberField(stringResource(R.string.usage_output), output, { output = it }, Modifier.weight(1f))
             TextButton(onClick = {
                 val typed = input.toDoubleOrNull()?.let { inPrice ->
-                    output.toDoubleOrNull()?.let { outPrice -> ModelPrice(inPrice, outPrice, cache.toDoubleOrNull(), source = MANUAL_SOURCE) }
+                    output.toDoubleOrNull()?.let { outPrice -> ModelPrice(inPrice, outPrice, cache.toDoubleOrNull(), manual = true) }
                 }
-                if (typed != null) UsageStore.setManualPrice(model, typed)
+                if (typed != null) server.send(UsageRequests.SET_PRICE, ModelPriceParams(model, typed))
             }) { Text(stringResource(R.string.common_save)) }
             if (price?.manual == true) {
-                TextButton(onClick = { UsageStore.setManualPrice(model, null) }) {
+                TextButton(onClick = { server.send(UsageRequests.SET_PRICE, ModelPriceParams(model, null)) }) {
                     Text(stringResource(R.string.usage_restore_synced))
                 }
             }
@@ -142,18 +141,13 @@ private fun PriceRow(model: String, price: ModelPrice?) {
     }
 }
 
-/**
- * Where [price] came from, in the screen's language. The stored source is data: 「手填」 ([MANUAL_SOURCE]) or
- * "models.dev · deepseek", with 「（按 deepseek-flash）」 when priced at another model ([matchModelsDevPrice]).
- */
+/** Where [price] came from: typed in, or models.dev under a provider, priced at another model when it had no price. */
 @Composable
 internal fun priceSource(price: ModelPrice): String {
-    if (price.source == MANUAL_SOURCE) return stringResource(R.string.usage_source_manual)
-    val pricedAs = PRICED_AS.matchEntire(price.source) ?: return price.source
-    return stringResource(R.string.usage_source_priced_as, pricedAs.groupValues[1], pricedAs.groupValues[2])
+    if (price.manual) return stringResource(R.string.usage_source_manual)
+    val source = "models.dev · ${price.source}"
+    return price.pricedAs?.let { stringResource(R.string.usage_source_priced_as, source, it) } ?: source
 }
-
-private val PRICED_AS = Regex("(.*)（按 (.+)）")
 
 @Composable
 private fun UsageNumberField(label: String, value: String, onChange: (String) -> Unit, modifier: Modifier) {

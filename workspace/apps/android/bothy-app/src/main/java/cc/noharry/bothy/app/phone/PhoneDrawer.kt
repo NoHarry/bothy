@@ -24,11 +24,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,18 +56,18 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConfirmationStatus
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.SessionSummary
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
-import cc.noharry.bothy.app.session.sessionTitleText
-import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.session.ConfirmationStatus
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.SessionSummary
-import cc.noharry.bothy.app.session.UiState
-import cc.noharry.bothy.app.tools.PLAYGROUND_PACKAGE
+import cc.noharry.bothy.app.session.sessionTitleText
+import cc.noharry.bothy.protocol.PLAYGROUND_PACKAGE
 import java.util.Calendar
 
 internal enum class SessionDay { TODAY, YESTERDAY, THIS_WEEK, EARLIER }
@@ -123,7 +123,7 @@ internal fun playgroundInstalled(context: Context): Boolean =
  * while it runs or waits), and at the foot how 小博 is doing, the other features behind a button, and the settings.
  */
 @Composable
-internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, actions: ConsoleActions, onGo: (PhoneRoute) -> Unit) {
+internal fun PhoneDrawer(state: ServerState, open: Boolean, showA2a: Boolean, actions: ConsoleActions, onGo: (PhoneRoute) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     val underWay = state.activeSessionId.takeIf { state.items.isNotEmpty() }
     val grouped = remember(state.sessions, query, underWay) { groupDrawerSessions(state.sessions, query, started = underWay) }
@@ -150,7 +150,7 @@ internal fun PhoneDrawer(state: UiState, open: Boolean, showA2a: Boolean, action
 
 /** The open session's dot in the drawer: working, or waiting for an approval; none when it is idle. */
 @Composable
-private fun drawerDot(state: UiState): Color? = when {
+private fun drawerDot(state: ServerState): Color? = when {
     state.items.any { it is ConversationItem.ConfirmationItem && it.status == ConfirmationStatus.PENDING } -> ConsoleColors.warning
     state.isRunning -> ConsoleColors.activity
     else -> null
@@ -224,7 +224,7 @@ private fun DrawerEmpty(modifier: Modifier) {
 
 /** Where Bothy runs and how it is doing; then plans, A2A and the head unit behind one button; then the settings. */
 @Composable
-private fun DrawerFoot(state: UiState, showA2a: Boolean, onGo: (PhoneRoute) -> Unit) {
+private fun DrawerFoot(state: ServerState, showA2a: Boolean, onGo: (PhoneRoute) -> Unit) {
     val colors = ConsoleColors
     val context = LocalContext.current
     val showPlayground = remember(context) { playgroundInstalled(context) }

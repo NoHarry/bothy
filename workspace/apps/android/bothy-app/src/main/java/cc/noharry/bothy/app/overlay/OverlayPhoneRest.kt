@@ -3,7 +3,6 @@ package cc.noharry.bothy.app.overlay
 import android.content.Context
 import android.view.View
 import cc.noharry.bothy.app.console.FrontEnd
-import cc.noharry.bothy.app.voice.VoiceController
 
 /**
  * A phone has no resting 小博 over other apps (owner 2026-11-03: 「点击弹悬浮窗这种应该是平板上的交互」): the bubble stays
@@ -20,7 +19,7 @@ internal class OverlayPhoneRest private constructor(
     private val check = Runnable {
         when (folded()) {
             null, true -> arm()
-            false -> if (VoiceController.listening) arm() else leave()
+            false -> if (OverlayConnection.voice.listening) arm() else leave()
         }
     }
 

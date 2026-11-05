@@ -14,11 +14,13 @@
 - 所有提交必须通过 `commit-review` skill；长运行本地进度保存用 checkpoint mode，push/MR/交付用 publish mode；不得直接绕过本地 hooks 或手工提交
 
 ## L1 — 架构规则
-<!-- 层级依赖方向 -->
-- 依赖只能向下流动：{LAYER_N} → {LAYER_N+1} → ... → {LAYER_BOTTOM}
-- 第 N 层模块不得从第 N-1 层或更高层导入
-- 横切关注点（logging、auth、config）应放在 shared/common 层
-<!-- 占位符：在此定义项目的层级 -->
+- 依赖只能向下流动：`bothy-app`（界面，`cc.noharry.bothy.app`）→ `bothy-server`（Bothy 的服务端，`cc.noharry.bothy.server`）→ `agent-app-server`（通用服务端，`cc.noharry.agent.appserver`）→ `agent-app-protocol`（通用协议，`cc.noharry.agent.appserver.protocol`）；Bothy 自己的协议 `bothy-protocol`（`cc.noharry.bothy.protocol`）建在通用协议上，只有 `bothy-server` 和 `bothy-app` 用。`harness.yaml` 的 `architecture.layers` 定义层级，`scripts/lint_deps.py` 检查。
+- `agent-app-protocol` 和 `bothy-protocol` 是纯 Kotlin/JVM，不导入 Android、运行时 SDK、服务端或界面；`agent-app-protocol` 也不导入 `bothy-protocol`。
+- `agent-app-server` 不导入 `bothy-server`、`bothy-protocol`、`bothy-voice`、`bothy-llm` 和界面，宿主的东西都经 `AppServerConfig` 给（插件、人设、`VoicePort`、`HostModels`、`RunAddOns`、`ProviderPresets`、`HostPlaces`）；模型或用户读到的话不写宿主的界面路径和具体服务名，要提就由宿主经 `HostPlaces` 或配置给；界面够不着它，因为只有宿主（`bothy-server`、`agent-app-sample`）依赖它（`implementation`）。它对宿主公开的 API 记在 `agent-app-server/api/agent-app-server.api`，validate 用 `tools/app-server-api/api_dump.py` 比对：新东西默认 `internal`，只给别的模块测试用的加 `@InternalAppServerApi`（需要 opt-in，只有 `bothy-server` 的单测打开），宿主确实要用才公开并 `--write` 重写这个文件。
+- `bothy-server` 不导入 `cc.noharry.bothy.app` 和 Compose；它的实现一律 `internal`，对界面只公开 `BothyServer`（install、connect）；悬浮窗的呈现也走协议（`presentation/*`、`androidUse/*`）。
+- `bothy-app` 不依赖运行时 SDK（`cc.noharry.agent.*`），只通过协议（`ServerClient` / `LocalServer`）读状态、发请求。
+- 服务端发布的状态分区和设置结果只带数据：枚举、id、原始数字、内容和 `Finding`（code + 值），不带为界面写好的标签、状态句、格式化数字或字符串资源里的固定句子；措辞在 `bothy-app` 的字符串资源里（中英文都要有），`FindingWordingUiTest` 检查每个 `FindingCode` 都有措辞。
+- `bothy-voice`、`bothy-llm` 不依赖运行时和 Bothy 的其他模块；`bothy-playground` 不依赖本仓任何模块。
 
 ## L2 — 命名与结构规则
 <!-- 文件、类、函数的命名规范 -->

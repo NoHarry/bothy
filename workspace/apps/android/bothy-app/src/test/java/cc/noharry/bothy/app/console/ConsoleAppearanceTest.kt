@@ -2,9 +2,7 @@ package cc.noharry.bothy.app.console
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.bothy.app.Onboarding
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -35,12 +33,5 @@ class ConsoleAppearanceTest {
         context.getSharedPreferences("debug_appearance", Context.MODE_PRIVATE).edit().putString("theme", "LIGHT").commit()
         ConsoleAppearance.load(context)
         assertEquals(ConsoleAppearance.Mode.LIGHT, ConsoleAppearance.current)
-    }
-
-    @Test
-    fun finishingSetupLeavesTheWakeWordOff() {
-        Onboarding.finish(context)
-        // As a released build: a local build may package VOICE_OVERLAY_WAKE=on, which keeps the wake word on.
-        assertFalse(cc.noharry.bothy.app.voice.loadVoiceConfig(context) { emptyMap() }.overlayWake)
     }
 }

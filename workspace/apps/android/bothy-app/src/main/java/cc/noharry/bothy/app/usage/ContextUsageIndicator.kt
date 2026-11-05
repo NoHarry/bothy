@@ -1,6 +1,4 @@
 package cc.noharry.bothy.app.usage
-import android.content.Context
-import android.content.SharedPreferences
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,39 +21,26 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ContextUsage
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.formatContextTokens
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.PopupMenu
-import cc.noharry.bothy.app.model.CONTEXT_WINDOW_PREFS
-import cc.noharry.bothy.app.model.loadContextWindow
-import cc.noharry.bothy.app.session.UiState
 
 @Composable
-internal fun ContextUsageIndicator(state: UiState) {
-    val context = LocalContext.current
+internal fun ContextUsageIndicator(state: ServerState) {
     val profile = state.configEditor
     val identity = listOf(profile.profileId, profile.provider, profile.endpoint, profile.baseUrl, profile.model)
-    var window by remember(identity) { mutableStateOf(loadContextWindow(context, profile)) }
     var expanded by remember(identity, state.activeSessionId) { mutableStateOf(false) }
-    DisposableEffect(context, identity) {
-        val prefs = context.getSharedPreferences(CONTEXT_WINDOW_PREFS, Context.MODE_PRIVATE)
-        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
-            window = loadContextWindow(context, profile)
-        }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
-        onDispose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
-    }
-    val usage = remember(state.trajectory, state.isRunning, state.currentRequest?.requestId, profile.model, profile.variant, window) {
-        contextUsage(state, window)
-    }
+    val usage = state.contextUsage
     Box {
         ContextUsageRing(usage) { expanded = true }
         PopupMenu(expanded, { expanded = false }, minWidth = 260.dp, maxWidth = 300.dp) {

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings → Voice and End-to-end voice, the console's voice strip, the wake word's status and notification.
+  What Bothy says and what the models read stay in the code.
+-->
+<resources>
+    <string name="voice_jev_mode_flat">One pass · pick from all tools</string>
+    <string name="voice_jev_mode_two_stage">Two stages · domain first, then tools</string>
+    <string name="voice_jev_mode_two_stage_subdomains">Two stages · subdomain first, then tools</string>
+    <!-- Wake notification -->
+    <string name="voice_wake_channel">Bothy voice wake</string>
+    <string name="voice_wake_notification">Say “OK Bothy” to wake; turn it off in Settings → Voice</string>
+    <string name="tts_provider_doubao">Doubao</string>
+    <string name="tts_system_voice_label">Device voice (built in)</string>
+    <string name="tts_voice_lively_female">Lively female voice</string>
+    <string name="tts_voice_refined_female">Refined female voice</string>
+    <string name="tts_voice_sunny_male">Sunny male voice</string>
+    <string name="tts_voice_mature_male">Mature male voice</string>
+    <string name="tts_voice_english_female">English female voice</string>
+    <string name="tts_voice_english_male">English male voice</string>
+    <string name="tts_voice_general_female">General female voice</string>
+    <string name="tts_voice_multilingual_female">Multilingual female voice</string>
+    <string name="tts_voice_general_male">General male voice</string>
+    <string name="tts_voice_female">Female voice</string>
+    <string name="tts_voice_male">Male voice</string>
+    <string name="tts_system_failed">Device voice synthesis failed</string>
+    <string name="tts_system_no_stream">The device voice can\'t stream</string>
+    <string name="tts_system_error">Device voice synthesis error</string>
+    <string name="tts_system_error_code">Device voice synthesis error (%1$d)</string>
+    <string name="tts_system_no_engine">This device has no usable system voice: install a Chinese voice under Text-to-speech in the system settings, or add a Doubao Speech key on the Keys tab</string>
+    <!-- End-to-end voice -->
+    <string name="realtime_label">Doubao end-to-end</string>
+    <string name="realtime_mic_error">Microphone error: %1$s</string>
+    <string name="realtime_closed_by_service">Closed by the service</string>
+    <string name="realtime_server_error">Doubao end-to-end error: %1$s</string>
+    <string name="realtime_closed_early">Doubao end-to-end closed the connection before a session opened</string>
+    <plurals name="realtime_probe_timeout">
+        <item quantity="one">No session opened within %1$d second</item>
+        <item quantity="other">No session opened within %1$d seconds</item>
+    </plurals>
+    <string name="realtime_unreachable">Can\'t reach Doubao end-to-end: %1$s</string>
+    <string name="realtime_key_refused">Doubao end-to-end refused this key (HTTP %1$d): check that end-to-end real-time voice is enabled in its console. %2$s</string>
+    <string name="realtime_connect_failed">Doubao end-to-end connection failed (HTTP %1$d) %2$s</string>
+    <string name="realtime_custom_persona">Custom persona</string>
+    <string name="realtime_report_line">On · interruptions %1$s · late results %2$s · %3$s · %4$s</string>
+    <string name="realtime_persona_warm">Bothy (default)</string>
+    <string name="realtime_persona_warm_summary">Warm, quick-witted, conversational</string>
+    <string name="realtime_persona_savage">Savage buddy</string>
+    <string name="realtime_persona_savage_summary">Truly biting: roasts you first, then gets it done</string>
+    <string name="realtime_persona_butler">Attentive butler</string>
+    <string name="realtime_persona_butler_summary">Composed and proper, addresses you formally, conclusion first</string>
+    <string name="realtime_persona_sunny">Upbeat sidekick</string>
+    <string name="realtime_persona_sunny_summary">Eager to praise, light and playful</string>
+    <string name="realtime_persona_laotie">Northeastern buddy</string>
+    <string name="realtime_persona_laotie_summary">Hearty and funny, full of Northeastern flavor</string>
+    <string name="realtime_persona_gentle">Gentle listener</string>
+    <string name="realtime_persona_gentle_summary">Soft and slow, meets your feelings first; good for late nights</string>
+    <string name="realtime_persona_terse">Cool minimalist</string>
+    <string name="realtime_persona_terse_summary">Fewest words, results only</string>
+    <string name="voice_asr_model_paraformer_v2">Paraformer real-time v2</string>
+    <string name="voice_asr_model_qwen_audio_flash">Qwen-Audio 3.0 ASR Flash</string>
+</resources>

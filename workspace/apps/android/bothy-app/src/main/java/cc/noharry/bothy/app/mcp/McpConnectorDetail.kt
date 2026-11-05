@@ -32,22 +32,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -55,11 +55,15 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.status
-import cc.noharry.bothy.app.model.summary
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
+import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.protocol.CheckAppParams
+import cc.noharry.bothy.protocol.ConnectAppParams
+import cc.noharry.bothy.protocol.ConnectorPage
+import cc.noharry.bothy.protocol.ConnectorRequests
+import cc.noharry.bothy.protocol.ConnectorStatus
+import cc.noharry.bothy.protocol.ConnectorView
+import cc.noharry.bothy.protocol.McpAppView
 
 /**
  * An MCP app's own page in 连接应用: how to get its key (a QR code to open on the phone), the key, and once connected
@@ -67,50 +71,40 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun ColumnScope.McpConnectorDetail(
-    connector: Connector,
+    connector: ConnectorView,
     status: ConnectorStatus,
-    controller: ConnectorController,
     onStatus: (ConnectorStatus) -> Unit,
     onBack: () -> Unit,
 ) {
-    val spec = connector.mcp ?: return
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val title = stringResource(connector.title)
+    val app = connector.app ?: return
+    val server = LocalServer.current
     val checking = stringResource(R.string.mcp_checking)
     val enabling = stringResource(R.string.mcp_enabling)
-    val connecting = stringResource(R.string.mcp_connecting_app, title)
+    val connecting = stringResource(R.string.mcp_connecting_app, connector.title)
     val disconnecting = stringResource(R.string.mcp_disconnecting)
-    val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var tools by remember { mutableStateOf<List<String>?>(null) }
     var replacing by remember(status) { mutableStateOf(false) }
     var confirmDisconnect by remember { mutableStateOf(false) }
-    var events by remember(status) { mutableStateOf(controller.events(connector)) }
-    fun act(doing: String, block: suspend () -> Unit) {
+    var page by remember { mutableStateOf<ConnectorPage?>(null) }
+    var reload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(status, reload) { server.send(ConnectorRequests.PAGE, IdParams(connector.id)) { page = it } }
+    // One action at a time: [doing] shows while the server works on it; its answer or refusal ends it.
+    fun <P, R> act(doing: String, method: RequestMethod<P, R>, params: P, onAnswer: (R) -> Unit) {
         if (busy != null) return
         busy = doing
         error = null
-        scope.launch {
-            try {
-                block()
-            } catch (failure: ConnectorException) {
-                error = failure.message
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (failure: Exception) {
-                error = resources.getString(R.string.mcp_error_generic, failure.message ?: failure.javaClass.simpleName)
-            } finally {
-                busy = null
-                events = controller.events(connector)
-            }
+        server.send(method, params, onRefused = { error = it.message; busy = null; reload += 1 }) { answer ->
+            onAnswer(answer)
+            busy = null
+            reload += 1
         }
     }
     // Opening a connected app's page checks it quietly, so an expired key shows here and not mid-drive.
     LaunchedEffect(connector.id, status is ConnectorStatus.Connected) {
         if (status is ConnectorStatus.Connected) {
-            act(checking) { tools = controller.checkApp(connector, record = false) }
+            act(checking, ConnectorRequests.CHECK_APP, CheckAppParams(connector.id, record = false)) { tools = it.tools }
         }
     }
     AppHeader(connector, onBack)
@@ -118,36 +112,35 @@ internal fun ColumnScope.McpConnectorDetail(
     Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
         when {
             status is ConnectorStatus.Connected && !replacing -> ConnectedPanel(
-                spec = spec,
-                sandbox = controller.usesSandbox(connector),
+                app = app,
+                sandbox = page?.sandbox == true,
                 tools = tools,
                 busy = busy != null,
-                onCheck = { act(checking) { tools = controller.checkApp(connector) } },
+                onCheck = { act(checking, ConnectorRequests.CHECK_APP, CheckAppParams(connector.id)) { tools = it.tools } },
                 onReplace = { replacing = true },
                 onDisconnect = { confirmDisconnect = true },
             )
             status == ConnectorStatus.Paused && !replacing -> PausedPanel(
                 busy = busy != null,
-                onResume = { act(enabling) { onStatus(controller.resumeApp(connector)) } },
+                onResume = { act(enabling, ConnectorRequests.RESUME_APP, IdParams(connector.id), onStatus) },
                 onDisconnect = { confirmDisconnect = true },
             )
-            else -> ConnectForm(spec, busy != null, replacing, onCancel = { replacing = false }) { credential, sandbox ->
-                act(connecting) {
-                    tools = controller.connectApp(connector, credential, sandbox)
+            else -> ConnectForm(app, busy != null, replacing, onCancel = { replacing = false }) { credential, sandbox ->
+                act(connecting, ConnectorRequests.CONNECT_APP, ConnectAppParams(connector.id, credential, sandbox)) {
+                    tools = it.tools
                     replacing = false
                     onStatus(ConnectorStatus.Connected(verified = true))
                 }
             }
         }
         BusyAndError(busy, error)
-        Abilities(spec)
-        ConnectionEvents(events)
+        Abilities(app)
+        ConnectionEvents(page?.events.orEmpty())
     }
     if (confirmDisconnect) {
         DisconnectDialog(connector, onDismiss = { confirmDisconnect = false }) {
             confirmDisconnect = false
-            act(disconnecting) {
-                controller.disconnect(connector)
+            act(disconnecting, ConnectorRequests.DISCONNECT, IdParams(connector.id)) {
                 tools = null
                 onStatus(ConnectorStatus.Disconnected)
             }
@@ -156,7 +149,7 @@ internal fun ColumnScope.McpConnectorDetail(
 }
 
 @Composable
-private fun AppHeader(connector: Connector, onBack: () -> Unit) {
+private fun AppHeader(connector: ConnectorView, onBack: () -> Unit) {
     val colors = ConsoleColors
     Row(verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
@@ -169,16 +162,16 @@ private fun AppHeader(connector: Connector, onBack: () -> Unit) {
         ConnectorAvatar(connector, HEADER_AVATAR_SIZE)
         Spacer(Modifier.width(Dimens.spaceMd))
         Column(Modifier.weight(1f)) {
-            Text(stringResource(connector.title), style = ConsoleType.hero, color = colors.text)
-            Text(stringResource(connector.summary), style = ConsoleType.bodySmall, color = colors.muted)
-            Text(stringResource(connector.category), style = ConsoleType.meta, color = colors.tertiary)
+            Text(connector.title, style = ConsoleType.hero, color = colors.text)
+            Text(connector.summary, style = ConsoleType.bodySmall, color = colors.muted)
+            Text(connector.category, style = ConsoleType.meta, color = colors.tertiary)
         }
     }
 }
 
 @Composable
 private fun ConnectedPanel(
-    spec: McpConnectorSpec,
+    app: McpAppView,
     sandbox: Boolean,
     tools: List<String>?,
     busy: Boolean,
@@ -187,7 +180,7 @@ private fun ConnectedPanel(
     onDisconnect: () -> Unit,
 ) {
     val colors = ConsoleColors
-    val label = spec.credentialLabel?.let { stringResource(it) }.orEmpty()
+    val label = app.credentialLabel
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = colors.success)
         Spacer(Modifier.width(Dimens.spaceSm))
@@ -208,20 +201,20 @@ private fun ConnectedPanel(
         )
     }
     Text(
-        stringResource(R.string.mcp_say_example, stringResource(spec.example)),
+        stringResource(R.string.mcp_say_example, app.example),
         style = ConsoleType.body,
         color = colors.text,
     )
     if (sandbox) {
         Text(stringResource(R.string.mcp_sandbox_hint, label), style = ConsoleType.bodySmall, color = colors.muted)
     }
-    if (spec.note != null && !spec.needsCredential) {
-        Text(stringResource(spec.note), style = ConsoleType.bodySmall, color = colors.muted)
+    app.note?.takeIf { !app.needsCredential }?.let {
+        Text(it, style = ConsoleType.bodySmall, color = colors.muted)
     }
     Spacer(Modifier.height(Dimens.spaceLg))
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Button(onClick = onCheck, enabled = !busy) { Text(stringResource(R.string.mcp_check_connection)) }
-        if (spec.needsCredential) {
+        if (app.needsCredential) {
             OutlinedButton(onClick = onReplace, enabled = !busy) {
                 Text(stringResource(R.string.mcp_replace_credential, label))
             }
@@ -248,7 +241,7 @@ private fun PausedPanel(busy: Boolean, onResume: () -> Unit, onDisconnect: () ->
 /** Where to get the key (scan to open it on the phone), the key, and for 滴滴 which environment. */
 @Composable
 private fun ConnectForm(
-    spec: McpConnectorSpec,
+    app: McpAppView,
     busy: Boolean,
     replacing: Boolean,
     onCancel: () -> Unit,
@@ -256,8 +249,8 @@ private fun ConnectForm(
 ) {
     var credential by remember { mutableStateOf("") }
     var sandbox by remember { mutableStateOf(true) }
-    if (!spec.needsCredential) {
-        val local = spec.url.startsWith("http://127.0.0.1:")
+    if (!app.needsCredential) {
+        val local = app.url.startsWith("http://127.0.0.1:")
         val hint = stringResource(if (local) R.string.mcp_open_local_hint else R.string.mcp_open_public_hint)
         Text(hint, style = ConsoleType.body, color = ConsoleColors.text)
         Spacer(Modifier.height(Dimens.spaceMd))
@@ -265,13 +258,13 @@ private fun ConnectForm(
         return
     }
     Row(verticalAlignment = Alignment.Top) {
-        PortalQr(spec.portal)
+        PortalQr(app.portal)
         Spacer(Modifier.width(Dimens.spaceXl))
-        Column(Modifier.weight(1f)) { HowToSteps(spec) }
+        Column(Modifier.weight(1f)) { HowToSteps(app) }
     }
     Spacer(Modifier.height(Dimens.spaceLg))
-    CredentialField(spec.credentialLabel?.let { stringResource(it) }.orEmpty(), credential) { credential = it }
-    if (spec.sandboxUrl != null) SandboxChoice(sandbox) { sandbox = it }
+    CredentialField(app.credentialLabel, credential) { credential = it }
+    if (app.sandboxUrl != null) SandboxChoice(sandbox) { sandbox = it }
     Spacer(Modifier.height(Dimens.spaceMd))
     Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
         Button(onClick = { onConnect(credential, sandbox) }, enabled = !busy && credential.isNotBlank()) {
@@ -282,16 +275,16 @@ private fun ConnectForm(
 }
 
 @Composable
-private fun HowToSteps(spec: McpConnectorSpec) {
+private fun HowToSteps(app: McpAppView) {
     val colors = ConsoleColors
-    val label = spec.credentialLabel?.let { stringResource(it) }.orEmpty()
+    val label = app.credentialLabel
     Text(stringResource(R.string.mcp_how_to_get, label), style = ConsoleType.panelTitle, color = colors.text)
-    val steps = spec.steps.map { stringResource(it) } + stringResource(R.string.mcp_paste_step, label)
+    val steps = app.steps + stringResource(R.string.mcp_paste_step, label)
     steps.forEachIndexed { index, step ->
         Text("${index + 1}. $step", style = ConsoleType.body, color = colors.text, modifier = Modifier.padding(top = Dimens.spaceXs))
     }
     Spacer(Modifier.height(Dimens.spaceSm))
-    Text(stringResource(R.string.mcp_portal_manual, spec.portal), style = ConsoleType.bodySmall, color = colors.muted)
+    Text(stringResource(R.string.mcp_portal_manual, app.portal), style = ConsoleType.bodySmall, color = colors.muted)
 }
 
 @Composable
@@ -365,36 +358,36 @@ private fun BusyAndError(busy: String?, error: String?) {
 }
 
 @Composable
-private fun Abilities(spec: McpConnectorSpec) {
+private fun Abilities(app: McpAppView) {
     val colors = ConsoleColors
     ConnectorSectionTitle(stringResource(R.string.mcp_abilities))
-    spec.abilities.forEach {
+    app.abilities.forEach {
         Text(
-            "• ${stringResource(it)}",
+            "• $it",
             style = ConsoleType.body,
             color = colors.text,
             modifier = Modifier.padding(top = Dimens.spaceXs),
         )
     }
-    spec.note?.let {
+    app.note?.let {
         Spacer(Modifier.height(Dimens.spaceSm))
-        Text(stringResource(it), style = ConsoleType.bodySmall, color = colors.muted)
+        Text(it, style = ConsoleType.bodySmall, color = colors.muted)
     }
 }
 
 @Composable
-private fun DisconnectDialog(connector: Connector, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun DisconnectDialog(connector: ConnectorView, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     BothyAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.mcp_disconnect_title, stringResource(connector.title))) },
+        title = { Text(stringResource(R.string.mcp_disconnect_title, connector.title)) },
         text = {
-            val spec = connector.mcp
-            val title = stringResource(connector.title)
+            val app = connector.app
+            val title = connector.title
             Text(
-                if (spec?.needsCredential == false) {
+                if (app?.needsCredential == false) {
                     stringResource(R.string.mcp_disconnect_open, title)
                 } else {
-                    val label = stringResource(spec?.credentialLabel ?: R.string.mcp_token)
+                    val label = app?.credentialLabel?.ifEmpty { null } ?: stringResource(R.string.mcp_token)
                     stringResource(R.string.mcp_disconnect_keyed, title, label)
                 },
             )

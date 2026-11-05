@@ -17,4 +17,6 @@
     <string name="common_disconnect">断开</string>
     <string name="common_settings">设置</string>
     <string name="common_none">无</string>
+    <string name="http_status">HTTP %1$s</string>
+    <string name="finding_list_separator">、</string>
 </resources>

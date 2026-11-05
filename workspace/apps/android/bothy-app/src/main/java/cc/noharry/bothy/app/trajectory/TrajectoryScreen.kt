@@ -25,8 +25,21 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.app.console.ConsoleActions
+import cc.noharry.agent.appserver.protocol.TrajectoryRecordId
+import cc.noharry.agent.appserver.protocol.TrajectorySnapshot
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.view.TrajectoryInspectorTab
+import cc.noharry.agent.appserver.protocol.view.TrajectoryRangeSelection
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimeRange
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineMode
+import cc.noharry.agent.appserver.protocol.view.isInRange
+import cc.noharry.agent.appserver.protocol.view.nextTrajectoryHit
+import cc.noharry.agent.appserver.protocol.view.projectTrajectoryTimeline
+import cc.noharry.agent.appserver.protocol.view.rangeFor
+import cc.noharry.agent.appserver.protocol.view.trajectoryDurationMs
+import cc.noharry.agent.appserver.protocol.view.trajectorySearchHits
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleLayoutPolicy
 import cc.noharry.bothy.app.console.ConsoleType
@@ -34,31 +47,12 @@ import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.PanelBox
 import cc.noharry.bothy.app.console.WindowClass
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.session.UiState
 
 /** Where the record inspector lives at a given window class. */
 internal enum class TrajectoryInspectorPresentation {
     SIDE_PANE,
     BOTTOM_SHEET,
     FULL_SCREEN,
-}
-
-internal enum class TrajectoryInspectorTab {
-    SUMMARY,
-    PREVIEW,
-    RAW,
-    SOURCE,
-    REQUEST,
-    OPTIONS,
-    TOOLS,
-    THINKING,
-    OUTPUT,
-    USAGE,
-    PAYLOAD,
-    RESULT,
-    SCHEMA,
-    TIMING,
-    HEALTH,
 }
 
 internal data class TrajectoryLayoutPolicy(
@@ -99,7 +93,7 @@ internal fun trajectoryLayoutPolicy(policy: ConsoleLayoutPolicy): TrajectoryLayo
  */
 @Composable
 internal fun TrajectoryScreen(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     policy: ConsoleLayoutPolicy,
     onOpenSessions: (() -> Unit)? = null,

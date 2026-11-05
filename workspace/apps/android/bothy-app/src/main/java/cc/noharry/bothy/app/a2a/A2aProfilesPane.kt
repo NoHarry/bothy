@@ -37,6 +37,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.A2aModuleState
+import cc.noharry.agent.appserver.protocol.A2aProfile
+import cc.noharry.agent.appserver.protocol.A2aProfileDraft
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -47,10 +51,8 @@ import cc.noharry.bothy.app.console.SettingsNavBar
 import cc.noharry.bothy.app.console.SettingsStatusChip
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.SelectableOptionRow
-import cc.noharry.bothy.app.session.UiState
 
 /** Two-step navigation inside the A2A clients page: profile list, then the add-service form. */
 internal enum class A2aProfilesPage {
@@ -86,7 +88,7 @@ internal data class A2aProfilesNavigationState(
 
 @Composable
 internal fun A2aProfilesPane(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -120,6 +122,7 @@ internal fun A2aProfilesPane(
                 modifier = Modifier.weight(1f),
             )
             A2aProfilesPage.ADD -> A2aProfileAddForm(
+                moduleIds = state.a2aClients.moduleIds,
                 actions = actions,
                 onDone = { pageName = A2aProfilesPage.LIST.name },
                 modifier = Modifier.weight(1f),
@@ -275,17 +278,17 @@ private fun a2aProfileStatusLabel(profile: A2aProfile, loaded: Boolean, error: S
 
 /**
  * Add-service form: label, endpoint, packaged module picker and the loopback
- * debug switch. Validation lives in [A2aModuleConfig.saveUserProfile];
+ * debug switch. The server validates the profile when it is saved;
  * failures surface inline without leaving the form.
  */
 @Composable
 private fun A2aProfileAddForm(
+    moduleIds: List<String>,
     actions: ConsoleActions,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = ConsoleColors
-    val moduleIds = remember { A2aModuleRegistry.packaged().moduleIds().toList() }
     var label by rememberSaveable { mutableStateOf("") }
     var endpoint by rememberSaveable { mutableStateOf("") }
     var moduleId by rememberSaveable { mutableStateOf(moduleIds.firstOrNull().orEmpty()) }
@@ -323,8 +326,9 @@ private fun A2aProfileAddForm(
             Spacer(Modifier.width(Dimens.spaceSm))
             Button(
                 onClick = {
-                    val error = actions.saveA2aProfile(A2aProfileDraft(label, moduleId, endpoint, allowLoopback, description, token))
-                    if (error == null) onDone() else saveError = error
+                    actions.saveA2aProfile(A2aProfileDraft(label, moduleId, endpoint, allowLoopback, description, token)) { error ->
+                        if (error == null) onDone() else saveError = error
+                    }
                 },
                 shape = RoundedCornerShape(Dimens.radiusMd),
             ) { Text(stringResource(R.string.common_save)) }

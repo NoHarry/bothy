@@ -8,7 +8,6 @@
     <string name="usage_range_week">近 7 日</string>
     <string name="usage_range_month">近 30 日</string>
     <string name="usage_tokens_note">Token 为输入（含缓存命中）+ 输出（含推理）。费用按「模型价格」里的单价和汇率折算，未定价的模型不计费。</string>
-
     <!-- 概览 -->
     <string name="usage_total_tokens">累计 Token 数</string>
     <string name="usage_peak_day_tokens">单日峰值 Token 数</string>
@@ -18,7 +17,6 @@
     <plurals name="usage_days">
         <item quantity="other">%1$d 天</item>
     </plurals>
-
     <!-- Token 活动 -->
     <string name="usage_token_activity">Token 活动</string>
     <string name="usage_heat_daily">每日</string>
@@ -35,7 +33,6 @@
     </plurals>
     <string name="usage_less">少</string>
     <string name="usage_more">多</string>
-
     <!-- 每日趋势 -->
     <string name="usage_metric_tokens">Token</string>
     <string name="usage_metric_cost">费用</string>
@@ -51,7 +48,6 @@
     <string name="usage_empty_unpriced">当前区间用到的模型还没有价格，到「模型价格」同步或手填。</string>
     <string name="usage_empty_range">当前区间暂无可展示的用量数据。</string>
     <string name="usage_bars_hint">点柱子查看当天用量；标注的是区间峰值</string>
-
     <!-- 模型用量 -->
     <string name="usage_model_usage">模型用量</string>
     <string name="usage_no_calls_title">还没有模型调用</string>
@@ -64,7 +60,6 @@
     <string name="usage_cost">费用</string>
     <string name="usage_unpriced">未定价</string>
     <string name="usage_unpriced_hint">到「模型价格」同步或手填</string>
-
     <!-- 模型价格 -->
     <string name="usage_sync_and_rate">同步与汇率</string>
     <string name="usage_prices_note">价格从 models.dev 同步，单位是美元/百万 token，按汇率折算成人民币。DeepSeek 按官方价：flash 系列都按 deepseek-flash；缓存命中按缓存价计，没有缓存价的按输入价。手填的价格同步时不会被覆盖。</string>
@@ -89,7 +84,6 @@
     <string name="usage_restore_synced">恢复同步价</string>
     <string name="usage_source_manual">手填</string>
     <string name="usage_source_priced_as">%1$s（按 %2$s）</string>
-
     <!-- 上下文占用 -->
     <string name="usage_context_ring_description">上下文占用：%1$s，点击查看详情</string>
     <string name="usage_context_not_yet">尚未获取</string>

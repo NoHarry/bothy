@@ -52,10 +52,11 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.A2aClientState
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2a.A2aClientActions
 import cc.noharry.bothy.app.a2a.A2aClientLayout
-import cc.noharry.bothy.app.a2a.A2aClientState
 import cc.noharry.bothy.app.a2a.A2aProfilesPane
 import cc.noharry.bothy.app.a2a.a2aClientStatusLine
 import cc.noharry.bothy.app.console.ui.HtmlViewerDialog
@@ -64,12 +65,11 @@ import cc.noharry.bothy.app.mcp.McpProvidersPane
 import cc.noharry.bothy.app.overlay.clientMode
 import cc.noharry.bothy.app.plans.PlansLayout
 import cc.noharry.bothy.app.session.SessionPane
-import cc.noharry.bothy.app.session.UiState
 import cc.noharry.bothy.app.trajectory.TrajectoryScreen
 
 @Composable
 internal fun ConsoleScreen(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -175,6 +175,8 @@ internal fun ConsoleScreen(
                     modifier = bodyModifier,
                 )
                 ConsoleView.PLANS -> PlansLayout(
+                    state = state,
+                    actions = actions,
                     tabs = if (policy.useRailChrome) {
                         { ConsoleViewTabs(view, setView, showA2aTab = a2aActions != null) }
                     } else {
@@ -260,7 +262,7 @@ private val BRAND_MARK_SIZE = 32.dp
 
 @Composable
 internal fun HostChrome(
-    state: UiState,
+    state: ServerState,
     view: ConsoleView,
     onViewChange: (ConsoleView) -> Unit,
     statusLine: String = appStatusLine(state),
@@ -380,13 +382,12 @@ private fun ConsoleViewSegment(
 }
 
 @Composable
-internal fun appStatusLine(state: UiState): String {
+internal fun appStatusLine(state: ServerState): String {
     val run = when {
         state.isRunning -> stringResource(R.string.console_status_running)
-        !state.lastRunSummary.isNullOrBlank() -> runSummaryText(state.lastRunSummary)
-        else -> stringResource(R.string.console_ready)
+        else -> state.lastRun?.let { runResultText(it) } ?: stringResource(R.string.console_ready)
     }
-    return "$run · ${state.providerLabel} · ${streamLabelText(state.streamLabel)}"
+    return "$run · ${state.providerLabel} · ${streamText(state.stream)}"
 }
 
 /**
@@ -422,7 +423,7 @@ internal fun consoleViewFor(saved: String, clientMode: Boolean): ConsoleView = w
  */
 @Composable
 private fun TrajectoryLayout(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     policy: ConsoleLayoutPolicy,
     view: ConsoleView,
@@ -472,7 +473,7 @@ private fun TrajectoryLayout(
 
 @Composable
 private fun CompactLayout(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -527,7 +528,7 @@ private fun CompactLayout(
 
 @Composable
 private fun CompactPane(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -578,7 +579,7 @@ private fun compactNavigationDestination(
 
 @Composable
 private fun MediumLayout(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -653,7 +654,7 @@ private fun mediumNavigationDestination(
 
 @Composable
 private fun ExpandedLayout(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,
@@ -772,7 +773,7 @@ private fun BoardCollapsedStrip(
 @Composable
 private fun MainPane(
     page: ConsolePage,
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,

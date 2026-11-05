@@ -25,14 +25,6 @@
     <string name="a2a_form_module">Module</string>
     <string name="a2a_form_loopback">Allow loopback HTTP for debug</string>
     <string name="a2a_form_loopback_hint">Required for http:// or 127.0.0.1 / localhost endpoints</string>
-    <string name="a2a_label_required">Label is required</string>
-    <string name="a2a_unknown_module">Unknown A2A module: %1$s</string>
-    <string name="a2a_endpoint_invalid">Endpoint must be a valid http(s) URL</string>
-    <string name="a2a_endpoint_credentials">Endpoint must not include user credentials</string>
-    <string name="a2a_endpoint_loopback">Plain http or loopback endpoints require loopback debug access</string>
-    <string name="a2a_token_spaces">Access token must be one word without spaces.</string>
-    <string name="a2a_token_save_failed">Could not save the access token.</string>
-
     <!-- The A2A client console -->
     <string name="a2a_status_running">Running</string>
     <string name="a2a_status_ready">Ready</string>
@@ -69,23 +61,6 @@
     <string name="a2a_source_asr">ASR</string>
     <string name="a2a_source_pc">PC debugging</string>
     <string name="a2a_source_external">External A2A</string>
-    <string name="a2a_answer_item">Answer to \"%1$s\": %2$s</string>
-    <string name="a2a_notice_busy_ignored">The previous message is still running, so input from %1$s was ignored. Stop it, then send again.</string>
-    <string name="a2a_notice_no_active_task">There\'s no active task to add instructions to.</string>
-    <string name="a2a_notice_answer_after_end">The task has already ended; once it wraps up, the answer goes out as a new message in the same conversation.</string>
-    <string name="a2a_notice_cancel_pending">Waiting for the server to assign a task ID, then cancelling.</string>
-    <string name="a2a_notice_wait_or_stop">Wait for the current task to finish, or stop it first.</string>
-    <string name="a2a_notice_new_conversation">New conversation; the next message carries no history.</string>
-    <string name="a2a_notice_input_delivered">[Input] Delivered; the task keeps running.</string>
-    <string name="a2a_notice_input_failed">[Input failed] %1$s</string>
-    <string name="a2a_notice_busy_answer">The previous message is still running; wait or stop it before answering.</string>
-    <string name="a2a_notice_late_answer">The task has ended; the answer goes out as a new message in the same conversation.</string>
-    <string name="a2a_notice_cancelled">[Cancel] %1$s</string>
-    <string name="a2a_notice_cancel_failed">[Cancel failed] %1$s</string>
-    <string name="a2a_notice_error">A2A error: %1$s</string>
-    <string name="a2a_notice_incomplete">The connection ended without the task\'s final state; the result is unknown and won\'t be retried.</string>
-    <string name="a2a_notice_unknown_output">[Unknown output %1$s] %2$s</string>
-    <string name="a2a_notice_question">[Question] %1$s</string>
     <string name="a2a_hud_plan_empty">No speech yet (only channel=speech is spoken)</string>
     <string name="a2a_hud_question">Q: %1$s</string>
     <string name="a2a_hud_provider_no_tts">A2A · %1$s · TTS not set up</string>

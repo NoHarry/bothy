@@ -1,7 +1,7 @@
 package cc.noharry.bothy.app.overlay
 
-import cc.noharry.bothy.app.runtime.append
-import cc.noharry.bothy.app.session.CompactEntry
+import cc.noharry.agent.appserver.protocol.view.OverlayBoardSection
+
 internal fun List<OverlayEntry>.overlayTranscriptSignature(): String =
     joinToString(separator = "|") { entry ->
         buildString {

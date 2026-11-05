@@ -8,23 +8,11 @@
     <string name="model_type">类型</string>
     <string name="model_endpoint">端点</string>
     <string name="model_delete_service">删除服务</string>
-    <string name="model_missing_api_key">缺少 %1$s 的 API key。请在设置中填写，或放在以下位置之一：\n%2$s</string>
-    <string name="model_choose_model_first">请在输入框旁选择模型；可先在设置中拉取或添加模型。</string>
-
     <!-- DeepSeek 余额 -->
+    <string name="model_api_key_saved">已保存，留空不改</string>
     <string name="model_deepseek_balance_hint">DeepSeek 官方 key 可查询余额</string>
-    <string name="model_balance">余额：%1$s</string>
-    <string name="model_balance_failed">查询失败：%1$s</string>
     <string name="model_balance_checking">正在查询…</string>
     <string name="model_balance_check">查询余额</string>
-    <string name="model_balance_separator">；</string>
-    <string name="model_balance_amount">%1$s（充值 %2$s，赠送 %3$s）</string>
-    <string name="model_deepseek_available">可用</string>
-    <string name="model_balance_insufficient">余额不足，暂不可用</string>
-    <string name="model_balance_amounts_insufficient">%1$s · 余额不足，暂不可用</string>
-    <string name="model_balance_key_rejected">API key 无效或已停用</string>
-    <string name="model_http_error">HTTP %1$d：%2$s</string>
-
     <!-- 中转的 DeepSeek 检测 -->
     <string name="model_deepseek_features">DeepSeek 官方能力</string>
     <string name="model_deepseek_probe_intro">中转后面是 DeepSeek 官方接口时，检测通过的余额、Search/Fetch、原生延迟工具会走这个服务的地址和 key（检测搜索一次 ¥0.005）</string>
@@ -38,14 +26,6 @@
     <string name="model_probe_passthrough_messages_only">原生延迟工具：只有 Messages 端点有</string>
     <string name="model_probe_line_passed">%1$s：✓ %2$s</string>
     <string name="model_probe_line_failed">%1$s：✗ %2$s</string>
-    <string name="model_probe_not_http">Base URL 不是 http(s) 地址</string>
-    <string name="model_probe_not_balance">HTTP 200 但不是 DeepSeek 的余额</string>
-    <string name="model_probe_not_search">HTTP 200 但不是 DeepSeek 的搜索结果</string>
-    <string name="model_probe_no_model">没有选模型，无法检测</string>
-    <string name="model_probe_dropped">模型照常回答，中转丢掉了 %1$s</string>
-    <string name="model_probe_passed_through">原样透传</string>
-    <string name="model_probe_unreachable">连不上：%1$s</string>
-
     <!-- 模型列表 -->
     <string name="model_models_count">模型列表 · %1$d</string>
     <string name="model_fetch_empty">上游没有列出模型，已有列表保留，仍可手动添加。</string>
@@ -69,16 +49,9 @@
     <string name="model_image_input_description">%1$s 图片输入</string>
     <string name="model_text_and_images">文本+图片</string>
     <string name="model_text_only">仅文本</string>
-
     <!-- 本机模型 -->
     <string name="model_on_device">本机模型</string>
     <string name="model_on_device_intro">在这台设备上运行，对话不出设备：用 llama.cpp 跑在 NPU 上，NPU 用不了时退回 CPU。模型不随 App 安装，下载哪个用哪个；在输入框旁或这里选用。选中「本机模型」时自动启动，换到别的服务时停下，释放内存。</string>
-    <string name="model_on_device_missing">本机模型 %1$s 还没下载：设置 → 模型与服务 → 本机模型 → %1$s → 下载（约 %2$s GB）。</string>
-    <string name="model_publisher_qwen">阿里通义千问</string>
-    <string name="model_publisher_minicpm">面壁智能</string>
-    <string name="model_note_gemma_4_e4b">实测最稳：没调用工具时没说过已经办好，拿不准就先问。</string>
-    <string name="model_note_qwen3_4b">实测最干脆：动手快，但偶尔说办好了却没真的调用工具。</string>
-    <string name="model_note_minicpm5_2b">实测会自己找工具，没说过假的办好；每步先思考，慢一些。</string>
     <string name="model_in_use">使用中</string>
     <string name="model_use">使用</string>
     <string name="model_resume_download">继续下载</string>
@@ -99,4 +72,23 @@
     <string name="model_inference_server">推理服务</string>
     <string name="model_stop">停止</string>
     <string name="model_start">启动 %1$s</string>
+    <string name="model_balance">余额：%1$s</string>
+    <string name="model_balance_amount">%1$s（充值 %2$s，赠送 %3$s）</string>
+    <string name="model_balance_amounts_insufficient">%1$s · 余额不足，暂不可用</string>
+    <string name="model_balance_failed">查询失败：%1$s</string>
+    <string name="model_balance_insufficient">余额不足，暂不可用</string>
+    <string name="model_balance_key_rejected">API key 无效或已停用</string>
+    <string name="model_balance_separator">；</string>
+    <string name="model_choose_model_first">请在输入框旁选择模型；可先在设置中拉取或添加模型。</string>
+    <string name="model_deepseek_available">可用</string>
+    <string name="model_http_error">HTTP %1$s：%2$s</string>
+    <string name="model_missing_api_key">缺少 %1$s 的 API key。请在设置中填写，或放在以下位置之一：\n%2$s</string>
+    <string name="model_on_device_missing">本机模型 %1$s 还没下载：设置 → 模型与服务 → 本机模型 → %1$s → 下载（约 %2$s GB）。</string>
+    <string name="model_probe_dropped">模型照常回答，中转丢掉了 %1$s</string>
+    <string name="model_probe_no_model">没有选模型，无法检测</string>
+    <string name="model_probe_not_balance">HTTP 200 但不是 DeepSeek 的余额</string>
+    <string name="model_probe_not_http">Base URL 不是 http(s) 地址</string>
+    <string name="model_probe_not_search">HTTP 200 但不是 DeepSeek 的搜索结果</string>
+    <string name="model_probe_passed_through">原样透传</string>
+    <string name="model_probe_unreachable">连不上：%1$s</string>
 </resources>

@@ -2,27 +2,12 @@ package cc.noharry.bothy.app.console
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import cc.noharry.agent.appserver.protocol.FeatureRequests
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.bothy.app.frontend.AppClient
+import cc.noharry.bothy.app.overlay.HostConnection
 import cc.noharry.bothy.app.overlay.OverlayControl
-import cc.noharry.bothy.app.voice.VoiceForegroundService
-import cc.noharry.bothy.app.voice.WakeWord
-
-/**
- * Which stage the overlay shows outside client mode: the A2A view once an inbound task arrives, the device's own
- * session again once a run starts on the device. Process-wide, so an overlay that starts later (after the console
- * closes, or on the task's own popup) opens on the right one.
- */
-internal object OverlayFocus {
-    @Volatile var external: Boolean = false
-        private set
-
-    fun inbound() {
-        external = true
-    }
-
-    fun localRun() {
-        external = false
-    }
-}
+import cc.noharry.bothy.protocol.voice
 
 /**
  * The overlay steps aside for the full-screen console: while the console is in front the overlay is closed and an
@@ -41,10 +26,11 @@ internal object ConsoleVisibility {
     fun set(context: Context, visible: Boolean) {
         if (inFront == visible) return
         inFront = visible
+        HostConnection.report { copy(inFront = visible) }
         val app = context.applicationContext
         if (visible) {
             // In front: the one moment Android lets the wake word's microphone service start.
-            VoiceForegroundService.sync(app)
+            AppClient.send(app, FeatureRequests.APP_IN_FRONT, FlagParams(true))
             OverlayControl.closer?.let { close ->
                 restoreOverlay = true
                 main.post { close() }
@@ -53,7 +39,7 @@ internal object ConsoleVisibility {
             // With 语音唤醒 on 小博 comes back too: the overlay may have closed itself on the way in (its card's 打开页面).
             // A phone has no resting 小博: only a card asked for meanwhile comes up there.
             val open = openCard
-            val resting = !FrontEnd.phone(app) && (restoreOverlay || WakeWord.enabled.value)
+            val resting = !FrontEnd.phone(app) && (restoreOverlay || AppClient.state(app).voice.wakeWordEnabled)
             restoreOverlay = false
             openCard = false
             if (open || resting) OverlayControl.start(app, open)

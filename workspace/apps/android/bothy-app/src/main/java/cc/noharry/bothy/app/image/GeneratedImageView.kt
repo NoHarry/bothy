@@ -1,6 +1,4 @@
 package cc.noharry.bothy.app.image
-import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -37,7 +34,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -47,15 +43,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.view.SAVED_PICTURE
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2ui.SAVED_PICTURE
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.StatusDot
-import cc.noharry.bothy.app.overlay.OverlayPicture
-import cc.noharry.bothy.app.plans.matches
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -74,7 +69,7 @@ internal fun GeneratedImageRow(picture: OverlayPicture) {
         val reference = picture.reference
         // File checks stay off the main thread; until known, the frame shows as if present. A web photo has no file.
         val present by produceState<Boolean?>(null, reference) {
-            value = reference?.let { ref -> !SAVED_PICTURE.matches(ref) || withContext(Dispatchers.IO) { generatedImageFile(context, ref) != null } }
+            value = reference?.let { ref -> !SAVED_PICTURE.matches(ref) || withContext(Dispatchers.IO) { savedPictureFile(context, ref) != null } }
         }
         when {
             reference == null -> Row(verticalAlignment = Alignment.CenterVertically) {

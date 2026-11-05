@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings → Companion, its errors, and Checks → Companion. -->
+<resources>
+    <string name="companion_service_qwen">Qwen</string>
+    <string name="companion_service_doubao">Doubao</string>
+    <string name="companion_service_hunyuan">Hunyuan</string>
+    <string name="companion_service_custom">Custom (OpenAI-compatible)</string>
+</resources>

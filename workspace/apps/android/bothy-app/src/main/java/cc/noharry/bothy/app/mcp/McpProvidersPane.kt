@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.mcp
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -38,9 +41,19 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import cc.noharry.agent.device.DeviceMediaMcpProvider
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.McpProviderState
+import cc.noharry.agent.appserver.protocol.McpRequests
+import cc.noharry.agent.appserver.protocol.McpSecretsView
+import cc.noharry.agent.appserver.protocol.McpServer
+import cc.noharry.agent.appserver.protocol.McpServerKind
+import cc.noharry.agent.appserver.protocol.McpStatusView
+import cc.noharry.agent.appserver.protocol.McpToolPreview
+import cc.noharry.agent.appserver.protocol.McpToolsView
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2ui.initialValue
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -51,8 +64,8 @@ import cc.noharry.bothy.app.console.SettingsNavBar
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.Disclosure
-import cc.noharry.bothy.app.model.summary
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.app.words
 
 /**
  * 设置 → 连接 → MCP: the providers with their switches and tool previews, and the configured standard MCP servers,
@@ -61,7 +74,7 @@ import cc.noharry.bothy.app.session.UiState
  */
 @Composable
 internal fun McpProvidersPane(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -102,7 +115,7 @@ internal fun McpProvidersPane(
 
 @Composable
 private fun McpProviderList(
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
     onAdd: () -> Unit,
     onEdit: (String) -> Unit,
@@ -110,6 +123,7 @@ private fun McpProviderList(
 ) {
     val colors = ConsoleColors
     var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    val status = rememberMcpStatus(state.mcpProviders)
     Column(modifier) {
         // The add button leads the row: the 小博 bubble rests on the top-right corner of the screen and covered it there.
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -140,6 +154,7 @@ private fun McpProviderList(
                         if (index > 0) HorizontalDivider(color = colors.borderSubtle, modifier = Modifier.padding(horizontal = Dimens.spaceMd))
                         ProviderToggleRow(
                             provider = provider,
+                            status = status,
                             expanded = expandedId == provider.id,
                             onToggleExpanded = { expandedId = if (expandedId == provider.id) null else provider.id },
                             actions = actions,
@@ -160,6 +175,7 @@ private fun McpProviderList(
 @Composable
 private fun ProviderToggleRow(
     provider: McpProviderState,
+    status: McpStatusView,
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
     actions: ConsoleActions,
@@ -175,7 +191,7 @@ private fun ProviderToggleRow(
         ) {
             Disclosure(expanded = expanded)
             Spacer(Modifier.width(Dimens.spaceXs))
-            ProviderRowInfo(provider, Modifier.weight(1f).clickable(onClick = onToggleExpanded))
+            ProviderRowInfo(provider, status, Modifier.weight(1f).clickable(onClick = onToggleExpanded))
             provider.server?.let { server ->
                 TextButton(onClick = onEdit) { Text(stringResource(R.string.common_edit)) }
                 if (server.deletable) {
@@ -190,7 +206,7 @@ private fun ProviderToggleRow(
                 colors = switchColors(),
             )
         }
-        if (provider.id == DEBUG_MCP_PROVIDER_DEVICE_MEDIA) MediaAccessLine()
+        if (provider.id == status.mediaProviderId) MediaAccessLine(status.mediaAccess)
         if (expanded) {
             McpToolPreviewList(provider, refreshKey = provider.server)
         }
@@ -202,17 +218,8 @@ private fun ProviderToggleRow(
  * what plays and in which app; without it only play, pause, skipping and the volume reach whatever plays.
  */
 @Composable
-private fun MediaAccessLine() {
+private fun MediaAccessLine(granted: Boolean) {
     val context = LocalContext.current
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    var granted by remember { mutableStateOf(DeviceMediaMcpProvider.notificationAccessGranted(context)) }
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) granted = DeviceMediaMcpProvider.notificationAccessGranted(context)
-        }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
-    }
     Row(
         Modifier.fillMaxWidth().padding(start = Dimens.spaceLg * 2, end = Dimens.spaceLg, bottom = Dimens.spaceSm),
         verticalAlignment = Alignment.CenterVertically,
@@ -223,21 +230,20 @@ private fun MediaAccessLine() {
             color = if (granted) ConsoleColors.success else ConsoleColors.muted,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = { runCatching { context.startActivity(DeviceMediaMcpProvider.notificationAccessIntent().addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) } }) {
+        TextButton(onClick = { runCatching { context.startActivity(notificationAccessIntent()) } }) {
             Text(stringResource(if (granted) R.string.mcp_manage else R.string.mcp_turn_on))
         }
     }
 }
 
 @Composable
-private fun ProviderRowInfo(provider: McpProviderState, modifier: Modifier) {
+private fun ProviderRowInfo(provider: McpProviderState, status: McpStatusView, modifier: Modifier) {
     val colors = ConsoleColors
-    val context = LocalContext.current
     val server = provider.server
-    val secrets = remember(server) { server?.takeIf { it.kind == McpServerKind.HTTP }?.let { McpSecrets.read(context, it.id) } }
+    val secrets = server?.takeIf { it.kind == McpServerKind.HTTP }?.let { status.secrets[it.id] }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Dimens.spaceXxs)) {
         Text(
-            fixedMcpProviderTitle(provider.id)?.let { stringResource(it) } ?: provider.label,
+            status.titles[provider.id] ?: provider.label,
             style = ConsoleType.body,
             color = colors.text,
             fontWeight = FontWeight.Medium,
@@ -253,12 +259,12 @@ private fun ProviderRowInfo(provider: McpProviderState, modifier: Modifier) {
 
 /** Where the server is, and whether a token or headers are stored (never what they are). */
 @Composable
-private fun serverLine(server: McpServer, secrets: McpSecrets.Stored?): String {
-    val headers = secrets?.headers?.size ?: 0
+private fun serverLine(server: McpServer, secrets: McpSecretsView?): String {
+    val headers = secrets?.headers ?: 0
     return listOfNotNull(
         server.summary(),
-        stringResource(R.string.mcp_token_set).takeIf { secrets?.token?.isNotEmpty() == true },
-        stringResource(R.string.mcp_key_set).takeIf { secrets?.query?.isNotEmpty() == true },
+        stringResource(R.string.mcp_token_set).takeIf { secrets?.token == true },
+        stringResource(R.string.mcp_key_set).takeIf { secrets?.query == true },
         pluralStringResource(R.plurals.mcp_header_count, headers, headers).takeIf { headers > 0 },
     ).joinToString(" · ")
 }
@@ -266,9 +272,14 @@ private fun serverLine(server: McpServer, secrets: McpSecrets.Stored?): String {
 @Composable
 private fun McpToolPreviewList(provider: McpProviderState, refreshKey: Any? = null) {
     val colors = ConsoleColors
-    val context = LocalContext.current
-    val result by produceState<McpToolsResult?>(initialValue = null, provider.id, refreshKey) {
-        value = loadMcpProviderTools(context, provider)
+    val server = LocalServer.current
+    var result by remember(provider.id, refreshKey) { mutableStateOf<McpToolsView?>(null) }
+    LaunchedEffect(provider.id, refreshKey) {
+        server.send(
+            McpRequests.TOOLS,
+            IdParams(provider.id),
+            onRefused = { result = McpToolsView(unavailable = text(it.message.orEmpty())) },
+        ) { result = it }
     }
     var filter by rememberSaveable(provider.id) { mutableStateOf("") }
     Column(
@@ -284,39 +295,35 @@ private fun McpToolPreviewList(provider: McpProviderState, refreshKey: Any? = nu
             )
             Spacer(Modifier.height(Dimens.spaceXs))
         }
-        when (val tools = result) {
-            null -> Text(stringResource(R.string.mcp_loading_tools), style = ConsoleType.meta, color = colors.muted)
-            is McpToolsResult.Unavailable -> Text(
-                tools.reason,
-                style = ConsoleType.meta,
-                color = colors.danger,
-            )
-            is McpToolsResult.Loaded -> {
-                LoadedMcpToolPreview(tools = tools, filter = filter, onFilterChange = { filter = it })
-            }
+        val loaded = result
+        val tools = loaded?.tools
+        when {
+            loaded == null -> Text(stringResource(R.string.mcp_loading_tools), style = ConsoleType.meta, color = colors.muted)
+            tools == null -> Text(loaded.unavailable?.let { words(it) }.orEmpty(), style = ConsoleType.meta, color = colors.danger)
+            else -> LoadedMcpToolPreview(tools = tools, filter = filter, onFilterChange = { filter = it })
         }
     }
 }
 
 @Composable
 private fun LoadedMcpToolPreview(
-    tools: McpToolsResult.Loaded,
+    tools: List<McpToolPreview>,
     filter: String,
     onFilterChange: (String) -> Unit,
 ) {
     val colors = ConsoleColors
-    if (tools.tools.isEmpty()) {
+    if (tools.isEmpty()) {
         Text(stringResource(R.string.mcp_no_tools_reported), style = ConsoleType.meta, color = colors.muted)
         return
     }
-    val shown = tools.tools.filter {
+    val shown = tools.filter {
         filter.isBlank() ||
             it.name.contains(filter, ignoreCase = true) ||
             it.title.contains(filter, ignoreCase = true)
     }
     McpToolFilterHeader(
         shownCount = shown.size,
-        totalCount = tools.tools.size,
+        totalCount = tools.size,
         filter = filter,
         onFilterChange = onFilterChange,
     )
@@ -393,3 +400,26 @@ private val MCP_PROVIDERS_CONTENT_MAX_WIDTH = 920.dp
 private val MCP_TOOL_LIST_MAX_HEIGHT = 360.dp
 private val MCP_FILTER_FIELD_MAX_WIDTH = 260.dp
 private const val MCP_FILTER_MIN_TOOLS = 8
+
+/**
+ * The MCP status (provider names, what each server stores, whether Device Media has notification access): asked again
+ * when the rows change and on return from the system page that grants the access.
+ */
+@Composable
+internal fun rememberMcpStatus(rows: List<McpProviderState>): McpStatusView {
+    val server = LocalServer.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var status by remember { mutableStateOf(McpStatusView()) }
+    var resumed by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) resumed += 1 }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    LaunchedEffect(rows, resumed) { server.send(McpRequests.STATUS, Empty) { status = it } }
+    return status
+}
+
+/** The system page that grants notification access (Device Media then sees what plays). */
+private fun notificationAccessIntent(): Intent =
+    Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

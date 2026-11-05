@@ -1,7 +1,8 @@
 package cc.noharry.bothy.app.model
+import cc.noharry.agent.appserver.protocol.ModelProvider
+import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.bothy.app.console.SettingsNavigationState
 import cc.noharry.bothy.app.console.SettingsPage
-import cc.noharry.bothy.app.session.ModelProvider
 import org.junit.Assert.*
 import org.junit.Test
 

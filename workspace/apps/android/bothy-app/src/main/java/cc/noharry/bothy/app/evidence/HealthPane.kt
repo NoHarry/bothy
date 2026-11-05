@@ -30,11 +30,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,17 +38,27 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.FlagParams
+import cc.noharry.agent.appserver.protocol.IdsParams
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.app.clockSeconds
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.SettingsSection
 import cc.noharry.bothy.app.console.color
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.overlay.OverlayControl
-import cc.noharry.bothy.app.voice.WakeWord
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import cc.noharry.bothy.app.words
+import cc.noharry.bothy.protocol.CheckFixKind
+import cc.noharry.bothy.protocol.CheckGroup
+import cc.noharry.bothy.protocol.CheckId
+import cc.noharry.bothy.protocol.CheckRequests
+import cc.noharry.bothy.protocol.CheckStatus
+import cc.noharry.bothy.protocol.CheckView
+import cc.noharry.bothy.protocol.ChecksView
+import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.checks
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -63,30 +69,20 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun HealthPane(openSection: (SettingsSection) -> Unit) {
     val context = LocalContext.current
+    val server = LocalServer.current
     val scope = rememberCoroutineScope()
-    var results by remember { mutableStateOf<Map<String, CheckResult>>(emptyMap()) }
-    var running by remember { mutableStateOf(false) }
-    var checkedAt by remember { mutableStateOf("") }
-    val checking = stringResource(R.string.checks_running)
-    val runChecks = { checks: List<HealthCheck> ->
-        running = true
-        results = results + checks.associate { it.id to CheckResult(CheckState.RUNNING, checking) }
-        scope.launch {
-            runHealthChecks(context, checks) { id, result -> results = results + (id to result) }
-            running = false
-            checkedAt = SimpleDateFormat("HH:mm:ss", Locale.US).format(Date())
-        }
-        Unit
-    }
+    val checks = server.state.checks
+    val runChecks = { ids: Set<CheckId> -> server.send(CheckRequests.RUN, IdsParams(ids.map { it.name })) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        runChecks(DEBUG_CHECKS.filter { check -> check.id in PERMISSION_CHECK_IDS })
+        runChecks(PERMISSION_CHECK_IDS)
     }
-    val fix = { item: CheckFix ->
+    val fix = { item: CheckFixKind ->
         applyCheckFix(context, item, openSection, requestPermission = { permission.launch(it) }) {
+            if (item == CheckFixKind.WAKE_ON) server.send(VoiceRequests.SET_WAKE_WORD, FlagParams(true))
             // The overlay starts asynchronously; look again once it has had a moment to attach the wake word.
             scope.launch {
                 delay(WAKE_RECHECK_DELAY_MS)
-                runChecks(DEBUG_CHECKS.filter { check -> check.id == "wake" })
+                runChecks(setOf(CheckId.WAKE))
             }
         }
     }
@@ -94,19 +90,18 @@ internal fun HealthPane(openSection: (SettingsSection) -> Unit) {
         Modifier.fillMaxHeight().widthIn(max = 880.dp).verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
         verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd),
     ) {
-        CheckHeader(results, running, checkedAt) { runChecks(DEBUG_CHECKS) }
-        DEBUG_CHECKS.groupBy { it.group }.forEach { (group, checks) ->
-            CheckGroup(group, checks, results, fix)
-        }
+        CheckHeader(checks) { runChecks(emptySet()) }
+        checks.checks.groupBy { it.group }.forEach { (group, inGroup) -> CheckGroup(stringResource(group.title), inGroup, fix) }
     }
 }
 
 @Composable
-private fun CheckHeader(results: Map<String, CheckResult>, running: Boolean, checkedAt: String, onRun: () -> Unit) {
+private fun CheckHeader(checks: ChecksView, onRun: () -> Unit) {
+    val running = checks.running
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.checks_title), style = ConsoleType.panelTitle, color = ConsoleColors.text)
-            Text(checkSummary(results, running, checkedAt), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
+            Text(checkSummary(checks), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
         }
         Button(
             onClick = onRun,
@@ -123,21 +118,23 @@ private fun CheckHeader(results: Map<String, CheckResult>, running: Boolean, che
 }
 
 @Composable
-private fun checkSummary(results: Map<String, CheckResult>, running: Boolean, checkedAt: String): String {
-    if (results.isEmpty()) return stringResource(R.string.checks_not_yet)
-    val counts = results.values.groupingBy { it.state }.eachCount()
+private fun checkSummary(checks: ChecksView): String {
+    val states = checks.checks.mapNotNull { it.status }
+    if (states.isEmpty()) return stringResource(R.string.checks_not_yet)
+    val counts = states.groupingBy { it }.eachCount()
     val parts = listOfNotNull(
-        counts[CheckState.OK]?.let { pluralStringResource(R.plurals.checks_count_ok, it, it) },
-        counts[CheckState.WARN]?.let { pluralStringResource(R.plurals.checks_count_warn, it, it) },
-        counts[CheckState.FAIL]?.let { pluralStringResource(R.plurals.checks_count_fail, it, it) },
-        counts[CheckState.OFF]?.let { pluralStringResource(R.plurals.checks_count_off, it, it) },
-        counts[CheckState.RUNNING]?.let { pluralStringResource(R.plurals.checks_count_running, it, it) },
+        counts[CheckStatus.OK]?.let { pluralStringResource(R.plurals.checks_count_ok, it, it) },
+        counts[CheckStatus.WARN]?.let { pluralStringResource(R.plurals.checks_count_warn, it, it) },
+        counts[CheckStatus.FAIL]?.let { pluralStringResource(R.plurals.checks_count_fail, it, it) },
+        counts[CheckStatus.OFF]?.let { pluralStringResource(R.plurals.checks_count_off, it, it) },
+        counts[CheckStatus.RUNNING]?.let { pluralStringResource(R.plurals.checks_count_running, it, it) },
     )
-    return parts.joinToString(" · ") + if (!running && checkedAt.isNotEmpty()) " · $checkedAt" else ""
+    val checkedAt = checks.checkedAtEpochMillis?.takeIf { !checks.running }?.let { " · ${clockSeconds(it)}" }.orEmpty()
+    return parts.joinToString(" · ") + checkedAt
 }
 
 @Composable
-private fun CheckGroup(@StringRes group: Int, checks: List<HealthCheck>, results: Map<String, CheckResult>, fix: (CheckFix) -> Unit) {
+private fun CheckGroup(group: String, checks: List<CheckView>, fix: (CheckFixKind) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(Dimens.radiusMd),
@@ -145,31 +142,39 @@ private fun CheckGroup(@StringRes group: Int, checks: List<HealthCheck>, results
         border = BorderStroke(1.dp, ConsoleColors.borderSubtle),
     ) {
         Column(Modifier.padding(vertical = Dimens.spaceXs)) {
-            Text(stringResource(group), style = ConsoleType.label, color = ConsoleColors.muted, modifier = Modifier.padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceXs))
+            Text(group, style = ConsoleType.label, color = ConsoleColors.muted, modifier = Modifier.padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceXs))
             checks.forEachIndexed { index, check ->
                 if (index > 0) HorizontalDivider(color = ConsoleColors.borderSubtle, modifier = Modifier.padding(horizontal = Dimens.spaceMd))
-                CheckRow(check, results[check.id], fix)
+                CheckRow(check, fix)
             }
         }
     }
 }
 
 @Composable
-private fun CheckRow(check: HealthCheck, result: CheckResult?, fix: (CheckFix) -> Unit) {
+private fun CheckRow(check: CheckView, fix: (CheckFixKind) -> Unit) {
+    val state = check.status
     Row(
         Modifier.fillMaxWidth().padding(horizontal = Dimens.spaceMd, vertical = Dimens.spaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (result?.state == CheckState.RUNNING) {
+        if (state == CheckStatus.RUNNING) {
             CircularProgressIndicator(Modifier.size(12.dp), strokeWidth = 2.dp, color = ConsoleColors.muted)
         } else {
-            Text("●", style = ConsoleType.bodySmall, color = stateColor(result?.state))
+            Text("●", style = ConsoleType.bodySmall, color = stateColor(state))
         }
         Column(Modifier.weight(1f).padding(start = Dimens.spaceSm)) {
-            Text(stringResource(check.title), style = ConsoleType.body, color = ConsoleColors.text)
-            Text(result?.detail ?: stringResource(R.string.checks_not_yet), style = ConsoleType.bodySmall, color = if (result?.state == CheckState.FAIL) ConsoleColors.danger else ConsoleColors.muted)
+            Text(stringResource(check.id.title), style = ConsoleType.body, color = ConsoleColors.text)
+            Text(
+                when {
+                    state == CheckStatus.RUNNING -> stringResource(R.string.checks_running)
+                    else -> check.finding?.let { words(it) } ?: stringResource(R.string.checks_not_yet)
+                },
+                style = ConsoleType.bodySmall,
+                color = if (state == CheckStatus.FAIL) ConsoleColors.danger else ConsoleColors.muted,
+            )
         }
-        result?.fix?.takeIf { result.state != CheckState.OK && result.state != CheckState.RUNNING }?.let { item ->
+        check.fix?.takeIf { state != CheckStatus.OK && state != CheckStatus.RUNNING }?.let { item ->
             Spacer(Modifier.width(Dimens.spaceSm))
             TextButton(onClick = { fix(item) }) { Text(stringResource(item.label)) }
         }
@@ -177,42 +182,56 @@ private fun CheckRow(check: HealthCheck, result: CheckResult?, fix: (CheckFix) -
 }
 
 @Composable
-private fun stateColor(state: CheckState?): Color = when (state) {
-    CheckState.OK -> ConsoleColors.success
-    CheckState.WARN -> ConsoleColors.warning
-    CheckState.FAIL -> ConsoleColors.danger
+private fun stateColor(state: CheckStatus?): Color = when (state) {
+    CheckStatus.OK -> ConsoleColors.success
+    CheckStatus.WARN -> ConsoleColors.warning
+    CheckStatus.FAIL -> ConsoleColors.danger
     else -> ConsoleColors.muted
 }
 
-/** Settings sections open in place; permissions are asked for; system screens open with this app selected. */
+/**
+ * Settings sections open in place; permissions are asked for; system screens open with this app selected. The wake
+ * word ([CheckFixKind.WAKE_ON], switched on by [afterWake]) and the overlay are looked at again after a moment.
+ */
 private fun applyCheckFix(
     context: Context,
-    fix: CheckFix,
+    fix: CheckFixKind,
     openSection: (SettingsSection) -> Unit,
     requestPermission: (String) -> Unit,
-    recheckWake: () -> Unit,
+    afterWake: () -> Unit,
 ) {
     val packageUri = Uri.fromParts("package", context.packageName, null)
     when (fix) {
-        CheckFix.MODELS -> openSection(SettingsSection.MODELS)
-        CheckFix.IMAGE_MODEL -> openSection(SettingsSection.IMAGE_MODEL)
-        CheckFix.VOICE -> openSection(SettingsSection.VOICE)
-        CheckFix.RECORD_PERMISSION -> requestPermission(Manifest.permission.RECORD_AUDIO)
-        CheckFix.NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        CheckFixKind.MODELS -> openSection(SettingsSection.MODELS)
+        CheckFixKind.IMAGE_MODEL -> openSection(SettingsSection.IMAGE_MODEL)
+        CheckFixKind.VOICE -> openSection(SettingsSection.VOICE)
+        CheckFixKind.RECORD_PERMISSION -> requestPermission(Manifest.permission.RECORD_AUDIO)
+        CheckFixKind.NOTIFICATIONS -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermission(Manifest.permission.POST_NOTIFICATIONS)
         }
-        CheckFix.OVERLAY -> openSystemScreen(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri))
-        CheckFix.ACCESSIBILITY -> openSystemScreen(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        CheckFix.WAKE_ON -> {
-            WakeWord.setEnabled(context, true)
-            recheckWake()
-        }
-        CheckFix.OVERLAY_START -> {
+        CheckFixKind.OVERLAY -> openSystemScreen(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, packageUri))
+        CheckFixKind.ACCESSIBILITY -> openSystemScreen(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        CheckFixKind.WAKE_ON -> afterWake()
+        CheckFixKind.OVERLAY_START -> {
             OverlayControl.ensureRunning(context)
-            recheckWake()
+            afterWake()
         }
     }
 }
+
+/** The fix's button. */
+@get:StringRes
+private val CheckFixKind.label: Int
+    get() = when (this) {
+        CheckFixKind.MODELS -> R.string.checks_fix_models
+        CheckFixKind.IMAGE_MODEL -> R.string.checks_fix_image_model
+        CheckFixKind.VOICE -> R.string.checks_fix_voice
+        CheckFixKind.RECORD_PERMISSION, CheckFixKind.NOTIFICATIONS -> R.string.checks_fix_allow
+        CheckFixKind.OVERLAY -> R.string.checks_fix_allow_in_settings
+        CheckFixKind.ACCESSIBILITY -> R.string.checks_fix_turn_on
+        CheckFixKind.WAKE_ON -> R.string.checks_fix_wake_on
+        CheckFixKind.OVERLAY_START -> R.string.checks_fix_overlay_start
+    }
 
 /** A device may lack a settings screen; then the app's own details page, where its permissions are. */
 internal fun openSystemScreen(context: Context, intent: Intent) {
@@ -227,5 +246,34 @@ internal fun openSystemScreen(context: Context, intent: Intent) {
     }
 }
 
-private val PERMISSION_CHECK_IDS = setOf("record_permission", "notifications", "mic", "wake")
+private val PERMISSION_CHECK_IDS = setOf(CheckId.RECORD_PERMISSION, CheckId.NOTIFICATIONS, CheckId.MIC, CheckId.WAKE)
 private const val WAKE_RECHECK_DELAY_MS = 1_500L
+
+/** A check's name on the page. */
+@get:StringRes
+private val CheckId.title: Int
+    get() = when (this) {
+        CheckId.CHAT -> R.string.checks_chat
+        CheckId.DEEPSEEK -> R.string.checks_deepseek
+        CheckId.IMAGE -> R.string.checks_image
+        CheckId.TOOLS -> R.string.checks_tools
+        CheckId.ASR -> R.string.checks_asr
+        CheckId.JEV -> R.string.checks_jev
+        CheckId.TTS -> R.string.checks_tts
+        CheckId.WAKE -> R.string.checks_wake
+        CheckId.MIC -> R.string.checks_mic
+        CheckId.COMPANION -> R.string.checks_companion
+        CheckId.REALTIME -> R.string.checks_realtime
+        CheckId.RECORD_PERMISSION -> R.string.checks_record_permission
+        CheckId.OVERLAY -> R.string.checks_overlay
+        CheckId.ACCESSIBILITY -> R.string.checks_accessibility
+        CheckId.NOTIFICATIONS -> R.string.checks_notifications
+    }
+
+@get:StringRes
+private val CheckGroup.title: Int
+    get() = when (this) {
+        CheckGroup.MODELS -> R.string.checks_group_models
+        CheckGroup.VOICE -> R.string.checks_group_voice
+        CheckGroup.PERMISSIONS -> R.string.checks_group_permissions
+    }

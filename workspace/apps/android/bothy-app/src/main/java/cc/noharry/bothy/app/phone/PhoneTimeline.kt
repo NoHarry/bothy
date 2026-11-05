@@ -12,15 +12,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.view.generatedPicture
+import cc.noharry.agent.appserver.protocol.view.pickableReply
+import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConversationRenderItem
-import cc.noharry.bothy.app.console.toHtmlArtifactPreview
 import cc.noharry.bothy.app.console.uniqueKeys
-import cc.noharry.bothy.app.overlay.generatedPicture
-import cc.noharry.bothy.app.overlay.pickableReply
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.TranscriptRole
-import cc.noharry.bothy.app.session.UiState
 
 /** A row of the phone's conversation. */
 internal sealed interface PhoneRow {
@@ -134,7 +134,7 @@ private fun ConversationItem.isInterim(reply: ConversationItem): Boolean =
 
 /** The conversation, newest at the bottom over the composer; it follows a run as it grows. */
 @Composable
-internal fun PhoneTimeline(state: UiState, actions: ConsoleActions, onTrajectory: (turn: Long) -> Unit, modifier: Modifier) {
+internal fun PhoneTimeline(state: ServerState, actions: ConsoleActions, onTrajectory: (turn: Long) -> Unit, modifier: Modifier) {
     val rows = remember(state.items, state.isRunning) { phoneRows(state.items, state.isRunning) }
     val keys = remember(rows) { rows.map { it.key }.uniqueKeys() }
     val bottomFirst = remember(rows) { rows.asReversed() }

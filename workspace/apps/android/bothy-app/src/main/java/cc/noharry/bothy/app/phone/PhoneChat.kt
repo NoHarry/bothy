@@ -2,11 +2,11 @@ package cc.noharry.bothy.app.phone
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,10 +17,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.a2ui.QuestionCards
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.WakeMigrationNote
-import cc.noharry.bothy.app.session.UiState
 
 /**
  * The phone's conversation, as the phone design draws it: the top bar, the turns ([PhoneTimeline]) and the composer
@@ -28,7 +28,7 @@ import cc.noharry.bothy.app.session.UiState
  */
 @Composable
 internal fun PhoneChat(
-    state: UiState,
+    state: ServerState,
     pendingInput: String,
     onPendingInputConsumed: () -> Unit,
     actions: ConsoleActions,

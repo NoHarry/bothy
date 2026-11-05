@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置 → 陪聊、它的错误提示和 检查 → 陪聊。 -->
+<resources>
+    <string name="companion_service_qwen">千问</string>
+    <string name="companion_service_doubao">豆包</string>
+    <string name="companion_service_hunyuan">混元</string>
+    <string name="companion_service_custom">自定义（OpenAI 兼容）</string>
+</resources>

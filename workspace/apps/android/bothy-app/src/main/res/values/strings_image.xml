@@ -34,16 +34,15 @@
     <string name="image_view_larger">View larger</string>
     <string name="image_generating_picture">Generating picture…</string>
     <string name="image_file_cleared">Picture file cleared</string>
-
-    <string name="image_problem_base_url_scheme">Base URL must be https://, or http:// on 127.0.0.1 (adb reverse).</string>
     <string name="image_problem_base_url_parts">Base URL cannot contain credentials, query or fragment.</string>
+    <string name="image_problem_base_url_scheme">Base URL must be https://, or http:// on 127.0.0.1 (adb reverse).</string>
+    <string name="image_problem_key_not_removed">Could not remove the stored key.</string>
+    <string name="image_problem_key_not_saved">Could not save the API key.</string>
+    <string name="image_problem_key_whitespace">API key cannot contain whitespace.</string>
     <string name="image_problem_model_whitespace">Model ID cannot contain whitespace.</string>
+    <string name="image_problem_no_key">Add an API key before enabling image generation.</string>
     <string name="image_problem_no_model">Pick a model before enabling image generation.</string>
+    <string name="image_problem_not_saved">Could not save image model settings.</string>
     <string name="image_problem_size">Size must look like 1024x1024, or stay blank.</string>
     <string name="image_problem_timeout">Timeout must be 10–300 s.</string>
-    <string name="image_problem_no_key">Add an API key before enabling image generation.</string>
-    <string name="image_problem_key_whitespace">API key cannot contain whitespace.</string>
-    <string name="image_problem_key_not_removed">Could not remove the stored key.</string>
-    <string name="image_problem_not_saved">Could not save image model settings.</string>
-    <string name="image_problem_key_not_saved">Could not save the API key.</string>
 </resources>

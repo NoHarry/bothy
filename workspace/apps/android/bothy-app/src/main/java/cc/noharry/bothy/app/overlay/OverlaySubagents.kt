@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.overlay
 import android.content.res.Resources
 import androidx.compose.animation.core.Animatable
@@ -62,17 +60,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.agent.runtime.SubagentState
-import cc.noharry.agent.runtime.SubagentStatus
+import cc.noharry.agent.appserver.protocol.DelegationView
+import cc.noharry.agent.appserver.protocol.REPORT_QUEUED
+import cc.noharry.agent.appserver.protocol.SubagentLane
+import cc.noharry.agent.appserver.protocol.SubagentRunState
+import cc.noharry.agent.appserver.protocol.deliveryKey
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.DelegationView
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.labelRes
-import cc.noharry.bothy.app.skills.BothySubagents
-import cc.noharry.bothy.app.skills.REPORT_QUEUED
-import cc.noharry.bothy.app.skills.deliveryKey
-import cc.noharry.bothy.app.trajectory.lane
 import cc.noharry.bothy.app.usage.tokens
 import java.net.URI
 import java.util.Locale
@@ -82,7 +77,8 @@ import kotlin.math.sin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -90,7 +86,7 @@ import kotlinx.coroutines.launch
  * turn ([deliveries]), or that settled or were reported less than [LANE_LINGER_MS] ago, and every sibling whose work
  * overlapped theirs; empty once the whole batch has been reported for that long.
  */
-internal fun subagentsOnCard(board: Map<String, List<SubagentStatus>>, now: Long, deliveries: Map<String, Long> = emptyMap()): List<SubagentStatus> {
+internal fun subagentsOnCard(board: Map<String, List<SubagentLane>>, now: Long, deliveries: Map<String, Long> = emptyMap()): List<SubagentLane> {
     val rows = board.values.flatten().sortedBy { it.startedAtEpochMillis }
     var since = rows.filter { it.onCard(now, deliveries[it.deliveryKey()]) }.minOfOrNull { it.startedAtEpochMillis } ?: return emptyList()
     rows.asReversed().forEach { row ->
@@ -99,23 +95,23 @@ internal fun subagentsOnCard(board: Map<String, List<SubagentStatus>>, now: Long
     return rows.filter { it.startedAtEpochMillis >= since }.takeLast(MAX_LANES)
 }
 
-private fun SubagentStatus.onCard(now: Long, delivered: Long?): Boolean = when {
+private fun SubagentLane.onCard(now: Long, delivered: Long?): Boolean = when {
     !state.finished -> true
     delivered == REPORT_QUEUED -> now - finishedAtEpochMillis < QUEUED_GIVE_UP_MS
     else -> now - maxOf(finishedAtEpochMillis, delivered ?: 0L) < LANE_LINGER_MS
 }
 
 /** Finished, with its result still waiting for the report's turn. */
-private fun SubagentStatus.queued(deliveries: Map<String, Long>): Boolean = state.finished && deliveries[deliveryKey()] == REPORT_QUEUED
+private fun SubagentLane.queued(deliveries: Map<String, Long>): Boolean = state.finished && deliveries[deliveryKey()] == REPORT_QUEUED
 
 /** One line on what a child is doing, or what it came back with, in the card's words. */
-internal fun SubagentStatus.cardActivity(resources: Resources, now: Long): String = when (state) {
-    SubagentState.RUNNING -> latestStep(resources) ?: resources.getString(R.string.overlay_subagent_thinking)
-    SubagentState.STALLED -> ((now - lastActivityEpochMillis) / 1_000).toInt()
+internal fun SubagentLane.cardActivity(resources: Resources, now: Long): String = when (state) {
+    SubagentRunState.RUNNING -> latestStep(resources) ?: resources.getString(R.string.overlay_subagent_thinking)
+    SubagentRunState.STALLED -> ((now - lastActivityEpochMillis) / 1_000).toInt()
         .let { resources.getQuantityString(R.plurals.overlay_subagent_stalled, it, it) }
-    SubagentState.COMPLETED -> result.headline()
-    SubagentState.CANCELLED -> resources.getString(state.labelRes())
-    SubagentState.FAILED, SubagentState.TIMED_OUT -> resources.getString(state.labelRes()).let { label ->
+    SubagentRunState.COMPLETED -> result.headline()
+    SubagentRunState.CANCELLED -> resources.getString(state.labelRes())
+    SubagentRunState.FAILED, SubagentRunState.TIMED_OUT -> resources.getString(state.labelRes()).let { label ->
         if (error.isEmpty()) label else resources.getString(R.string.overlay_subagent_failed_with, label, error)
     }
 }
@@ -127,7 +123,7 @@ internal fun SubagentStatus.cardActivity(resources: Resources, now: Long): Strin
  */
 internal fun overlaySubagentSignal(
     resources: Resources,
-    board: Map<String, List<SubagentStatus>>,
+    board: Map<String, List<SubagentLane>>,
     now: Long,
     deliveries: Map<String, Long> = emptyMap(),
 ): OverlayTaskSignal? {
@@ -135,7 +131,7 @@ internal fun overlaySubagentSignal(
     val working = lanes.filter { !it.state.finished }
     if (working.isEmpty() && lanes.none { it.queued(deliveries) }) return null
     val done = lanes.size - working.size
-    val stalled = working.firstOrNull { it.state == SubagentState.STALLED }
+    val stalled = working.firstOrNull { it.state == SubagentRunState.STALLED }
     val focus = stalled ?: working.lastOrNull()
     return OverlayTaskSignal(
         tone = if (stalled != null) OverlayTaskTone.STALLED else OverlayTaskTone.WORKING,
@@ -164,11 +160,11 @@ internal fun overlayFoldedSignal(
     now: Long = System.currentTimeMillis(),
 ): OverlayTaskSignal? =
     overlayTaskSignal(resources, delegations, now)
-        ?: overlaySubagentSignal(resources, BothySubagents.board.value, now, BothySubagents.deliveries.value)
+        ?: OverlayConnection.state.value.let { overlaySubagentSignal(resources, it.subagents, now, it.subagentDeliveries) }
 
 /** Calls [onChange] whenever a subagent starts, moves, settles or is reported, so folded 小博's ring follows. */
 internal fun CoroutineScope.followSubagents(onChange: () -> Unit): Job =
-    launch { combine(BothySubagents.board, BothySubagents.deliveries) { _, _ -> }.collect { onChange() } }
+    launch { OverlayConnection.state.map { it.subagents to it.subagentDeliveries }.distinctUntilChanged().collect { onChange() } }
 
 /**
  * The card's subagent panel (owner 2026-10-17: observable on the card, and it should look the part). The main agent is
@@ -178,8 +174,9 @@ internal fun CoroutineScope.followSubagents(onChange: () -> Unit): Job =
  */
 @Composable
 internal fun OverlaySubagentLanes(turnDone: Boolean = false) {
-    val board by BothySubagents.board.collectAsState()
-    val deliveries by BothySubagents.deliveries.collectAsState()
+    val connected by OverlayConnection.state.collectAsState()
+    val board = connected.subagents
+    val deliveries = connected.subagentDeliveries
     // Seconds count between events; the clock stops once the batch has left the card.
     val now by produceState(System.currentTimeMillis(), board, deliveries) {
         value = System.currentTimeMillis()
@@ -229,11 +226,11 @@ internal fun OverlaySubagentLanes(turnDone: Boolean = false) {
 
 /** The settled batch in one line: how many, how long, what they read, and the way to open it. */
 @Composable
-private fun FoldedLanes(lanes: List<SubagentStatus>) {
+private fun FoldedLanes(lanes: List<SubagentLane>) {
     val seconds = LocalContext.current.resources
         .delegationElapsed(lanes.maxOf { it.finishedAtEpochMillis }, lanes.minOf { it.startedAtEpochMillis })
     val tokens = lanes.sumOf { it.inputTokens + it.outputTokens }
-    val failed = lanes.count { it.state != SubagentState.COMPLETED }
+    val failed = lanes.count { it.state != SubagentRunState.COMPLETED }
     val tok = compactTokens(tokens)
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -262,7 +259,7 @@ private fun flowPhase(): State<Float> = rememberInfiniteTransition(label = "suba
     .animateFloat(0f, 1f, infiniteRepeatable(tween(FLOW_MS, easing = LinearEasing), RepeatMode.Restart), label = "phase")
 
 @Composable
-private fun LanesHeader(lanes: List<SubagentStatus>, now: Long, pulse: State<Float>, telling: Boolean) {
+private fun LanesHeader(lanes: List<SubagentLane>, now: Long, pulse: State<Float>, telling: Boolean) {
     val done = lanes.count { it.state.finished }
     val all = done == lanes.size
     val end = if (all) lanes.maxOf { it.finishedAtEpochMillis } else now
@@ -290,12 +287,12 @@ private fun LanesHeader(lanes: List<SubagentStatus>, now: Long, pulse: State<Flo
 }
 
 @Composable
-private fun Lane(lane: SubagentStatus, now: Long, pulse: State<Float>, last: Boolean, feeding: Boolean) {
+private fun Lane(lane: SubagentLane, now: Long, pulse: State<Float>, last: Boolean, feeding: Boolean) {
     val tone = lane.state.tone()
     // The green burst when a child comes back; a card opened later plays it once too.
     val burst = remember(lane.id) { Animatable(1f) }
     LaunchedEffect(lane.state) {
-        if (lane.state == SubagentState.COMPLETED) {
+        if (lane.state == SubagentRunState.COMPLETED) {
             burst.snapTo(0f)
             burst.animateTo(1f, tween(BURST_MS))
         }
@@ -309,7 +306,7 @@ private fun Lane(lane: SubagentStatus, now: Long, pulse: State<Float>, last: Boo
             LaneTitle(lane, now, tone)
             Text(
                 lane.cardActivity(LocalContext.current.resources, now),
-                color = if (lane.state == SubagentState.COMPLETED) OverlayPalette.text.copy(alpha = 0.88f) else OverlayPalette.secondary,
+                color = if (lane.state == SubagentRunState.COMPLETED) OverlayPalette.text.copy(alpha = 0.88f) else OverlayPalette.secondary,
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -320,7 +317,7 @@ private fun Lane(lane: SubagentStatus, now: Long, pulse: State<Float>, last: Boo
 }
 
 @Composable
-private fun LaneTitle(lane: SubagentStatus, now: Long, tone: Color) {
+private fun LaneTitle(lane: SubagentLane, now: Long, tone: Color) {
     val tokens by animateIntAsState((lane.inputTokens + lane.outputTokens).toInt(), tween(TOKEN_ROLL_MS), label = "tokens")
     val end = if (lane.state.finished) lane.finishedAtEpochMillis else now
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -344,17 +341,17 @@ private fun LaneTitle(lane: SubagentStatus, now: Long, tone: Color) {
 
 /** A sweep while the child works, a pulse while it stalls, full once it settles. */
 @Composable
-private fun LaneBar(state: SubagentState, tone: Color, pulse: State<Float>) {
+private fun LaneBar(state: SubagentRunState, tone: Color, pulse: State<Float>) {
     Canvas(Modifier.fillMaxWidth().height(BAR_HEIGHT)) {
         val corner = CornerRadius(size.height / 2)
         drawRoundRect(OverlayPalette.hairline, cornerRadius = corner)
         when (state) {
-            SubagentState.RUNNING -> {
+            SubagentRunState.RUNNING -> {
                 val band = size.width * SWEEP_SHARE
                 val start = -band + (size.width + band) * pulse.value
                 drawRoundRect(Brush.horizontalGradient(listOf(Color.Transparent, tone, Color.Transparent), start, start + band), cornerRadius = corner)
             }
-            SubagentState.STALLED -> drawRoundRect(tone.copy(alpha = 0.3f + 0.4f * wave(pulse.value)), cornerRadius = corner)
+            SubagentRunState.STALLED -> drawRoundRect(tone.copy(alpha = 0.3f + 0.4f * wave(pulse.value)), cornerRadius = corner)
             else -> drawRoundRect(tone.copy(alpha = 0.75f), cornerRadius = corner)
         }
     }
@@ -370,7 +367,7 @@ private fun DrawScope.drawRoot(phase: Float, settled: Boolean) {
 }
 
 /** The trunk past this lane and the curve off it to the lane's node; dashes flow toward children still working. */
-private fun DrawScope.drawBranch(state: SubagentState, tone: Color, phase: Float, last: Boolean, feeding: Boolean) {
+private fun DrawScope.drawBranch(state: SubagentRunState, tone: Color, phase: Float, last: Boolean, feeding: Boolean) {
     val x = TRUNK_X.toPx()
     val y = NODE_Y.toPx()
     val elbow = ELBOW.toPx()
@@ -413,30 +410,30 @@ private fun DrawScope.flowing(phase: Float, width: Float): Stroke {
     return Stroke(width, cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(dash, dash), period * (1f - phase)))
 }
 
-private fun DrawScope.drawNode(state: SubagentState, tone: Color, phase: Float, burst: Float, center: Offset) {
+private fun DrawScope.drawNode(state: SubagentRunState, tone: Color, phase: Float, burst: Float, center: Offset) {
     val r = NODE_R.toPx()
     val stroke = Stroke(2.dp.toPx(), cap = StrokeCap.Round)
     when (state) {
-        SubagentState.RUNNING -> {
+        SubagentRunState.RUNNING -> {
             drawCircle(tone.copy(alpha = 0.16f), r, center)
             drawArc(tone, phase * 360f, SPIN_SWEEP, false, center - Offset(r, r), Size(r * 2, r * 2), style = stroke)
             drawCircle(tone, r * (0.26f + 0.14f * wave(phase)), center)
         }
-        SubagentState.STALLED -> {
+        SubagentRunState.STALLED -> {
             drawCircle(tone.copy(alpha = 0.15f + 0.3f * wave(phase)), r, center)
             drawCircle(tone, r, center, style = stroke)
         }
-        SubagentState.COMPLETED -> {
+        SubagentRunState.COMPLETED -> {
             if (burst < 1f) drawCircle(tone.copy(alpha = 0.6f * (1f - burst)), r * (1f + 1.6f * burst), center, style = stroke)
             drawCircle(tone.copy(alpha = 0.22f), r * 1.5f, center)
             drawCircle(tone, r, center)
             drawPath(tickPath(center, r), OverlayPalette.onSignature, style = stroke)
         }
-        SubagentState.CANCELLED -> {
+        SubagentRunState.CANCELLED -> {
             drawCircle(tone, r, center, style = stroke)
             drawLine(tone, center - Offset(r * 0.45f, 0f), center + Offset(r * 0.45f, 0f), stroke.width, StrokeCap.Round)
         }
-        SubagentState.FAILED, SubagentState.TIMED_OUT -> {
+        SubagentRunState.FAILED, SubagentRunState.TIMED_OUT -> {
             drawCircle(tone, r, center)
             val d = r * 0.38f
             drawLine(OverlayPalette.onSignature, center - Offset(d, d), center + Offset(d, d), stroke.width, StrokeCap.Round)
@@ -451,18 +448,18 @@ private fun tickPath(center: Offset, r: Float) = Path().apply {
     lineTo(center.x + r * 0.48f, center.y - r * 0.32f)
 }
 
-private fun SubagentState.tone(): Color = when (this) {
-    SubagentState.RUNNING -> OverlayPalette.glow
-    SubagentState.STALLED -> OverlayPalette.amber
-    SubagentState.COMPLETED -> OverlayPalette.live
-    SubagentState.CANCELLED -> OverlayPalette.faint
-    SubagentState.FAILED, SubagentState.TIMED_OUT -> OverlayPalette.warm
+private fun SubagentRunState.tone(): Color = when (this) {
+    SubagentRunState.RUNNING -> OverlayPalette.glow
+    SubagentRunState.STALLED -> OverlayPalette.amber
+    SubagentRunState.COMPLETED -> OverlayPalette.live
+    SubagentRunState.CANCELLED -> OverlayPalette.faint
+    SubagentRunState.FAILED, SubagentRunState.TIMED_OUT -> OverlayPalette.warm
 }
 
 private fun wave(phase: Float): Float = (sin(phase * 2 * PI).toFloat() + 1f) / 2f
 
 /** The latest call as a phrase: 搜索「…」, 读取 host, or the tool's own name. */
-private fun SubagentStatus.latestStep(resources: Resources): String? {
+private fun SubagentLane.latestStep(resources: Resources): String? {
     if (latest.isEmpty()) return null
     val args = latest.substringAfter(' ', "")
     val name = latest.substringBefore(' ').let { if (it == "call_tool") args.stringArg("name") ?: it else it }

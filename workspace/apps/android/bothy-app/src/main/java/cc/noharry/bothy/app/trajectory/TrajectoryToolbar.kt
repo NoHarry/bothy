@@ -1,5 +1,3 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.trajectory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
@@ -10,7 +8,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,14 +24,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
+import cc.noharry.agent.appserver.protocol.EventLogHealthStatus
+import cc.noharry.agent.appserver.protocol.TrajectoryHealth
+import cc.noharry.agent.appserver.protocol.TrajectoryRichAvailability
+import cc.noharry.agent.appserver.protocol.TrajectoryRunGroup
+import cc.noharry.agent.appserver.protocol.TrajectorySnapshot
+import cc.noharry.agent.appserver.protocol.view.TrajectoryTimelineMode
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.MessageField
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.console.singleLine
 import cc.noharry.bothy.app.console.ui.PopupMenu
 import cc.noharry.bothy.app.console.ui.PopupMenuItem
 import cc.noharry.bothy.app.console.ui.PopupSectionLabel
@@ -172,14 +173,14 @@ private fun TrajectoryHealthBadge(health: TrajectoryHealth?) {
     val colors = ConsoleColors
     val resolved = health ?: TrajectoryHealth()
     val tint = when (resolved.eventLogStatus) {
-        SessionEventLogHealthStatus.COMPLETE -> colors.success
-        SessionEventLogHealthStatus.DEGRADED -> colors.warning
-        SessionEventLogHealthStatus.UNAVAILABLE -> colors.danger
-        SessionEventLogHealthStatus.VOLATILE -> colors.warning
-        SessionEventLogHealthStatus.UNKNOWN -> colors.muted
+        EventLogHealthStatus.COMPLETE -> colors.success
+        EventLogHealthStatus.DEGRADED -> colors.warning
+        EventLogHealthStatus.UNAVAILABLE -> colors.danger
+        EventLogHealthStatus.VOLATILE -> colors.warning
+        EventLogHealthStatus.UNKNOWN -> colors.muted
     }
     val suffix = when {
-        resolved.eventLogStatus == SessionEventLogHealthStatus.VOLATILE ->
+        resolved.eventLogStatus == EventLogHealthStatus.VOLATILE ->
             stringResource(R.string.trajectory_health_current_process_only)
         resolved.hasSequenceGap -> stringResource(R.string.trajectory_health_gap)
         resolved.failedCount > 0 ->

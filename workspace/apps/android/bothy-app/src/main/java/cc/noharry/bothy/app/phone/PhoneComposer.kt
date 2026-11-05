@@ -9,8 +9,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,7 +22,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,17 +40,19 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.app.frontend.LocalServer
 import cc.noharry.bothy.app.voice.HandOverNotice
-import cc.noharry.bothy.app.voice.VoiceController
 import cc.noharry.bothy.app.voice.VoiceMicButton
-import cc.noharry.bothy.app.voice.isOn
 import cc.noharry.bothy.app.voice.voiceStatusLine
-import cc.noharry.bothy.voice.VoiceSessionState
+import cc.noharry.bothy.app.words
+import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.VoiceView
+import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.delay
 
 /**
@@ -64,13 +65,12 @@ internal fun PhoneComposer(
     text: String,
     onTextChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    state: UiState,
+    state: ServerState,
     actions: ConsoleActions,
 ) {
     val colors = ConsoleColors
-    val voice by VoiceController.state.collectAsState()
-    // Read on each change of the voice state: a hold starts and ends with one.
-    val holding = voice.status.isOn && VoiceController.holding
+    val voice = state.voice
+    val holding = voice.status.isOn && voice.holding
     Column(Modifier.fillMaxWidth()) {
         PhoneVoiceLine(voice, holding)
         Surface(
@@ -100,7 +100,7 @@ internal fun PhoneComposer(
 
 /** While the mic is held: the level, what is heard so far (its newest words), and that letting go sends it. */
 @Composable
-private fun HeldWords(voice: VoiceSessionState, modifier: Modifier) {
+private fun HeldWords(voice: VoiceView, modifier: Modifier) {
     val colors = ConsoleColors
     Row(modifier.padding(start = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         LevelBars(voice.micLevels, colors.accent)
@@ -140,7 +140,7 @@ private fun PillField(text: String, onTextChange: (String) -> Unit, running: Boo
 }
 
 /** What a hold has heard: its closed sentences, then the one still open. */
-internal fun heldText(voice: VoiceSessionState): String =
+internal fun heldText(voice: VoiceView): String =
     (voice.segments.map { it.text } + voice.liveText).map(String::trim).filter(String::isNotEmpty).joinToString(" ")
 
 /** The newest loudness as a row of bars. */
@@ -167,16 +167,18 @@ private fun LevelBars(levels: List<Float>, color: Color) {
  * listening. A notice clears itself after a few seconds.
  */
 @Composable
-private fun PhoneVoiceLine(voice: VoiceSessionState, holding: Boolean) {
+private fun PhoneVoiceLine(voice: VoiceView, holding: Boolean) {
     val colors = ConsoleColors
-    val notice by VoiceController.notice.collectAsState()
-    LaunchedEffect(notice) {
-        if (notice.isEmpty()) return@LaunchedEffect
+    val server = LocalServer.current
+    val shown = voice.notice
+    LaunchedEffect(shown) {
+        if (shown == null) return@LaunchedEffect
         delay(NOTICE_MILLIS)
-        if (VoiceController.notice.value == notice) VoiceController.notice("")
+        server.send(VoiceRequests.CLEAR_NOTICE, shown)
     }
     HandOverNotice()
-    val problem = voice.message.orEmpty()
+    val notice = shown?.let { words(it) }.orEmpty()
+    val problem = voice.problem?.let { words(it) }.orEmpty()
     val status = if (voice.status.isOn && !holding) voiceStatusLine(voice) else ""
     val line = notice.ifEmpty { problem.ifEmpty { status } }
     if (line.isEmpty()) return

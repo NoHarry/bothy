@@ -11,14 +11,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.*
 import androidx.compose.ui.unit.*
+import cc.noharry.agent.appserver.protocol.*
+import cc.noharry.agent.appserver.protocol.OverlayCommand
+import cc.noharry.agent.appserver.protocol.TurnInterruptParams
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.view.*
 import cc.noharry.bothy.app.a2a.*
 import cc.noharry.bothy.app.a2ui.*
 import cc.noharry.bothy.app.androiduse.*
 import cc.noharry.bothy.app.console.*
 import cc.noharry.bothy.app.console.AppLanguages
 import cc.noharry.bothy.app.console.ui.UiScale
-import cc.noharry.bothy.app.runtime.RuntimeSession
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.bothy.protocol.*
+import cc.noharry.bothy.protocol.view.*
 import kotlin.math.roundToInt
 import kotlinx.coroutines.*
 
@@ -48,9 +53,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     private lateinit var useStage: AndroidUseStage
     private lateinit var voice: OverlayVoice
     private val mascot = MascotPose()
-    private var detachSession: (() -> Unit)? = null
-    private var detachClient: (() -> Unit)? = null
-    private var latestState: UiState? = null
+    private var latestState: ServerState? = null
     private var renderScheduled: Boolean = false
     private var placedLandscape: Boolean? = null
     private var phoneRest: OverlayPhoneRest? = null
@@ -103,7 +106,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (!::root.isInitialized) return
-            val client = A2aClientConsole.state
+            val client = clientState()
             val following = delegations.any { !it.stage.settled }
             if (latestState?.isRunning == true || following || clientView() && (client.running || client.mirrors.isNotEmpty())) {
                 scheduleRender(force = true)
@@ -121,7 +124,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
             closedRun = hud?.phase == OverlayPhase.LIVE
             collapse()
         },
-        onStop = { if (clientView()) A2aClientConsole.cancel(this) else RuntimeSession.stopRun() },
+        onStop = { if (clientView()) OverlayConnection.send(FeatureRequests.A2A_CLIENT_CANCEL, Empty) else OverlayConnection.send(ClientRequests.TURN_INTERRUPT, TurnInterruptParams()) },
         onToggleInput = {
             showInput = !showInput
             syncCardFocus()
@@ -176,9 +179,16 @@ class OverlayService : Service(), OverlayBubble.Listener {
         }
         flight = OverlayFlight(this, windowManager, mascot, overlayWindowType(), stageScale())
         useStage = AndroidUseStage(this, windowManager, mascot, overlayWindowType(), stageScale())
+        // The server first: what the card shows comes from it, and a wake waiting for 小博 is sent through it.
+        OverlayConnection.open(this) { state ->
+            val followed = state.delegations != delegations
+            latestState = state
+            delegations = state.delegations
+            scheduleRender(force = followed)
+        }
         // "退下吧" folds the card, unless it shows another A2A client's task, which only that caller may put away.
         voice = OverlayVoice(this, onWoken = ::voiceWoken, onChanged = { scheduleRender(force = true) }, onDismissed = {
-            if (!OverlayFocus.external && A2aClientConsole.state.mirrors.isEmpty()) collapse()
+            if (!clientState().inboundFocus && clientState().mirrors.isEmpty()) collapse()
         })
         OverlayControl.androidUse = androidUseOverlay
         phoneRest = restOnPhone()
@@ -187,12 +197,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
         OverlayControl.presenter = { command -> if (command == OverlayCommand.SHOW) expand() else collapse() }
         OverlayControl.mascotPreview = ::previewMascot
         OverlayControl.closer = { stopSelf() }
-        detachSession = RuntimeSession.attach(this) { state ->
-            latestState = state
-            scheduleRender(force = false)
-        }
-        detachClient = A2aClientConsole.attach(this) { scheduleRender(force = false) }
-        serviceScope.launch { A2aDelegations.views.collect { delegations = it; scheduleRender(force = true) } }
         serviceScope.followSubagents { scheduleRender(force = true) }
         // A head unit that shows the assistant itself takes over: the card folds and 小博 hides until it is given back.
         AssistantSurface.follow(this, serviceScope, ::surfaceChanged)
@@ -219,8 +223,6 @@ class OverlayService : Service(), OverlayBubble.Listener {
         OverlayControl.androidUse = null
         OverlayControl.readingUntil = 0L
         serviceScope.cancel()
-        detachSession?.invoke()
-        detachClient?.invoke()
         if (::root.isInitialized) {
             root.removeCallbacks(renderRunnable)
             root.removeCallbacks(tickRunnable)
@@ -239,6 +241,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
             windowManager.removeView(root)
             composeOwner.destroy()
         }
+        OverlayConnection.close()
         super.onDestroy()
     }
 
@@ -247,8 +250,12 @@ class OverlayService : Service(), OverlayBubble.Listener {
      * instead; with nothing new on it that means "let me ask": the input box opens, a read result waits behind 上次.
      */
     override fun onBubbleTap() {
-        if (latestState?.isRunning != true && voice.tap()) return
-        results.openToTalk(latestState?.overlayHud()?.phase)
+        val phase = latestState?.overlayHud()?.phase
+        if (latestState?.isRunning != true && voice.tap { openToTalk(phase) }) return
+        openToTalk(phase)
+    }
+    private fun openToTalk(phase: OverlayPhase?) {
+        results.openToTalk(phase)
         if (hud?.phase == null || hud?.phase == OverlayPhase.IDLE || results.fresh) showInput = true
         expand()
     }
@@ -282,7 +289,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     }
 
     override fun onBubbleDropped(x: Int, y: Int) {
-        getSharedPreferences(OVERLAY_PREFS, MODE_PRIVATE).edit().putInt(KEY_BUBBLE_X, x).putInt(KEY_BUBBLE_Y, y).apply()
+        saveBubbleSpot(x, y)
     }
 
     /**
@@ -340,10 +347,9 @@ class OverlayService : Service(), OverlayBubble.Listener {
         renderScheduled = false
         val state = latestState ?: return
         // Client mode, or an inbound A2A task, shows what crossed A2A; otherwise the local session stage.
-        updateExternalFocus(state)
         val clientMode = clientView()
         val now = System.currentTimeMillis()
-        val next = if (clientMode) A2aClientConsole.state.overlayHud(now, resources) else state.overlayHud(now, DisplaySettings.showThinking.value)
+        val next = if (clientMode) clientState().overlayHud(now, resources.a2aHudTexts(), state.offers, state.offerPictures) else state.overlayHud(now, DisplaySettings.showThinking.value)
         AssistantSurface.runChanged(this, next, state.takeUnless { clientMode })
         val cardOpen = presence == Presence.CARD
         results.phaseChanged(lastPhase, next.phase)
@@ -389,7 +395,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
             chosen = chosenChoice,
             pictureExpanded = expandedPicture != null && expandedPicture == shown.hud.picture?.reference,
             // Mirrored PC tasks are read-only here: Stop only targets this car's own client task.
-            stopVisible = if (clientMode) A2aClientConsole.state.running else next.isRunning,
+            stopVisible = if (clientMode) clientState().running else next.isRunning,
             pendingQuestion = clientMode && activeClientQuestion() != null,
             expandedToolIds = expandedToolIds.toSet(),
             cardShown = cardShown,
@@ -627,10 +633,8 @@ class OverlayService : Service(), OverlayBubble.Listener {
 
     /** Where the bubble rests: where the user last put it, or the upper right. */
     private fun parkedSpot(): Pair<Int, Int> {
-        val prefs = getSharedPreferences(OVERLAY_PREFS, MODE_PRIVATE)
         val bounds = bubbleBounds(bubble.sizePx)
-        val x = prefs.getInt(KEY_BUBBLE_X, bounds.right - designPx(BUBBLE_EDGE_DP))
-        val y = prefs.getInt(KEY_BUBBLE_Y, bounds.top + designPx(BUBBLE_TOP_DP))
+        val (x, y) = bubbleSpot(bounds.right - designPx(BUBBLE_EDGE_DP), bounds.top + designPx(BUBBLE_TOP_DP))
         return x.coerceIn(bounds.left, bounds.right) to y.coerceIn(bounds.top, bounds.bottom)
     }
 
@@ -701,22 +705,9 @@ class OverlayService : Service(), OverlayBubble.Listener {
     }
 
     private fun route(text: String) {
-        if (clientView()) submitClientPrompt(text) else RuntimeSession.submitText(this, text)
+        if (clientView()) submitClientPrompt(text) else OverlayConnection.send(ClientRequests.TURN_START, TurnStartParams(text))
         scheduleRender(force = true)
     }
-
-    /**
-     * An inbound A2A task takes the stage, so the device responds to any caller even outside client mode; it keeps it
-     * (and a pick goes back into that conversation) until someone starts a run on the device itself.
-     */
-    private fun updateExternalFocus(state: UiState) {
-        val startedLocally = state.isRunning && localWasRunning == false
-        localWasRunning = state.isRunning
-        if (startedLocally) OverlayFocus.localRun()
-    }
-
-    /** Null until the first state arrives, so a run already going when the overlay opens is not taken as new. */
-    private var localWasRunning: Boolean? = null
 
     private fun hideSoftKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
@@ -880,7 +871,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
     /** Bench pixels scaled to this display: the overlay's margins and positions keep the device's proportions. */
     private fun designPx(value: Int): Int = (value * UiScale.designUnitPx(this)).toInt()
 
-    /** Android Use as the overlay shows it; called on the main thread by [BothyAndroidUsePresenter]. */
+    /** Android Use as the overlay shows it; called on the main thread by [AppAndroidUsePresenter]. */
     private val androidUseOverlay = object : AndroidUseOverlay {
         override fun begin(onReady: () -> Unit) = beginAndroidUse(onReady)
 
@@ -994,6 +985,3 @@ private const val PREVIEW_MS = 6_000L
 private const val OPEN_WATCHDOG_MS = 2_000L
 private const val BUBBLE_EDGE_DP = 32
 private const val BUBBLE_TOP_DP = 120
-private const val OVERLAY_PREFS = "debug_overlay"
-private const val KEY_BUBBLE_X = "bubble_x"
-private const val KEY_BUBBLE_Y = "bubble_y"

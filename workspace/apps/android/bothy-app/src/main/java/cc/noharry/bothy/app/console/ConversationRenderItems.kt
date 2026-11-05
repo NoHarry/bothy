@@ -1,12 +1,14 @@
 package cc.noharry.bothy.app.console
 import android.content.res.Resources
 import android.util.Log
+import cc.noharry.agent.appserver.protocol.ArtifactPreview
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.view.generatedPicture
+import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.overlay.OverlayPicture
-import cc.noharry.bothy.app.overlay.generatedPicture
-import cc.noharry.bothy.app.session.ConversationItem
-import cc.noharry.bothy.app.session.ToolCallStatus
-import cc.noharry.bothy.app.session.TranscriptRole
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -172,12 +174,12 @@ internal fun List<ConversationItem>.toRenderItems(): List<ConversationRenderItem
     return renderItems
 }
 
-internal fun ConversationRenderItem.autoScrollKey(): String =
+internal fun ConversationRenderItem.autoScrollKey(isFolded: (ConversationItem) -> Boolean): String =
     when (this) {
-        is ConversationRenderItem.Single -> item.autoScrollKey()
-        is ConversationRenderItem.ContextToolGroup -> tools.joinToString("|") { it.autoScrollKey() }
-        is ConversationRenderItem.BusinessToolGroup -> tools.joinToString("|") { it.autoScrollKey() }
-        is ConversationRenderItem.RuntimePhaseGroup -> phases.joinToString("|") { it.autoScrollKey() }
+        is ConversationRenderItem.Single -> item.autoScrollKey(isFolded(item))
+        is ConversationRenderItem.ContextToolGroup -> tools.joinToString("|") { it.autoScrollKey(isFolded(it)) }
+        is ConversationRenderItem.BusinessToolGroup -> tools.joinToString("|") { it.autoScrollKey(isFolded(it)) }
+        is ConversationRenderItem.RuntimePhaseGroup -> phases.joinToString("|") { it.autoScrollKey(isFolded(it)) }
         is ConversationRenderItem.TurnDivider -> key
         is ConversationRenderItem.HtmlArtifact -> "$key:${preview.refreshToken}"
         is ConversationRenderItem.GeneratedImage -> "$key:${picture.reference}"
@@ -301,7 +303,7 @@ private fun ConversationItem.isRuntimeTimelineNoise(): Boolean =
     this is ConversationItem.RuntimePhaseItem ||
         (this is ConversationItem.MessageItem && role == TranscriptRole.RUNTIME)
 
-private fun ConversationItem.autoScrollKey(): String =
+private fun ConversationItem.autoScrollKey(collapsed: Boolean): String =
     when (this) {
         is ConversationItem.TurnHeader -> "$id:${preview.hashCode()}:${fullText.hashCode()}:$collapsed"
         is ConversationItem.MessageItem -> "$id:$role:${content.hashCode()}:$collapsed"
@@ -342,7 +344,8 @@ private fun ConversationItem.ToolCallItem.displayPath(): String? =
     argumentField("path", "file", "directory", "root")?.shortPath()
 
 private fun ConversationItem.ToolCallItem.argumentField(vararg names: String): String? {
-    val json = argumentsJson?.substringAfter(ARGUMENTS_PREFIX, argumentsJson)?.trim() ?: return null
+    val arguments = argumentsJson ?: return null
+    val json = arguments.substringAfter(ARGUMENTS_PREFIX, arguments).trim()
     if (!json.startsWith(JSON_OBJECT_START)) return null
     val obj = runCatching { ToolDisplayJson.parseToJsonElement(json) as? JsonObject }.getOrNull() ?: return null
     return names.firstNotNullOfOrNull { name -> obj[name]?.jsonPrimitive?.contentOrNull }

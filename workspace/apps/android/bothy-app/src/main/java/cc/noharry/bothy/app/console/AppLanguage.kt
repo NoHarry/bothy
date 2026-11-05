@@ -8,7 +8,9 @@ import android.content.res.Resources
 import android.os.Build
 import android.os.LocaleList
 import androidx.annotation.RequiresApi
-import cc.noharry.bothy.app.runtime.RuntimeSession
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.FeatureRequests
+import cc.noharry.bothy.app.frontend.AppClient
 import java.util.Locale
 
 /**
@@ -57,7 +59,7 @@ internal object AppLanguages {
         val resources = context.applicationContext.resources
         @Suppress("DEPRECATION")
         resources.updateConfiguration(Configuration(resources.configuration).apply { setLocale(locale) }, resources.displayMetrics)
-        RuntimeSession.languageChanged(context)
+        AppClient.send(context, FeatureRequests.LANGUAGE_CHANGED, Empty)
         context.findActivity()?.recreate()
     }
 

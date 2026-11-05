@@ -1,8 +1,12 @@
 package cc.noharry.bothy.app.usage
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import cc.noharry.agent.appserver.protocol.ModelPrice
+import cc.noharry.agent.appserver.protocol.ModelUsage
+import cc.noharry.agent.appserver.protocol.PriceBook
+import cc.noharry.agent.appserver.protocol.UsageDays
 import java.time.LocalDate
 import java.util.Locale
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 class UsageStatsTest {
     private fun day(date: String, tokens: Long) = date to mapOf("m" to ModelUsage(1, tokens))

@@ -1,5 +1,3 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
-
 package cc.noharry.bothy.app.console
 
 import android.content.res.Resources
@@ -7,18 +5,16 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import cc.noharry.agent.runtime.SubagentState
-import cc.noharry.agent.runtime.SubagentStatus
+import cc.noharry.agent.appserver.protocol.RunOutcome
+import cc.noharry.agent.appserver.protocol.RunResult
+import cc.noharry.agent.appserver.protocol.SubagentRunState
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.view.PARTIAL_SUMMARY
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.runtime.LIVE_MODEL_LABEL
-import cc.noharry.bothy.app.runtime.PARTIAL_SUMMARY
-import cc.noharry.bothy.app.runtime.SIMULATED_MODEL_LABEL
-import cc.noharry.bothy.app.session.ToolCallStatus
 
 /**
- * Screen text for words the runtime keeps in fixed English. `lastRunSummary` ("Worked for 1m 05s · partial") and the
- * durations are matched by the code that reads them, so they stay as they are and are put into the screen's language
- * only where they are shown.
+ * Screen text for the English labels the overlay's projection carries (a finished run's "Worked for 1m 05s · partial",
+ * [cc.noharry.agent.appserver.protocol.view.label]), put into the screen's language where they are shown.
  */
 internal fun Resources.runSummaryText(summary: String): String {
     val match = RUN_SUMMARY.matchEntire(summary.trim()) ?: return summary
@@ -62,51 +58,43 @@ private fun Resources.durationText(hours: Long, minutes: Long, seconds: Long): S
     else -> getString(R.string.console_duration_s, seconds)
 }
 
-/** A subagent's state as the screens show it. */
+/** A subagent lane's state as the screens show it. */
 @StringRes
-internal fun SubagentState.labelRes(): Int = when (this) {
-    SubagentState.RUNNING -> R.string.console_subagent_running
-    SubagentState.STALLED -> R.string.console_subagent_stalled
-    SubagentState.COMPLETED -> R.string.console_subagent_completed
-    SubagentState.FAILED -> R.string.console_subagent_failed
-    SubagentState.CANCELLED -> R.string.console_subagent_cancelled
-    SubagentState.TIMED_OUT -> R.string.console_subagent_timed_out
+internal fun SubagentRunState.labelRes(): Int = when (this) {
+    SubagentRunState.RUNNING -> R.string.console_subagent_running
+    SubagentRunState.STALLED -> R.string.console_subagent_stalled
+    SubagentRunState.COMPLETED -> R.string.console_subagent_completed
+    SubagentRunState.FAILED -> R.string.console_subagent_failed
+    SubagentRunState.CANCELLED -> R.string.console_subagent_cancelled
+    SubagentRunState.TIMED_OUT -> R.string.console_subagent_timed_out
 }
 
-/** The screen's form of `SubagentStatus.logLine()`: seconds, tool and model calls, tokens and cache hit. */
-internal fun Resources.subagentLogText(row: SubagentStatus, now: Long = System.currentTimeMillis()): String {
-    val end = if (row.finishedAtEpochMillis > 0) row.finishedAtEpochMillis else now
-    val seconds = (end - row.startedAtEpochMillis) / MILLIS_PER_SECOND
-    val line = if (row.inputTokens > 0) {
-        val cache = row.cachedTokens * PERCENT / row.inputTokens
-        getString(
-            R.string.console_subagent_log_cached,
-            seconds, row.toolCalls, row.modelCalls, row.inputTokens, cache, row.outputTokens,
-        )
-    } else {
-        getString(
-            R.string.console_subagent_log,
-            seconds, row.toolCalls, row.modelCalls, row.inputTokens, row.outputTokens,
-        )
+/** How the last run ended, in the screen's language. */
+internal fun Resources.runResultText(result: RunResult): String {
+    val elapsed = durationText(result.durationMs)
+    val main = when (result.outcome) {
+        RunOutcome.FAILED -> getString(R.string.console_run_failed_after, elapsed)
+        RunOutcome.STOPPED -> getString(R.string.console_run_stopped_after, elapsed)
+        RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.REPLAY_FAILED -> getString(R.string.console_run_worked_for, elapsed)
     }
-    return if (row.error.isNotEmpty()) "$line · ${row.error}" else line
+    return when (result.outcome) {
+        RunOutcome.PARTIAL -> getString(R.string.console_run_partial, main)
+        RunOutcome.REPLAY_FAILED -> getString(R.string.console_run_replay_failed, main)
+        else -> main
+    }
 }
 
-/** The runtime's stream label ("stream" / "non-stream", kept for the evidence files) as the screen shows it. */
 @Composable
-internal fun streamLabelText(label: String): String = when (label) {
-    "stream" -> stringResource(R.string.console_stream_on)
-    "non-stream" -> stringResource(R.string.console_stream_off)
-    else -> label
-}
+internal fun runResultText(result: RunResult): String = LocalContext.current.resources.runResultText(result)
 
-/** The runtime's backend label as the screen shows it. */
+/** Whether replies stream, as the screen says it. */
 @Composable
-internal fun backendLabelText(label: String): String = when (label) {
-    LIVE_MODEL_LABEL -> stringResource(R.string.console_backend_live)
-    SIMULATED_MODEL_LABEL -> stringResource(R.string.console_backend_simulated)
-    else -> label
-}
+internal fun streamText(stream: Boolean): String = stringResource(if (stream) R.string.console_stream_on else R.string.console_stream_off)
+
+/** Which model runs answer with, as the screen says it. */
+@Composable
+internal fun backendText(simulated: Boolean): String =
+    stringResource(if (simulated) R.string.console_backend_simulated else R.string.console_backend_live)
 
 /** A tool call's state, as the timeline rows show it. */
 @StringRes
@@ -131,4 +119,3 @@ private const val REPLAY_FAILED_SUFFIX = " · replay failed"
 private const val MILLIS_PER_SECOND = 1000L
 private const val SECONDS_PER_MINUTE = 60L
 private const val SECONDS_PER_HOUR = 3600L
-private const val PERCENT = 100

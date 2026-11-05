@@ -97,10 +97,15 @@ A build of your own can also carry the key as `AMAP_ANDROID_KEY` in `local.prope
 
 | Module | What it does |
 |--------|--------------|
-| `bothy-app` | The demo app (tablet first): debug console, settings, plans, voice, floating assistant card |
+| `bothy-app` | The demo app's screens (tablet first): debug console, phone screens, settings, floating assistant card |
+| `bothy-server` | Bothy's server under those screens: the app server below with Bothy's voice, on-device model, checks and Playground |
+| `agent-app-server` | The generic app server: sessions, models, MCP, plans, memory, A2A on the runtime, for any agent app to build on |
+| `agent-app-sample` | The smallest app on that server: one screen, no Bothy, where a standalone agent app starts from |
+| `bothy-protocol` | What the screens and the server say to each other: the protocol below plus Bothy's own methods and sections |
+| `agent-app-protocol` | The app server's protocol, in the style of Codex's app-server (threads, turns, items) |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 
-The sample depends on the runtime's artifacts (`cc.noharry:agent-*`); the playground depends on nothing: Bothy reaches
+The server depends on the runtime's artifacts (`cc.noharry:agent-*`); the playground depends on nothing: Bothy reaches
 it like any other MCP server.
 
 ## What the demo shows
@@ -211,7 +216,7 @@ passenger seat heating already off, sets the ambient light warm and checks the d
 - **Your own cloud agent**: pair a personal agent (such as Grok Bot) through the self-hosted relay in
   `workspace/apps/android/tools/agent-relay`, then hand it tasks that need your accounts.
 - **Offline**: the demo also runs with a simulated model and the example tools in
-  `bothy-app/src/main/assets/mcp/tools.json`.
+  `bothy-server/src/main/assets/mcp/tools.json`.
 
 ## Bothy Playground
 
@@ -271,7 +276,7 @@ cd bothy/workspace/apps/android
 ./gradlew :bothy-playground:assembleDebug   # optional: the car and home to drive
 ```
 
-Model provider presets come from `bothy-app/src/main/assets/model-provider-profiles.json`, which is packaged into
+Model provider presets come from `bothy-server/src/main/assets/model-provider-profiles.json`, which is packaged into
 the APK and therefore holds **no API keys**. Put keys in the Git-ignored `workspace/apps/android/local.properties`:
 
 ```properties

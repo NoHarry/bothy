@@ -6,7 +6,6 @@
     <string name="onboarding_step_model_key">1 · Add a DeepSeek key (required)</string>
     <string name="onboarding_model_key_note">Bothy thinks and gets things done with DeepSeek, billed by use and cheap. Create an API key on the DeepSeek platform and paste it below.</string>
     <string name="onboarding_deepseek_link">Get a key on the DeepSeek platform</string>
-    <string name="onboarding_model_ready">Ready to go · %1$s</string>
     <string name="onboarding_save_and_check">Save and check</string>
     <string name="onboarding_step_doubao_key">2 · (Recommended) Add a Doubao speech key, or skip it</string>
     <string name="onboarding_doubao_key_note">With it, Bothy speaks in Doubao\'s voice and can open the end-to-end voice mode, a continuous conversation like a phone call. It works without one too: Bothy then speaks with the device\'s own system voice. In the Volcano Engine Doubao speech console, under Activation enable Speech Synthesis 2.0 and End-to-end Realtime Speech, then create a key under API Key in the left menu and paste it below.</string>
@@ -35,4 +34,5 @@
     <string name="onboarding_try_reminder">Remind me to take an umbrella at eight tomorrow morning</string>
     <string name="onboarding_try_song">What song is playing (turn on notification access first)</string>
     <string name="onboarding_try_calculator">Open the calculator and work out 23 times 47 (turn on accessibility first)</string>
+    <string name="onboarding_model_ready">Ready to go · %1$s</string>
 </resources>

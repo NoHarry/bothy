@@ -1,0 +1,9239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bothy protocol",
+  "description": "Messages between Bothy's server and its clients: JSON-RPC 2.0 without the \"jsonrpc\" member, one message per line. Generated from bothy-protocol by ./gradlew :bothy-protocol:generateSchema; do not edit. Unknown members are ignored and null ones left out. An extension section's data is typed under extensionSections by the section's name.",
+  "protocolVersion": 1,
+  "methods": {
+    "clientRequests": {
+      "initialize": {
+        "params": {
+          "$ref": "#/$defs/InitializeParams"
+        },
+        "result": {
+          "$ref": "#/$defs/InitializeResult"
+        }
+      },
+      "thread/list": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ThreadListResult"
+        }
+      },
+      "thread/start": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ThreadStartResult"
+        }
+      },
+      "thread/select": {
+        "params": {
+          "$ref": "#/$defs/ThreadIdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ThreadSnapshot"
+        }
+      },
+      "thread/delete": {
+        "params": {
+          "$ref": "#/$defs/ThreadIdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "thread/read": {
+        "params": {
+          "$ref": "#/$defs/ThreadIdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ThreadSnapshot"
+        }
+      },
+      "thread/subscribe": {
+        "params": {
+          "$ref": "#/$defs/ThreadIdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ThreadSnapshot"
+        }
+      },
+      "thread/unsubscribe": {
+        "params": {
+          "$ref": "#/$defs/ThreadIdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "turn/start": {
+        "params": {
+          "$ref": "#/$defs/TurnStartParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "turn/steer": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "turn/interrupt": {
+        "params": {
+          "$ref": "#/$defs/TurnInterruptParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "approval/respond": {
+        "params": {
+          "$ref": "#/$defs/ApprovalRespondParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "tools/setBasic": {
+        "params": {
+          "$ref": "#/$defs/NameEnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "tools/setAndroidUse": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "skills/set": {
+        "params": {
+          "$ref": "#/$defs/EnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "skills/text": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TextResult"
+        }
+      },
+      "skills/check": {
+        "params": {
+          "$ref": "#/$defs/SkillTextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/SkillCheckView"
+        }
+      },
+      "skills/save": {
+        "params": {
+          "$ref": "#/$defs/SkillTextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "skills/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "subagents/set": {
+        "params": {
+          "$ref": "#/$defs/SubagentSettingsView"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "subagents/setKind": {
+        "params": {
+          "$ref": "#/$defs/EnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "subagents/setKindTools": {
+        "params": {
+          "$ref": "#/$defs/SubagentToolsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "subagents/resetKindTools": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "subagents/kindText": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TextResult"
+        }
+      },
+      "mcp/status": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/McpStatusView"
+        }
+      },
+      "mcp/tools": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/McpToolsView"
+        }
+      },
+      "files/mounts": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/FileMountsResult"
+        }
+      },
+      "files/list": {
+        "params": {
+          "$ref": "#/$defs/PathParams"
+        },
+        "result": {
+          "$ref": "#/$defs/FileListResult"
+        }
+      },
+      "files/read": {
+        "params": {
+          "$ref": "#/$defs/FileReadParams"
+        },
+        "result": {
+          "$ref": "#/$defs/FileReadResult"
+        }
+      },
+      "imageModel/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ImageModelConfig"
+        }
+      },
+      "imageModel/save": {
+        "params": {
+          "$ref": "#/$defs/ImageModelSaveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ImageModelSaveResult"
+        }
+      },
+      "imageModel/models": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ModelListResult"
+        }
+      },
+      "imageModel/try": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ImageTryResult"
+        }
+      },
+      "memory/setEnabled": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "memory/write": {
+        "params": {
+          "$ref": "#/$defs/MemoryWriteParams"
+        },
+        "result": {
+          "$ref": "#/$defs/MemoryWriteResult"
+        }
+      },
+      "memory/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "memory/clear": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/DoneResult"
+        }
+      },
+      "memory/lessons": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/MemoryLessons"
+        }
+      },
+      "modelSettings/read": {
+        "params": {
+          "$ref": "#/$defs/ModelSettingsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ModelSettingsResult"
+        }
+      },
+      "modelSettings/save": {
+        "params": {
+          "$ref": "#/$defs/ModelSettingsSaveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "deepseek/balance": {
+        "params": {
+          "$ref": "#/$defs/DeepSeekBalanceParams"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekBalanceResult"
+        }
+      },
+      "deepseek/probe": {
+        "params": {
+          "$ref": "#/$defs/ProviderConnection"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekProbeView"
+        }
+      },
+      "deepseek/check": {
+        "params": {
+          "$ref": "#/$defs/ProviderConnection"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekProbeView"
+        }
+      },
+      "webLookup/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/WebLookupView"
+        }
+      },
+      "webLookup/setSearchApi": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/WebLookupView"
+        }
+      },
+      "webLookup/setFetchFallback": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/WebLookupView"
+        }
+      },
+      "preferences/sessionPolicy": {
+        "params": {
+          "$ref": "#/$defs/SessionPolicy"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/setEnabled": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/setSpeakExternal": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/send": {
+        "params": {
+          "$ref": "#/$defs/A2aClientTextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/steer": {
+        "params": {
+          "$ref": "#/$defs/A2aClientTextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/answer": {
+        "params": {
+          "$ref": "#/$defs/A2aClientAnswerParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/cancel": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2aClient/newConversation": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "plans/setEnabled": {
+        "params": {
+          "$ref": "#/$defs/EnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "plans/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "app/inFront": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "app/languageChanged": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "mcp/toolsChanged": {
+        "params": {
+          "$ref": "#/$defs/IdsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "model/select": {
+        "params": {
+          "$ref": "#/$defs/ModelSelectParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "run/set": {
+        "params": {
+          "$ref": "#/$defs/RunSettingsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "config/reload": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "provider/save": {
+        "params": {
+          "$ref": "#/$defs/ProviderSaveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "provider/create": {
+        "params": {
+          "$ref": "#/$defs/ProviderCreateParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ProviderCreateResult"
+        }
+      },
+      "provider/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "provider/fetchModels": {
+        "params": {
+          "$ref": "#/$defs/ProviderFetchParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ModelListResult"
+        }
+      },
+      "provider/saveModels": {
+        "params": {
+          "$ref": "#/$defs/ProviderModelsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "mcp/setEnabled": {
+        "params": {
+          "$ref": "#/$defs/EnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "mcp/save": {
+        "params": {
+          "$ref": "#/$defs/McpServerDraft"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "mcp/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2a/profile/setEnabled": {
+        "params": {
+          "$ref": "#/$defs/EnabledParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "a2a/profile/save": {
+        "params": {
+          "$ref": "#/$defs/A2aProfileDraft"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "a2a/profile/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "workspace/select": {
+        "params": {
+          "$ref": "#/$defs/UriParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "workspace/clear": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "workspace/unavailable": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "data/clear": {
+        "params": {
+          "$ref": "#/$defs/DataClearParams"
+        },
+        "result": {
+          "$ref": "#/$defs/DataClearResult"
+        }
+      },
+      "trajectory/refresh": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "trajectory/loadOlder": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "trajectory/loadRun": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "trajectory/raw": {
+        "params": {
+          "$ref": "#/$defs/TrajectoryRawParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TrajectoryRaw"
+        }
+      },
+      "question/answer": {
+        "params": {
+          "$ref": "#/$defs/QuestionAnswerParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "usage/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/UsageData"
+        }
+      },
+      "usage/setPrice": {
+        "params": {
+          "$ref": "#/$defs/ModelPriceParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "usage/setRate": {
+        "params": {
+          "$ref": "#/$defs/RateParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "usage/syncPrices": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/PriceSyncResult"
+        }
+      },
+      "jev/setToolSearch": {
+        "params": {
+          "$ref": "#/$defs/JevSettings"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "checks/run": {
+        "params": {
+          "$ref": "#/$defs/IdsParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "companion/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/CompanionView"
+        }
+      },
+      "companion/save": {
+        "params": {
+          "$ref": "#/$defs/CompanionSaveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/CompanionSaveResult"
+        }
+      },
+      "companion/try": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/CompanionTryResult"
+        }
+      },
+      "companion/decisions": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/CompanionDecisionsResult"
+        }
+      },
+      "connectors/list": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorCatalog"
+        }
+      },
+      "connectors/refreshAll": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatuses"
+        }
+      },
+      "connectors/refresh": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatus"
+        }
+      },
+      "connectors/page": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorPage"
+        }
+      },
+      "connectors/connect": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatus"
+        }
+      },
+      "connectors/newCode": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatus"
+        }
+      },
+      "connectors/signIn": {
+        "params": {
+          "$ref": "#/$defs/ConnectorSignInParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatus"
+        }
+      },
+      "connectors/signOut": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "connectors/test": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TextResult"
+        }
+      },
+      "connectors/disconnect": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TextResult"
+        }
+      },
+      "connectors/connectApp": {
+        "params": {
+          "$ref": "#/$defs/ConnectAppParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorTools"
+        }
+      },
+      "connectors/checkApp": {
+        "params": {
+          "$ref": "#/$defs/CheckAppParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorTools"
+        }
+      },
+      "connectors/resumeApp": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ConnectorStatus"
+        }
+      },
+      "onDevice/download": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "onDevice/cancel": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "onDevice/delete": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "onDevice/start": {
+        "params": {
+          "$ref": "#/$defs/IdParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "onDevice/stop": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "onboarding/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/OnboardingView"
+        }
+      },
+      "onboarding/saveModelKey": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/CheckLine"
+        }
+      },
+      "onboarding/saveDoubaoKey": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "onboarding/finish": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "realtime/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/RealtimeView"
+        }
+      },
+      "realtime/save": {
+        "params": {
+          "$ref": "#/$defs/RealtimeSettings"
+        },
+        "result": {
+          "$ref": "#/$defs/RealtimeView"
+        }
+      },
+      "realtime/test": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/CheckLine"
+        }
+      },
+      "playground/setReal": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/wake": {
+        "params": {
+          "$ref": "#/$defs/VoiceWakeParams"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceWakeResult"
+        }
+      },
+      "voice/closedByHand": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/endWakeSession": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/clearNotice": {
+        "params": {
+          "$ref": "#/$defs/Finding"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/setWakeWord": {
+        "params": {
+          "$ref": "#/$defs/FlagParams"
+        },
+        "result": {
+          "$ref": "#/$defs/SaveResult"
+        }
+      },
+      "voice/clearWakeMigration": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/interruptSpeech": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/toggle": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/stop": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/beginPress": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceWakeResult"
+        }
+      },
+      "voice/releasePress": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/cancelPress": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/notice": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voiceSettings/read": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsView"
+        }
+      },
+      "voiceSettings/saveVoice": {
+        "params": {
+          "$ref": "#/$defs/VoiceSettings"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsResult"
+        }
+      },
+      "voiceSettings/chooseTts": {
+        "params": {
+          "$ref": "#/$defs/TtsChoiceParams"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsResult"
+        }
+      },
+      "voiceSettings/save": {
+        "params": {
+          "$ref": "#/$defs/VoiceSettingsSaveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsResult"
+        }
+      },
+      "voiceSettings/deleteKey": {
+        "params": {
+          "$ref": "#/$defs/VoiceKeyParams"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsResult"
+        }
+      },
+      "voiceSettings/setWakeLevel": {
+        "params": {
+          "$ref": "#/$defs/TextParams"
+        },
+        "result": {
+          "$ref": "#/$defs/VoiceSettingsResult"
+        }
+      },
+      "voiceSettings/preview": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/FlagParams"
+        }
+      }
+    },
+    "clientNotifications": {
+      "initialized": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "presentation/state": {
+        "params": {
+          "$ref": "#/$defs/PresentationState"
+        }
+      }
+    },
+    "serverRequests": {
+      "approval/request": {
+        "params": {
+          "$ref": "#/$defs/ApprovalRequest"
+        },
+        "result": {
+          "$ref": "#/$defs/ApprovalResponse"
+        }
+      },
+      "presentation/ensureRunning": {
+        "params": {
+          "$ref": "#/$defs/EnsureRunningParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PresentResult"
+        }
+      },
+      "presentation/start": {
+        "params": {
+          "$ref": "#/$defs/PresentStartParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PresentResult"
+        }
+      },
+      "presentation/card": {
+        "params": {
+          "$ref": "#/$defs/PresentCardParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PresentResult"
+        }
+      },
+      "presentation/wake": {
+        "params": {
+          "$ref": "#/$defs/PresentWakeParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TakenResult"
+        }
+      },
+      "presentation/previewMascot": {
+        "params": {
+          "$ref": "#/$defs/MascotParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TakenResult"
+        }
+      },
+      "androidUse/begin": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "androidUse/point": {
+        "params": {
+          "$ref": "#/$defs/PointParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "androidUse/drag": {
+        "params": {
+          "$ref": "#/$defs/DragParams"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "androidUse/hide": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/Empty"
+        }
+      }
+    },
+    "serverNotifications": {
+      "thread/list/changed": {
+        "params": {
+          "$ref": "#/$defs/ThreadListChanged"
+        }
+      },
+      "thread/selected": {
+        "params": {
+          "$ref": "#/$defs/ThreadSnapshot"
+        }
+      },
+      "turn/started": {
+        "params": {
+          "$ref": "#/$defs/TurnStarted"
+        }
+      },
+      "turn/completed": {
+        "params": {
+          "$ref": "#/$defs/TurnCompleted"
+        }
+      },
+      "item/started": {
+        "params": {
+          "$ref": "#/$defs/ItemChanged"
+        }
+      },
+      "item/updated": {
+        "params": {
+          "$ref": "#/$defs/ItemChanged"
+        }
+      },
+      "item/delta": {
+        "params": {
+          "$ref": "#/$defs/ItemDelta"
+        }
+      },
+      "item/removed": {
+        "params": {
+          "$ref": "#/$defs/ItemRemoved"
+        }
+      },
+      "state/changed": {
+        "params": {
+          "$ref": "#/$defs/StateChanged"
+        }
+      },
+      "approval/resolved": {
+        "params": {
+          "$ref": "#/$defs/ApprovalResolved"
+        }
+      },
+      "presentation/planDue": {
+        "params": {
+          "$ref": "#/$defs/PlanNoticeEntry"
+        }
+      },
+      "presentation/planRan": {
+        "params": {
+          "$ref": "#/$defs/PlanRanParams"
+        }
+      },
+      "androidUse/reveal": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        }
+      },
+      "voice/dismissed": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        }
+      }
+    }
+  },
+  "extensionSections": {
+    "voice": {
+      "$ref": "#/$defs/VoiceSection"
+    },
+    "speech": {
+      "$ref": "#/$defs/SpeechSection"
+    },
+    "onDevice": {
+      "$ref": "#/$defs/OnDeviceSection"
+    },
+    "checks": {
+      "$ref": "#/$defs/ChecksSection"
+    },
+    "toolSearch": {
+      "$ref": "#/$defs/ToolSearchSection"
+    }
+  },
+  "$defs": {
+    "A2aClientAnswerParams": {
+      "type": "object",
+      "properties": {
+        "questionId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/A2aInputSource"
+        }
+      },
+      "required": [
+        "questionId",
+        "text",
+        "source"
+      ]
+    },
+    "A2aClientItem": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemDisplay"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "display"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemNotice"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "notice"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemQuestion"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "question"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemSpeech"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "speech"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemStatus"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "status"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemTerminal"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "terminal"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemTool"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "tool"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/A2aClientItemUser"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "user"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "A2aClientItemDisplay": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "text"
+      ]
+    },
+    "A2aClientItemNotice": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "error": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ]
+    },
+    "A2aClientItemQuestion": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "questionId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "phase": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "questionId",
+        "text",
+        "options",
+        "phase"
+      ]
+    },
+    "A2aClientItemSpeech": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "final": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "text",
+        "final"
+      ]
+    },
+    "A2aClientItemStatus": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "text"
+      ]
+    },
+    "A2aClientItemTerminal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/A2aTaskStatus"
+        },
+        "text": {
+          "type": "string"
+        },
+        "elapsedMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "state",
+        "text"
+      ]
+    },
+    "A2aClientItemTool": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "callId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "startedAtEpochMillis": {
+          "type": "integer"
+        },
+        "finishedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "taskId",
+        "callId",
+        "name",
+        "phase",
+        "startedAtEpochMillis"
+      ]
+    },
+    "A2aClientItemUser": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/A2aInputSource"
+        },
+        "kind": {
+          "$ref": "#/$defs/Kind"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "source",
+        "kind"
+      ]
+    },
+    "A2aClientState": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "speakExternal": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "speechReady": {
+          "type": "boolean"
+        },
+        "contextId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "activeTaskId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastTaskId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runStartedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mirrors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "lastOutcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/A2aOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/A2aClientItem"
+          }
+        },
+        "nextItemId": {
+          "type": "integer"
+        },
+        "inboundFocus": {
+          "type": "boolean"
+        }
+      }
+    },
+    "A2aClientTextParams": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/A2aInputSource"
+        }
+      },
+      "required": [
+        "text",
+        "source"
+      ]
+    },
+    "A2aInputSource": {
+      "type": "string",
+      "enum": [
+        "CONSOLE",
+        "OVERLAY",
+        "ADB",
+        "ASR",
+        "PC",
+        "EXTERNAL"
+      ]
+    },
+    "A2aModuleState": {
+      "type": "object",
+      "properties": {
+        "profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/A2aProfile"
+          }
+        },
+        "activeProfileId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "loadedModuleId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enabledProfileIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "loadedModuleIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "errorsByProfileId": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "tokenProfileIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "moduleIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "A2aOutcome": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/A2aTaskStatus"
+        },
+        "elapsedMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "A2aProfile": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "moduleId": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "allowLoopbackHttpForDebug": {
+          "type": "boolean"
+        },
+        "userDefined": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "moduleId",
+        "endpoint",
+        "enabled",
+        "allowLoopbackHttpForDebug"
+      ]
+    },
+    "A2aProfileDraft": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "moduleId": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "allowLoopback": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "moduleId",
+        "endpoint",
+        "allowLoopback"
+      ]
+    },
+    "A2aTaskStatus": {
+      "type": "string",
+      "enum": [
+        "SUBMITTED",
+        "WORKING",
+        "INPUT_REQUIRED",
+        "COMPLETED",
+        "CANCELLED",
+        "FAILED",
+        "UNKNOWN"
+      ]
+    },
+    "AndroidUseState": {
+      "type": "string",
+      "enum": [
+        "OFF",
+        "CONNECTED",
+        "WAITING",
+        "FAILED"
+      ]
+    },
+    "AndroidUseView": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "state": {
+          "$ref": "#/$defs/AndroidUseState"
+        }
+      }
+    },
+    "ApprovalDecision": {
+      "type": "string",
+      "enum": [
+        "approve",
+        "deny"
+      ]
+    },
+    "ApprovalRequest": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "integer"
+        },
+        "pendingId": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/ConfirmationMode"
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "argumentsJson": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "threadId",
+        "itemId",
+        "pendingId",
+        "mode"
+      ]
+    },
+    "ApprovalResolved": {
+      "type": "object",
+      "properties": {
+        "pendingId": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ConfirmationStatus"
+        }
+      },
+      "required": [
+        "pendingId",
+        "status"
+      ]
+    },
+    "ApprovalRespondParams": {
+      "type": "object",
+      "properties": {
+        "pendingId": {
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/ApprovalDecision"
+        }
+      },
+      "required": [
+        "pendingId",
+        "decision"
+      ]
+    },
+    "ApprovalResponse": {
+      "type": "object",
+      "properties": {
+        "decision": {
+          "$ref": "#/$defs/ApprovalDecision"
+        }
+      },
+      "required": [
+        "decision"
+      ]
+    },
+    "ArtifactPreview": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "html": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "refreshToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "html",
+        "bytes",
+        "refreshToken"
+      ]
+    },
+    "BasicToolView": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "enabled"
+      ]
+    },
+    "BoundCall": {
+      "type": "object",
+      "properties": {
+        "providerId": {
+          "type": "string"
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "qualifiedName": {
+          "type": "string"
+        },
+        "argumentsJson": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "providerId",
+        "toolName",
+        "qualifiedName",
+        "argumentsJson"
+      ]
+    },
+    "CardItem": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Pair"
+          }
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/CardItemKind"
+        }
+      },
+      "required": [
+        "title"
+      ]
+    },
+    "CardItemKind": {
+      "type": "string",
+      "enum": [
+        "PLACE",
+        "TRANSPORT",
+        "STAY",
+        "WEATHER"
+      ]
+    },
+    "CardLayout": {
+      "type": "string",
+      "enum": [
+        "LIST",
+        "GRID",
+        "COMPARE",
+        "STRIP",
+        "TRIP"
+      ]
+    },
+    "CardProgress": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "value",
+        "max"
+      ]
+    },
+    "CheckAppParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "record": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "CheckFixKind": {
+      "type": "string",
+      "enum": [
+        "MODELS",
+        "IMAGE_MODEL",
+        "VOICE",
+        "RECORD_PERMISSION",
+        "OVERLAY",
+        "ACCESSIBILITY",
+        "NOTIFICATIONS",
+        "WAKE_ON",
+        "OVERLAY_START"
+      ]
+    },
+    "CheckGroup": {
+      "type": "string",
+      "enum": [
+        "MODELS",
+        "VOICE",
+        "PERMISSIONS"
+      ]
+    },
+    "CheckId": {
+      "type": "string",
+      "enum": [
+        "CHAT",
+        "DEEPSEEK",
+        "IMAGE",
+        "TOOLS",
+        "ASR",
+        "JEV",
+        "TTS",
+        "WAKE",
+        "MIC",
+        "COMPANION",
+        "REALTIME",
+        "RECORD_PERMISSION",
+        "OVERLAY",
+        "ACCESSIBILITY",
+        "NOTIFICATIONS"
+      ]
+    },
+    "CheckLine": {
+      "type": "object",
+      "properties": {
+        "finding": {
+          "$ref": "#/$defs/Finding"
+        },
+        "failed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "finding"
+      ]
+    },
+    "CheckStatus": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "OK",
+        "WARN",
+        "FAIL",
+        "OFF"
+      ]
+    },
+    "CheckView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/CheckId"
+        },
+        "group": {
+          "$ref": "#/$defs/CheckGroup"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckStatus"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "finding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CheckFixKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "group"
+      ]
+    },
+    "ChecksSection": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "$ref": "#/$defs/ChecksView"
+        }
+      }
+    },
+    "ChecksView": {
+      "type": "object",
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CheckView"
+          }
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "checkedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ChoiceOption": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "call": {
+          "$ref": "#/$defs/BoundCall"
+        }
+      },
+      "required": [
+        "label",
+        "call"
+      ]
+    },
+    "ClientCapabilities": {
+      "type": "object",
+      "properties": {
+        "approvals": {
+          "type": "boolean"
+        },
+        "questions": {
+          "type": "boolean"
+        },
+        "trajectory": {
+          "type": "boolean"
+        },
+        "presentation": {
+          "type": "boolean"
+        },
+        "state": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ClientInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "CompanionConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "$ref": "#/$defs/CompanionMode"
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "service": {
+          "$ref": "#/$defs/CompanionService"
+        },
+        "persona": {
+          "type": "string"
+        },
+        "endpoints": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/CompanionEndpoint"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/CompanionService"
+          }
+        }
+      }
+    },
+    "CompanionDecisionView": {
+      "type": "object",
+      "properties": {
+        "atEpochMillis": {
+          "type": "integer"
+        },
+        "words": {
+          "type": "string"
+        },
+        "toCompanion": {
+          "type": "boolean"
+        },
+        "reason": {
+          "$ref": "#/$defs/Finding"
+        }
+      },
+      "required": [
+        "atEpochMillis",
+        "words",
+        "toCompanion",
+        "reason"
+      ]
+    },
+    "CompanionDecisionsResult": {
+      "type": "object",
+      "properties": {
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompanionDecisionView"
+          }
+        }
+      },
+      "required": [
+        "decisions"
+      ]
+    },
+    "CompanionEndpoint": {
+      "type": "object",
+      "properties": {
+        "baseUrl": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "extraBody": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseUrl",
+        "model",
+        "extraBody"
+      ]
+    },
+    "CompanionMode": {
+      "type": "string",
+      "enum": [
+        "OBSERVE",
+        "ROUTE"
+      ]
+    },
+    "CompanionSaveParams": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/CompanionConfig"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "CompanionSaveResult": {
+      "type": "object",
+      "properties": {
+        "view": {
+          "$ref": "#/$defs/CompanionView"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "view"
+      ]
+    },
+    "CompanionService": {
+      "type": "string",
+      "enum": [
+        "QWEN",
+        "DOUBAO",
+        "HUNYUAN",
+        "CUSTOM"
+      ]
+    },
+    "CompanionTryResult": {
+      "type": "object",
+      "properties": {
+        "reply": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "elapsedMillis": {
+          "type": "integer"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CompanionView": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/CompanionConfig"
+        },
+        "ownKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompanionService"
+          },
+          "uniqueItems": true
+        },
+        "usableKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CompanionService"
+          },
+          "uniqueItems": true
+        },
+        "notReady": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfirmationMode": {
+      "type": "string",
+      "enum": [
+        "ASK_EVERY_TIME",
+        "ALLOW_CONFIRMED_DOMAINS",
+        "ALLOW_ALL_SESSION",
+        "DENY_ALL"
+      ]
+    },
+    "ConfirmationStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "APPROVED",
+        "DENIED",
+        "AUTO_APPROVED",
+        "AUTO_DENIED",
+        "CONSUMED",
+        "EXPIRED",
+        "FAILED"
+      ]
+    },
+    "ConnectAppParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "credential": {
+          "type": "string"
+        },
+        "sandbox": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "ConnectorCatalog": {
+      "type": "object",
+      "properties": {
+        "connectors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConnectorView"
+          }
+        },
+        "statuses": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConnectorStatus"
+          }
+        }
+      }
+    },
+    "ConnectorPage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/ConnectorStatus"
+        },
+        "account": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "accountPage": {
+          "type": "string"
+        },
+        "relayHost": {
+          "type": "string"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sandbox": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ConnectorSignInParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "register": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "password",
+        "register"
+      ]
+    },
+    "ConnectorStatus": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConnectorStatusConnected"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "connected"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConnectorStatusDisconnected"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "disconnected"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConnectorStatusPairing"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "pairing"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConnectorStatusPaused"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "paused"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ConnectorStatusConnected": {
+      "type": "object",
+      "properties": {
+        "verified": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "verified"
+      ]
+    },
+    "ConnectorStatusDisconnected": {
+      "type": "object"
+    },
+    "ConnectorStatusPairing": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "connectUrl": {
+          "type": "string"
+        },
+        "expiresAtMillis": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "connectUrl",
+        "expiresAtMillis"
+      ]
+    },
+    "ConnectorStatusPaused": {
+      "type": "object"
+    },
+    "ConnectorStatuses": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ConnectorStatus"
+          }
+        }
+      }
+    },
+    "ConnectorTools": {
+      "type": "object",
+      "properties": {
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ConnectorView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
+        "mark": {
+          "type": "string"
+        },
+        "color": {
+          "type": "integer"
+        },
+        "app": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpAppView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "title",
+        "summary",
+        "category",
+        "mark",
+        "color"
+      ]
+    },
+    "ContextPanelState": {
+      "type": "object",
+      "properties": {
+        "visible": {
+          "type": "boolean"
+        },
+        "todo": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TodoEntry"
+          }
+        },
+        "lessons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LessonEntry"
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SkillEntry"
+          }
+        }
+      },
+      "required": [
+        "visible",
+        "todo",
+        "lessons",
+        "skills"
+      ]
+    },
+    "ContextUsage": {
+      "type": "object",
+      "properties": {
+        "inputTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "windowTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "awaitingAfterCompaction": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Control": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ControlChoice"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "choice"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ControlSlider"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "slider"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ControlSwitch"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "switch"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ControlChoice": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ChoiceOption"
+          }
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "multiple": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "options",
+        "value",
+        "multiple"
+      ]
+    },
+    "ControlSlider": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "call": {
+          "$ref": "#/$defs/BoundCall"
+        },
+        "param": {
+          "type": "string"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "integer": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "call",
+        "param",
+        "min",
+        "max",
+        "step",
+        "value",
+        "unit",
+        "integer"
+      ]
+    },
+    "ControlSwitch": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "on": {
+          "$ref": "#/$defs/BoundCall"
+        },
+        "off": {
+          "$ref": "#/$defs/BoundCall"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "label",
+        "on",
+        "off",
+        "value"
+      ]
+    },
+    "ConversationItem": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConversationItemApproval"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "approval"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConversationItemMessage"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "message"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConversationItemRuntimePhase"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "runtimePhase"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConversationItemToolCall"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "toolCall"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/ConversationItemUserMessage"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "userMessage"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ConversationItemApproval": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "pendingId": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/ConfirmationMode"
+        },
+        "status": {
+          "$ref": "#/$defs/ConfirmationStatus"
+        },
+        "createdAt": {
+          "type": "integer"
+        },
+        "resolvedAt": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "pendingId",
+        "mode",
+        "createdAt"
+      ]
+    },
+    "ConversationItemMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "role": {
+          "$ref": "#/$defs/TranscriptRole"
+        },
+        "content": {
+          "type": "string"
+        },
+        "final": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "content"
+      ]
+    },
+    "ConversationItemRuntimePhase": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "markdown": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "body"
+      ]
+    },
+    "ConversationItemToolCall": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "argumentsJson": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resultJson": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/ToolCallStatus"
+        },
+        "startedAt": {
+          "type": "integer"
+        },
+        "finishedAt": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "toolName",
+        "status",
+        "startedAt"
+      ]
+    },
+    "ConversationItemUserMessage": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "preview": {
+          "type": "string"
+        },
+        "fullText": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "preview",
+        "fullText"
+      ]
+    },
+    "CurrentRequest": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "requestId",
+        "text"
+      ]
+    },
+    "DataClearParams": {
+      "type": "object",
+      "properties": {
+        "alsoMemories": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DataClearResult": {
+      "type": "object",
+      "properties": {
+        "cleared": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cleared"
+      ]
+    },
+    "DeepSeekAmountView": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "type": "string"
+        },
+        "total": {
+          "type": "string"
+        },
+        "toppedUp": {
+          "type": "string"
+        },
+        "granted": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "total",
+        "toppedUp",
+        "granted"
+      ]
+    },
+    "DeepSeekBalanceParams": {
+      "type": "object",
+      "properties": {
+        "apiKey": {
+          "type": "string"
+        },
+        "connection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProviderConnection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DeepSeekBalanceResult": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeepSeekBalanceView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DeepSeekBalanceView": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "amounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DeepSeekAmountView"
+          }
+        }
+      },
+      "required": [
+        "available"
+      ]
+    },
+    "DeepSeekCheckView": {
+      "type": "object",
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "note": {
+          "$ref": "#/$defs/Finding"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "passed",
+        "note"
+      ]
+    },
+    "DeepSeekProbeView": {
+      "type": "object",
+      "properties": {
+        "checked": {
+          "type": "boolean"
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "hasKey": {
+          "type": "boolean"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeepSeekCheckView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tools": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeepSeekCheckView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "passthrough": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeepSeekCheckView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DelegationStage": {
+      "type": "string",
+      "enum": [
+        "DELIVERED",
+        "STALLED",
+        "STARTED",
+        "WORKING",
+        "REPORTING",
+        "DONE",
+        "ASKING",
+        "FAILED",
+        "CANCELLED",
+        "LOST"
+      ]
+    },
+    "DelegationStep": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "status"
+      ]
+    },
+    "DelegationView": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "agentLabel": {
+          "type": "string"
+        },
+        "taskId": {
+          "type": "string"
+        },
+        "request": {
+          "type": "string"
+        },
+        "startedAtEpochMillis": {
+          "type": "integer"
+        },
+        "stage": {
+          "$ref": "#/$defs/DelegationStage"
+        },
+        "statusText": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DelegationStep"
+          }
+        },
+        "updatedAtEpochMillis": {
+          "type": "integer"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "profileId",
+        "agentLabel",
+        "taskId",
+        "request",
+        "startedAtEpochMillis",
+        "stage"
+      ]
+    },
+    "DoneResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
+    "DoubaoTtsView": {
+      "type": "object",
+      "properties": {
+        "appId": {
+          "type": "string"
+        },
+        "resourceId": {
+          "type": "string"
+        },
+        "voice": {
+          "type": "string"
+        },
+        "speechRate": {
+          "type": "integer"
+        },
+        "hasKey": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DownloadFailure": {
+      "type": "string",
+      "enum": [
+        "NO_SOURCE",
+        "DOWNLOAD",
+        "CHECKSUM",
+        "RENAME"
+      ]
+    },
+    "DownloadPhase": {
+      "type": "string",
+      "enum": [
+        "DOWNLOADING",
+        "VERIFYING",
+        "DONE",
+        "FAILED"
+      ]
+    },
+    "DragParams": {
+      "type": "object",
+      "properties": {
+        "fromX": {
+          "type": "integer"
+        },
+        "fromY": {
+          "type": "integer"
+        },
+        "toX": {
+          "type": "integer"
+        },
+        "toY": {
+          "type": "integer"
+        },
+        "durationMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "fromX",
+        "fromY",
+        "toX",
+        "toY",
+        "durationMs"
+      ]
+    },
+    "Empty": {
+      "type": "object"
+    },
+    "EnabledParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "enabled"
+      ]
+    },
+    "EnsureRunningParams": {
+      "type": "object",
+      "properties": {
+        "forSurface": {
+          "type": "boolean"
+        }
+      }
+    },
+    "EventLogDurability": {
+      "type": "string",
+      "enum": [
+        "DURABLE",
+        "VOLATILE",
+        "UNKNOWN"
+      ]
+    },
+    "EventLogHealthStatus": {
+      "type": "string",
+      "enum": [
+        "COMPLETE",
+        "DEGRADED",
+        "UNAVAILABLE",
+        "VOLATILE",
+        "UNKNOWN"
+      ]
+    },
+    "FileEntryView": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "directory": {
+          "type": "boolean"
+        },
+        "sizeBytes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "directory"
+      ]
+    },
+    "FileListResult": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FileEntryView"
+          }
+        },
+        "missing": {
+          "type": "boolean"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "FileMountsResult": {
+      "type": "object",
+      "properties": {
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "FileReadParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "maxBytes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "FileReadResult": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "more": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeepSeekBalanceView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code"
+      ]
+    },
+    "FlagParams": {
+      "type": "object",
+      "properties": {
+        "on": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "on"
+      ]
+    },
+    "GeneratedImageResult": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "elapsedMillis": {
+          "type": "integer"
+        },
+        "revisedPrompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reference",
+        "width",
+        "height",
+        "bytes",
+        "elapsedMillis"
+      ]
+    },
+    "HandOverNoticeView": {
+      "type": "object",
+      "properties": {
+        "handOver": {
+          "$ref": "#/$defs/SegmentHandOver"
+        },
+        "text": {
+          "type": "string"
+        },
+        "atEpochMillis": {
+          "type": "integer"
+        },
+        "fellBack": {
+          "type": "boolean"
+        },
+        "ack": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "handOver",
+        "text",
+        "atEpochMillis"
+      ]
+    },
+    "IdParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "IdsParams": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ids"
+      ]
+    },
+    "ImageModelConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "size": {
+          "type": "string"
+        },
+        "timeoutMillis": {
+          "type": "integer"
+        },
+        "hasApiKey": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ImageModelProblem": {
+      "type": "string",
+      "enum": [
+        "BASE_URL_SCHEME",
+        "BASE_URL_PARTS",
+        "MODEL_WHITESPACE",
+        "NO_MODEL",
+        "SIZE",
+        "TIMEOUT",
+        "NO_KEY",
+        "KEY_WHITESPACE",
+        "KEY_NOT_REMOVED",
+        "NOT_SAVED",
+        "KEY_NOT_SAVED"
+      ]
+    },
+    "ImageModelSaveParams": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ImageModelConfig"
+        },
+        "replacementKey": {
+          "type": "string"
+        },
+        "clearKey": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ImageModelSaveResult": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "$ref": "#/$defs/ImageModelConfig"
+        },
+        "problem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageModelProblem"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "config"
+      ]
+    },
+    "ImageTryResult": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeneratedImageResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "elapsedMillis": {
+          "type": "integer"
+        }
+      }
+    },
+    "InferenceServerPhase": {
+      "type": "string",
+      "enum": [
+        "STOPPED",
+        "STARTING",
+        "READY",
+        "FAILED"
+      ]
+    },
+    "InferenceServerView": {
+      "type": "object",
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/InferenceServerPhase"
+        },
+        "modelId": {
+          "type": "string"
+        },
+        "device": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "InitializeParams": {
+      "type": "object",
+      "properties": {
+        "clientInfo": {
+          "$ref": "#/$defs/ClientInfo"
+        },
+        "capabilities": {
+          "$ref": "#/$defs/ClientCapabilities"
+        }
+      },
+      "required": [
+        "clientInfo"
+      ]
+    },
+    "InitializeResult": {
+      "type": "object",
+      "properties": {
+        "protocolVersion": {
+          "type": "integer"
+        },
+        "serverInfo": {
+          "$ref": "#/$defs/ServerInfo"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/ServerSnapshot"
+        }
+      },
+      "required": [
+        "protocolVersion",
+        "serverInfo",
+        "snapshot"
+      ]
+    },
+    "ItemChanged": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "item": {
+          "$ref": "#/$defs/ConversationItem"
+        }
+      },
+      "required": [
+        "threadId",
+        "item"
+      ]
+    },
+    "ItemDelta": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "integer"
+        },
+        "delta": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "threadId",
+        "itemId",
+        "delta"
+      ]
+    },
+    "ItemRemoved": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "itemId": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "threadId",
+        "itemId"
+      ]
+    },
+    "JevConnectionDraft": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "timeoutMillis": {
+          "type": "integer"
+        },
+        "key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "model",
+        "timeoutMillis"
+      ]
+    },
+    "JevSearchMode": {
+      "type": "string",
+      "enum": [
+        "FLAT",
+        "TWO_STAGE",
+        "TWO_STAGE_SUBDOMAINS"
+      ]
+    },
+    "JevSettings": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "timeoutMillis": {
+          "type": "integer"
+        },
+        "minScore": {
+          "type": "number"
+        },
+        "maxTools": {
+          "type": "integer"
+        },
+        "hasApiKey": {
+          "type": "boolean"
+        },
+        "mode": {
+          "$ref": "#/$defs/JevSearchMode"
+        },
+        "domainMinScore": {
+          "type": "number"
+        }
+      }
+    },
+    "Kind": {
+      "type": "string",
+      "enum": [
+        "MESSAGE",
+        "STEER",
+        "ANSWER"
+      ]
+    },
+    "LessonEntry": {
+      "type": "object",
+      "properties": {
+        "scene": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "hitCount": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scene",
+        "content",
+        "confidence",
+        "hitCount"
+      ]
+    },
+    "MascotParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "McpAppView": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "sandboxUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "credentialLabel": {
+          "type": "string"
+        },
+        "needsCredential": {
+          "type": "boolean"
+        },
+        "portal": {
+          "type": "string"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "abilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "url"
+      ]
+    },
+    "McpProviderState": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "server": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/McpServer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "enabled"
+      ]
+    },
+    "McpSecretsView": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "boolean"
+        },
+        "headers": {
+          "type": "integer"
+        },
+        "query": {
+          "type": "boolean"
+        }
+      }
+    },
+    "McpServer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/McpServerKind"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "kind",
+        "enabled"
+      ]
+    },
+    "McpServerDraft": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/McpServerKind"
+        },
+        "url": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "string"
+        },
+        "clearSecrets": {
+          "type": "boolean"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "preferredId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "label",
+        "kind"
+      ]
+    },
+    "McpServerKind": {
+      "type": "string",
+      "enum": [
+        "HTTP"
+      ]
+    },
+    "McpStatusView": {
+      "type": "object",
+      "properties": {
+        "titles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/McpSecretsView"
+          }
+        },
+        "mediaProviderId": {
+          "type": "string"
+        },
+        "mediaAccess": {
+          "type": "boolean"
+        }
+      }
+    },
+    "McpToolPreview": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "description"
+      ]
+    },
+    "McpToolsView": {
+      "type": "object",
+      "properties": {
+        "tools": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/McpToolPreview"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unavailable": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "MemoryCategory": {
+      "type": "string",
+      "enum": [
+        "IDENTITY",
+        "PLACES",
+        "HOME",
+        "MEDIA",
+        "TRAVEL",
+        "PEOPLE",
+        "OTHER"
+      ]
+    },
+    "MemoryLessons": {
+      "type": "object",
+      "properties": {
+        "activeCount": {
+          "type": "integer"
+        },
+        "pendingCount": {
+          "type": "integer"
+        },
+        "active": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LessonEntry"
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LessonEntry"
+          }
+        }
+      }
+    },
+    "MemorySource": {
+      "type": "string",
+      "enum": [
+        "SAID",
+        "TYPED"
+      ]
+    },
+    "MemoryView": {
+      "type": "object",
+      "properties": {
+        "memories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/UserMemory"
+          }
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "MemoryWriteParams": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/MemoryCategory"
+        },
+        "content": {
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "category",
+        "content"
+      ]
+    },
+    "MemoryWriteResult": {
+      "type": "object",
+      "properties": {
+        "saved": {
+          "type": "boolean"
+        },
+        "created": {
+          "type": "boolean"
+        },
+        "refusal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "saved"
+      ]
+    },
+    "ModelCallPhase": {
+      "type": "string",
+      "enum": [
+        "REQUEST",
+        "USAGE",
+        "FINISHED"
+      ]
+    },
+    "ModelDownloadView": {
+      "type": "object",
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/DownloadPhase"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DownloadFailure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "phase"
+      ]
+    },
+    "ModelListResult": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "models"
+      ]
+    },
+    "ModelPrice": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": "number"
+        },
+        "output": {
+          "type": "number"
+        },
+        "cacheRead": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cacheWrite": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "pricedAs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manual": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "input",
+        "output"
+      ]
+    },
+    "ModelPriceParams": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelPrice"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "model"
+      ]
+    },
+    "ModelProvider": {
+      "type": "string",
+      "enum": [
+        "OPENAI",
+        "ANTHROPIC"
+      ]
+    },
+    "ModelSelectParams": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelProvider"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profileId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manualProfileEnabled": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ModelSettingsParams": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/ProviderEditState"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "profile",
+        "models"
+      ]
+    },
+    "ModelSettingsResult": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ModelSettingsView"
+          }
+        }
+      },
+      "required": [
+        "models"
+      ]
+    },
+    "ModelSettingsSaveParams": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/ProviderEditState"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ModelSettingsView"
+          }
+        }
+      },
+      "required": [
+        "profile",
+        "models"
+      ]
+    },
+    "ModelSettingsView": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "windowOverride": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "defaultWindow": {
+          "type": "integer"
+        },
+        "imageInput": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model"
+      ]
+    },
+    "ModelUsage": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "integer"
+        },
+        "inputTokens": {
+          "type": "integer"
+        },
+        "cacheReadTokens": {
+          "type": "integer"
+        },
+        "cacheWriteTokens": {
+          "type": "integer"
+        },
+        "outputTokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "NameEnabledParams": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "enabled"
+      ]
+    },
+    "Offer": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "turnId": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OfferOption"
+          }
+        },
+        "createdAtMillis": {
+          "type": "integer"
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Control"
+          }
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WidgetCard"
+          }
+        }
+      },
+      "required": [
+        "sessionId",
+        "turnId",
+        "options",
+        "createdAtMillis"
+      ]
+    },
+    "OfferOption": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "call": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoundCall"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "label"
+      ]
+    },
+    "OnDeviceModelView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "publisher": {
+          "type": "string"
+        },
+        "quantization": {
+          "type": "string"
+        },
+        "sizeBytes": {
+          "type": "integer"
+        },
+        "license": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "downloaded": {
+          "type": "boolean"
+        },
+        "onDiskBytes": {
+          "type": "integer"
+        },
+        "download": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelDownloadView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ]
+    },
+    "OnDeviceSection": {
+      "type": "object",
+      "properties": {
+        "onDevice": {
+          "$ref": "#/$defs/OnDeviceView"
+        }
+      }
+    },
+    "OnDeviceView": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OnDeviceModelView"
+          }
+        },
+        "server": {
+          "$ref": "#/$defs/InferenceServerView"
+        }
+      }
+    },
+    "OnboardingView": {
+      "type": "object",
+      "properties": {
+        "needed": {
+          "type": "boolean"
+        },
+        "doubaoKeySaved": {
+          "type": "boolean"
+        },
+        "notificationAccess": {
+          "type": "boolean"
+        },
+        "accessibilityEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OverlayCommand": {
+      "type": "string",
+      "enum": [
+        "show",
+        "hide"
+      ]
+    },
+    "OverlayPicture": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ]
+    },
+    "Pair": {
+      "type": "object",
+      "properties": {
+        "first": {
+          "type": "string"
+        },
+        "second": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "first",
+        "second"
+      ]
+    },
+    "PathParams": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
+    "Plan": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "instruction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trigger": {
+          "$ref": "#/$defs/PlanTrigger"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "createdAtMillis": {
+          "type": "integer"
+        },
+        "lastFiredAtMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastDueAtMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "firedCount": {
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanEnd"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "said": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanAction"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "message",
+        "trigger",
+        "enabled",
+        "createdAtMillis"
+      ]
+    },
+    "PlanAction": {
+      "type": "object",
+      "properties": {
+        "server": {
+          "type": "string"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "object"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "server",
+        "tool",
+        "arguments",
+        "label"
+      ]
+    },
+    "PlanEnd": {
+      "type": "string",
+      "enum": [
+        "DONE",
+        "MISSED"
+      ]
+    },
+    "PlanFiring": {
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "atMillis": {
+          "type": "integer"
+        },
+        "note": {
+          "$ref": "#/$defs/Finding"
+        }
+      },
+      "required": [
+        "planId",
+        "title",
+        "atMillis",
+        "note"
+      ]
+    },
+    "PlanKind": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "task",
+        "reminder"
+      ]
+    },
+    "PlanNoticeEntry": {
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PlanKind"
+        },
+        "title": {
+          "type": "string"
+        },
+        "handed": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "said": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "planId",
+        "kind",
+        "title"
+      ]
+    },
+    "PlanRanParams": {
+      "type": "object",
+      "properties": {
+        "planId": {
+          "type": "string"
+        },
+        "outcome": {
+          "$ref": "#/$defs/Finding"
+        }
+      },
+      "required": [
+        "planId",
+        "outcome"
+      ]
+    },
+    "PlanTrigger": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PlanTriggerOnce"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "once"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PlanTriggerRepeat"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "repeat"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/PlanTriggerWatch"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "watch"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "PlanTriggerOnce": {
+      "type": "object",
+      "properties": {
+        "atMillis": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "atMillis"
+      ]
+    },
+    "PlanTriggerRepeat": {
+      "type": "object",
+      "properties": {
+        "minuteOfDay": {
+          "type": "integer"
+        },
+        "days": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "minuteOfDay",
+        "days"
+      ]
+    },
+    "PlanTriggerWatch": {
+      "type": "object",
+      "properties": {
+        "watch": {
+          "$ref": "#/$defs/PlanWatch"
+        },
+        "holdSeconds": {
+          "type": "integer"
+        },
+        "repeat": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "watch",
+        "holdSeconds",
+        "repeat"
+      ]
+    },
+    "PlanWatch": {
+      "type": "object",
+      "properties": {
+        "server": {
+          "type": "string"
+        },
+        "uri": {
+          "type": "string"
+        },
+        "field": {
+          "type": "string"
+        },
+        "op": {
+          "$ref": "#/$defs/WatchOp"
+        },
+        "value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "where": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "mode": {
+          "$ref": "#/$defs/WatchMode"
+        },
+        "margin": {
+          "type": "number"
+        },
+        "pollMillis": {
+          "type": "integer"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "arguments": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "server",
+        "uri",
+        "field",
+        "op",
+        "text"
+      ]
+    },
+    "PointParams": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "press": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "press"
+      ]
+    },
+    "Preferences": {
+      "type": "object",
+      "properties": {
+        "sessionPolicy": {
+          "$ref": "#/$defs/SessionPolicy"
+        },
+        "basicTools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BasicToolView"
+          }
+        },
+        "androidUse": {
+          "$ref": "#/$defs/AndroidUseView"
+        },
+        "runtimeSkills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuntimeSkillView"
+          }
+        },
+        "subagents": {
+          "$ref": "#/$defs/SubagentSettingsView"
+        },
+        "subagentKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubagentKindView"
+          }
+        },
+        "deepSeekLookup": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PresentCardParams": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "$ref": "#/$defs/OverlayCommand"
+        }
+      },
+      "required": [
+        "command"
+      ]
+    },
+    "PresentResult": {
+      "type": "object",
+      "properties": {
+        "refusal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "noResting": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PresentStartParams": {
+      "type": "object",
+      "properties": {
+        "open": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "open"
+      ]
+    },
+    "PresentWakeParams": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/WakeOrigin"
+        }
+      },
+      "required": [
+        "origin"
+      ]
+    },
+    "PresentationState": {
+      "type": "object",
+      "properties": {
+        "ready": {
+          "type": "boolean"
+        },
+        "readingUntilEpochMillis": {
+          "type": "integer"
+        },
+        "inFront": {
+          "type": "boolean"
+        }
+      }
+    },
+    "PriceBook": {
+      "type": "object",
+      "properties": {
+        "prices": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/ModelPrice"
+          }
+        },
+        "usdToCny": {
+          "type": "number"
+        },
+        "syncedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PriceSyncResult": {
+      "type": "object",
+      "properties": {
+        "matched": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ProviderConnection": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "profileId"
+      ]
+    },
+    "ProviderCreateParams": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "provider",
+        "endpoint",
+        "apiKey",
+        "model",
+        "baseUrl"
+      ]
+    },
+    "ProviderCreateResult": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "profileId"
+      ]
+    },
+    "ProviderEditState": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string"
+        },
+        "variant": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "profileId": {
+          "type": "string"
+        },
+        "profileLabel": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "manualProfileEnabled": {
+          "type": "boolean"
+        },
+        "profileOptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ProviderProfileOption"
+          }
+        },
+        "modelOptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "variantOptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaultVariant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hasApiKey": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ProviderEndpoint": {
+      "type": "string",
+      "enum": [
+        "CHAT_COMPLETIONS",
+        "RESPONSES",
+        "MESSAGES"
+      ]
+    },
+    "ProviderFetchParams": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "profileId",
+        "provider",
+        "endpoint",
+        "apiKey",
+        "model",
+        "baseUrl"
+      ]
+    },
+    "ProviderModelsParams": {
+      "type": "object",
+      "properties": {
+        "editor": {
+          "$ref": "#/$defs/ProviderEditState"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "editor",
+        "models"
+      ]
+    },
+    "ProviderProfileOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "model": {
+          "type": "string"
+        },
+        "selected": {
+          "type": "boolean"
+        },
+        "canDelete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "provider",
+        "endpoint",
+        "model",
+        "selected",
+        "canDelete"
+      ]
+    },
+    "ProviderSaveParams": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/ModelProvider"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "baseUrl",
+        "endpoint"
+      ]
+    },
+    "QuestionAnswerParams": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "$ref": "#/$defs/UserQuestion"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "text"
+      ]
+    },
+    "RateParams": {
+      "type": "object",
+      "properties": {
+        "usdToCny": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "usdToCny"
+      ]
+    },
+    "RealtimeExchangeView": {
+      "type": "object",
+      "properties": {
+        "heard": {
+          "type": "string"
+        },
+        "reply": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "heard"
+      ]
+    },
+    "RealtimeSettings": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "voice": {
+          "type": "string"
+        },
+        "persona": {
+          "type": "string"
+        },
+        "bargeIn": {
+          "type": "boolean"
+        },
+        "personaPreset": {
+          "type": "string"
+        },
+        "lateSpeech": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RealtimeView": {
+      "type": "object",
+      "properties": {
+        "settings": {
+          "$ref": "#/$defs/RealtimeSettings"
+        },
+        "effectivePersona": {
+          "type": "string"
+        },
+        "voices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingsOption"
+          }
+        },
+        "personas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingsOption"
+          }
+        },
+        "hasKey": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RunActivity": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "starting",
+        "working",
+        "thinking",
+        "runningTool",
+        "waitingForApproval",
+        "blocked",
+        "failed",
+        "stopped"
+      ]
+    },
+    "RunOutcome": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "partial",
+        "replayFailed",
+        "failed",
+        "stopped"
+      ]
+    },
+    "RunResult": {
+      "type": "object",
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/RunOutcome"
+        },
+        "durationMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outcome",
+        "durationMs"
+      ]
+    },
+    "RunSettingsParams": {
+      "type": "object",
+      "properties": {
+        "confirmationMode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConfirmationMode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "simulatedBackend": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toggleStream": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RuntimeDemoState": {
+      "type": "object",
+      "properties": {
+        "runId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "thinkingPreview": {
+          "type": "string"
+        },
+        "assistantPreview": {
+          "type": "string"
+        },
+        "pendingConfirmationIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steeringPreview": {
+          "type": "string"
+        },
+        "execOutputPreview": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string"
+        },
+        "retryCount": {
+          "type": "integer"
+        },
+        "runningTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "finishedTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "changedFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RuntimeFileChange"
+          }
+        },
+        "tokenUsage": {
+          "$ref": "#/$defs/RuntimeTokenUsage"
+        },
+        "finalStatus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errorCode": {
+          "type": "string"
+        }
+      }
+    },
+    "RuntimeFileChange": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "addedLines": {
+          "type": "integer"
+        },
+        "removedLines": {
+          "type": "integer"
+        },
+        "diffTimedOut": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "path",
+        "addedLines",
+        "removedLines",
+        "diffTimedOut"
+      ]
+    },
+    "RuntimeSkillView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "custom": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "enabled"
+      ]
+    },
+    "RuntimeTokenUsage": {
+      "type": "object",
+      "properties": {
+        "inputTokens": {
+          "type": "integer"
+        },
+        "outputTokens": {
+          "type": "integer"
+        },
+        "reasoningTokens": {
+          "type": "integer"
+        },
+        "cacheReadTokens": {
+          "type": "integer"
+        },
+        "cacheWriteTokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "SaveResult": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "SegmentHandOver": {
+      "type": "string",
+      "enum": [
+        "NEW_TURN",
+        "APPEND",
+        "REPLACE"
+      ]
+    },
+    "SegmentLabel": {
+      "type": "string",
+      "enum": [
+        "AGENT",
+        "SIDE",
+        "UNCERTAIN"
+      ]
+    },
+    "ServerInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ServerSnapshot": {
+      "type": "object",
+      "properties": {
+        "threads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionSummary"
+          }
+        },
+        "activeThreadId": {
+          "type": "string"
+        },
+        "thread": {
+          "$ref": "#/$defs/ThreadSnapshot"
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StateSection"
+          }
+        }
+      }
+    },
+    "SessionBoardState": {
+      "type": "object",
+      "properties": {
+        "activeSession": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recentTurns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionTurn"
+          }
+        },
+        "lastAction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SessionToolCall"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "recentTurns"
+      ]
+    },
+    "SessionPolicy": {
+      "type": "object",
+      "properties": {
+        "everyWake": {
+          "type": "boolean"
+        },
+        "idleMinutes": {
+          "type": "integer"
+        },
+        "maxSessions": {
+          "type": "integer"
+        }
+      }
+    },
+    "SessionSummary": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updatedAtEpochMillis": {
+          "type": "integer"
+        },
+        "turnCount": {
+          "type": "integer"
+        },
+        "compactedSummary": {
+          "type": "string"
+        },
+        "lifecycleStatus": {
+          "type": "string"
+        },
+        "completionOutcome": {
+          "type": "string"
+        },
+        "logHealth": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "title",
+        "updatedAtEpochMillis",
+        "turnCount",
+        "compactedSummary"
+      ]
+    },
+    "SessionToolCall": {
+      "type": "object",
+      "properties": {
+        "sequence": {
+          "type": "integer"
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "argumentsPreview": {
+          "type": "string"
+        },
+        "resultPreview": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sequence",
+        "toolName",
+        "argumentsPreview",
+        "resultPreview",
+        "status"
+      ]
+    },
+    "SessionTurn": {
+      "type": "object",
+      "properties": {
+        "turnId": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "scene": {
+          "type": "string"
+        },
+        "userText": {
+          "type": "string"
+        },
+        "startedAtEpochMillis": {
+          "type": "integer"
+        },
+        "completedAtEpochMillis": {
+          "type": "integer"
+        },
+        "finalStatus": {
+          "type": "string"
+        },
+        "finalResponse": {
+          "type": "string"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionToolCall"
+          }
+        },
+        "completionOutcome": {
+          "type": "string"
+        },
+        "replayStatus": {
+          "type": "string"
+        },
+        "replaySummary": {
+          "type": "string"
+        },
+        "usage": {
+          "$ref": "#/$defs/TokenUsageState"
+        }
+      },
+      "required": [
+        "turnId",
+        "requestId",
+        "runId",
+        "sessionId",
+        "scene",
+        "userText",
+        "startedAtEpochMillis",
+        "completedAtEpochMillis",
+        "finalStatus",
+        "finalResponse",
+        "tools"
+      ]
+    },
+    "SettingsOption": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ]
+    },
+    "SkillCheckView": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Finding"
+          }
+        },
+        "normalized": {
+          "type": "string"
+        }
+      }
+    },
+    "SkillEntry": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ]
+    },
+    "SkillTextParams": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "editing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "SpeechSection": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "StateChanged": {
+      "type": "object",
+      "properties": {
+        "section": {
+          "$ref": "#/$defs/StateSection"
+        }
+      },
+      "required": [
+        "section"
+      ]
+    },
+    "StateSection": {
+      "oneOf": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionA2aClient"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "a2aClient"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionA2a"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "a2a"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionArtifact"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "artifact"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionContext"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "context"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionDelegations"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "delegations"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionDemo"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "demo"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionExtension"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "extension"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionMcp"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "mcp"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionMemory"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "memory"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionModel"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "model"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionOffers"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "offers"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionPlans"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "plans"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionPreferences"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "preferences"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionRun"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "run"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionSubagents"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "subagents"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionTrajectory"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "trajectory"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionUsage"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "usage"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/StateSectionWorkspace"
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "workspace"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "StateSectionA2a": {
+      "type": "object",
+      "properties": {
+        "a2aClients": {
+          "$ref": "#/$defs/A2aModuleState"
+        }
+      }
+    },
+    "StateSectionA2aClient": {
+      "type": "object",
+      "properties": {
+        "a2aClient": {
+          "$ref": "#/$defs/A2aClientState"
+        }
+      }
+    },
+    "StateSectionArtifact": {
+      "type": "object",
+      "properties": {
+        "artifactPreview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactPreview"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "StateSectionContext": {
+      "type": "object",
+      "properties": {
+        "contextPanel": {
+          "$ref": "#/$defs/ContextPanelState"
+        },
+        "board": {
+          "$ref": "#/$defs/SessionBoardState"
+        },
+        "tokenUsage": {
+          "$ref": "#/$defs/TokenUsageState"
+        },
+        "contextUsage": {
+          "$ref": "#/$defs/ContextUsage"
+        }
+      }
+    },
+    "StateSectionDelegations": {
+      "type": "object",
+      "properties": {
+        "delegations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DelegationView"
+          }
+        }
+      }
+    },
+    "StateSectionDemo": {
+      "type": "object",
+      "properties": {
+        "runtimeDemo": {
+          "$ref": "#/$defs/RuntimeDemoState"
+        }
+      }
+    },
+    "StateSectionExtension": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "StateSectionMcp": {
+      "type": "object",
+      "properties": {
+        "mcpProviders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/McpProviderState"
+          }
+        }
+      }
+    },
+    "StateSectionMemory": {
+      "type": "object",
+      "properties": {
+        "memory": {
+          "$ref": "#/$defs/MemoryView"
+        }
+      }
+    },
+    "StateSectionModel": {
+      "type": "object",
+      "properties": {
+        "providerLabel": {
+          "type": "string"
+        },
+        "stream": {
+          "type": "boolean"
+        },
+        "simulated": {
+          "type": "boolean"
+        },
+        "configSource": {
+          "type": "string"
+        },
+        "confirmationMode": {
+          "$ref": "#/$defs/ConfirmationMode"
+        },
+        "configEditor": {
+          "$ref": "#/$defs/ProviderEditState"
+        }
+      }
+    },
+    "StateSectionOffers": {
+      "type": "object",
+      "properties": {
+        "offers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Offer"
+          }
+        },
+        "pictures": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/OverlayPicture"
+          }
+        }
+      }
+    },
+    "StateSectionPlans": {
+      "type": "object",
+      "properties": {
+        "plans": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Plan"
+          }
+        },
+        "planHistory": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PlanFiring"
+          }
+        },
+        "planFeeds": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/SubscriptionState"
+          }
+        }
+      }
+    },
+    "StateSectionPreferences": {
+      "type": "object",
+      "properties": {
+        "preferences": {
+          "$ref": "#/$defs/Preferences"
+        }
+      }
+    },
+    "StateSectionRun": {
+      "type": "object",
+      "properties": {
+        "activity": {
+          "$ref": "#/$defs/RunActivity"
+        },
+        "tool": {
+          "type": "string"
+        },
+        "runtimeStatus": {
+          "type": "string"
+        },
+        "isRunning": {
+          "type": "boolean"
+        },
+        "currentRequest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CurrentRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "runStartedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastRun": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "activeSessionCount": {
+          "type": "integer"
+        },
+        "maxActiveSessions": {
+          "type": "integer"
+        },
+        "runningThreads": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "StateSectionSubagents": {
+      "type": "object",
+      "properties": {
+        "board": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/SubagentLane"
+            }
+          }
+        },
+        "deliveries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "StateSectionTrajectory": {
+      "type": "object",
+      "properties": {
+        "trajectory": {
+          "$ref": "#/$defs/TrajectorySnapshot"
+        }
+      }
+    },
+    "StateSectionUsage": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "type": "integer"
+        }
+      }
+    },
+    "StateSectionWorkspace": {
+      "type": "object",
+      "properties": {
+        "workspaceSelection": {
+          "$ref": "#/$defs/WorkspaceSelectionState"
+        }
+      }
+    },
+    "SubagentKindView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "maxLookups": {
+          "type": "integer"
+        },
+        "searchApi": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubagentToolKind"
+          },
+          "uniqueItems": true
+        },
+        "requiresDeepSeekLookup": {
+          "type": "boolean"
+        },
+        "defaultTools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubagentToolKind"
+          },
+          "uniqueItems": true
+        },
+        "defaultLookups": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "maxLookups"
+      ]
+    },
+    "SubagentLane": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/SubagentRunState"
+        },
+        "startedAtEpochMillis": {
+          "type": "integer"
+        },
+        "lastActivityEpochMillis": {
+          "type": "integer"
+        },
+        "finishedAtEpochMillis": {
+          "type": "integer"
+        },
+        "toolCalls": {
+          "type": "integer"
+        },
+        "latest": {
+          "type": "string"
+        },
+        "result": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "parentSessionId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "task": {
+          "type": "string"
+        },
+        "modelCalls": {
+          "type": "integer"
+        },
+        "inputTokens": {
+          "type": "integer"
+        },
+        "cachedTokens": {
+          "type": "integer"
+        },
+        "outputTokens": {
+          "type": "integer"
+        },
+        "agentType": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "state",
+        "startedAtEpochMillis"
+      ]
+    },
+    "SubagentRunState": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "STALLED",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "TIMED_OUT"
+      ]
+    },
+    "SubagentSettingsView": {
+      "type": "object",
+      "properties": {
+        "allowDeviceControl": {
+          "type": "boolean"
+        },
+        "model": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "searchApi": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SubagentToolKind": {
+      "type": "string",
+      "enum": [
+        "SEARCH",
+        "FETCH",
+        "READ",
+        "WRITE",
+        "TODO",
+        "DEVICE_QUERY",
+        "DEVICE_CONTROL",
+        "SERVICES"
+      ]
+    },
+    "SubagentToolsParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubagentToolKind"
+          },
+          "uniqueItems": true
+        },
+        "maxLookups": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "tools",
+        "maxLookups"
+      ]
+    },
+    "SubscriptionState": {
+      "type": "string",
+      "enum": [
+        "OFFLINE",
+        "PENDING",
+        "LIVE",
+        "REFUSED",
+        "NO_PUSH"
+      ]
+    },
+    "TakenResult": {
+      "type": "object",
+      "properties": {
+        "taken": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "taken"
+      ]
+    },
+    "TextParams": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "TextResult": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "ThreadIdParams": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "threadId"
+      ]
+    },
+    "ThreadListChanged": {
+      "type": "object",
+      "properties": {
+        "threads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionSummary"
+          }
+        },
+        "activeThreadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "threads",
+        "activeThreadId"
+      ]
+    },
+    "ThreadListResult": {
+      "type": "object",
+      "properties": {
+        "threads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SessionSummary"
+          }
+        },
+        "activeThreadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "threads",
+        "activeThreadId"
+      ]
+    },
+    "ThreadSnapshot": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConversationItem"
+          }
+        }
+      },
+      "required": [
+        "threadId",
+        "items"
+      ]
+    },
+    "ThreadStartResult": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "threadId"
+      ]
+    },
+    "TodoEntry": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content",
+        "status"
+      ]
+    },
+    "TokenUsageState": {
+      "type": "object",
+      "properties": {
+        "requestCount": {
+          "type": "integer"
+        },
+        "inputTokens": {
+          "type": "integer"
+        },
+        "outputTokens": {
+          "type": "integer"
+        },
+        "reasoningTokens": {
+          "type": "integer"
+        },
+        "totalTokens": {
+          "type": "integer"
+        },
+        "cachedInputTokens": {
+          "type": "integer"
+        },
+        "cacheWriteTokens": {
+          "type": "integer"
+        },
+        "cacheHitTokens": {
+          "type": "integer"
+        },
+        "cacheMissTokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "ToolCallStatus": {
+      "type": "string",
+      "enum": [
+        "RUNNING",
+        "DONE",
+        "FAILED",
+        "UNKNOWN"
+      ]
+    },
+    "ToolSearchSection": {
+      "type": "object",
+      "properties": {
+        "settings": {
+          "$ref": "#/$defs/JevSettings"
+        }
+      }
+    },
+    "TrajectoryCorrelation": {
+      "type": "object",
+      "properties": {
+        "toolCallId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelCallId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lifecyclePhase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "localOrdinal": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TrajectoryHealth": {
+      "type": "object",
+      "properties": {
+        "eventLogStatus": {
+          "$ref": "#/$defs/EventLogHealthStatus"
+        },
+        "durability": {
+          "$ref": "#/$defs/EventLogDurability"
+        },
+        "attemptedCount": {
+          "type": "integer"
+        },
+        "appendedCount": {
+          "type": "integer"
+        },
+        "failedCount": {
+          "type": "integer"
+        },
+        "lastAcceptedSequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lastPersistedSequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hasSequenceGap": {
+          "type": "boolean"
+        },
+        "hasLiveOnlyRecords": {
+          "type": "boolean"
+        },
+        "richAvailability": {
+          "$ref": "#/$defs/TrajectoryRichAvailability"
+        },
+        "safeReasonCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TrajectoryKind": {
+      "type": "string",
+      "enum": [
+        "RUN_START",
+        "INPUT",
+        "THINKING",
+        "MODEL_MESSAGE",
+        "MODEL_CALL",
+        "MODEL_TOOL",
+        "TOOL_START",
+        "TOOL_FINISH",
+        "USAGE",
+        "CONFIRMATION",
+        "RETRY",
+        "COMPACTION",
+        "NETWORK",
+        "SEARCH",
+        "EXEC_OUTPUT",
+        "WORKSPACE",
+        "STATUS",
+        "RESULT",
+        "RUN_END",
+        "GAP",
+        "LOAD_ERROR"
+      ]
+    },
+    "TrajectoryLane": {
+      "type": "string",
+      "enum": [
+        "INPUT",
+        "MODEL",
+        "TOOLS",
+        "SYSTEM"
+      ]
+    },
+    "TrajectoryModelCall": {
+      "type": "object",
+      "properties": {
+        "phase": {
+          "$ref": "#/$defs/ModelCallPhase"
+        },
+        "modelRef": {
+          "type": "string"
+        },
+        "inputTokens": {
+          "type": "integer"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "phase"
+      ]
+    },
+    "TrajectoryQuestion": {
+      "type": "object",
+      "properties": {
+        "questionId": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "questionId",
+        "kind",
+        "text",
+        "state"
+      ]
+    },
+    "TrajectoryRaw": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TrajectoryRawParams": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "eventId"
+      ]
+    },
+    "TrajectoryRecord": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "requestId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eventId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurredAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timeQuality": {
+          "$ref": "#/$defs/TrajectoryTimeQuality"
+        },
+        "kind": {
+          "$ref": "#/$defs/TrajectoryKind"
+        },
+        "lane": {
+          "$ref": "#/$defs/TrajectoryLane"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "correlation": {
+          "$ref": "#/$defs/TrajectoryCorrelation"
+        },
+        "safeMetadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "contentHashes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "sourceEventSequences": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TrajectorySource"
+          },
+          "uniqueItems": true
+        },
+        "rich": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TrajectoryRichDetails"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "richAvailability": {
+          "$ref": "#/$defs/TrajectoryRichAvailability"
+        },
+        "isLive": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "sessionId",
+        "runId",
+        "kind",
+        "lane",
+        "title"
+      ]
+    },
+    "TrajectoryRichAvailability": {
+      "type": "string",
+      "enum": [
+        "AVAILABLE",
+        "PARTIAL",
+        "REDACTED",
+        "HASH_ONLY",
+        "UNAVAILABLE"
+      ]
+    },
+    "TrajectoryRichDetails": {
+      "type": "object",
+      "properties": {
+        "inputPreview": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "payloadPreview": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resultPreview": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "schemaPreview": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "requestText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thinkingText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "outputText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "usageText": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timing": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "question": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TrajectoryQuestion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelCall": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TrajectoryModelCall"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TrajectoryRunGroup": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "requestId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "startedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "completedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lifecycleStatus": {
+          "type": "string"
+        },
+        "completionOutcome": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "recordsLoaded": {
+          "type": "boolean"
+        },
+        "loadFailed": {
+          "type": "boolean"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TrajectoryRecord"
+          }
+        },
+        "health": {
+          "$ref": "#/$defs/TrajectoryHealth"
+        }
+      },
+      "required": [
+        "sessionId",
+        "runId"
+      ]
+    },
+    "TrajectorySnapshot": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "runGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TrajectoryRunGroup"
+          }
+        },
+        "visibleRunCount": {
+          "type": "integer"
+        },
+        "totalKnownRunCount": {
+          "type": "integer"
+        },
+        "hasOlderRuns": {
+          "type": "boolean"
+        },
+        "loadingRunIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "refreshing": {
+          "type": "boolean"
+        },
+        "recordAliases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "revision": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sessionId"
+      ]
+    },
+    "TrajectorySource": {
+      "type": "string",
+      "enum": [
+        "EVENT_LOG",
+        "SESSION_TURN",
+        "RUN_EVIDENCE",
+        "SYNTHETIC_BOUNDARY"
+      ]
+    },
+    "TrajectoryTimeQuality": {
+      "type": "string",
+      "enum": [
+        "PERSISTED_RECORDED",
+        "LIVE_ARRIVAL",
+        "SUMMARY_RANGE",
+        "UNKNOWN"
+      ]
+    },
+    "TranscriptRole": {
+      "type": "string",
+      "enum": [
+        "ASSISTANT",
+        "THINKING",
+        "RUNTIME",
+        "STATUS",
+        "ERROR",
+        "NOTICE"
+      ]
+    },
+    "TtsChoice": {
+      "type": "string",
+      "enum": [
+        "ENABLED",
+        "VOICE",
+        "STREAM",
+        "PROVIDER",
+        "DOUBAO_VOICE",
+        "DOUBAO_SPEECH_RATE"
+      ]
+    },
+    "TtsChoiceParams": {
+      "type": "object",
+      "properties": {
+        "choice": {
+          "$ref": "#/$defs/TtsChoice"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "choice",
+        "value"
+      ]
+    },
+    "TtsProvider": {
+      "type": "string",
+      "enum": [
+        "MIMO",
+        "DOUBAO",
+        "SYSTEM"
+      ]
+    },
+    "TtsSettings": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "provider": {
+          "$ref": "#/$defs/TtsProvider"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "voice": {
+          "type": "string"
+        },
+        "style": {
+          "type": "string"
+        },
+        "stream": {
+          "type": "boolean"
+        },
+        "hasApiKey": {
+          "type": "boolean"
+        },
+        "ready": {
+          "type": "boolean"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "doubao": {
+          "$ref": "#/$defs/DoubaoTtsView"
+        }
+      }
+    },
+    "TurnCompleted": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "threadId",
+        "requestId"
+      ]
+    },
+    "TurnInterruptParams": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "TurnStartParams": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "threadId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "focus": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    },
+    "TurnStarted": {
+      "type": "object",
+      "properties": {
+        "threadId": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
+        "startedAtEpochMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "threadId",
+        "requestId"
+      ]
+    },
+    "UriParams": {
+      "type": "object",
+      "properties": {
+        "uri": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "uri"
+      ]
+    },
+    "UsageData": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/ModelUsage"
+            }
+          }
+        },
+        "prices": {
+          "$ref": "#/$defs/PriceBook"
+        }
+      }
+    },
+    "UserMemory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/MemoryCategory"
+        },
+        "content": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/MemorySource"
+        },
+        "said": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAtMillis": {
+          "type": "integer"
+        },
+        "updatedAtMillis": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "content",
+        "source",
+        "createdAtMillis",
+        "updatedAtMillis"
+      ]
+    },
+    "UserQuestion": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "runId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "state": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "runId",
+        "sessionId",
+        "title",
+        "options",
+        "state"
+      ]
+    },
+    "VoiceEffectsView": {
+      "type": "object",
+      "properties": {
+        "echoCanceller": {
+          "type": "boolean"
+        },
+        "echoGate": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "echoCanceller"
+      ]
+    },
+    "VoiceEngine": {
+      "type": "string",
+      "enum": [
+        "LOCAL",
+        "DASHSCOPE"
+      ]
+    },
+    "VoiceJudgmentView": {
+      "type": "object",
+      "properties": {
+        "turnComplete": {
+          "type": "number"
+        },
+        "holdingFloor": {
+          "type": "number"
+        },
+        "addressedToAgent": {
+          "type": "number"
+        },
+        "takingFloor": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replacesTask": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "turnComplete",
+        "holdingFloor",
+        "addressedToAgent"
+      ]
+    },
+    "VoiceKey": {
+      "type": "string",
+      "enum": [
+        "DASHSCOPE",
+        "JEV",
+        "MIMO",
+        "DOUBAO"
+      ]
+    },
+    "VoiceKeyParams": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/VoiceKey"
+        }
+      },
+      "required": [
+        "key"
+      ]
+    },
+    "VoiceSection": {
+      "type": "object",
+      "properties": {
+        "voice": {
+          "$ref": "#/$defs/VoiceView"
+        }
+      }
+    },
+    "VoiceSegmentView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "label": {
+          "$ref": "#/$defs/SegmentLabel"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "endedAtEpochMillis": {
+          "type": "integer"
+        },
+        "submitted": {
+          "type": "boolean"
+        },
+        "handOver": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SegmentHandOver"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dismissed": {
+          "type": "boolean"
+        },
+        "judgment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoiceJudgmentView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "label",
+        "reason",
+        "endedAtEpochMillis"
+      ]
+    },
+    "VoiceSettings": {
+      "type": "object",
+      "properties": {
+        "engine": {
+          "$ref": "#/$defs/VoiceEngine"
+        },
+        "localThreads": {
+          "type": "integer"
+        },
+        "dashscopeEndpoint": {
+          "type": "string"
+        },
+        "dashscopeModel": {
+          "type": "string"
+        },
+        "hasDashscopeKey": {
+          "type": "boolean"
+        },
+        "autoSubmit": {
+          "type": "boolean"
+        },
+        "historyMessages": {
+          "type": "integer"
+        },
+        "echoCancel": {
+          "type": "boolean"
+        },
+        "bargeIn": {
+          "type": "boolean"
+        },
+        "handOverChime": {
+          "type": "boolean"
+        },
+        "jevTurns": {
+          "type": "boolean"
+        },
+        "nearGate": {
+          "type": "boolean"
+        },
+        "thresholds": {
+          "$ref": "#/$defs/VoiceThresholds"
+        },
+        "wakeSensitivity": {
+          "type": "string"
+        },
+        "nearGateBelowDb": {
+          "type": "integer"
+        },
+        "hotwords": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "VoiceSettingsResult": {
+      "type": "object",
+      "properties": {
+        "view": {
+          "$ref": "#/$defs/VoiceSettingsView"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "view"
+      ]
+    },
+    "VoiceSettingsSaveParams": {
+      "type": "object",
+      "properties": {
+        "voice": {
+          "$ref": "#/$defs/VoiceSettings"
+        },
+        "asrKey": {
+          "type": "string"
+        },
+        "jev": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/JevConnectionDraft"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TtsSettings"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ttsKey": {
+          "type": "string"
+        },
+        "doubaoKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "voice"
+      ]
+    },
+    "VoiceSettingsView": {
+      "type": "object",
+      "properties": {
+        "voice": {
+          "$ref": "#/$defs/VoiceSettings"
+        },
+        "jev": {
+          "$ref": "#/$defs/JevSettings"
+        },
+        "tts": {
+          "$ref": "#/$defs/TtsSettings"
+        },
+        "ttsKeyStored": {
+          "type": "boolean"
+        },
+        "doubaoKeyStored": {
+          "type": "boolean"
+        },
+        "localAsrProblem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "echoCancellerAvailable": {
+          "type": "boolean"
+        },
+        "asrModels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingsOption"
+          }
+        },
+        "mimoVoices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingsOption"
+          }
+        },
+        "doubaoVoices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SettingsOption"
+          }
+        },
+        "wakeLevels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WakeLevelView"
+          }
+        },
+        "wakeIdleEndSeconds": {
+          "type": "integer"
+        }
+      }
+    },
+    "VoiceStatus": {
+      "type": "string",
+      "enum": [
+        "IDLE",
+        "STARTING",
+        "LISTENING",
+        "BUSY",
+        "ERROR"
+      ]
+    },
+    "VoiceThresholds": {
+      "type": "object",
+      "properties": {
+        "eos": {
+          "type": "number"
+        },
+        "eosFloor": {
+          "type": "number"
+        },
+        "addresseeAgent": {
+          "type": "number"
+        },
+        "addresseeSide": {
+          "type": "number"
+        },
+        "silenceCapMillis": {
+          "type": "integer"
+        },
+        "bargeIn": {
+          "type": "number"
+        }
+      }
+    },
+    "VoiceView": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/VoiceStatus"
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoiceEngine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "asrModel": {
+          "type": "string"
+        },
+        "liveText": {
+          "type": "string"
+        },
+        "liveJudgment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoiceJudgmentView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "micActive": {
+          "type": "boolean"
+        },
+        "micLevels": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "segments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VoiceSegmentView"
+          }
+        },
+        "problem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fullDuplex": {
+          "type": "boolean"
+        },
+        "effects": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoiceEffectsView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "judgeCount": {
+          "type": "integer"
+        },
+        "judgeFailures": {
+          "type": "integer"
+        },
+        "lastJudgeLatencyMillis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "echoes": {
+          "type": "integer"
+        },
+        "interruptions": {
+          "type": "integer"
+        },
+        "agentWorking": {
+          "type": "boolean"
+        },
+        "assistantSpeaking": {
+          "type": "boolean"
+        },
+        "listening": {
+          "type": "boolean"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "holding": {
+          "type": "boolean"
+        },
+        "finishingHold": {
+          "type": "boolean"
+        },
+        "holdsToTalk": {
+          "type": "boolean"
+        },
+        "handOver": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HandOverNoticeView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wakeSession": {
+          "type": "boolean"
+        },
+        "notice": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "speaking": {
+          "type": "boolean"
+        },
+        "wakeWordEnabled": {
+          "type": "boolean"
+        },
+        "wakeStatus": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wakeListening": {
+          "type": "boolean"
+        },
+        "wakeMigrated": {
+          "type": "boolean"
+        },
+        "realtime": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RealtimeExchangeView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "VoiceWakeParams": {
+      "type": "object",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/WakeOrigin"
+        },
+        "onlyIfCanListen": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source"
+      ]
+    },
+    "VoiceWakeResult": {
+      "type": "object",
+      "properties": {
+        "started": {
+          "type": "boolean"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "started"
+      ]
+    },
+    "WakeLevelView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "phrases"
+      ]
+    },
+    "WakeOrigin": {
+      "type": "string",
+      "enum": [
+        "WORD",
+        "ENGLISH_WORD",
+        "LONG_PRESS",
+        "TAP",
+        "ADB",
+        "SURFACE"
+      ]
+    },
+    "WatchMode": {
+      "type": "string",
+      "enum": [
+        "ENTER",
+        "EACH"
+      ]
+    },
+    "WatchOp": {
+      "type": "string",
+      "enum": [
+        "ABOVE",
+        "BELOW",
+        "EQUALS",
+        "NOT_EQUALS",
+        "CONTAINS",
+        "CHANGES"
+      ]
+    },
+    "WebLookupView": {
+      "type": "object",
+      "properties": {
+        "profileId": {
+          "type": "string"
+        },
+        "profileLabel": {
+          "type": "string"
+        },
+        "searchApi": {
+          "type": "boolean"
+        },
+        "ownSearch": {
+          "type": "boolean"
+        },
+        "fetchFallback": {
+          "type": "boolean"
+        },
+        "deepSeekKey": {
+          "type": "boolean"
+        }
+      }
+    },
+    "WidgetCard": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subtitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Pair"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CardItem"
+          }
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "layout": {
+          "$ref": "#/$defs/CardLayout"
+        },
+        "progress": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CardProgress"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "fields",
+        "items"
+      ]
+    },
+    "WorkspaceSelectionState": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "safEnabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

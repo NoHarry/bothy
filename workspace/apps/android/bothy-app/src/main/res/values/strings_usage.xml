@@ -8,7 +8,6 @@
     <string name="usage_range_week">Last 7 days</string>
     <string name="usage_range_month">Last 30 days</string>
     <string name="usage_tokens_note">Tokens are input (cache hits included) + output (reasoning included). Costs use the prices and exchange rate under \"Model prices\"; models without a price cost nothing.</string>
-
     <!-- Summary -->
     <string name="usage_total_tokens">Total tokens</string>
     <string name="usage_peak_day_tokens">Peak day</string>
@@ -19,7 +18,6 @@
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
-
     <!-- Token activity -->
     <string name="usage_token_activity">Token activity</string>
     <string name="usage_heat_daily">Daily</string>
@@ -38,7 +36,6 @@
     </plurals>
     <string name="usage_less">Less</string>
     <string name="usage_more">More</string>
-
     <!-- Daily trend -->
     <string name="usage_metric_tokens">Tokens</string>
     <string name="usage_metric_cost">Cost</string>
@@ -56,7 +53,6 @@
     <string name="usage_empty_unpriced">The models used in this range have no price yet; sync or enter one under \"Model prices\".</string>
     <string name="usage_empty_range">No usage to show in this range.</string>
     <string name="usage_bars_hint">Tap a bar to see that day\'s usage; the labelled bar is the range\'s peak</string>
-
     <!-- Usage by model -->
     <string name="usage_model_usage">Usage by model</string>
     <string name="usage_no_calls_title">No model calls yet</string>
@@ -69,7 +65,6 @@
     <string name="usage_cost">Cost</string>
     <string name="usage_unpriced">No price</string>
     <string name="usage_unpriced_hint">Sync or enter one under \"Model prices\"</string>
-
     <!-- Model prices -->
     <string name="usage_sync_and_rate">Sync and exchange rate</string>
     <string name="usage_prices_note">Prices sync from models.dev in US dollars per million tokens and are converted to yuan at the exchange rate. DeepSeek uses its official prices: every flash model at deepseek-flash. Cache hits are charged at the cache price, or the input price when there is none. Prices entered by hand are kept when syncing.</string>
@@ -95,7 +90,6 @@
     <string name="usage_restore_synced">Use synced price</string>
     <string name="usage_source_manual">Entered by hand</string>
     <string name="usage_source_priced_as">%1$s (as %2$s)</string>
-
     <!-- Context ring -->
     <string name="usage_context_ring_description">Context used: %1$s. Tap for details</string>
     <string name="usage_context_not_yet">not known yet</string>

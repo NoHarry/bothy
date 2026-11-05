@@ -3,49 +3,12 @@
   设置 → 语音、端到端语音、控制台的语音条、唤醒词的状态和通知。小博说的话和模型读的文字留在代码里。
 -->
 <resources>
-    <!-- Jev: connection, tool search -->
-    <string name="voice_jev_endpoint_https">Jev 地址需为 https:// 地址。</string>
-    <string name="voice_jev_endpoint_parts">Jev 地址不能包含凭据、查询参数或片段。</string>
-    <string name="voice_jev_model_required">请填写 Jev 模型 ID（不含空白）。</string>
-    <string name="voice_jev_timeout_range">Jev 超时需为 500–15000 毫秒。</string>
-    <string name="voice_jev_min_score_range">最低相关度需在 0–1 之间。</string>
-    <string name="voice_jev_domain_score_range">领域相关度需在 0–1 之间。</string>
-    <string name="voice_jev_max_tools_range">候选工具数需为 1–24。</string>
-    <string name="voice_jev_key_needed_for_search">开启工具检索前，请先在 设置 → 语音 → 密钥 保存 Jev API key。</string>
-    <string name="voice_key_whitespace">API key 不能包含空白字符。</string>
-    <string name="voice_jev_key_delete_failed">无法删除已保存的 Jev key。</string>
-    <string name="voice_jev_save_failed">无法保存 Jev 设置。</string>
-    <string name="voice_jev_key_save_failed">无法保存 Jev API key。</string>
     <string name="voice_jev_mode_flat">一次检索 · 在全部工具里选</string>
     <string name="voice_jev_mode_two_stage">两段 · 先选领域，再选工具</string>
     <string name="voice_jev_mode_two_stage_subdomains">两段 · 先选子领域，再选工具</string>
-
     <!-- Recognition settings -->
     <string name="voice_engine_local">本地 · sherpa-onnx</string>
     <string name="voice_engine_dashscope">云端 · 阿里云百炼</string>
-    <string name="voice_local_threads_range">本地线程数需为 1–%1$d。</string>
-    <string name="voice_dashscope_endpoint_wss">百炼地址需为 wss:// 地址。</string>
-    <string name="voice_dashscope_endpoint_parts">百炼地址不能包含凭据、查询参数或片段。</string>
-    <string name="voice_dashscope_model_required">请选择一个百炼识别模型。</string>
-    <string name="voice_dashscope_key_needed">使用百炼前请先在「密钥」页保存百炼 key。</string>
-    <string name="voice_history_range">上下文条数需为 0–%1$d。</string>
-    <string name="voice_near_gate_range">近场门需为 %1$d–%2$d dB。</string>
-    <plurals name="voice_hotwords_max">
-        <item quantity="other">热词最多 %1$d 个。</item>
-    </plurals>
-    <string name="voice_key_delete_failed">无法删除已保存的 key。</string>
-    <string name="voice_save_failed">无法保存语音设置。</string>
-    <string name="voice_key_save_failed">无法保存 API key。</string>
-
-    <!-- Why listening can't start -->
-    <string name="voice_mic_permission_needed">需要麦克风权限</string>
-    <string name="voice_realtime_key_needed">端到端演示要用豆包语音 key：请先在 设置 → 语音 → 密钥 保存</string>
-    <string name="voice_dashscope_key_missing">请先保存百炼 API key</string>
-
-    <!-- Wake notification -->
-    <string name="voice_wake_channel">小博语音唤醒</string>
-    <string name="voice_wake_notification">说「你好，小博」或「OK Bothy」唤醒；在 设置 → 语音 关闭</string>
-
     <!-- The console's voice strip -->
     <string name="voice_mic_denied">未授予麦克风权限</string>
     <string name="voice_mic_stop">结束语音</string>
@@ -105,7 +68,6 @@
     <string name="voice_end_wake_phrase">听到唤醒词，前面的话不交给 Agent</string>
     <string name="voice_end_far_speech">比唤醒时轻得多，像是旁人或视频，未交给 Agent</string>
     <string name="voice_end_dismissed">只说了「退出」这类话，直接结束对话</string>
-
     <!-- Settings → Voice -->
     <string name="voice_tab_keys">密钥</string>
     <string name="voice_tab_recognition">识别与唤醒</string>
@@ -114,11 +76,6 @@
     <string name="voice_saved">已保存</string>
     <string name="voice_saved_after_restart">已保存 · 结束当前监听后重新唤醒生效</string>
     <string name="voice_discarded">已放弃修改</string>
-    <string name="voice_error_recognition">识别与录音：%1$s</string>
-    <string name="voice_error_jev">Jev：%1$s</string>
-    <string name="voice_error_tts">语音播报：%1$s</string>
-    <string name="voice_error_mimo_key">MiMo key：%1$s</string>
-    <string name="voice_error_doubao_key">豆包语音 key：%1$s</string>
     <string name="voice_keys_intro">语音用到的 key 都在这里填，其他页签只改设置。Key 只能输入、不会显示，存在本机不备份的目录；留空保存不会改动已有的 key。</string>
     <string name="voice_dashscope_title">百炼</string>
     <string name="voice_dashscope_key_missing_status">缺少：识别选的是百炼，语音会话开不了</string>
@@ -135,7 +92,6 @@
     <string name="voice_mimo_key_note">播报回复用（MiMo TTS）；不填就用 MiMo 模型服务的 key。</string>
     <string name="voice_mimo_key_label_packaged">API key · 留空则用打包时的 MiMo key</string>
     <string name="voice_mimo_key_deleted">已删除这里保存的 MiMo key</string>
-    <string name="voice_mimo_key_delete_failed">无法删除 MiMo key</string>
     <string name="voice_local_ready">可用 · 本机识别，音频不出设备</string>
     <string name="voice_dashscope_ready">可用 · 百炼 %1$s</string>
     <string name="voice_dashscope_key_missing_go">缺少百炼 key：到「密钥」页填写</string>
@@ -176,27 +132,14 @@
     <string name="voice_voice">音色</string>
     <string name="voice_other_voice">其他 · %1$s</string>
     <string name="voice_mimo_presets_note">预置音色只用于 mimo-v2.5-tts 模型。</string>
-    <string name="voice_doubao_key_missing_status">缺少豆包语音 key：到「密钥」页填写；现在回复只显示、不播报</string>
-    <string name="voice_mimo_key_missing_status">缺少 MiMo key：到「密钥」页填写；现在回复只显示、不播报</string>
-    <string name="voice_off">已关闭</string>
-    <string name="voice_config_incomplete">配置不完整</string>
     <string name="voice_delete_key">删除 key</string>
     <string name="voice_api_key">API key</string>
     <string name="voice_api_key_saved">API key · 已保存（留空保持不变）</string>
     <string name="voice_wake_switch">说「你好，小博」「hi，小博」「OK Bothy」或长按小博唤醒（关闭时长按小博是让它休息）</string>
-    <string name="voice_switch_save_failed">无法保存开关。</string>
     <string name="voice_wake_explainer">立即生效，不用点保存。唤醒词由本机的小模型一直听（约 4.6 MB，不上传音频）；唤醒后小博飞到中间打开卡片，卡片的输入框换成语音，空闲 %1$d 秒、点「收起」或说「退下吧」「再见」后结束，再回到听唤醒词（说退出只对唤醒的会话有效）。操作屏幕时，听到的话显示在屏幕顶部，截图时隐藏。</string>
     <string name="voice_wake_status">状态：%1$s</string>
     <string name="voice_wake_sensitivity_save_failed">无法保存唤醒阈值。</string>
     <string name="voice_wake_sensitivity">唤醒阈值</string>
-    <string name="voice_phrase_quoted">「%1$s」</string>
-    <string name="voice_phrase_separator">、</string>
-    <string name="voice_wake_high">高 · 不易误唤醒</string>
-    <string name="voice_wake_high_detail">只认 %1$s，要说得清楚</string>
-    <string name="voice_wake_standard">中 · 默认</string>
-    <string name="voice_wake_standard_detail">认 %1$s</string>
-    <string name="voice_wake_low">低 · 容易唤醒</string>
-    <string name="voice_wake_low_detail">认 %1$s，发音不太准也唤醒</string>
     <string name="voice_aec_note">开启后录音改用通话音源，由系统做回声消除和降噪。</string>
     <string name="voice_aec_missing">此设备没有系统回声消除：保持半双工，Agent 处理和播报期间暂停收音。</string>
     <string name="voice_barge_in">播报和执行任务时继续收音、可以打断（需开启回声消除）</string>
@@ -229,61 +172,10 @@
     <string name="voice_doubao_speech">豆包语音</string>
     <string name="voice_doubao_key_note">播报选豆包时用：新版控制台的 API key，或旧版的 Access Token（App ID 填在「语音播报」页）。</string>
     <string name="voice_doubao_key_deleted">已删除这里保存的豆包语音 key</string>
-    <string name="voice_doubao_key_delete_failed">无法删除豆包语音 key</string>
-
-    <!-- Wake word status -->
-    <string name="voice_wake_paused">暂停：%1$s</string>
-    <string name="voice_wake_waking">正在唤醒小博</string>
-    <string name="voice_wake_start_failed">唤醒词无法启动</string>
-    <string name="voice_wake_listening_in_session">对话中也在听「你好，小博」和「OK Bothy」，再叫一次就打断重听</string>
-    <string name="voice_wake_listening">正在听「你好，小博」和「OK Bothy」</string>
-    <string name="voice_wake_error">麦克风或模型出错：%1$s</string>
-
     <!-- Speech (TTS) -->
     <string name="tts_provider_mimo">MiMo</string>
     <string name="tts_provider_doubao">豆包</string>
     <string name="tts_provider_system">系统语音</string>
-    <string name="tts_system_voice_label">系统语音（设备自带）</string>
-    <string name="tts_endpoint_https">播报地址需为 https:// 地址。</string>
-    <string name="tts_endpoint_parts">播报地址不能包含凭据、查询参数或片段。</string>
-    <string name="tts_model_required">请填写播报模型 ID（不含空白）。</string>
-    <string name="tts_voice_required">请填写音色。</string>
-    <string name="tts_save_failed">无法保存播报设置。</string>
-    <string name="tts_key_invalid">API key 不能为空或包含空白字符。</string>
-    <string name="tts_key_save_failed">无法保存播报 API key。</string>
-    <string name="tts_voice_lively_female">活泼女声</string>
-    <string name="tts_voice_refined_female">知性女声</string>
-    <string name="tts_voice_sunny_male">阳光男声</string>
-    <string name="tts_voice_mature_male">成熟男声</string>
-    <string name="tts_voice_english_female">英文女声</string>
-    <string name="tts_voice_english_male">英文男声</string>
-    <string name="tts_voice_general_female">通用女声</string>
-    <string name="tts_voice_multilingual_female">多语种女声</string>
-    <string name="tts_voice_general_male">通用男声</string>
-    <string name="tts_voice_female">女声</string>
-    <string name="tts_voice_male">男声</string>
-    <string name="tts_doubao_resource_required">请填写豆包资源 ID（如 seed-tts-2.0）。</string>
-    <string name="tts_doubao_rate_range">语速要在 -50 到 100 之间。</string>
-    <string name="tts_app_id_whitespace">App ID 不能包含空白字符。</string>
-    <string name="tts_doubao_key_save_failed">无法保存豆包语音 key。</string>
-    <string name="tts_system_failed">系统语音合成失败</string>
-    <string name="tts_system_no_stream">系统语音不支持流式播放</string>
-    <string name="tts_system_error">系统语音合成出错</string>
-    <string name="tts_system_error_code">系统语音合成出错（%1$d）</string>
-    <string name="tts_system_no_engine">这台设备没有可用的系统语音：到系统设置的「文字转语音」装一个中文语音，或者在「密钥」页填豆包语音 key</string>
-
-    <!-- End-to-end voice -->
-    <string name="realtime_label">豆包端到端</string>
-    <string name="realtime_mic_error">麦克风出错：%1$s</string>
-    <string name="realtime_closed_by_service">服务端关闭了连接</string>
-    <string name="realtime_server_error">豆包端到端报错：%1$s</string>
-    <string name="realtime_closed_early">豆包端到端没有建立会话就关闭了连接</string>
-    <plurals name="realtime_probe_timeout">
-        <item quantity="other">%1$d 秒内没有建立会话</item>
-    </plurals>
-    <string name="realtime_unreachable">连不上豆包端到端：%1$s</string>
-    <string name="realtime_key_refused">豆包端到端拒绝了这个 key（HTTP %1$d）：确认控制台已开通端到端实时语音。%2$s</string>
-    <string name="realtime_connect_failed">豆包端到端连接失败（HTTP %1$d）%2$s</string>
     <string name="realtime_saved_after_restart">已保存 · 结束当前对话后重新唤醒生效</string>
     <string name="realtime_saved_next_wake">已保存，下次唤醒生效</string>
     <string name="realtime_persona_text">人设内容（改了按保存就是自定义；办事交给小博、结束对话的规则会自动加在后面）</string>
@@ -297,54 +189,105 @@
     <string name="realtime_persona">人设</string>
     <string name="realtime_custom">自定义</string>
     <string name="realtime_custom_summary">用下面框里自己写的人设</string>
-    <string name="realtime_custom_persona">自定义人设</string>
     <string name="realtime_connecting">正在连接豆包端到端…</string>
     <string name="realtime_test">测试连接（用已保存的设置）</string>
-    <string name="realtime_failed_no_key">失败：缺少豆包语音 key</string>
-    <string name="realtime_connected">会话建立用了 %1$d ms · %2$s · %3$s</string>
-    <string name="realtime_failed">失败：%1$s</string>
-    <string name="realtime_report_line">开 · 允许打断%1$s · 补播报%2$s · %3$s · %4$s</string>
-    <string name="realtime_check_off">没打开</string>
     <string name="realtime_check_no_key">缺少豆包语音 key</string>
-    <string name="realtime_check_ok">%1$s · %2$s · 允许打断%3$s · 会话建立用了 %4$d ms</string>
-    <string name="realtime_persona_warm">小博（默认）</string>
-    <string name="realtime_persona_warm_summary">温暖、机灵，口语化</string>
-    <string name="realtime_persona_savage">毒舌损友</string>
-    <string name="realtime_persona_savage_summary">特别刻毒：开口先损你一句，再把事办了</string>
-    <string name="realtime_persona_butler">贴心管家</string>
-    <string name="realtime_persona_butler_summary">沉稳得体，称呼「您」，先说结论</string>
-    <string name="realtime_persona_sunny">元气搭子</string>
-    <string name="realtime_persona_sunny_summary">热情爱夸人，轻快俏皮</string>
-    <string name="realtime_persona_laotie">东北老铁</string>
-    <string name="realtime_persona_laotie_summary">豪爽幽默，一股东北味儿</string>
-    <string name="realtime_persona_gentle">温柔树洞</string>
-    <string name="realtime_persona_gentle_summary">轻声慢语，先接住情绪，适合深夜</string>
-    <string name="realtime_persona_terse">极简高冷</string>
-    <string name="realtime_persona_terse_summary">话最少，只说结果</string>
-    <!-- What bothy-voice reports, worded here -->
-    <string name="voice_local_model_missing">本地模型未安装：assets/%1$s 里缺少 %2$s，放进去后重新打包</string>
-    <string name="voice_wake_model_missing">唤醒词模型未安装：assets/%1$s 里缺少 %2$s，放进去后重新打包</string>
-    <string name="voice_native_library_failed">sherpa-onnx 原生库加载失败（%1$s），这台设备的 ABI 可能不在 bothy-voice 自带的库里</string>
-    <string name="voice_problem_mic_stopped">麦克风已停止</string>
-    <string name="voice_problem_recognition_failed">百炼识别失败：%1$s %2$s</string>
-    <string name="voice_problem_connection_failed">百炼连接失败：%1$s %2$s</string>
+    <string name="realtime_check_off">没打开</string>
+    <string name="realtime_check_ok">%1$s · %2$s · 允许打断%3$s · 会话建立用了 %4$s ms</string>
+    <string name="realtime_connected">会话建立用了 %1$s ms · %2$s · %3$s</string>
+    <string name="realtime_failed">失败：%1$s</string>
+    <string name="realtime_failed_no_key">失败：缺少豆包语音 key</string>
+    <string name="tts_app_id_whitespace">App ID 不能包含空白字符。</string>
+    <string name="tts_doubao_key_save_failed">无法保存豆包语音 key。</string>
+    <string name="tts_doubao_rate_range">语速要在 -50 到 100 之间。</string>
+    <string name="tts_doubao_resource_required">请填写豆包资源 ID（如 seed-tts-2.0）。</string>
+    <string name="tts_endpoint_https">播报地址需为 https:// 地址。</string>
+    <string name="tts_endpoint_parts">播报地址不能包含凭据、查询参数或片段。</string>
+    <string name="tts_key_invalid">API key 不能为空或包含空白字符。</string>
+    <string name="tts_key_save_failed">无法保存播报 API key。</string>
+    <string name="tts_model_required">请填写播报模型 ID（不含空白）。</string>
+    <string name="tts_save_failed">无法保存播报设置。</string>
+    <string name="tts_system_voice_label">系统语音（设备自带）</string>
+    <string name="tts_voice_required">请填写音色。</string>
+    <string name="voice_config_incomplete">配置不完整</string>
+    <string name="voice_dashscope_endpoint_parts">百炼地址不能包含凭据、查询参数或片段。</string>
+    <string name="voice_dashscope_endpoint_wss">百炼地址需为 wss:// 地址。</string>
+    <string name="voice_dashscope_key_missing">请先保存百炼 API key</string>
+    <string name="voice_dashscope_key_needed">使用百炼前请先在「密钥」页保存百炼 key。</string>
+    <string name="voice_dashscope_model_required">请选择一个百炼识别模型。</string>
+    <string name="voice_doubao_key_delete_failed">无法删除豆包语音 key</string>
+    <string name="voice_doubao_key_missing_status">缺少豆包语音 key：到「密钥」页填写；现在回复只显示、不播报</string>
+    <string name="voice_error_doubao_key">豆包语音 key：%1$s</string>
+    <string name="voice_error_jev">Jev：%1$s</string>
+    <string name="voice_error_mimo_key">MiMo key：%1$s</string>
+    <string name="voice_error_recognition">识别与录音：%1$s</string>
+    <string name="voice_error_tts">语音播报：%1$s</string>
+    <string name="voice_history_range">上下文条数需为 0–%1$s。</string>
     <string name="voice_hotword_blank">热词不能为空。</string>
     <plurals name="voice_hotword_too_many_chars">
-        <item quantity="other">「%1$s」超过 %2$d 个字。</item>
+        <item quantity="other">「%1$s」超过 %2$s 个字。</item>
     </plurals>
     <plurals name="voice_hotword_too_many_words">
-        <item quantity="other">「%1$s」超过 %2$d 个单词。</item>
+        <item quantity="other">「%1$s」超过 %2$s 个单词。</item>
     </plurals>
-    <string name="voice_threshold_score_range">分数需在 0–1 之间。</string>
-    <string name="voice_threshold_eos_floor">说完阈值下限不能高于说完阈值。</string>
-    <string name="voice_threshold_side_above_agent">人人对话的界限不能高于面向 Agent 的界限。</string>
-    <string name="voice_threshold_durations">时长需为正数。</string>
-    <string name="voice_threshold_silence_caps">静音上限需长于静默窗口，等待时的静音上限也不能更短。</string>
-    <string name="voice_threshold_longest_turn">单轮最长时长不能短于静音上限。</string>
+    <plurals name="voice_hotwords_max">
+        <item quantity="other">热词最多 %1$s 个。</item>
+    </plurals>
+    <string name="voice_jev_domain_score_range">领域相关度需在 0–1 之间。</string>
+    <!-- Jev: connection, tool search -->
+    <string name="voice_jev_endpoint_https">Jev 地址需为 https:// 地址。</string>
+    <string name="voice_jev_endpoint_parts">Jev 地址不能包含凭据、查询参数或片段。</string>
+    <string name="voice_jev_key_delete_failed">无法删除已保存的 Jev key。</string>
+    <string name="voice_jev_key_needed_for_search">开启工具检索前，请先在 设置 → 语音 → 密钥 保存 Jev API key。</string>
+    <string name="voice_jev_key_save_failed">无法保存 Jev API key。</string>
+    <string name="voice_jev_max_tools_range">候选工具数需为 1–24。</string>
+    <string name="voice_jev_min_score_range">最低相关度需在 0–1 之间。</string>
+    <string name="voice_jev_model_required">请填写 Jev 模型 ID（不含空白）。</string>
+    <string name="voice_jev_save_failed">无法保存 Jev 设置。</string>
+    <string name="voice_jev_timeout_range">Jev 超时需为 500–15000 毫秒。</string>
+    <string name="voice_key_delete_failed">无法删除已保存的 key。</string>
+    <string name="voice_key_save_failed">无法保存 API key。</string>
+    <string name="voice_key_whitespace">API key 不能包含空白字符。</string>
+    <!-- What bothy-voice reports, worded here -->
+    <string name="voice_local_model_missing">本地模型未安装：assets/%1$s 里缺少 %2$s，放进去后重新打包</string>
+    <string name="voice_local_threads_range">本地线程数需为 1–%1$s。</string>
+    <!-- Why listening can't start -->
+    <string name="voice_mic_permission_needed">需要麦克风权限</string>
+    <string name="voice_mimo_key_delete_failed">无法删除 MiMo key</string>
+    <string name="voice_mimo_key_missing_status">缺少 MiMo key：到「密钥」页填写；现在回复只显示、不播报</string>
+    <string name="voice_native_library_failed">sherpa-onnx 原生库加载失败（%1$s），这台设备的 ABI 可能不在 bothy-voice 自带的库里</string>
+    <string name="voice_near_gate_range">近场门需为 %1$s–%2$s dB。</string>
+    <string name="voice_off">已关闭</string>
+    <string name="voice_problem_connection_failed">百炼连接失败：%1$s %2$s</string>
+    <string name="voice_problem_mic_stopped">麦克风已停止</string>
+    <string name="voice_problem_recognition_failed">百炼识别失败：%1$s %2$s</string>
+    <string name="voice_realtime_key_needed">端到端演示要用豆包语音 key：请先在 设置 → 语音 → 密钥 保存</string>
+    <string name="voice_save_failed">无法保存语音设置。</string>
+    <string name="voice_switch_save_failed">无法保存开关。</string>
     <string name="voice_threshold_agent_turn">面向助手的单轮上限不能短于其他单轮。</string>
+    <string name="voice_threshold_durations">时长需为正数。</string>
+    <string name="voice_threshold_eos_floor">说完阈值下限不能高于说完阈值。</string>
+    <string name="voice_threshold_longest_turn">单轮最长时长不能短于静音上限。</string>
+    <string name="voice_threshold_score_range">分数需在 0–1 之间。</string>
+    <string name="voice_threshold_side_above_agent">人人对话的界限不能高于面向 Agent 的界限。</string>
+    <string name="voice_threshold_silence_caps">静音上限需长于静默窗口，等待时的静音上限也不能更短。</string>
     <string name="voice_threshold_unsettled_wait">未说完时的等待需在静默窗口和静音上限之间。</string>
-    <string name="voice_asr_model_paraformer_v2">Paraformer 实时 v2</string>
-    <string name="voice_asr_model_qwen_audio_flash">Qwen-Audio 3.0 ASR Flash</string>
-    <string name="voice_engine_label_local">本地 · sherpa-onnx Zipformer Small</string>
+    <string name="voice_wake_error">麦克风或模型出错：%1$s</string>
+    <string name="voice_wake_listening">正在听「你好，小博」和「OK Bothy」</string>
+    <string name="voice_wake_listening_in_session">对话中也在听「你好，小博」和「OK Bothy」，再叫一次就打断重听</string>
+    <string name="voice_wake_model_missing">唤醒词模型未安装：assets/%1$s 里缺少 %2$s，放进去后重新打包</string>
+    <!-- Wake word status -->
+    <string name="voice_wake_paused">暂停：%1$s</string>
+    <string name="voice_wake_start_failed">唤醒词无法启动</string>
+    <string name="voice_wake_waking">正在唤醒小博</string>
     <string name="voice_engine_label_dashscope">云端 · 百炼 %1$s</string>
+    <string name="voice_engine_label_local">本地 · sherpa-onnx Zipformer Small</string>
+    <string name="voice_phrase_quoted">「%1$s」</string>
+    <string name="voice_phrase_separator">、</string>
+    <string name="voice_wake_high">高 · 不易误唤醒</string>
+    <string name="voice_wake_high_detail">只认 %1$s，要说得清楚</string>
+    <string name="voice_wake_low">低 · 容易唤醒</string>
+    <string name="voice_wake_low_detail">认 %1$s，发音不太准也唤醒</string>
+    <string name="voice_wake_standard">中 · 默认</string>
+    <string name="voice_wake_standard_detail">认 %1$s</string>
 </resources>

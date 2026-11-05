@@ -42,10 +42,10 @@ file's published SHA-256. All three are under the Apache License 2.0:
 - Alibaba's Qwen3 4B Instruct 2507, `Qwen3-4B-Instruct-2507-Q4_0.gguf` from `unsloth/Qwen3-4B-Instruct-2507-GGUF`.
 - ModelBest's MiniCPM5 2B, `MiniCPM5-2B-Q8_0.gguf` from `openbmb/MiniCPM5-2B-GGUF` (`OpenBMB/MiniCPM5-2B-GGUF` on ModelScope).
 
-### On-device speech models (`bothy-app`)
+### On-device speech models (`bothy-server`)
 
 - **Streaming ASR model** `sherpa-onnx-streaming-zipformer-small-bilingual-zh-en-2023-02-16` and **keyword-spotting
-  model** `sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20` (`bothy-app/src/main/assets/voice-models/`) — published
+  model** `sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20` (`bothy-server/src/main/assets/voice-models/`) — published
   by the k2-fsa project as GitHub release assets (<https://github.com/k2-fsa/sherpa-onnx/releases>). Upstream does not
   say what the Chinese–English keyword-spotting model was trained on. Check the upstream model pages and the dataset
   terms before using these models in a commercial product.
@@ -53,7 +53,7 @@ file's published SHA-256. All three are under the Apache License 2.0:
 `workspace/apps/android/tools/voice/fetch_voice_assets.py` re-downloads the models and the native libraries from the pinned upstream archives and checks their SHA-256, so the committed
 files can be verified or replaced.
 
-### Wake-answer clips (`bothy-app/src/main/assets/voice-acks/`)
+### Wake-answer clips (`bothy-server/src/main/assets/voice-acks/`)
 
 Short spoken answers (「我在」「在呢」…) synthesized with Xiaomi MiMo TTS preset voices by
 `workspace/apps/android/tools/voice/make_wake_acks.py`. They are provided for the demo; review the MiMo service terms

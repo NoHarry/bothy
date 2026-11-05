@@ -1,7 +1,8 @@
 package cc.noharry.bothy.app.console
 
-import cc.noharry.bothy.app.runtime.pendingConfirmationActionIds
-import cc.noharry.bothy.app.session.UiState
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.pendingConfirmationActionIds
+
 /**
  * Board sections for the Debug console view.
  *
@@ -41,7 +42,7 @@ internal fun boardSections(): Set<BoardSection> =
     )
 
 /** Whether a section should render given live state (empty = hide). */
-internal fun UiState.shouldShowBoardSection(section: BoardSection): Boolean =
+internal fun ServerState.shouldShowBoardSection(section: BoardSection): Boolean =
     when (section) {
         BoardSection.SESSION_STATUS -> true
         BoardSection.PLAN -> contextPanel.todo.isNotEmpty()

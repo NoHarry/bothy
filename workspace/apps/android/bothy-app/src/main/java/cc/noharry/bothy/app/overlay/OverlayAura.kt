@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.overlay
+import cc.noharry.bothy.protocol.voice
+import cc.noharry.bothy.protocol.speechLevel
 import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -32,9 +34,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import cc.noharry.bothy.app.voice.VoiceController
-import cc.noharry.bothy.app.voice.tts.TtsActivity
-import cc.noharry.bothy.app.voice.tts.TtsLevels
 import java.nio.Buffer
 import java.nio.IntBuffer
 import kotlin.math.exp
@@ -49,8 +48,8 @@ import kotlin.math.sin
  */
 @Composable
 internal fun VoiceAura(voiceOn: Boolean, modifier: Modifier) {
-    val speaking by TtsActivity.active.collectAsState()
-    val active = voiceOn || speaking
+    val shown by OverlayConnection.state.collectAsState()
+    val active = voiceOn || shown.voice.speaking
     val presence by animateFloatAsState(if (active) 1f else 0f, tween(if (active) AURA_IN_MS else AURA_OUT_MS), label = "aura")
     if (presence == 0f) return
     val trace = remember { AuraTrace() }
@@ -319,12 +318,13 @@ internal class MicLevelPlayhead {
 }
 
 /** 0..1: the reply's loudness at the speaker while it streams. */
-internal fun auraSpokenLevel(): Float = TtsLevels.current()?.let(::auraCurve) ?: 0f
+internal fun auraSpokenLevel(): Float = OverlayConnection.state.value.speechLevel?.let(::auraCurve) ?: 0f
 
 /** 0..1: the user's loudness while a session listens and 小博 is quiet. */
 internal fun auraHeardLevel(mic: MicLevelPlayhead, nowNanos: Long): Float {
-    if (TtsActivity.active.value || !VoiceController.listening) return 0f
-    return auraCurve(mic.level(VoiceController.state.value.micLevels, nowNanos))
+    val voice = OverlayConnection.voice
+    if (voice.speaking || !voice.listening) return 0f
+    return auraCurve(mic.level(voice.micLevels, nowNanos))
 }
 
 /**
@@ -342,9 +342,9 @@ internal fun auraFollow(level: Float, target: Float, dt: Float): Float {
  * the band then lowers and its light moves side to side, quicker.
  */
 internal fun voiceAuraThinking(): Boolean {
-    if (TtsLevels.current() != null) return false
-    val state = VoiceController.state.value
-    return (state.agentWorking || TtsActivity.active.value) && state.liveText.isBlank()
+    if (OverlayConnection.state.value.speechLevel != null) return false
+    val voice = OverlayConnection.voice
+    return (voice.agentWorking || voice.speaking) && voice.liveText.isBlank()
 }
 
 /** Room noise and breath sit below the floor; speech fills the rest. */

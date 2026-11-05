@@ -37,6 +37,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.ConfirmationMode
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.variantChoices
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -46,9 +49,6 @@ import cc.noharry.bothy.app.console.labelRes
 import cc.noharry.bothy.app.console.menuHint
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.variantLabel
-import cc.noharry.bothy.app.runtime.variantChoices
-import cc.noharry.bothy.app.session.ConfirmationMode
-import cc.noharry.bothy.app.session.UiState
 
 /** A phone's choices come up from the bottom, where the thumb is; the tablet's open as menus beside their button. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +72,7 @@ internal fun PhoneSheet(onDismiss: () -> Unit, title: String?, content: @Composa
 /** The model, its variant and approval, which the tablet keeps as chips by its composer. Picking a model closes it. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PhoneModelSheet(state: UiState, actions: ConsoleActions, onDismiss: () -> Unit) {
+internal fun PhoneModelSheet(state: ServerState, actions: ConsoleActions, onDismiss: () -> Unit) {
     val editor = state.configEditor
     PhoneSheet(onDismiss, stringResource(R.string.console_choose_model)) {
         SheetLabel(stringResource(R.string.console_model))

@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,26 +37,31 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.Plan
+import cc.noharry.agent.appserver.protocol.PlanEnd
+import cc.noharry.agent.appserver.protocol.PlanFiring
+import cc.noharry.agent.appserver.protocol.PlanTrigger
+import cc.noharry.agent.appserver.protocol.SubscriptionState
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.describe
+import cc.noharry.agent.appserver.protocol.describeMoment
+import cc.noharry.agent.appserver.protocol.nextDueMillis
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.a2a.describe
 import cc.noharry.bothy.app.console.BothyAlertDialog
+import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
-import cc.noharry.bothy.app.model.describe
-import cc.noharry.bothy.app.model.summary
 import cc.noharry.bothy.app.usage.UsageCard
+import cc.noharry.bothy.app.words
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * The console's 计划 tab, right of A2A (owner 2026-10-15: 「这个模块要有可见性，最好在首页顶部的A2A那一栏右边再加一个可切换
@@ -65,15 +69,14 @@ import kotlinx.coroutines.withContext
  * to pause or resume it, deletion, and what came due lately. Plans are made by talking to 小博 (`plan_manage`).
  */
 @Composable
-internal fun PlansLayout(tabs: (@Composable () -> Unit)?, modifier: Modifier) {
+internal fun PlansLayout(state: ServerState, actions: ConsoleActions, tabs: (@Composable () -> Unit)?, modifier: Modifier) {
     val context = LocalContext.current
-    val plans by PlanRunner.plans.collectAsState()
-    val history by PlanRunner.history.collectAsState()
-    val feeds by PlanWatcher.states.collectAsState()
+    val plans = state.plans
+    val history = state.planHistory
+    val feeds = state.planFeeds
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var deleting by remember { mutableStateOf<Plan?>(null) }
     LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { PlanRunner.book(context) }
         while (true) {
             now = System.currentTimeMillis()
             delay(CLOCK_TICK_MS)
@@ -88,9 +91,9 @@ internal fun PlansLayout(tabs: (@Composable () -> Unit)?, modifier: Modifier) {
         if (plans.isEmpty()) PlansEmpty()
         val (ended, rest) = plans.partition { it.end != null }
         val (going, paused) = rest.partition { it.enabled }
-        PlanSection(stringResource(R.string.plans_active), going.sortedBy { it.nextDueMillis(now, PlanRunner.zone()) ?: Long.MAX_VALUE }, now, feeds, onDelete = { deleting = it })
-        PlanSection(stringResource(R.string.plans_paused), paused, now, feeds, onDelete = { deleting = it })
-        PlanSection(stringResource(R.string.plans_ended), ended.sortedByDescending { it.lastFiredAtMillis ?: it.lastDueAtMillis ?: it.createdAtMillis }, now, feeds, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_active), going.sortedBy { it.nextDueMillis(now, ZoneId.systemDefault()) ?: Long.MAX_VALUE }, now, feeds, onSwitch = { plan, on -> actions.setPlanEnabled(plan.id, on) }, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_paused), paused, now, feeds, onSwitch = { plan, on -> actions.setPlanEnabled(plan.id, on) }, onDelete = { deleting = it })
+        PlanSection(stringResource(R.string.plans_ended), ended.sortedByDescending { it.lastFiredAtMillis ?: it.lastDueAtMillis ?: it.createdAtMillis }, now, feeds, onSwitch = { plan, on -> actions.setPlanEnabled(plan.id, on) }, onDelete = { deleting = it })
         PlanHistory(history)
         Text(stringResource(R.string.plans_footer), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
     }
@@ -99,13 +102,13 @@ internal fun PlansLayout(tabs: (@Composable () -> Unit)?, modifier: Modifier) {
             onDismissRequest = { deleting = null },
             title = { Text(stringResource(R.string.plans_delete_title)) },
             text = {
-                val time = plan.trigger.describeOnScreen(context, now, PlanRunner.zone())
+                val time = plan.trigger.describeOnScreen(context, now, ZoneId.systemDefault())
                 Text(stringResource(R.string.plans_delete_text, plan.title, time))
             },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
-                    onPlans(context) { PlanRunner.delete(it, plan.id) }
+                    actions.deletePlan(plan.id)
                 }) { Text(stringResource(R.string.common_delete), color = ConsoleColors.danger) }
             },
             dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.common_cancel)) } },
@@ -117,7 +120,7 @@ internal fun PlansLayout(tabs: (@Composable () -> Unit)?, modifier: Modifier) {
 private fun PlansHeader(plans: List<Plan>, now: Long) {
     val context = LocalContext.current
     val going = plans.filter { it.active }
-    val next = going.mapNotNull { plan -> plan.nextDueMillis(now, PlanRunner.zone())?.let { plan to it } }.minByOrNull { it.second }
+    val next = going.mapNotNull { plan -> plan.nextDueMillis(now, ZoneId.systemDefault())?.let { plan to it } }.minByOrNull { it.second }
     val watching = going.count { it.trigger is PlanTrigger.Watch }
     val summary = listOfNotNull(
         if (going.isEmpty()) {
@@ -126,7 +129,7 @@ private fun PlansHeader(plans: List<Plan>, now: Long) {
             pluralStringResource(R.plurals.plans_active_count, going.size, going.size)
         },
         next?.let { (plan, at) ->
-            val time = describeMomentOnScreen(context, at, now, PlanRunner.zone())
+            val time = describeMomentOnScreen(context, at, now, ZoneId.systemDefault())
             stringResource(R.string.plans_next_plan, time, plan.title)
         },
         watching.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.plans_watching_count, it, it) },
@@ -147,7 +150,14 @@ private fun PlansEmpty() {
 
 /** A titled group of plan cards, two to a row when there is room; nothing when empty. */
 @Composable
-private fun PlanSection(title: String, plans: List<Plan>, now: Long, feeds: Map<String, SubscriptionState>, onDelete: (Plan) -> Unit) {
+private fun PlanSection(
+    title: String,
+    plans: List<Plan>,
+    now: Long,
+    feeds: Map<String, SubscriptionState>,
+    onSwitch: (Plan, Boolean) -> Unit,
+    onDelete: (Plan) -> Unit,
+) {
     if (plans.isEmpty()) return
     Text("$title · ${plans.size}", style = ConsoleType.panelTitle, color = ConsoleColors.text)
     BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -155,7 +165,7 @@ private fun PlanSection(title: String, plans: List<Plan>, now: Long, feeds: Map<
         Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
             plans.chunked(columns).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-                    row.forEach { plan -> Box(Modifier.weight(1f)) { PlanCard(plan, now, feeds[plan.id], onDelete) } }
+                    row.forEach { plan -> Box(Modifier.weight(1f)) { PlanCard(plan, now, feeds[plan.id], onSwitch, onDelete) } }
                     repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
@@ -165,9 +175,9 @@ private fun PlanSection(title: String, plans: List<Plan>, now: Long, feeds: Map<
 
 /** One plan: its kind and name, when, what it says or does, where it stands; the switch and delete at the side. */
 @Composable
-private fun PlanCard(plan: Plan, now: Long, feed: SubscriptionState?, onDelete: (Plan) -> Unit) {
+private fun PlanCard(plan: Plan, now: Long, feed: SubscriptionState?, onSwitch: (Plan, Boolean) -> Unit, onDelete: (Plan) -> Unit) {
     val context = LocalContext.current
-    val zone = PlanRunner.zone()
+    val zone = ZoneId.systemDefault()
     UsageCard(null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             KindPill(plan)
@@ -178,7 +188,7 @@ private fun PlanCard(plan: Plan, now: Long, feed: SubscriptionState?, onDelete: 
             }
             Switch(
                 checked = plan.active,
-                onCheckedChange = { on -> onPlans(context) { PlanRunner.setEnabled(it, plan.id, on) } },
+                onCheckedChange = { on -> onSwitch(plan, on) },
                 enabled = plan.end == null,
                 colors = switchColors(),
             )
@@ -220,7 +230,7 @@ private fun PlanHistory(history: List<PlanFiring>) {
             Row {
                 Text(stamp(firing.atMillis), Modifier.width(HISTORY_TIME_WIDTH), style = ConsoleType.bodySmall, color = ConsoleColors.muted)
                 Text(firing.title, Modifier.weight(1f), style = ConsoleType.bodySmall, color = ConsoleColors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(firing.note, style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
+                Text(words(firing.note), style = ConsoleType.bodySmall, color = ConsoleColors.tertiary)
             }
         }
     }
@@ -249,7 +259,7 @@ internal fun planDoes(context: Context, plan: Plan): String {
  * watch how it is fed ([feed]: 实时 by push, 定时读取 on its pace, 未连接) and how often it fired.
  */
 internal fun planStateLine(context: Context, plan: Plan, now: Long, feed: SubscriptionState? = null): String {
-    val zone = PlanRunner.zone()
+    val zone = ZoneId.systemDefault()
     val res = context.resources
     val fired = plan.lastFiredAtMillis?.let { context.getString(R.string.plans_state_last, stamp(it)) }
     return when {
@@ -259,7 +269,7 @@ internal fun planStateLine(context: Context, plan: Plan, now: Long, feed: Subscr
             context.getString(R.string.plans_state_missed, plan.lastDueAtMillis?.let(::stamp) ?: "—")
         !plan.enabled -> listOfNotNull(context.getString(R.string.plans_paused), fired).joinToString(" · ")
         plan.trigger is PlanTrigger.Watch -> {
-            val watch = plan.trigger.watch
+            val watch = (plan.trigger as PlanTrigger.Watch).watch
             val how = when (feed) {
                 null, SubscriptionState.NO_PUSH, SubscriptionState.REFUSED -> {
                     val seconds = (watch.pollMillis / MILLIS_PER_SECOND).toInt()
@@ -342,12 +352,6 @@ private fun describeDaysOnScreen(context: Context, days: Set<Int>): String = whe
 private fun screenClock(minuteOfDay: Int): String =
     String.format(Locale.ROOT, "%02d:%02d", minuteOfDay / MINUTES_PER_HOUR, minuteOfDay % MINUTES_PER_HOUR)
 
-/** Plan writes go to disk and the alarm: off the main thread. */
-private fun onPlans(context: Context, action: (Context) -> Unit) {
-    val app = context.applicationContext
-    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { action(app) }
-}
-
 private fun stamp(millis: Long): String = SimpleDateFormat("M/d HH:mm", Locale.ROOT).format(Date(millis))
 
 private val PLAN_EXAMPLES = listOf(
@@ -367,3 +371,14 @@ private const val MILLIS_PER_SECOND = 1_000L
 private const val MILLIS_PER_MINUTE = 60_000L
 private const val MINUTES_PER_HOUR = 60
 private const val MINUTES_PER_DAY = 24 * 60
+
+/** How the 计划 page names [this]. */
+@get:StringRes
+private val SubscriptionState.label: Int
+    get() = when (this) {
+        SubscriptionState.OFFLINE -> R.string.plans_feed_offline
+        SubscriptionState.PENDING -> R.string.plans_feed_pending
+        SubscriptionState.LIVE -> R.string.plans_feed_live
+        SubscriptionState.REFUSED -> R.string.plans_feed_refused
+        SubscriptionState.NO_PUSH -> R.string.plans_feed_polled
+    }

@@ -1,6 +1,6 @@
 package cc.noharry.bothy.app.phone
 
-import cc.noharry.bothy.app.session.ConversationItem
+import cc.noharry.agent.appserver.protocol.ConversationItem
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -11,7 +11,8 @@ import kotlinx.serialization.json.JsonPrimitive
  * the tool's own name shows only when the line is opened.
  */
 internal fun ConversationItem.ToolCallItem.stepObject(): String {
-    val raw = argumentsJson?.substringAfter(ARGUMENTS_PREFIX, argumentsJson)?.trim().orEmpty()
+    val arguments = argumentsJson.orEmpty()
+    val raw = arguments.substringAfter(ARGUMENTS_PREFIX, arguments).trim()
     if (!raw.startsWith("{")) return ""
     val args = runCatching { StepJson.parseToJsonElement(raw) as? JsonObject }.getOrNull() ?: return ""
     val strings = args.mapNotNull { (key, value) -> (value as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { key to it.trim() } }

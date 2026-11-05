@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 检查 → 工具目录。 -->
+<!-- Moved from the server: findings and what they are worded with. -->
 <resources>
-    <string name="tools_list_separator">、</string>
     <plurals name="tools_count">
-        <item quantity="other">%1$d 个</item>
+        <item quantity="other">%1$s 个</item>
     </plurals>
-    <string name="tools_no_sources">没有打开的工具来源</string>
     <plurals name="tools_groups">
-        <item quantity="other">分 %1$d 组：%2$s</item>
+        <item quantity="other">分 %1$s 组：%2$s</item>
     </plurals>
     <string name="tools_groups_more">%1$s 等</string>
     <string name="tools_no_prompt_yet">还没有对话过，固定提示大小未知</string>
-    <string name="tools_source_unreachable">连不上或没有工具</string>
-    <string name="tools_source_unknown">未知来源</string>
+    <string name="tools_no_sources">没有打开的工具来源</string>
     <plurals name="tools_prompt_stats">
-        <item quantity="other">上次对话固定提示 %1$d/%2$d 字节（工具 %3$d 字节、%4$d 组）</item>
+        <item quantity="other">上次对话固定提示 %1$s/%2$s 字节（工具 %3$s 字节、%4$s 组）</item>
     </plurals>
     <plurals name="tools_prompt_stats_shortened">
-        <item quantity="other">上次对话固定提示 %1$d/%2$d 字节（工具 %3$d 字节、%4$d 组，已自动缩短）</item>
+        <item quantity="other">上次对话固定提示 %1$s/%2$s 字节（工具 %3$s 字节、%4$s 组，已自动缩短）</item>
     </plurals>
+    <string name="tools_source_unknown">未知来源</string>
+    <string name="tools_source_unreachable">连不上或没有工具</string>
+    <string name="tools_group_line">%1$s %2$s</string>
+    <string name="tools_source_line">%1$s %2$s</string>
 </resources>

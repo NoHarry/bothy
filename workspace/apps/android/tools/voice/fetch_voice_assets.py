@@ -6,9 +6,9 @@ what the app needs, into the directories the app builds from:
 
   sherpa-onnx v1.13.8 Android natives  → bothy-voice/src/main/jniLibs/<abi>/
       libsherpa-onnx-jni.so, libonnxruntime.so (arm64-v8a by default; most tablets and phones are arm64)
-  Zipformer Small zh-en streaming model → bothy-app/src/main/assets/voice-models/<model>/
+  Zipformer Small zh-en streaming model → bothy-server/src/main/assets/voice-models/<model>/
       encoder/joiner INT8, decoder FP32, tokens.txt (about 57 MiB of a 458 MB archive)
-  KWS Zipformer zh-en 3M (2025-12-20)    → bothy-app/src/main/assets/voice-models/<kws model>/
+  KWS Zipformer zh-en 3M (2025-12-20)    → bothy-server/src/main/assets/voice-models/<kws model>/
       the wake words 你好小博 and OK Bothy: encoder/joiner INT8, decoder, tokens.txt for 320 ms chunks (about
       5.3 MiB of 38), plus a keywords.txt written here with the wake phrase (the archive's own lists other phrases)
 
@@ -49,7 +49,7 @@ MODEL_FILES = (
     "joiner-epoch-99-avg-1.int8.onnx",
     "tokens.txt",
 )
-MODEL_DEST = ANDROID_ROOT / "bothy-app" / "src" / "main" / "assets" / "voice-models" / MODEL_NAME
+MODEL_DEST = ANDROID_ROOT / "bothy-server" / "src" / "main" / "assets" / "voice-models" / MODEL_NAME
 
 KWS_NAME = "sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20"
 KWS_URL = f"https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/{KWS_NAME}.tar.bz2"

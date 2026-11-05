@@ -25,7 +25,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,12 +46,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cc.noharry.agent.appserver.protocol.Empty
+import cc.noharry.agent.appserver.protocol.ModelUsage
+import cc.noharry.agent.appserver.protocol.PriceBook
+import cc.noharry.agent.appserver.protocol.UsageData
+import cc.noharry.agent.appserver.protocol.UsageDays
+import cc.noharry.agent.appserver.protocol.UsageRequests
+import cc.noharry.agent.appserver.protocol.costUsd
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
-import cc.noharry.bothy.app.model.summary
+import cc.noharry.bothy.app.frontend.LocalServer
 import java.time.LocalDate
 import java.util.Locale
 
@@ -63,8 +70,12 @@ import java.util.Locale
  */
 @Composable
 internal fun UsagePane() {
-    val usage by UsageStore.usage.collectAsState()
-    val book by UsageStore.prices.collectAsState()
+    val server = LocalServer.current
+    var data by remember { mutableStateOf(UsageData()) }
+    // The ledger is read again whenever the server says it or the prices changed.
+    LaunchedEffect(server.state.usageRevision) { server.send(UsageRequests.READ, Empty) { data = it } }
+    val usage = data.days
+    val book = data.prices
     var tab by rememberSaveable { mutableStateOf(UsageTab.STATS.name) }
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),

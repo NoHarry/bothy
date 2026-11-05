@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.overlay
-import cc.noharry.bothy.app.plans.reading
+import cc.noharry.agent.appserver.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.OverlayHud
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
