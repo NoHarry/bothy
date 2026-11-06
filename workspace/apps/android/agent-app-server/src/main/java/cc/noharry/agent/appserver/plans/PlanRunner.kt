@@ -18,6 +18,8 @@ import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.listing
 import cc.noharry.agent.appserver.protocol.nextDueMillis
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.RuntimeSession
 import cc.noharry.agent.appserver.runtime.modelText
 import java.io.File
@@ -58,6 +60,13 @@ internal object PlanRunner {
     fun init(context: Context) {
         val app = context.applicationContext
         scope.launch { check(app) }
+    }
+
+    /** A host without plans ([BuiltInFeatures.plans]): an alarm or a watch left from before is let go. */
+    fun stop(context: Context) {
+        val app = context.applicationContext
+        schedule(app, emptyList())
+        PlanWatcher.refresh(app, emptyList())
     }
 
     // The page's switch and delete, the alarm and the watcher run on threads with nobody to catch: a full disk is
@@ -118,6 +127,7 @@ internal object PlanRunner {
     /** The alarm went off, the app started or the clock changed: fire or give up what is due, then set the next alarm. */
     fun check(context: Context) = logFailure("check") {
         val app = context.applicationContext
+        if (!AppHost.builtIns.plans) return@logFailure stop(app)
         val target = book(app)
         synchronized(lock) {
             val now = System.currentTimeMillis()
@@ -142,6 +152,7 @@ internal object PlanRunner {
 
     /** A watch plan's reading matched ([PlanWatcher]); [reading] is the field's value in words. */
     fun conditionMet(context: Context, planId: String, reading: String?) = logFailure("condition $planId") {
+        if (!AppHost.builtIns.plans) return@logFailure
         val app = context.applicationContext
         val target = book(app)
         synchronized(lock) {
@@ -203,10 +214,12 @@ internal object PlanRunner {
         Log.i(TAG, "missed ${plan.id} (${plan.trigger.kind()})")
     }
 
+    /** The page follows the book; the alarm and the watches only while the host offers plans. */
     private fun settle(app: Context, target: PlanBook) {
         publish(target)
-        schedule(app, target.plans())
-        PlanWatcher.refresh(app, target.plans())
+        val running = if (AppHost.builtIns.plans) target.plans() else emptyList()
+        schedule(app, running)
+        PlanWatcher.refresh(app, running)
     }
 
     private fun publish(target: PlanBook) {

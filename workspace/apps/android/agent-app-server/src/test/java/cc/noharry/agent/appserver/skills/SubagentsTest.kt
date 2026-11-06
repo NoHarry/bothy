@@ -8,6 +8,7 @@ import cc.noharry.agent.appserver.protocol.SessionPolicy
 import cc.noharry.agent.appserver.protocol.SessionSummary
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BasicTool
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.basicToolPrompt
 import cc.noharry.agent.appserver.runtime.disabledBasicTools
@@ -42,12 +43,24 @@ class SubagentsTest {
 
     @Before
     fun chinese() {
-        AppHost.install(persona = CHINESE)
+        AppHost.install(persona = CHINESE, builtIns = BuiltInFeatures(cards = true))
     }
 
     @After
     fun generic() {
-        AppHost.install(persona = Persona.GENERIC)
+        AppHost.install(persona = Persona.GENERIC, builtIns = BuiltInFeatures.NONE)
+    }
+
+    @Test
+    fun withoutCardsNoChildLooksForPicturesAndNoReportAsksForACard() {
+        AppHost.install(builtIns = BuiltInFeatures.NONE)
+        val status = SubagentStatus(
+            id = "sub-1", label = "苏州活动", state = SubagentState.COMPLETED, startedAtEpochMillis = 0L,
+            lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
+            result = "草莓音乐节\n图片：https://img.example.com/a.jpg", error = "",
+        )
+        assertFalse(SubagentReport("s", listOf(status)).toReport().model.contains("show_card"))
+        assertFalse(subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "苏州活动", "查苏州周末活动", 1, null, false)).contains("图片："))
     }
 
     @Test

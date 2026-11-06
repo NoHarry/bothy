@@ -3,6 +3,8 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerKind
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -21,10 +23,20 @@ class McpServerConfigTest {
     @Test
     fun noServerComesConfiguredAndTheFixedProvidersSurroundTheConfiguredOnes() {
         assertTrue(loadMcpServers(context).isEmpty())
+        // Device Media only where the host offers it.
         assertEquals(
-            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION, DEBUG_MCP_PROVIDER_DEVICE_MEDIA),
+            listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION),
             loadMcpProviders(context).map { it.id },
         )
+        AppHost.install(builtIns = BuiltInFeatures(deviceMedia = true))
+        try {
+            assertFixedProvidersSurround()
+        } finally {
+            AppHost.install(builtIns = BuiltInFeatures.NONE)
+        }
+    }
+
+    private fun assertFixedProvidersSurround() {
         val id = (saveMcpServerDraft(context, McpServerDraft(null, "Weather", McpServerKind.HTTP, url = "https://weather.test/mcp")) as McpSaveResult.Saved).id
         assertEquals(
             listOf(DEBUG_MCP_PROVIDER_TOOLS_JSON, id, DEBUG_MCP_PROVIDER_DEVICE_CALENDAR, DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION, DEBUG_MCP_PROVIDER_DEVICE_MEDIA),

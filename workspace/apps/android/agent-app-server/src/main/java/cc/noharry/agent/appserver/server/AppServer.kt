@@ -11,6 +11,7 @@ import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
 import cc.noharry.agent.appserver.protocol.transport.InProcessChannels
 import cc.noharry.agent.appserver.protocol.transport.MessageChannel
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.HostModels
 import cc.noharry.agent.appserver.runtime.HostPlaces
 import cc.noharry.agent.appserver.runtime.Persona
@@ -60,7 +61,8 @@ interface PublishedState {
 
 /**
  * What a host app gives its server: its name, its features, who the assistant is, the model services its build carries,
- * where its screens show what tools leave, what it plugs into the runtime, and what it does with other A2A clients' tasks.
+ * where its screens show what tools leave, what it plugs into the runtime, what it does with other A2A clients' tasks,
+ * and which of the server's own features it turns on ([BuiltInFeatures]; none by default).
  */
 class AppServerConfig(
     val name: String,
@@ -72,6 +74,7 @@ class AppServerConfig(
     val models: HostModels = HostModels.NONE,
     val runs: RunAddOns = RunAddOns.NONE,
     val a2a: A2aHost = A2aHost.NONE,
+    val builtIns: BuiltInFeatures = BuiltInFeatures.NONE,
 )
 
 /**
@@ -90,7 +93,7 @@ object AppServer {
     fun install(app: Application, config: AppServerConfig) {
         this.config = config
         RuntimeVoice.install(config.voice)
-        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a)
+        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns)
         installServer(app, config.features)
     }
 

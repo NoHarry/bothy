@@ -14,6 +14,7 @@ import cc.noharry.agent.appserver.protocol.SkillCheckView
 import cc.noharry.agent.appserver.protocol.SubagentKindView
 import cc.noharry.agent.appserver.protocol.SubagentSettingsView
 import cc.noharry.agent.appserver.protocol.SubagentToolKind
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.loadBasicTools
 import cc.noharry.agent.appserver.session.SessionSettings
 import cc.noharry.agent.appserver.skills.AppSubagents
@@ -44,7 +45,7 @@ object PreferencesSource {
     fun read(context: Context): Preferences = Preferences(
         sessionPolicy = SessionSettings.policy.value,
         basicTools = loadBasicTools(context).map { BasicToolView(it.name, context.getString(it.description), it.enabled, it.required) },
-        androidUse = AndroidUseView(loadAndroidUseEnabled(context), androidUseState(context)),
+        androidUse = AndroidUseView(AppHost.builtIns.androidUse && loadAndroidUseEnabled(context), androidUseState(context)),
         runtimeSkills = loadRuntimeSkills(context).map { RuntimeSkillView(it.id, it.label, it.description, it.enabled, custom = it.file != null) },
         subagents = AppSubagents.settings.value.view(),
         subagentKinds = loadSubagentKinds(context).map { it.view(context) },

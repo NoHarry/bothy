@@ -6,6 +6,7 @@ import android.content.Context
 import cc.noharry.agent.appserver.protocol.view.SHOW_HTML_TOOL
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
@@ -43,14 +44,14 @@ internal class PageToolProvider(
 
     override val serverId: String = PAGE_TOOL_SERVER_ID
     override val displayName: String get() = modelText("画界面", "Pages")
-    override val catalogCacheIdentity: String get() = "app-server:$PAGE_TOOL_SERVER_ID:v3:${if (AppHost.words.isChinese) "zh" else "en"}"
+    override val catalogCacheIdentity: String get() = "app-server:$PAGE_TOOL_SERVER_ID:v4:${if (AppHost.words.isChinese) "zh" else "en"}${if (AppHost.builtIns.cards) ":cards" else ""}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
 
     override suspend fun listTools(): List<ToolDescriptor> =
         listOf(
             ToolDescriptor(
-                SHOW_HTML_TOOL, title = modelText("画界面", "Draw a page"), description = modelText(SHOW_HTML_DESCRIPTION, SHOW_HTML_DESCRIPTION_EN),
+                SHOW_HTML_TOOL, title = modelText("画界面", "Draw a page"), description = modelText(SHOW_HTML_DESCRIPTION, SHOW_HTML_DESCRIPTION_EN) + cardsNote(),
                 inputSchemaJson = showHtmlSchema(),
             ),
         )
@@ -143,8 +144,7 @@ private val SHOW_HTML_DESCRIPTION = """
     b-btn（按钮，加 ghost 为次要）。配色用宿主的 CSS 变量，深浅色自动跟着变：--page-bg（页面底色）、
     --page-surface（区块底色）、--page-text、--page-muted（次要文字）、--page-accent（强调色）、
     --page-on-accent（强调色上的文字）、--page-border、--page-warn、--page-danger。要把用户的选择带回对话，
-    在点击处理里调用 assistant.send('要说的话')，它会作为用户的一句话发出。不要用它代替 show_card 和 offer_*：
-    要直接执行的操作（车控、设值、选项）仍用它们。
+    在点击处理里调用 assistant.send('要说的话')，它会作为用户的一句话发出。
 """.trimIndent().replace("\n", "")
 private val SHOW_HTML_DESCRIPTION_EN = """
     Draw a page: lays content out as a page in the conversation on the phone or tablet. While the run context says the user is
@@ -167,9 +167,14 @@ private val SHOW_HTML_DESCRIPTION_EN = """
     host's CSS variables, which follow light and dark: --page-bg (page background), --page-surface (block background),
     --page-text, --page-muted (secondary text), --page-accent (accent), --page-on-accent (text on the accent), --page-border,
     --page-warn, --page-danger. To bring the user's choice back to the conversation, call assistant.send('what to say') in the
-    click handler; it is sent as something the user said. Do not use it in place of show_card and offer_*: actions to carry
-    out right away (device controls, settings, options) still go through them.
+    click handler; it is sent as something the user said.
 """.trimIndent().replace("\n", " ")
+
+/** While the card and option tools are offered ([BuiltInFeatures.cards]), a page does not stand in for them. */
+private fun cardsNote(): String = if (!AppHost.builtIns.cards) "" else modelText(
+    "不要用它代替 show_card 和 offer_*：要直接执行的操作（车控、设值、选项）仍用它们。",
+    " Do not use it in place of show_card and offer_*: actions to carry out right away (device controls, settings, options) still go through them.",
+)
 private fun showHtmlSchema(): String =
     """{"type":"object","additionalProperties":false,"required":["title","html"],"properties":{""" +
         """"title":{"type":"string","description":"${modelText("页面标题，几个字", "the page's title, a few words")}"},""" +

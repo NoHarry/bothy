@@ -112,6 +112,17 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Floating assistant card that answers A2A and voice requests over other apps" />
         </service>
+        <!-- 小博 starts after a reboot or an update (its wake word listens, plans are set again), the update that brings
+             the server's switch for it included. -->
+        <receiver
+            android:name="cc.noharry.agent.appserver.BootReceiver"
+            android:enabled="true"
+            tools:replace="android:enabled" />
+        <!-- 小博 operates the screen (Android Use): its accessibility service is on. -->
+        <service
+            android:name="cc.noharry.agent.androiduse.AndroidUseAccessibilityService"
+            android:enabled="true"
+            tools:replace="android:enabled" />
         <!-- Notification access for it lets 小博 see and control what other apps play (Device Media); it reads no notification. -->
     </application>
 </manifest>

@@ -3,6 +3,7 @@ package cc.noharry.bothy.server.server
 import android.app.Application
 import android.content.Context
 import cc.noharry.agent.appserver.protocol.transport.MessageChannel
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.HostPlaces
 import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.ProviderPresets
@@ -47,7 +48,11 @@ internal fun bothyConfig() = AppServerConfig(
     models = BothyModels,
     runs = BothyRuns,
     a2a = BothyA2a,
+    builtIns = BothyBuiltIns,
 )
+
+/** Everything the server offers of its own: plans, operating the screen, device media, cards, and starting after boot. */
+internal val BothyBuiltIns = BuiltInFeatures(plans = true, androidUse = true, deviceMedia = true, cards = true, startOnBoot = true)
 
 /** The model services this build carries, from local.properties (see this module's build.gradle.kts). */
 internal fun bothyPresets() = ProviderPresets(

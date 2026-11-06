@@ -3,6 +3,11 @@
 
     <!-- The app server's own components; permissions and the application stay with the app. -->
     <application>
+        <!-- Android Use's accessibility service, which the runtime's library declares: off, so it is not even listed in
+             the system's settings, until a host that operates the screen turns it on in its own manifest. -->
+        <service
+            android:name="cc.noharry.agent.androiduse.AndroidUseAccessibilityService"
+            android:enabled="false" />
         <receiver
             android:name="cc.noharry.agent.appserver.a2a.A2aProfileBroadcastReceiver"
             android:exported="true"
@@ -19,8 +24,10 @@
                 <action android:name="${applicationId}.DEBUG_IMAGE_MODEL" />
             </intent-filter>
         </receiver>
+        <!-- Off until the server turns it on for a host that wants it (plans, starting after boot). -->
         <receiver
             android:name="cc.noharry.agent.appserver.BootReceiver"
+            android:enabled="false"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

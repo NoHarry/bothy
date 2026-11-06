@@ -15,6 +15,7 @@ import cc.noharry.agent.kernel.api.mcp.McpClientProvider
 import cc.noharry.agent.runtime.SubagentSpec
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -40,7 +41,15 @@ class EnglishToolWordsTest {
             }
         }
         assertNoChinese(customSkillTemplate())
-        assertNoChinese(subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "weather", "Find tomorrow's weather", 1, null, false)))
+        // With cards on, the child's picture rule is in English too.
+        AppHost.install(builtIns = BuiltInFeatures(cards = true))
+        try {
+            val input = subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "weather", "Find tomorrow's weather", 1, null, false))
+            assertTrue(input, input.contains("Image: https://"))
+            assertNoChinese(input)
+        } finally {
+            AppHost.install(builtIns = BuiltInFeatures.NONE)
+        }
     }
 
     private fun assertNoChinese(text: String) =

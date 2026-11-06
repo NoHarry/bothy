@@ -301,12 +301,12 @@ private fun AgentRuntimeBuilder.applyMcpProviders(
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION)) {
         mount(configure(DeviceNotificationMcpProvider(context)))
     }
-    if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_MEDIA)) {
+    if (AppHost.builtIns.deviceMedia && providers.isProviderEnabled(DEBUG_MCP_PROVIDER_DEVICE_MEDIA)) {
         // The app in front, so 「暂停」 with nothing playing goes to what is on screen (a video app's session reads stopped).
         val media = DeviceMediaMcpProvider(context, foregroundPackage = { AndroidUseAccessibility.foregroundApp(context)?.packageName })
         mount(MediaToolHints(configure(media)))
     }
-    if (mounted.isNotEmpty()) {
+    if (AppHost.builtIns.cards && mounted.isNotEmpty()) {
         toolProvider(
             OfferToolProvider(
                 BindableTools(mounted),
@@ -359,6 +359,7 @@ internal fun pagesOffered(profile: ProviderProfile): Boolean = AppScreen.reports
 
 /** 计划: the tool, and today's date with the plans going; registered before 记忆, so its facts always fit. */
 private fun AgentRuntimeBuilder.applyPlans(context: Context): AgentRuntimeBuilder = apply {
+    if (!AppHost.builtIns.plans) return@apply
     toolProvider(PlanToolProvider(context))
     contextProvider(PlanContext(context))
 }

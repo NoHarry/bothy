@@ -30,7 +30,13 @@ class RuntimeSessionDefaultsTest {
 
     @Test
     fun consoleDefaultsEveryFixedMcpProviderOff() {
-        val providers = defaultMcpProviders().associateBy { it.id }
+        assertFalse(defaultMcpProviders().any { it.id == DEBUG_MCP_PROVIDER_DEVICE_MEDIA })
+        AppHost.install(builtIns = BuiltInFeatures(deviceMedia = true))
+        val providers = try {
+            defaultMcpProviders().associateBy { it.id }
+        } finally {
+            AppHost.install(builtIns = BuiltInFeatures.NONE)
+        }
 
         assertFalse(providers.getValue(DEBUG_MCP_PROVIDER_TOOLS_JSON).enabled)
         assertFalse(providers.getValue(DEBUG_MCP_PROVIDER_DEVICE_CALENDAR).enabled)

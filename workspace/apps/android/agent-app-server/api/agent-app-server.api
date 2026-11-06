@@ -197,6 +197,9 @@ cc.noharry.agent.appserver.runtime.AnswerProblems | class AnswerProblems(val fai
 cc.noharry.agent.appserver.runtime.AnswerProblems.Companion | companion object
 cc.noharry.agent.appserver.runtime.AnswerProblems.Companion.NONE | val NONE
 cc.noharry.agent.appserver.runtime.BasicTool | data class BasicTool( val name: String, @StringRes val description: Int, val enabled: Boolean = true, val required: Boolean = false, )
+cc.noharry.agent.appserver.runtime.BuiltInFeatures | class BuiltInFeatures( val plans: Boolean = false, val androidUse: Boolean = false, val deviceMedia: Boolean = false, val cards: Boolean = false, val startOnBoot: Boolean = false, )
+cc.noharry.agent.appserver.runtime.BuiltInFeatures.Companion | companion object
+cc.noharry.agent.appserver.runtime.BuiltInFeatures.Companion.NONE | val NONE
 cc.noharry.agent.appserver.runtime.ConfirmationPostUiResult | data class ConfirmationPostUiResult( val status: String, val transcript: SteeringTranscript, val terminal: Boolean = false, val runtimeResult: RuntimeResult? = null, val appliedChoice: ConfirmationChoice? = null, )
 cc.noharry.agent.appserver.runtime.ExecutionSubscription | class ExecutionSubscription( private val channel: Channel<ExecutionMessage>, private val unsubscribe: () -> Unit, ) : AutoCloseable
 cc.noharry.agent.appserver.runtime.ExecutionSubscription.events | val events: ReceiveChannel<ExecutionMessage> get()
@@ -309,7 +312,7 @@ cc.noharry.agent.appserver.server.AppServer.connect | fun connect(context: Conte
 cc.noharry.agent.appserver.server.AppServer.features | val features: List<AppServerFeature> get()
 cc.noharry.agent.appserver.server.AppServer.install | fun install(app: Application, config: AppServerConfig)
 cc.noharry.agent.appserver.server.AppServer.wakeUp | fun wakeUp(context: Context)
-cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, )
+cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, )
 cc.noharry.agent.appserver.server.AppServerFeature | interface AppServerFeature
 cc.noharry.agent.appserver.server.AppServerFeature.appInFront | fun appInFront(app: Context, inFront: Boolean)
 cc.noharry.agent.appserver.server.AppServerFeature.install | fun install(app: Application)

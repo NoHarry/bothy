@@ -6,6 +6,8 @@ import android.util.Log
 import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.AndroidUseState
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,16 +31,22 @@ fun saveAndroidUseEnabled(context: Context, enabled: Boolean) {
     applyAndroidUseSwitch(context, enabled)
 }
 
-/** Keeps the accessibility service in step with the switch; runs at app start and on every toggle. */
-internal fun applyAndroidUseSwitch(context: Context, enabled: Boolean = loadAndroidUseEnabled(context)): Boolean =
-    if (enabled) AndroidUseAccessibility.enable(context) else AndroidUseAccessibility.disable(context)
+/**
+ * Keeps the accessibility service in step with the switch; runs at app start and on every toggle. A host without the
+ * feature ([BuiltInFeatures.androidUse]) never has the service listed by the server.
+ */
+internal fun applyAndroidUseSwitch(context: Context, enabled: Boolean = loadAndroidUseEnabled(context)): Boolean = when {
+    !AppHost.builtIns.androidUse -> false
+    enabled -> AndroidUseAccessibility.enable(context)
+    else -> AndroidUseAccessibility.disable(context)
+}
 
-/** The tools are mounted only while the switch is on and the service is bound, so they always work. */
+/** The tools are mounted only while the feature and the switch are on and the service is bound, so they always work. */
 internal fun androidUseReady(context: Context): Boolean =
-    loadAndroidUseEnabled(context) && AndroidUseAccessibility.isConnected()
+    AppHost.builtIns.androidUse && loadAndroidUseEnabled(context) && AndroidUseAccessibility.isConnected()
 
 internal fun androidUseState(context: Context): AndroidUseState = when {
-    !loadAndroidUseEnabled(context) -> AndroidUseState.OFF
+    !AppHost.builtIns.androidUse || !loadAndroidUseEnabled(context) -> AndroidUseState.OFF
     AndroidUseAccessibility.isConnected() -> AndroidUseState.CONNECTED
     AndroidUseAccessibility.isEnabled(context) -> AndroidUseState.WAITING
     else -> AndroidUseState.FAILED

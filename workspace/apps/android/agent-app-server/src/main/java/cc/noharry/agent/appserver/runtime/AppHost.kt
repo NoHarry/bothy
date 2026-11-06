@@ -125,6 +125,25 @@ interface RunAddOns {
     }
 }
 
+/**
+ * What the server offers beyond the conversation, each off until the host turns it on: [plans] (plan_manage, timed
+ * and watched plans and their alarms), [androidUse] (operating the screen through the accessibility service, which the
+ * server lists itself at start while its switch is on), [deviceMedia] (playback and volume, on from the start), [cards]
+ * (the option, panel and card tools) and [startOnBoot] (the app's process starts after a reboot or an update, so plans
+ * are set again and the host's own work resumes; plans need it).
+ */
+class BuiltInFeatures(
+    val plans: Boolean = false,
+    val androidUse: Boolean = false,
+    val deviceMedia: Boolean = false,
+    val cards: Boolean = false,
+    val startOnBoot: Boolean = false,
+) {
+    companion object {
+        val NONE = BuiltInFeatures()
+    }
+}
+
 /** What a run is, for the host's lines, rules and gates ([RunAddOns]). */
 class RunFacts(
     val context: Context,
@@ -235,6 +254,10 @@ object AppHost {
     var a2a: A2aHost = A2aHost.NONE
         private set
 
+    @Volatile
+    var builtIns: BuiltInFeatures = BuiltInFeatures.NONE
+        private set
+
     fun install(
         models: HostModels = this.models,
         runs: RunAddOns = this.runs,
@@ -242,7 +265,9 @@ object AppHost {
         presets: ProviderPresets = this.presets,
         places: HostPlaces = this.places,
         a2a: A2aHost = this.a2a,
+        builtIns: BuiltInFeatures = this.builtIns,
     ) {
+        this.builtIns = builtIns
         this.models = models
         this.runs = runs
         this.persona = persona

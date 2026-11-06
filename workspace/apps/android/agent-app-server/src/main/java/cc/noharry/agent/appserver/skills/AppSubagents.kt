@@ -317,7 +317,8 @@ internal class SubagentGuard(
 
 /**
  * The child's input: its role, a typed child's tools and own instructions ([kind] and its text), then the task the
- * main agent wrote. A type says itself what pictures it brings, so the general picture rule is for untyped children only.
+ * main agent wrote. A type says itself what pictures it brings, so the general picture rule is for untyped children only,
+ * and only while the cards that show the pictures are offered ([BuiltInFeatures.cards]).
  */
 @InternalAppServerApi
 fun subagentInput(spec: SubagentSpec, kind: SubagentKind? = null, instructions: String = ""): String = buildString {
@@ -352,7 +353,7 @@ private fun childRules(spec: SubagentSpec, kind: SubagentKind?): List<String> {
         modelText("- 结果要完整、简洁，写成主助手可以直接转述的要点。", "- Make the result complete and concise: points the main assistant can pass on as they are."),
         searchRule().takeIf { kind == null || kind.searches },
         lookupRule(kind?.maxLookups ?: MAX_CHILD_LOOKUPS).takeIf { looksUp },
-        pictureRule().takeIf { kind == null },
+        pictureRule().takeIf { kind == null && AppHost.builtIns.cards },
     )
 }
 
@@ -413,7 +414,7 @@ internal fun SubagentReport.toReport(
         } else if (statuses.none { it.state == SubagentState.STALLED }) {
             appendLine(modelText("这一批都在这里了，不用再调用 wait_agent。", "This is the whole batch; no need to call wait_agent."))
         }
-        if (statuses.any { it.result.hasImageLines() }) appendLine(pictureCardHint())
+        if (AppHost.builtIns.cards && statuses.any { it.result.hasImageLines() }) appendLine(pictureCardHint())
         // A type may say what its report is for ([SubagentKind.reportClosing]); a batch of one such type gets it.
         val closing = statuses.map { it.agentType }.distinct().singleOrNull()?.let(closingOf)
         if (closing != null) {

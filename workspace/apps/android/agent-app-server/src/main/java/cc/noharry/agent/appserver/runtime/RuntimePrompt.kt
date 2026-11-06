@@ -104,6 +104,7 @@ fun clockLine(now: Long, zone: java.time.ZoneId = PlanRunner.zone(), words: Mode
  * open it): named each run, so it is not opened again. Empty without the service, or with this app itself in front.
  */
 internal fun appForegroundLine(context: android.content.Context): String {
+    if (!AppHost.builtIns.androidUse) return ""
     val app = cc.noharry.agent.androiduse.AndroidUseAccessibility.foregroundApp(context) ?: return ""
     return if (app.packageName == context.packageName) "" else foregroundLine(app.label, app.packageName)
 }

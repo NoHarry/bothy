@@ -10,6 +10,8 @@ import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.RunFacts
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.bothy.server.cards.BothyCards
+import cc.noharry.bothy.server.server.BothyBuiltIns
+import cc.noharry.bothy.server.server.bothyConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -52,6 +54,12 @@ class BothyRunsTest {
         // 网上核实's report goes onto the card, two short sentences at most.
         val verify = BOTHY_SUBAGENT_KINDS.single { it.id == WEB_VERIFY_KIND }
         assertTrue(verify.reportClosing!!.contains("最多说两句短话") && verify.reportClosing!!.contains("show_card"))
+    }
+
+    @Test
+    fun bothyOffersEveryFeatureOfTheServersOwn() {
+        assertTrue(BothyBuiltIns.run { plans && androidUse && deviceMedia && cards && startOnBoot })
+        assertTrue(bothyConfig().builtIns === BothyBuiltIns)
     }
 
     private fun facts(types: Set<String> = emptySet(), pages: Boolean = false) =

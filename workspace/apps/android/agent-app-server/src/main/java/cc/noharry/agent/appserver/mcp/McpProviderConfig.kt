@@ -5,6 +5,7 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.R
 import cc.noharry.agent.appserver.protocol.McpProviderState
 import cc.noharry.agent.appserver.protocol.McpServer
+import cc.noharry.agent.appserver.runtime.AppHost
 
 /** Tools JSON, then the configured standard MCP servers, then the device providers. */
 fun loadMcpProviders(context: Context): List<McpProviderState> {
@@ -40,7 +41,9 @@ private fun providerRows(
     servers: List<McpServer>,
     enabled: (McpProviderDefinition) -> Boolean,
 ): List<McpProviderState> {
-    val fixed = MCP_PROVIDER_DEFINITIONS.map { McpProviderState(it.id, it.label, enabled(it)) }
+    // Device Media only for a host that offers it ([BuiltInFeatures.deviceMedia]).
+    val fixed = MCP_PROVIDER_DEFINITIONS.filter { it.id != DEBUG_MCP_PROVIDER_DEVICE_MEDIA || AppHost.builtIns.deviceMedia }
+        .map { McpProviderState(it.id, it.label, enabled(it)) }
     val configured = servers.map { McpProviderState(it.id, it.label, it.enabled, it) }
     return fixed.take(1) + configured + fixed.drop(1)
 }
