@@ -3,7 +3,7 @@ package cc.noharry.bothy.app
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalResources
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceView
+import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import java.text.SimpleDateFormat
@@ -35,7 +35,7 @@ internal fun Resources.words(finding: Finding): String {
 internal fun words(finding: Finding): String = LocalResources.current.words(finding)
 
 /** 「¥110.00 (top-up 100.00, granted 10.00)」 per currency, and whether the key is out of credit. */
-internal fun Resources.balanceWords(balance: DeepSeekBalanceView): String {
+internal fun Resources.balanceWords(balance: BalanceView): String {
     val totals = balance.amounts.joinToString(getString(R.string.model_balance_separator)) { amount ->
         val sign = CURRENCY_SIGNS[amount.currency] ?: "${amount.currency} "
         getString(R.string.model_balance_amount, "$sign${amount.total}", amount.toppedUp, amount.granted)

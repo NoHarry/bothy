@@ -9,34 +9,10 @@ import cc.noharry.agent.model.ModelVariantRegistry
 fun providerProfiles(values: Map<String, String>): List<ProviderProfile> {
     val explicit = values[PROFILES_KEY].csvValues()
         .mapNotNull { profileFromValues(values, it) }
-    if (explicit.isNotEmpty()) return explicit.distinctBy { it.id }.withSharedDeepSeekApiKeys()
+    if (explicit.isNotEmpty()) return explicit.distinctBy { it.id }.withSharedKeys()
     val legacy = ModelProvider.entries.map { provider -> legacyProfile(values, provider) }
     return legacy.distinctBy { it.id }
 }
-
-/**
- * DeepSeek OpenAI-compatible and Anthropic-compatible ports share one API key.
- * When [DEEPSEEK_ANTHROPIC_PROFILE_ID] has a blank key, inherit from [DEEPSEEK_API_PROFILE_ID].
- */
-internal fun List<ProviderProfile>.withSharedDeepSeekApiKeys(): List<ProviderProfile> {
-    val openaiKey = firstOrNull { it.id.equals(DEEPSEEK_API_PROFILE_ID, ignoreCase = true) }
-        ?.apiKey
-        ?.takeIf { it.isNotBlank() }
-        ?: return this
-    return map { profile ->
-        if (
-            profile.id.equals(DEEPSEEK_ANTHROPIC_PROFILE_ID, ignoreCase = true) &&
-            profile.apiKey.isBlank()
-        ) {
-            profile.copy(apiKey = openaiKey)
-        } else {
-            profile
-        }
-    }
-}
-
-internal const val DEEPSEEK_API_PROFILE_ID = "deepseek-api"
-internal const val DEEPSEEK_ANTHROPIC_PROFILE_ID = "deepseek-anthropic"
 
 @InternalAppServerApi
 fun resolveProviderSelection(

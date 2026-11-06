@@ -33,16 +33,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceParams
-import cc.noharry.agent.appserver.protocol.DeepSeekCheckView
-import cc.noharry.agent.appserver.protocol.DeepSeekProbeView
+import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekBalanceParams
+import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekCheckView
+import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekProbeView
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ModelSettingsParams
 import cc.noharry.agent.appserver.protocol.ModelSettingsRequests
+import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekRequests
 import cc.noharry.agent.appserver.protocol.ModelSettingsSaveParams
 import cc.noharry.agent.appserver.protocol.ProviderEditState
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
-import cc.noharry.agent.appserver.protocol.isDeepSeekUrl
+import cc.noharry.agent.appserver.protocol.deepseek.isDeepSeekUrl
 import cc.noharry.agent.appserver.protocol.parseContextWindow
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.balanceWords
@@ -159,7 +160,7 @@ private fun DeepSeekBalanceRow(ask: DeepSeekBalanceParams) {
         OutlinedButton(enabled = !asking && (ask.connection != null || ask.apiKey.isNotBlank()), onClick = {
             asking = true
             server.send(
-                ModelSettingsRequests.DEEPSEEK_BALANCE,
+                DeepSeekRequests.BALANCE,
                 ask,
                 onRefused = { shown = it.message.orEmpty(); asking = false },
             ) { answer ->
@@ -183,7 +184,7 @@ private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
     var probe by remember(profileId) { mutableStateOf<DeepSeekProbeView?>(null) }
     val connection = form.probeConnection(profileId)
     // The stored check, measured against the connection as now typed.
-    LaunchedEffect(connection) { server.send(ModelSettingsRequests.DEEPSEEK_PROBE, connection) { probe = it } }
+    LaunchedEffect(connection) { server.send(DeepSeekRequests.PROBE, connection) { probe = it } }
     val current = probe?.takeIf { it.current }
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
@@ -206,7 +207,7 @@ private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
             OutlinedButton(enabled = !checking && form.baseUrl.isNotBlank() && probe?.hasKey == true, onClick = {
                 checking = true
                 server.send(
-                    ModelSettingsRequests.DEEPSEEK_CHECK,
+                    DeepSeekRequests.CHECK,
                     connection,
                     onRefused = { checking = false },
                 ) { probe = it; checking = false }

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.annotation.RawRes
 import cc.noharry.agent.appserver.BuildConfig
 import cc.noharry.agent.appserver.a2a.A2aHost
+import cc.noharry.agent.appserver.model.ProviderAdapter
 import cc.noharry.agent.appserver.pages.PageRoutes
 import cc.noharry.agent.appserver.protocol.ServerInfo
 import cc.noharry.agent.appserver.protocol.client.ServerState
@@ -63,9 +64,10 @@ interface PublishedState {
 /**
  * What a host app gives its server: its name, its features, who the assistant is, the model services its build carries,
  * where its screens show what tools leave, what it plugs into the runtime, what it does with other A2A clients' tasks,
- * which of the server's own features it turns on ([BuiltInFeatures]; none by default), and [extraTrustRoots]: a raw
+ * which of the server's own features it turns on ([BuiltInFeatures]; none by default), [extraTrustRoots]: a raw
  * resource of PEM certificates trusted beside the system's for every HTTPS call the server makes (devices whose system
- * store lacks a root a service needs); none by default.
+ * store lacks a root a service needs; none by default), and the model services it supports beyond chat
+ * ([providerAdapters]: a balance, web lookups, native history updates; none by default).
  */
 class AppServerConfig(
     val name: String,
@@ -79,6 +81,7 @@ class AppServerConfig(
     val a2a: A2aHost = A2aHost.NONE,
     val builtIns: BuiltInFeatures = BuiltInFeatures.NONE,
     @RawRes val extraTrustRoots: Int? = null,
+    val providerAdapters: List<ProviderAdapter> = emptyList(),
 )
 
 /**
@@ -97,7 +100,7 @@ object AppServer {
     fun install(app: Application, config: AppServerConfig) {
         this.config = config
         RuntimeVoice.install(config.voice)
-        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns, config.extraTrustRoots)
+        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns, config.extraTrustRoots, config.providerAdapters)
         installServer(app, config.features)
     }
 
@@ -143,7 +146,10 @@ object AppServer {
         runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
 }
 
-/** The modules of requests every app server answers beside the core routes ([ServerRoutes]). */
+/**
+ * The modules of requests every app server answers beside the core routes ([ServerRoutes]), and the requests of the
+ * host's provider adapters ([AppHost.providerAdapters]).
+ */
 fun coreModules(app: Context): List<RouteModule> = listOf(
     ImageModelRoutes(app),
     MemoryRoutes(app),
@@ -153,4 +159,4 @@ fun coreModules(app: Context): List<RouteModule> = listOf(
     AppRoutes(app),
     FileRoutes(app),
     PageRoutes(app),
-)
+) + AppHost.providerAdapters.flatMap { it.routes(app) }

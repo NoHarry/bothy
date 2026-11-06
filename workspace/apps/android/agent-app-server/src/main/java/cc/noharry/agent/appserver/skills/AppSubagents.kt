@@ -9,7 +9,7 @@ import cc.noharry.agent.appserver.a2a.A2aReport
 import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_MEDIA
 import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.model.ProviderConfig
-import cc.noharry.agent.appserver.model.hasDeepSeekKey
+import cc.noharry.agent.appserver.model.hasWebLookup
 import cc.noharry.agent.appserver.protocol.DEFAULT_SUBAGENT_LOOKUPS
 import cc.noharry.agent.appserver.protocol.TokenUsageState
 import cc.noharry.agent.appserver.runtime.AppHost
@@ -110,16 +110,16 @@ object AppSubagents {
 
     /** Reads the saved settings and the switched-on subagent types into the next spawns. */
     fun apply(context: Context) {
-        types = offeredTypes(context, ProviderConfig.load(context.applicationContext).hasDeepSeekKey(context))
+        types = offeredTypes(context, ProviderConfig.load(context.applicationContext).hasWebLookup(context))
         applySettings(loadSubagentSettings(context))
     }
 
     /**
-     * Before a main agent's run: a type that needs DeepSeek's lookups comes and goes with them. That changes the tool
+     * Before a main agent's run: a type that needs a lookup API comes and goes with it. That changes the tool
      * list, so only an actual change is applied (it happens when a key is added or removed, not run to run).
      */
-    fun refreshTypes(context: Context, deepSeekLookup: Boolean) {
-        val offered = offeredTypes(context, deepSeekLookup)
+    fun refreshTypes(context: Context, webLookup: Boolean) {
+        val offered = offeredTypes(context, webLookup)
         if (offered == types) return
         types = offered
         instance.config = instance.config.copy(types = offered)
@@ -131,8 +131,8 @@ object AppSubagents {
     /** The types spawn_agent offers now, by id. */
     fun offeredTypeIds(): Set<String> = types.mapTo(linkedSetOf()) { it.name }
 
-    private fun offeredTypes(context: Context, deepSeekLookup: Boolean): List<SubagentType> =
-        loadSubagentKinds(context).filter { it.enabled && (deepSeekLookup || !it.requiresDeepSeekLookup) }.map { it.toSubagentType() }
+    private fun offeredTypes(context: Context, webLookup: Boolean): List<SubagentType> =
+        loadSubagentKinds(context).filter { it.enabled && (webLookup || !it.requiresWebLookup) }.map { it.toSubagentType() }
 
     internal fun applySettings(settings: SubagentSettings) {
         settingsState.value = settings
@@ -461,7 +461,7 @@ internal fun SubagentStatus.deliveryKey(): String = "$parentSessionId/$id"
 
 /**
  * [enabled]: the agent may start subagents on its own (a runtime setting); off hides the three tools. [searchApi]:
- * children search with DeepSeek's Search API whatever the main agent uses (owner 2026-10-17: 子 agent 搜索改用 API 接口再对比下费用).
+ * children search with a service's search API ([ProviderAdapter.lookup][cc.noharry.agent.appserver.model.ProviderAdapter.lookup]) whatever the main agent uses (owner 2026-10-17: 子 agent 搜索改用 API 接口再对比下费用).
  */
 data class SubagentSettings(
     val allowDeviceControl: Boolean = false,

@@ -15,7 +15,6 @@ import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.RemoteAgentRef
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.R
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.A2aClientItem
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource

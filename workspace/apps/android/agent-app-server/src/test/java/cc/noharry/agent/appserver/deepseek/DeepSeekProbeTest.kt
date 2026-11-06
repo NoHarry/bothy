@@ -1,14 +1,17 @@
-package cc.noharry.agent.appserver.model
+package cc.noharry.agent.appserver.deepseek
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.protocol.DeepSeekAmountView
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceView
+import cc.noharry.agent.appserver.model.ProviderConfig
+import cc.noharry.agent.appserver.model.ProviderProfile
+import cc.noharry.agent.appserver.model.appWebFetchFallback
+import cc.noharry.agent.appserver.model.hasWebLookup
+import cc.noharry.agent.appserver.protocol.BalanceAmountView
+import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.protocol.finding
-import cc.noharry.agent.appserver.runtime.usesDeepSeekNativeUpdates
 import java.util.Collections
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -33,6 +36,13 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], qualifiers = "zh")
 class DeepSeekProbeTest {
+    // DeepSeek's lookups and native updates come from its adapter, which the host installs.
+    @org.junit.Before
+    fun installDeepSeek() = cc.noharry.agent.appserver.runtime.AppHost.install(providerAdapters = listOf(DeepSeekAdapter))
+
+    @org.junit.After
+    fun noAdapters() = cc.noharry.agent.appserver.runtime.AppHost.install(providerAdapters = emptyList())
+
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val seen = Collections.synchronizedList(mutableListOf<Request>())
     private val bodies = Collections.synchronizedList(mutableListOf<String>())
@@ -69,7 +79,7 @@ class DeepSeekProbeTest {
 
         assertEquals("http://127.0.0.1:18080/v1/user/balance", probe.balance.url)
         assertEquals(
-            Finding(FindingCode.MODEL_BALANCE, balance = DeepSeekBalanceView(true, listOf(DeepSeekAmountView("CNY", "110.00", "100.00", "10.00")))),
+            Finding(FindingCode.MODEL_BALANCE, balance = BalanceView(true, listOf(BalanceAmountView("CNY", "110.00", "100.00", "10.00")))),
             probe.balance.note,
         )
         assertEquals("http://127.0.0.1:18080/v1/v1/tools", probe.tools.url)
@@ -161,9 +171,9 @@ class DeepSeekProbeTest {
         val loaded = ProviderConfig.load(context)
         val config = loaded.copy(profiles = loaded.profiles.filterNot { it.isDeepSeek() } + relay)
 
-        assertFalse(config.usesDeepSeekNativeUpdates(context, relay))
+        assertFalse(DeepSeekAdapter.nativeUpdates(context, config, relay))
         assertNull(config.deepSeekToolsOf(context, relay))
-        assertFalse(config.hasDeepSeekKey(context))
+        assertFalse(config.hasWebLookup(context))
 
         DeepSeekProbes.save(
             context,
@@ -177,20 +187,20 @@ class DeepSeekProbeTest {
             ),
         )
 
-        assertTrue(config.usesDeepSeekNativeUpdates(context, relay))
+        assertTrue(DeepSeekAdapter.nativeUpdates(context, config, relay))
         val tools = config.deepSeekToolsOf(context, relay)
         assertNotNull(tools)
         assertEquals("gw.example.com", tools!!.label)
-        assertTrue(config.hasDeepSeekKey(context))
+        assertTrue(config.hasWebLookup(context))
         assertNotNull(appWebFetchFallback(context, config, relay))
 
         val rekeyed = relay.copy(apiKey = "sk-new")
-        assertFalse(config.usesDeepSeekNativeUpdates(context, rekeyed))
+        assertFalse(DeepSeekAdapter.nativeUpdates(context, config, rekeyed))
         assertNull(config.deepSeekToolsOf(context, rekeyed))
-        assertFalse(config.usesDeepSeekNativeUpdates(context, relay.copy(baseUrl = "https://other.example.com/anthropic")))
+        assertFalse(DeepSeekAdapter.nativeUpdates(context, config, relay.copy(baseUrl = "https://other.example.com/anthropic")))
         // DeepSeek's own host needs no check.
         val official = relay.copy(id = "official", baseUrl = "https://api.deepseek.com/anthropic")
-        assertTrue(config.usesDeepSeekNativeUpdates(context, official))
+        assertTrue(DeepSeekAdapter.nativeUpdates(context, config, official))
         assertEquals("api.deepseek.com", config.deepSeekToolsOf(context, official)?.label)
     }
 

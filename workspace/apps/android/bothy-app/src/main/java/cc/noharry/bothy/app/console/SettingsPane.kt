@@ -675,7 +675,7 @@ private fun FetchFallbackRow(lookup: WebLookupView, onChange: (Boolean) -> Unit)
             Text(stringResource(R.string.settings_fetch_fallback), style = ConsoleType.body, color = ConsoleColors.text)
             Text(
                 when {
-                    on && !lookup.deepSeekKey -> stringResource(R.string.settings_fetch_fallback_no_key)
+                    on && !lookup.lookupKey -> stringResource(R.string.settings_fetch_fallback_no_key)
                     on -> stringResource(R.string.settings_fetch_fallback_on)
                     else -> stringResource(R.string.settings_fetch_fallback_off)
                 },

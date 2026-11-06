@@ -10,7 +10,6 @@ import cc.noharry.agent.appserver.mcp.loadMcpServers
 import cc.noharry.agent.appserver.mcp.readMcpResourceAll
 import cc.noharry.agent.appserver.mcp.readMcpTool
 import cc.noharry.agent.appserver.mcp.toolReading
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.WatchOp

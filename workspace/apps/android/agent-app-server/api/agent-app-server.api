@@ -58,6 +58,22 @@ cc.noharry.agent.appserver.a2ui.picksBoundCall | fun String.picksBoundCall(quali
 cc.noharry.agent.appserver.a2ui.webPageSearch | fun webPageSearch(context: Context, results: Int): (suspend (String) -> List<String>)?
 cc.noharry.agent.appserver.androiduse.loadAndroidUseEnabled | fun loadAndroidUseEnabled(context: Context): Boolean
 cc.noharry.agent.appserver.androiduse.repairAndroidUse | suspend fun repairAndroidUse( context: Context, gapMillis: Long = REBIND_GAP_MS, waitMillis: Long = CONNECT_WAIT_MS, ): Boolean
+cc.noharry.agent.appserver.deepseek.DeepSeekAdapter | object DeepSeekAdapter : ProviderAdapter
+cc.noharry.agent.appserver.deepseek.DeepSeekAmount | data class DeepSeekAmount(val currency: String, val total: String, val toppedUp: String, val granted: String)
+cc.noharry.agent.appserver.deepseek.DeepSeekBalance | data class DeepSeekBalance(val available: Boolean, val amounts: List<DeepSeekAmount>)
+cc.noharry.agent.appserver.deepseek.DeepSeekCheck | data class DeepSeekCheck(val url: String?, val note: Finding)
+cc.noharry.agent.appserver.deepseek.DeepSeekCheck.passed | val passed: Boolean get()
+cc.noharry.agent.appserver.deepseek.DeepSeekProbe | data class DeepSeekProbe( val fingerprint: String, val balance: DeepSeekCheck, val tools: DeepSeekCheck, val passthrough: DeepSeekCheck?, val checkedAt: Long, )
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes | object DeepSeekProbes
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes.check | suspend fun check(context: Context, profile: ProviderProfile, apiKey: String): DeepSeekProbe
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes.current | fun current(context: Context, profile: ProviderProfile, apiKey: String): DeepSeekProbe?
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes.launch | fun launch(block: suspend () -> Unit)
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes.save | fun save(context: Context, profileId: String, probe: DeepSeekProbe)
+cc.noharry.agent.appserver.deepseek.DeepSeekProbes.saved | fun saved(context: Context, profileId: String): DeepSeekProbe?
+cc.noharry.agent.appserver.deepseek.describe | fun DeepSeekProbe.describe(): String
+cc.noharry.agent.appserver.deepseek.fetchDeepSeekBalance | suspend fun fetchDeepSeekBalance( apiKey: String, client: OkHttpClient = BALANCE_CLIENT, url: String = DEEPSEEK_BALANCE_URL, ): Result<DeepSeekBalance>
+cc.noharry.agent.appserver.deepseek.isDeepSeek | fun ProviderProfile.isDeepSeek(): Boolean
+cc.noharry.agent.appserver.deepseek.view | fun DeepSeekBalance.view(): BalanceView
 cc.noharry.agent.appserver.evidence.AppDiagnostics | class AppDiagnostics( private val logFile: File, private val appContext: android.content.Context? = null, private val onEntry: (DiagnosticEntry) -> Unit = {}, private val onTokenUsage: (TokenDelta) -> Unit = {}, private val nowMillis: () -> Long = { System.currentTimeMillis() }, )
 cc.noharry.agent.appserver.evidence.AppDiagnostics.flush | suspend fun flush()
 cc.noharry.agent.appserver.evidence.AppDiagnostics.transport | fun transport(provider: ModelProvider): HttpTransport
@@ -116,23 +132,18 @@ cc.noharry.agent.appserver.memory.UserMemoryStore.write | fun write(context: Con
 cc.noharry.agent.appserver.memory.memoryProfileText | fun memoryProfileText(memories: List<UserMemory>): String
 cc.noharry.agent.appserver.memory.userMemoryEnabled | fun userMemoryEnabled(context: Context): Boolean
 cc.noharry.agent.appserver.model.DEFAULT_LOCAL_API_KEY | const val DEFAULT_LOCAL_API_KEY
-cc.noharry.agent.appserver.model.DeepSeekAmount | data class DeepSeekAmount(val currency: String, val total: String, val toppedUp: String, val granted: String)
-cc.noharry.agent.appserver.model.DeepSeekBalance | data class DeepSeekBalance(val available: Boolean, val amounts: List<DeepSeekAmount>)
-cc.noharry.agent.appserver.model.DeepSeekCheck | data class DeepSeekCheck(val url: String?, val note: Finding)
-cc.noharry.agent.appserver.model.DeepSeekCheck.passed | val passed: Boolean get()
-cc.noharry.agent.appserver.model.DeepSeekProbe | data class DeepSeekProbe( val fingerprint: String, val balance: DeepSeekCheck, val tools: DeepSeekCheck, val passthrough: DeepSeekCheck?, val checkedAt: Long, )
-cc.noharry.agent.appserver.model.DeepSeekProbes | object DeepSeekProbes
-cc.noharry.agent.appserver.model.DeepSeekProbes.check | suspend fun check(context: Context, profile: ProviderProfile, apiKey: String): DeepSeekProbe
-cc.noharry.agent.appserver.model.DeepSeekProbes.current | fun current(context: Context, profile: ProviderProfile, apiKey: String): DeepSeekProbe?
-cc.noharry.agent.appserver.model.DeepSeekProbes.launch | fun launch(block: suspend () -> Unit)
-cc.noharry.agent.appserver.model.DeepSeekProbes.save | fun save(context: Context, profileId: String, probe: DeepSeekProbe)
-cc.noharry.agent.appserver.model.DeepSeekProbes.saved | fun saved(context: Context, profileId: String): DeepSeekProbe?
 cc.noharry.agent.appserver.model.FetchFallback | object FetchFallback
 cc.noharry.agent.appserver.model.FetchFallback.enabled | fun enabled(context: Context): Boolean
 cc.noharry.agent.appserver.model.FetchFallback.set | fun set(context: Context, enabled: Boolean)
 cc.noharry.agent.appserver.model.ModelCatalogClient | class ModelCatalogClient( private val transport: HttpTransport, )
 cc.noharry.agent.appserver.model.ModelCatalogClient.fetch | suspend fun fetch(provider: ModelProvider, apiKey: String, baseUrl: String): List<String>
 cc.noharry.agent.appserver.model.ON_DEVICE_FIRST_EVENT_TIMEOUT_MS | const val ON_DEVICE_FIRST_EVENT_TIMEOUT_MS
+cc.noharry.agent.appserver.model.ProviderAdapter | interface ProviderAdapter
+cc.noharry.agent.appserver.model.ProviderAdapter.hasLookup | fun hasLookup(context: Context, config: ProviderConfig, profile: ProviderProfile): Boolean
+cc.noharry.agent.appserver.model.ProviderAdapter.lookup | fun lookup(context: Context, config: ProviderConfig, profile: ProviderProfile): WebLookup?
+cc.noharry.agent.appserver.model.ProviderAdapter.nativeUpdates | fun nativeUpdates(context: Context, config: ProviderConfig, profile: ProviderProfile): Boolean
+cc.noharry.agent.appserver.model.ProviderAdapter.routes | fun routes(app: Context): List<RouteModule>
+cc.noharry.agent.appserver.model.ProviderAdapter.shareKeys | fun shareKeys(profiles: List<ProviderProfile>): List<ProviderProfile>
 cc.noharry.agent.appserver.model.ProviderConfig | data class ProviderConfig( val values: Map<String, String>, val sourcePath: String?, val expectedPaths: List<String>, val profiles: List<ProviderProfile>, val defaultProfileId: String, val activeProfileId: String, val manualProfileEnabled: Boolean, )
 cc.noharry.agent.appserver.model.ProviderConfig.Companion | companion object
 cc.noharry.agent.appserver.model.ProviderConfig.Companion.load | fun load(context: Context): ProviderConfig
@@ -163,16 +174,13 @@ cc.noharry.agent.appserver.model.SearchBackend.load | fun load(context: Context)
 cc.noharry.agent.appserver.model.SearchBackend.set | fun set(context: Context, profileId: String, api: Boolean)
 cc.noharry.agent.appserver.model.SearchBackend.usesApi | fun usesApi(context: Context, profileId: String): Boolean
 cc.noharry.agent.appserver.model.SearchBackend.usesApi | val usesApi: StateFlow<Map<String, Boolean>>
+cc.noharry.agent.appserver.model.WebLookup | interface WebLookup : WebSearchProvider, WebFetchFallback
 cc.noharry.agent.appserver.model.buildConfigValues | fun buildConfigValues(): Map<String, String>
-cc.noharry.agent.appserver.model.describe | fun DeepSeekProbe.describe(): String
-cc.noharry.agent.appserver.model.fetchDeepSeekBalance | suspend fun fetchDeepSeekBalance( apiKey: String, client: OkHttpClient = BALANCE_CLIENT, url: String = DEEPSEEK_BALANCE_URL, ): Result<DeepSeekBalance>
-cc.noharry.agent.appserver.model.isDeepSeek | fun ProviderProfile.isDeepSeek(): Boolean
 cc.noharry.agent.appserver.model.isLocalBaseUrl | fun String.isLocalBaseUrl(): Boolean
 cc.noharry.agent.appserver.model.orDefault | fun String?.orDefault(default: String): String
 cc.noharry.agent.appserver.model.preferenceKey | fun String.preferenceKey(): String
 cc.noharry.agent.appserver.model.saveContextWindow | fun saveContextWindow(context: Context, profile: ProviderEditState, tokens: Long?)
 cc.noharry.agent.appserver.model.toStreamOverride | fun String?.toStreamOverride(): Boolean?
-cc.noharry.agent.appserver.model.view | fun DeepSeekBalance.view(): DeepSeekBalanceView
 cc.noharry.agent.appserver.model.withMadeUpCallsSearched | fun Flow<ModelEvent>.withMadeUpCallsSearched(request: ModelRequest): Flow<ModelEvent>
 cc.noharry.agent.appserver.model.withTextToolCalls | fun Flow<ModelEvent>.withTextToolCalls( toolNames: Set<String>, newId: () -> String = { "text-call-${UUID.randomUUID()}" }, ): Flow<ModelEvent>
 cc.noharry.agent.appserver.plans.PLAN_LOG_TAG | const val PLAN_LOG_TAG
@@ -312,7 +320,7 @@ cc.noharry.agent.appserver.server.AppServer.connect | fun connect(context: Conte
 cc.noharry.agent.appserver.server.AppServer.features | val features: List<AppServerFeature> get()
 cc.noharry.agent.appserver.server.AppServer.install | fun install(app: Application, config: AppServerConfig)
 cc.noharry.agent.appserver.server.AppServer.wakeUp | fun wakeUp(context: Context)
-cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, @RawRes val extraTrustRoots: Int? = null, )
+cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, @RawRes val extraTrustRoots: Int? = null, val providerAdapters: List<ProviderAdapter> = emptyList(), )
 cc.noharry.agent.appserver.server.AppServerFeature | interface AppServerFeature
 cc.noharry.agent.appserver.server.AppServerFeature.appInFront | fun appInFront(app: Context, inFront: Boolean)
 cc.noharry.agent.appserver.server.AppServerFeature.install | fun install(app: Application)
@@ -434,7 +442,7 @@ cc.noharry.agent.appserver.session.UiState | typealias UiState
 cc.noharry.agent.appserver.skills.DEFAULT_SUBAGENT_TOOLS | val DEFAULT_SUBAGENT_TOOLS
 cc.noharry.agent.appserver.skills.RuntimeSkill | data class RuntimeSkill( val id: String, val label: String, val description: String, val assetPath: String, val enabled: Boolean, val preload: Boolean = false, val manifestPath: String? = null, val requiresAndroidUse: Boolean = false, val requiresA2aDelegate: Boolean = false, val mainAgentOnly: Boolean = false, val file: java.io.File? = null, val systemPrompt: Boolean = false, )
 cc.noharry.agent.appserver.skills.SkillCheck | data class SkillCheck( val name: String?, val description: String?, val errors: List<SkillIssue>, val warnings: List<SkillIssue>, val normalized: String, )
-cc.noharry.agent.appserver.skills.SubagentKind | data class SubagentKind( val id: String, @StringRes val label: Int, val description: String, val assetPath: String, val maxLookups: Int = MAX_CHILD_LOOKUPS, val searchApi: Boolean? = null, val enabled: Boolean = true, val tools: Set<SubagentToolGroup> = DEFAULT_SUBAGENT_TOOLS, val requiresDeepSeekLookup: Boolean = false, val reportClosing: String? = null, )
+cc.noharry.agent.appserver.skills.SubagentKind | data class SubagentKind( val id: String, @StringRes val label: Int, val description: String, val assetPath: String, val maxLookups: Int = MAX_CHILD_LOOKUPS, val searchApi: Boolean? = null, val enabled: Boolean = true, val tools: Set<SubagentToolGroup> = DEFAULT_SUBAGENT_TOOLS, val requiresWebLookup: Boolean = false, val reportClosing: String? = null, )
 cc.noharry.agent.appserver.skills.SubagentKind.searches | val searches: Boolean get()
 cc.noharry.agent.appserver.skills.SubagentSettings | data class SubagentSettings( val allowDeviceControl: Boolean = false, val model: String = "", val enabled: Boolean = true, val searchApi: Boolean = false, )
 cc.noharry.agent.appserver.skills.SubagentToolGroup | enum class SubagentToolGroup(val wire: String, private val chinese: String, private val english: String, val changes: Boolean = false)

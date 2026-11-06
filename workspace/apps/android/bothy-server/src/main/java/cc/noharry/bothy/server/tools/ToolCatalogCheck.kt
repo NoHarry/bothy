@@ -8,7 +8,6 @@ import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.mcp.McpToolCatalogs
 import cc.noharry.agent.appserver.mcp.ToolsJsonMcpProvider
 import cc.noharry.agent.appserver.mcp.loadMcpProviders
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.McpProviderState
 import cc.noharry.agent.appserver.protocol.finding

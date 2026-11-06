@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
  * `R.string.checks_mic_ok`). [args] are the values it is about, in the order the wording takes them: names, model ids,
  * raw numbers, an HTTP status, or free-form text from outside (an error's own message, a service's answer), shown as it
  * is. [more] are findings worded after [args], each as one more value (the cause, the parts of a check), and [balance]
- * a DeepSeek balance worded after those. [FindingCode.TEXT], [FindingCode.PARTS], [FindingCode.LIST] and
+ * a key's balance worded after those. [FindingCode.TEXT], [FindingCode.PARTS], [FindingCode.LIST] and
  * [FindingCode.ALTERNATIVES] only arrange what they hold.
  *
  * On the wire [code] is a name: the protocol's own codes ([FindingCode]) and an app's ([FindingKind]) alike, so a
@@ -19,7 +19,7 @@ data class Finding(
     val code: String,
     val args: List<String> = emptyList(),
     val more: List<Finding> = emptyList(),
-    val balance: DeepSeekBalanceView? = null,
+    val balance: BalanceView? = null,
     /** How many, for a wording that changes with the number (one model, two models); not itself a value. */
     val count: Int? = null,
 ) {
@@ -27,7 +27,7 @@ data class Finding(
         kind: FindingKind,
         args: List<String> = emptyList(),
         more: List<Finding> = emptyList(),
-        balance: DeepSeekBalanceView? = null,
+        balance: BalanceView? = null,
         count: Int? = null,
     ) : this(kind.name, args, more, balance, count)
 
@@ -64,10 +64,10 @@ fun Finding.logText(): String =
     (listOf(code) + args + more.map { "(${it.logText()})" }).joinToString(" ") +
         (balance?.let { " balance=${it.amounts.joinToString { a -> "${a.currency} ${a.total}" }}" } ?: "")
 
-/** One currency's amounts in a DeepSeek balance, as the service gives them (decimal strings). */
+/** One currency's amounts in a key's balance, as the service gives them (decimal strings). */
 @Serializable
-data class DeepSeekAmountView(val currency: String, val total: String, val toppedUp: String, val granted: String)
+data class BalanceAmountView(val currency: String, val total: String, val toppedUp: String, val granted: String)
 
-/** A DeepSeek key's balance: whether it can still be used, and its amounts per currency. */
+/** A model service key's balance: whether it can still be used, and its amounts per currency. */
 @Serializable
-data class DeepSeekBalanceView(val available: Boolean, val amounts: List<DeepSeekAmountView> = emptyList())
+data class BalanceView(val available: Boolean, val amounts: List<BalanceAmountView> = emptyList())

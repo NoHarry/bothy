@@ -1,8 +1,8 @@
-package cc.noharry.agent.appserver.model
+package cc.noharry.agent.appserver.deepseek
 import cc.noharry.agent.appserver.FoundException
 import cc.noharry.agent.appserver.httpFailure
-import cc.noharry.agent.appserver.protocol.DeepSeekAmountView
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceView
+import cc.noharry.agent.appserver.protocol.BalanceAmountView
+import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
 import java.util.concurrent.TimeUnit
@@ -35,8 +35,8 @@ internal fun parseDeepSeekBalance(body: String): DeepSeekBalance {
 }
 
 /** The balance as the screens get it, to word themselves. */
-fun DeepSeekBalance.view(): DeepSeekBalanceView =
-    DeepSeekBalanceView(available, amounts.map { DeepSeekAmountView(it.currency, it.total, it.toppedUp, it.granted) })
+fun DeepSeekBalance.view(): BalanceView =
+    BalanceView(available, amounts.map { BalanceAmountView(it.currency, it.total, it.toppedUp, it.granted) })
 
 /**
  * Asks DeepSeek with [apiKey]; the key goes only to its own host, in the header, never into a log. A failure the

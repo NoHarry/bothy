@@ -5,6 +5,7 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.a2a.A2aHost
 import cc.noharry.agent.appserver.a2ui.CardHooks
 import cc.noharry.agent.appserver.evidence.AppDiagnostics
+import cc.noharry.agent.appserver.model.ProviderAdapter
 import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.skills.RuntimeSkill
@@ -263,6 +264,11 @@ object AppHost {
     var extraTrustRoots: Int? = null
         private set
 
+    /** The model services the host supports beyond chat ([ProviderAdapter]); none by default. */
+    @Volatile
+    var providerAdapters: List<ProviderAdapter> = emptyList()
+        private set
+
     fun install(
         models: HostModels = this.models,
         runs: RunAddOns = this.runs,
@@ -272,7 +278,9 @@ object AppHost {
         a2a: A2aHost = this.a2a,
         builtIns: BuiltInFeatures = this.builtIns,
         extraTrustRoots: Int? = this.extraTrustRoots,
+        providerAdapters: List<ProviderAdapter> = this.providerAdapters,
     ) {
+        this.providerAdapters = providerAdapters
         this.builtIns = builtIns
         this.extraTrustRoots = extraTrustRoots
         this.models = models

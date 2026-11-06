@@ -1,4 +1,5 @@
 package cc.noharry.bothy.server.model
+import cc.noharry.agent.appserver.deepseek.DeepSeekAdapter
 import cc.noharry.agent.appserver.image.IMAGE_MODEL_EMBEDDED_KEYS
 import cc.noharry.agent.appserver.model.DEFAULT_OPENAI_BASE_URL
 import cc.noharry.agent.appserver.model.DEFAULT_OPENAI_MODEL
@@ -14,6 +15,7 @@ import cc.noharry.agent.appserver.model.withLocalProfiles
 import cc.noharry.agent.appserver.model.withSavedProfiles
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.usesVisibleWebSearchTool
 import cc.noharry.bothy.server.BuildConfig
 import cc.noharry.bothy.server.mcp.AGENT_RELAY_URL_KEY
@@ -350,7 +352,14 @@ class ProviderConfigTest {
             "AGENT_RUNTIME_PROVIDER_PROFILE_DEEPSEEK_ANTHROPIC_MODEL" to "deepseek-v4-flash",
             "AGENT_RUNTIME_PROVIDER_PROFILE_DEEPSEEK_ANTHROPIC_API_KEY" to "",
         )
-        val byId = providerProfiles(values).associateBy { it.id }
+        // The DeepSeek adapter, which Bothy installs, shares the key; without it each profile keeps its own.
+        assertEquals("", providerProfiles(values).single { it.id == "deepseek-anthropic" }.apiKey)
+        AppHost.install(providerAdapters = listOf(DeepSeekAdapter))
+        val byId = try {
+            providerProfiles(values).associateBy { it.id }
+        } finally {
+            AppHost.install(providerAdapters = emptyList())
+        }
 
         assertEquals("sk-shared-deepseek", byId.getValue("deepseek-api").apiKey)
         assertEquals("sk-shared-deepseek", byId.getValue("deepseek-anthropic").apiKey)

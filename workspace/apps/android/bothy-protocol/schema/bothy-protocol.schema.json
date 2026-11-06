@@ -333,30 +333,6 @@
           "$ref": "#/$defs/Empty"
         }
       },
-      "deepseek/balance": {
-        "params": {
-          "$ref": "#/$defs/DeepSeekBalanceParams"
-        },
-        "result": {
-          "$ref": "#/$defs/DeepSeekBalanceResult"
-        }
-      },
-      "deepseek/probe": {
-        "params": {
-          "$ref": "#/$defs/ProviderConnection"
-        },
-        "result": {
-          "$ref": "#/$defs/DeepSeekProbeView"
-        }
-      },
-      "deepseek/check": {
-        "params": {
-          "$ref": "#/$defs/ProviderConnection"
-        },
-        "result": {
-          "$ref": "#/$defs/DeepSeekProbeView"
-        }
-      },
       "webLookup/read": {
         "params": {
           "$ref": "#/$defs/Empty"
@@ -707,6 +683,30 @@
         },
         "result": {
           "$ref": "#/$defs/PriceSyncResult"
+        }
+      },
+      "deepseek/balance": {
+        "params": {
+          "$ref": "#/$defs/DeepSeekBalanceParams"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekBalanceResult"
+        }
+      },
+      "deepseek/probe": {
+        "params": {
+          "$ref": "#/$defs/ProviderConnection"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekProbeView"
+        }
+      },
+      "deepseek/check": {
+        "params": {
+          "$ref": "#/$defs/ProviderConnection"
+        },
+        "result": {
+          "$ref": "#/$defs/DeepSeekProbeView"
         }
       },
       "jev/setToolSearch": {
@@ -2097,6 +2097,46 @@
         "refreshToken"
       ]
     },
+    "BalanceAmountView": {
+      "type": "object",
+      "properties": {
+        "currency": {
+          "type": "string"
+        },
+        "total": {
+          "type": "string"
+        },
+        "toppedUp": {
+          "type": "string"
+        },
+        "granted": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "total",
+        "toppedUp",
+        "granted"
+      ]
+    },
+    "BalanceView": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        },
+        "amounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BalanceAmountView"
+          }
+        }
+      },
+      "required": [
+        "available"
+      ]
+    },
     "BasicToolView": {
       "type": "object",
       "properties": {
@@ -3447,29 +3487,6 @@
         "cleared"
       ]
     },
-    "DeepSeekAmountView": {
-      "type": "object",
-      "properties": {
-        "currency": {
-          "type": "string"
-        },
-        "total": {
-          "type": "string"
-        },
-        "toppedUp": {
-          "type": "string"
-        },
-        "granted": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "currency",
-        "total",
-        "toppedUp",
-        "granted"
-      ]
-    },
     "DeepSeekBalanceParams": {
       "type": "object",
       "properties": {
@@ -3504,7 +3521,7 @@
         "balance": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DeepSeekBalanceView"
+              "$ref": "#/$defs/BalanceView"
             },
             {
               "type": "null"
@@ -3522,23 +3539,6 @@
           ]
         }
       }
-    },
-    "DeepSeekBalanceView": {
-      "type": "object",
-      "properties": {
-        "available": {
-          "type": "boolean"
-        },
-        "amounts": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/DeepSeekAmountView"
-          }
-        }
-      },
-      "required": [
-        "available"
-      ]
     },
     "DeepSeekCheckView": {
       "type": "object",
@@ -3935,7 +3935,7 @@
         "balance": {
           "anyOf": [
             {
-              "$ref": "#/$defs/DeepSeekBalanceView"
+              "$ref": "#/$defs/BalanceView"
             },
             {
               "type": "null"
@@ -5738,7 +5738,7 @@
             "$ref": "#/$defs/SubagentKindView"
           }
         },
-        "deepSeekLookup": {
+        "webLookup": {
           "type": "boolean"
         }
       }
@@ -7383,7 +7383,7 @@
           },
           "uniqueItems": true
         },
-        "requiresDeepSeekLookup": {
+        "requiresWebLookup": {
           "type": "boolean"
         },
         "defaultTools": {
@@ -9228,7 +9228,7 @@
         "fetchFallback": {
           "type": "boolean"
         },
-        "deepSeekKey": {
+        "lookupKey": {
           "type": "boolean"
         }
       }

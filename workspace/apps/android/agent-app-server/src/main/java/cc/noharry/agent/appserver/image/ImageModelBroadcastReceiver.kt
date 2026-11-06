@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import cc.noharry.agent.appserver.a2a.describe
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.ImageModelConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

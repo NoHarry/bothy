@@ -2,6 +2,7 @@ package cc.noharry.bothy.server.server
 
 import android.app.Application
 import android.content.Context
+import cc.noharry.agent.appserver.deepseek.DeepSeekAdapter
 import cc.noharry.agent.appserver.protocol.transport.MessageChannel
 import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.runtime.HostPlaces
@@ -52,6 +53,8 @@ internal fun bothyConfig() = AppServerConfig(
     builtIns = BothyBuiltIns,
     // Head units whose trimmed system store lacks the roots DeepSeek's and other services' chains end in.
     extraTrustRoots = R.raw.deepseek_cas,
+    // DeepSeek beyond chat: its balance and relay check, its Search and Fetch APIs, its native history updates.
+    providerAdapters = listOf(DeepSeekAdapter),
 )
 
 /** Everything the server offers of its own: plans, operating the screen, device media, cards, and starting after boot. */

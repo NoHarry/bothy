@@ -1,7 +1,8 @@
-package cc.noharry.agent.appserver.model
+package cc.noharry.agent.appserver.deepseek
+import cc.noharry.agent.appserver.model.ProviderProfile
+import cc.noharry.agent.appserver.model.appSystemPrompt
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
-import cc.noharry.agent.appserver.runtime.usesDeepSeekNativeUpdates
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

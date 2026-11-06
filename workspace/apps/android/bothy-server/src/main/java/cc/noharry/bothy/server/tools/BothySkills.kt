@@ -90,7 +90,7 @@ internal val BOTHY_SUBAGENT_KINDS = listOf(
         maxLookups = 6,
         searchApi = true,
         tools = VERIFY_TOOLS,
-        requiresDeepSeekLookup = true,
+        requiresWebLookup = true,
         reportClosing = VERIFY_REPORT_CLOSING,
     ),
 )

@@ -3,6 +3,7 @@ package cc.noharry.bothy.protocol
 import cc.noharry.agent.appserver.protocol.AppServerMethods
 import cc.noharry.agent.appserver.protocol.ProtocolMethod
 import cc.noharry.agent.appserver.protocol.clientNotification
+import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekRequests
 import cc.noharry.agent.appserver.protocol.request
 import cc.noharry.agent.appserver.protocol.serverNotification
 import cc.noharry.agent.appserver.protocol.serverRequest
@@ -14,6 +15,10 @@ import cc.noharry.agent.appserver.protocol.serverRequest
  */
 object ProtocolMethods {
     val all: List<ProtocolMethod> = AppServerMethods.all + listOf(
+        // The DeepSeek adapter's, which Bothy's server installs.
+        request(DeepSeekRequests.BALANCE),
+        request(DeepSeekRequests.PROBE),
+        request(DeepSeekRequests.CHECK),
         request(ToolSearchRequests.SET),
         request(CheckRequests.RUN),
         request(CompanionRequests.READ),

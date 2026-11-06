@@ -14,7 +14,7 @@ import cc.noharry.agent.runtime.SubagentType
 /**
  * Kinds of subagent with their own instructions (owner 2026-10-17: 专门做成一个子 agent，可以配置是否加载，里面可以特化
  * 提示词). The main agent names one in spawn_agent's `agent` and writes only the specifics; the child gets the type's
- * `AGENT.md` with its task, at most [maxLookups] pages and searches, and DeepSeek's Search API when [searchApi] says
+ * `AGENT.md` with its task, at most [maxLookups] pages and searches, and a service's search API when [searchApi] says
  * so (null: the subagent setting). Switched on and off in the subagent settings; a switched-off type is
  * not offered, and skills fall back to writing the whole task (`<!-- no-agent:… -->` sections). Each type may call only
  * its [tools] (owner 2026-10-18: 把它可用的工具也标出来，点击一个子智能体能进他的详情页), set on the type's page.
@@ -30,8 +30,8 @@ data class SubagentKind(
     val searchApi: Boolean? = null,
     val enabled: Boolean = true,
     val tools: Set<SubagentToolGroup> = DEFAULT_SUBAGENT_TOOLS,
-    /** Offered only while some profile has DeepSeek's Search and Fetch APIs (an official key, or a relay that passed 检测). */
-    val requiresDeepSeekLookup: Boolean = false,
+    /** Offered only while some profile has a service's search and fetch APIs ([cc.noharry.agent.appserver.model.ProviderAdapter.lookup]). */
+    val requiresWebLookup: Boolean = false,
     /**
      * What the main agent is told to do with this type's report, in the persona's language, instead of summing it up for
      * the user: a check of an answer already given goes onto its card, say. Null sums it up.

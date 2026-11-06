@@ -10,8 +10,8 @@
     <string name="runtime_tool_update_todo">Keeps the steps and progress of the task.</string>
     <string name="runtime_tool_ask_async">Asks a question and carries on; the answer joins a later request, and it doesn\'t wait for a reply.</string>
     <string name="runtime_tool_ask">Asks the user a clarifying question and waits for the reply.</string>
-    <string name="runtime_tool_web_fetch">Fetches web pages; hidden when the model service has its own visible search tool, unless \"Use DeepSeek Fetch when a page won\'t open\" is on.</string>
-    <string name="runtime_tool_web_search">Searches the web, with results visible to the model and in the logs; only there when the connection uses the DeepSeek Search API.</string>
+    <string name="runtime_tool_web_fetch">Fetches web pages; hidden when the model service has its own visible search tool, unless the fetch fallback for pages that won\'t open is on.</string>
+    <string name="runtime_tool_web_search">Searches the web, with results visible to the model and in the logs; only there when the connection searches through a service\'s search API.</string>
     <string name="runtime_tool_spawn_agent">Hands slow tasks that can run in parallel to background subagents; the main agent decides whether to use it.</string>
     <string name="runtime_tool_wait_agent">Waits for background subagents and returns the progress or result of each.</string>
     <string name="runtime_tool_cancel_agent">Stops background subagents that are no longer needed or are stuck.</string>

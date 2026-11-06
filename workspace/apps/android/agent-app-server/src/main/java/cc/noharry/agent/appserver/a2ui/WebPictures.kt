@@ -4,9 +4,9 @@ package cc.noharry.agent.appserver.a2ui
 import android.content.Context
 import android.graphics.BitmapFactory
 import cc.noharry.agent.appserver.image.generatedImageFile
-import cc.noharry.agent.appserver.model.DeepSeekWebSearch
+import cc.noharry.agent.appserver.model.ProviderAdapter
 import cc.noharry.agent.appserver.model.ProviderConfig
-import cc.noharry.agent.appserver.model.deepSeekToolsOf
+import cc.noharry.agent.appserver.model.webLookup
 import cc.noharry.agent.appserver.protocol.view.SAVED_PICTURE
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -81,16 +81,14 @@ suspend fun cardPictureSize(context: Context, reference: String): Pair<Int, Int>
 }
 
 /**
- * A web search for pages, each query billed (DeepSeek's Search API, ¥5 per thousand): their addresses, the first
- * [results]. Null without a DeepSeek key on the device.
+ * A web search for pages through a service's search API ([ProviderAdapter.lookup], each query billed): their
+ * addresses, the first [results]. The active profile's key first, since another profile may keep an old one (it
+ * answered 401 on the bench). Null without a lookup.
  */
-fun webPageSearch(context: Context, results: Int): (suspend (String) -> List<String>)? =
-    pageSearch(context)?.let { service -> { query -> service.search(query, results).map { it.url } } }
-
-/** The active profile's key first: another DeepSeek profile may keep an old one (it answered 401 on the bench). */
-private fun pageSearch(context: Context): DeepSeekWebSearch? {
+fun webPageSearch(context: Context, results: Int): (suspend (String) -> List<String>)? {
     val config = ProviderConfig.load(context.applicationContext)
-    return (listOf(config.activeProfile) + config.profiles).firstNotNullOfOrNull { config.deepSeekToolsOf(context, it) }
+    val lookup = config.webLookup(context, config.activeProfile) ?: return null
+    return { query -> lookup.search(query, results).map { it.url } }
 }
 
 private fun String.attribute(name: String): String? =

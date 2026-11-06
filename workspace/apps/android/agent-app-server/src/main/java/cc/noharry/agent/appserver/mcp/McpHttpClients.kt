@@ -4,7 +4,6 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.R
 import cc.noharry.agent.appserver.a2a.describe
 import cc.noharry.agent.appserver.evidence.BenchHttpTransport
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.McpServer
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ModelWords

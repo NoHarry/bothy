@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import cc.noharry.agent.appserver.a2a.describe
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.Plan

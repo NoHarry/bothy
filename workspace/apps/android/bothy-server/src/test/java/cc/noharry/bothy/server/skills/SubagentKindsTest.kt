@@ -105,7 +105,7 @@ class SubagentKindsTest {
     @Test
     fun theTripTypesAreOnByDefaultAndASwitchReachesTheNextSpawns() {
         AppSubagents.apply(context)
-        AppSubagents.refreshTypes(context, deepSeekLookup = false)
+        AppSubagents.refreshTypes(context, webLookup = false)
         assertEquals(listOf("trip-transport", "trip-stay", "trip-days"), AppSubagents.instance.config.types.map { it.name })
 
         saveSubagentKind(context, "trip-stay", false)
@@ -124,9 +124,9 @@ class SubagentKindsTest {
         assertEquals(true, verify.searchApi)
         assertTrue(verify.description, verify.description.contains("finish without waiting"))
 
-        AppSubagents.refreshTypes(context, deepSeekLookup = true)
+        AppSubagents.refreshTypes(context, webLookup = true)
         assertEquals(listOf("trip-transport", "trip-stay", "trip-days", "web-verify"), AppSubagents.instance.config.types.map { it.name })
-        AppSubagents.refreshTypes(context, deepSeekLookup = false)
+        AppSubagents.refreshTypes(context, webLookup = false)
         assertEquals(listOf("trip-transport", "trip-stay", "trip-days"), AppSubagents.instance.config.types.map { it.name })
 
         // Its own fixed addresses (the flight page) are not the guessed URLs the general rule forbids.

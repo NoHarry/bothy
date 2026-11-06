@@ -29,22 +29,21 @@ import cc.noharry.agent.appserver.memory.UserMemoryContext
 import cc.noharry.agent.appserver.memory.UserMemoryToolProvider
 import cc.noharry.agent.appserver.memory.userMemoryEnabled
 import cc.noharry.agent.appserver.model.AppModelClient
-import cc.noharry.agent.appserver.model.DeepSeekProbes
 import cc.noharry.agent.appserver.model.FIRST_EVENT_TIMEOUT_MS
 import cc.noharry.agent.appserver.model.FixtureModelClient
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.model.appWebFetchFallback
 import cc.noharry.agent.appserver.model.appWebSearch
+import cc.noharry.agent.appserver.model.hasWebLookup
+import cc.noharry.agent.appserver.model.nativeUpdates
 import cc.noharry.agent.appserver.model.defaultContextWindow
-import cc.noharry.agent.appserver.model.hasDeepSeekKey
 import cc.noharry.agent.appserver.model.loadContextWindow
 import cc.noharry.agent.appserver.model.loadModelImageInput
 import cc.noharry.agent.appserver.pages.PageToolProvider
 import cc.noharry.agent.appserver.plans.PlanContext
 import cc.noharry.agent.appserver.plans.PlanToolProvider
 import cc.noharry.agent.appserver.protocol.McpProviderState
-import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.server.AppScreen
 import cc.noharry.agent.appserver.skills.AppSubagents
 import cc.noharry.agent.appserver.skills.SkillToolProvider
@@ -138,22 +137,22 @@ fun buildRuntime(
     previousExchange: PreviousExchange? = null,
     sessionId: String = "",
 ): AgentRuntime {
-    // DeepSeek's Search API in place of the provider's server-side search, when the profile (or, for a subagent, the
+    // A service's search API ([ProviderAdapter.lookup]) in place of the provider's server-side search, when the profile (or, for a subagent, the
     // subagent settings) say so.
     val childSearchApi = subagentChild && (subagentKind?.searchApi ?: loadSubagentSettings(context).searchApi)
-    // A type that needs DeepSeek's lookups ([SubagentKind.requiresDeepSeekLookup]) is offered only while some profile has them.
-    if (!subagentChild) AppSubagents.refreshTypes(context, config.hasDeepSeekKey(context))
+    // A type that needs a lookup API ([SubagentKind.requiresWebLookup]) is offered only while some profile has one.
+    if (!subagentChild) AppSubagents.refreshTypes(context, config.hasWebLookup(context))
     // A type without 联网搜索 gets neither web_search nor the provider's own search (the guard cannot stop the latter).
     val searches = subagentKind?.searches ?: true
     val webSearch = if (searches) appWebSearch(context, config, requestedProfile, forceApi = childSearchApi) else null
-    // DeepSeek's Fetch API for pages that refuse the device: its own switch, for the main agent and subagents alike.
+    // A service's fetch API for pages that refuse the device: its own switch, for the main agent and subagents alike.
     val fetchFallback = appWebFetchFallback(context, config, requestedProfile)
     val profile = if (webSearch != null || !searches) requestedProfile.copy(serverSideSearch = false) else requestedProfile
     val basicTools = loadBasicTools(context).withSubagentSwitch(loadSubagentSettings(context).enabled)
     val skills = loadRuntimeSkills(context).filterNot { subagentChild && it.mainAgentOnly }
     val workflows = selectedWorkflowSkills(context, skills, userInput)
     val carried = if (sessionId.isBlank()) emptyList() else appSessionHistory.messages(sessionId)
-    val deepSeekNative = config.usesDeepSeekNativeUpdates(context, profile)
+    val nativeUpdates = config.nativeUpdates(context, profile)
     // The earlier runs already hold the conversation and the skills they loaded; a new session (or one from before a
     // restart) still gets the recap and the previous exchange.
     // The time, the app in front and where delegations stand, all per run (the run context, never the cached system prompt).
@@ -175,12 +174,12 @@ fun buildRuntime(
     val systemSkills = skills.systemPromptIds()
     val prompt = if (carried.isEmpty()) {
         runtimePrompt(
-            sessionContext, basicTools, preloadedSkillBodies(context, skills, userInput), previousExchange, deepSeekNative, clock,
+            sessionContext, basicTools, preloadedSkillBodies(context, skills, userInput), previousExchange, nativeUpdates, clock,
             hostRules, systemSkills,
         )
     } else {
         val bodies = preloadedSkillBodies(context, skills, userInput).filterNot { (id, _) -> carried.carriesSkill(id) }
-        runtimePrompt("", basicTools, bodies, nativeTools = deepSeekNative, clock = clock, hostRules = hostRules, systemSkills = systemSkills)
+        runtimePrompt("", basicTools, bodies, nativeTools = nativeUpdates, clock = clock, hostRules = hostRules, systemSkills = systemSkills)
     }
     val wrapTools = AppHost.runs.toolWrapper(context, sessionContext, useSimulatedModel)
     val imageInput = loadModelImageInput(context, config.editState(profile))
@@ -227,12 +226,12 @@ fun buildRuntime(
     .disabledNativeTools(disabledBasicTools(basicTools))
     .networkConfirmationPolicy(networkConfirmationPolicy)
     .sessionToolActivations(appSessionToolActivations)
-    // Backend tools through call_tool: the tool list stays the same all session, so the history stays cached. DeepSeek's
-    // official endpoint loads deferred tools natively instead (schema-checked calls) and takes the context as a system
-    // update; gateways drop those fields (measured 2026-10-17), so they keep call_tool and a user-role context unless a
-    // check found the relay passing them on (the profile's check).
+    // Backend tools through call_tool: the tool list stays the same all session, so the history stays cached. A service
+    // with native updates ([ProviderAdapter.nativeUpdates]: DeepSeek's official endpoint, or a relay its check found
+    // passing them on) loads deferred tools natively instead (schema-checked calls) and takes the context as a system
+    // update; gateways drop those fields (measured 2026-10-17), so they keep call_tool and a user-role context.
     .deferredBackendTools()
-    .apply { if (deepSeekNative) nativeDeferredTools().runContextAsSystem() }
+    .apply { if (nativeUpdates) nativeDeferredTools().runContextAsSystem() }
     .runContext(prompt.runContext)
     .apply { if (sessionId.isNotBlank()) sessionHistory(appSessionHistory) }
     // A child's runtime gets the same instance, so its tool list matches its parent's; depth 1 refuses its spawns.
@@ -251,15 +250,6 @@ fun buildRuntime(
     }
     .build()
 }
-
-/** DeepSeek's own Anthropic endpoint: system updates and `tool_addition` in history, `defer_loading` declarations. */
-internal fun ProviderProfile.usesDeepSeekNativeUpdates(): Boolean =
-    endpoint == ProviderEndpoint.MESSAGES && runCatching { java.net.URI(baseUrl).host }.getOrNull() == "api.deepseek.com"
-
-/** The same, or a Messages relay whose check ([DeepSeekProbes]) found it passing DeepSeek's fields on unchanged. */
-internal fun ProviderConfig.usesDeepSeekNativeUpdates(context: Context, profile: ProviderProfile): Boolean =
-    profile.usesDeepSeekNativeUpdates() || profile.endpoint == ProviderEndpoint.MESSAGES &&
-        DeepSeekProbes.current(context, profile, effectiveApiKey(profile))?.passthrough?.passed == true
 
 @InternalAppServerApi
 fun ProviderProfile.usesVisibleWebSearchTool(): Boolean {

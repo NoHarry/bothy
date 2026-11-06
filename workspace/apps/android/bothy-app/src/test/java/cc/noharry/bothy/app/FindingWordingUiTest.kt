@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.protocol.DeepSeekAmountView
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceView
+import cc.noharry.agent.appserver.protocol.BalanceAmountView
+import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.FindingKind
@@ -75,15 +75,15 @@ class FindingWordingUiTest {
 
     @Test
     fun aBalanceReadsAsTotalWithToppedUpAndGrantedPerCurrency() {
-        val balance = DeepSeekBalanceView(true, listOf(DeepSeekAmountView("CNY", "110.00", "100.00", "10.00")))
+        val balance = BalanceView(true, listOf(BalanceAmountView("CNY", "110.00", "100.00", "10.00")))
 
         assertEquals("¥110.00（充值 100.00，赠送 10.00）", zh.balanceWords(balance))
         assertEquals("¥110.00 (topped up 100.00, granted 10.00)", en.balanceWords(balance))
         assertEquals(
             "$1.00（充值 0.00，赠送 1.00） · 余额不足，暂不可用",
-            zh.balanceWords(DeepSeekBalanceView(false, listOf(DeepSeekAmountView("USD", "1.00", "0.00", "1.00")))),
+            zh.balanceWords(BalanceView(false, listOf(BalanceAmountView("USD", "1.00", "0.00", "1.00")))),
         )
-        assertEquals("余额不足，暂不可用", zh.balanceWords(DeepSeekBalanceView(false)))
+        assertEquals("余额不足，暂不可用", zh.balanceWords(BalanceView(false)))
         assertEquals("余额：¥110.00（充值 100.00，赠送 10.00）", zh.words(Finding(FindingCode.MODEL_BALANCE, balance = balance)))
     }
 

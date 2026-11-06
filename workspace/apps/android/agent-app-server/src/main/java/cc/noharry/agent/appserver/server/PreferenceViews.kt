@@ -5,7 +5,7 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.androiduse.androidUseState
 import cc.noharry.agent.appserver.androiduse.loadAndroidUseEnabled
 import cc.noharry.agent.appserver.model.ProviderConfig
-import cc.noharry.agent.appserver.model.hasDeepSeekKey
+import cc.noharry.agent.appserver.model.hasWebLookup
 import cc.noharry.agent.appserver.protocol.AndroidUseView
 import cc.noharry.agent.appserver.protocol.BasicToolView
 import cc.noharry.agent.appserver.protocol.Preferences
@@ -49,7 +49,7 @@ object PreferencesSource {
         runtimeSkills = loadRuntimeSkills(context).map { RuntimeSkillView(it.id, it.label, it.description, it.enabled, custom = it.file != null) },
         subagents = AppSubagents.settings.value.view(),
         subagentKinds = loadSubagentKinds(context).map { it.view(context) },
-        deepSeekLookup = ProviderConfig.load(context).hasDeepSeekKey(context),
+        webLookup = ProviderConfig.load(context).hasWebLookup(context),
     )
 }
 
@@ -73,7 +73,7 @@ private fun SubagentKind.view(context: Context): SubagentKindView {
         searchApi = searchApi,
         enabled = enabled,
         tools = tools.mapTo(LinkedHashSet()) { it.kind() },
-        requiresDeepSeekLookup = requiresDeepSeekLookup,
+        requiresWebLookup = requiresWebLookup,
         defaultTools = shipped?.tools.orEmpty().mapTo(LinkedHashSet()) { it.kind() },
         defaultLookups = shipped?.maxLookups ?: maxLookups,
     )

@@ -170,7 +170,7 @@ data class ProviderConfig(
             val baseValues = buildValues + fileValues + savedValues + AppHost.models.savedValues(context)
             val profiles = providerProfiles(baseValues)
                 .withSavedProfiles(savedProfileState.overrides)
-                .withSharedDeepSeekApiKeys()
+                .withSharedKeys()
                 .let { AppHost.models.withProfiles(context, it) }
             val selection = resolveProviderSelection(
                 values = baseValues,

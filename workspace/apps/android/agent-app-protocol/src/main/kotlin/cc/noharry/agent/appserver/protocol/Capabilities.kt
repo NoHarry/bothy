@@ -64,7 +64,8 @@ data class SubagentKindView(
     val searchApi: Boolean? = null,
     val enabled: Boolean = true,
     val tools: Set<SubagentToolKind> = emptySet(),
-    val requiresDeepSeekLookup: Boolean = false,
+    /** Offered only while some profile has a service's search and fetch APIs. */
+    val requiresWebLookup: Boolean = false,
     val defaultTools: Set<SubagentToolKind> = emptySet(),
     val defaultLookups: Int = 0,
 )

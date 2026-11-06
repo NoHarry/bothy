@@ -5,11 +5,11 @@ import android.content.Intent
 import android.util.Log
 import cc.noharry.agent.appserver.a2a.A2aClientConsole
 import cc.noharry.agent.appserver.a2a.describe
-import cc.noharry.agent.appserver.model.DeepSeekProbes
+import cc.noharry.agent.appserver.deepseek.DeepSeekProbes
+import cc.noharry.agent.appserver.deepseek.describe
 import cc.noharry.agent.appserver.model.FetchFallback
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.SearchBackend
-import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.model.saveContextWindow
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.runtime.RuntimeSession

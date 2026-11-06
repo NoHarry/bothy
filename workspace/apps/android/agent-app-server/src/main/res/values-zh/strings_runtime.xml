@@ -10,8 +10,8 @@
     <string name="runtime_tool_update_todo">维护任务步骤与进度。</string>
     <string name="runtime_tool_ask_async">提出问题后继续执行；回答进入后续请求，不回复也不等待。</string>
     <string name="runtime_tool_ask">向用户提出澄清问题并等待回复。</string>
-    <string name="runtime_tool_web_fetch">获取网页内容；模型服务自带可见搜索工具时会隐藏，开了「网页打不开时用 DeepSeek Fetch」除外。</string>
-    <string name="runtime_tool_web_search">联网搜索，结果模型和日志都看得到；连接配置选用 DeepSeek Search 接口时才出现。</string>
+    <string name="runtime_tool_web_fetch">获取网页内容；模型服务自带可见搜索工具时会隐藏，开了网页打不开时的抓取兜底除外。</string>
+    <string name="runtime_tool_web_search">联网搜索，结果模型和日志都看得到；连接配置选用模型服务的搜索接口时才出现。</string>
     <string name="runtime_tool_spawn_agent">把可以并行的耗时任务交给后台子助手；由主助手自己决定要不要用。</string>
     <string name="runtime_tool_wait_agent">等待后台子助手，返回各自的进度或结果。</string>
     <string name="runtime_tool_cancel_agent">停掉不再需要或卡住的后台子助手。</string>

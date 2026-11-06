@@ -1,8 +1,9 @@
-package cc.noharry.agent.appserver.model
+package cc.noharry.agent.appserver.deepseek
 import android.content.Context
 import cc.noharry.agent.appserver.a2a.describe
 import cc.noharry.agent.appserver.evidence.benchTrustedClient
 import cc.noharry.agent.appserver.httpFailure
+import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint

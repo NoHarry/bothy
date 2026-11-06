@@ -112,7 +112,7 @@ private fun SubagentSwitchRow(title: String, checked: Boolean, on: String, off: 
 private fun SubagentKinds(onOpen: (String) -> Unit) {
     val server = LocalServer.current
     val kinds = server.state.preferences.subagentKinds
-    val deepSeekLookup = server.state.preferences.deepSeekLookup
+    val webLookup = server.state.preferences.webLookup
     Column {
         kinds.forEachIndexed { index, kind ->
             if (index > 0) HorizontalDivider(color = ConsoleColors.borderSubtle)
@@ -125,7 +125,7 @@ private fun SubagentKinds(onOpen: (String) -> Unit) {
                     SubagentToolChips(kind.tools)
                     val loaded = when {
                         !kind.enabled -> R.string.skills_kind_not_loaded
-                        kind.requiresDeepSeekLookup && !deepSeekLookup -> R.string.skills_kind_needs_deepseek
+                        kind.requiresWebLookup && !webLookup -> R.string.skills_kind_needs_deepseek
                         else -> R.string.skills_kind_loaded
                     }
                     val status = stringResource(loaded)

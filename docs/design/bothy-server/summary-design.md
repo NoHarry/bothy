@@ -141,6 +141,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
   - 自带功能（`BuiltInFeatures`）：计划（工具、定时和盯状态的计划、闹钟）、操作屏幕（开关打开时服务端自己把无障碍服务列上）、设备媒体、卡片和选项工具、开机和更新后自启（计划要它把闹钟重新设上）。默认都关：一个只带服务端的 App 不会开机自启，也不会去动无障碍设置。Bothy 全开，并在自己的 manifest 里把 `BootReceiver` 打开，带来这个开关的那次更新也照样自启。
+  - 模型服务适配（`providerAdapters`，`ProviderAdapter`）：某家模型服务聊天之外的东西——联网查找（搜索和抓页的 API，联网搜索和抓页兜底都走它）、运行里发它自己的历史更新（DeepSeek 的 system 更新和 `tool_addition`）、它自己的请求（余额、中转检测）、它的预设配置共用一把 key。默认没有：一个 DeepSeek 配置在通用宿主里只有聊天。DeepSeek 的这些都在服务端的 `deepseek` 包里（`DeepSeekAdapter`），协议在 `protocol.deepseek`；Bothy 装它。DeepSeek 的用量字段、价格和上下文窗口仍按模型名认，和 Claude、GPT 一样。
   - 额外信任根（`extraTrustRoots`）：系统根证书之外，服务端所有 HTTPS 还信任的根（PEM，宿主的 raw 资源）；默认不加。Bothy 给的是部分车机系统证书库里缺的那几张。服务端设 A2A 配置和生图模型的两个调试广播只在 debug 包里。
   - A2A（`A2aHost`）：本机的 A2A 端点（`127.0.0.1:8766/a2a`）开不开，别的客户端交来的请求里宿主自己的命令（`intercept`），别的客户端的任务开始时宿主做什么（`inboundStarted`），交给别的 agent 的任务把来源写成什么（`contextSource`）；不给就不开端点、什么都不弹，来源写 `device`。Bothy 开端点，外部任务一来就弹出卡片，认 `carOverlay=show|hide`、`carOverlayOnly=true`，来源写 `car`（中转那边已配对的 Bot 认这个名字）。
 - `BothyServer`（公开）就是 Bothy 的这份配置：人设是小博，插件是语音（含唤醒、实时、陪聊、Jev 工具检索）、本机模型、检查、Playground 和 Bothy 自己的设置页，口子是 `BothyVoice`、`BothyModels`、`BothyRuns`，配置文件多读一个 `tts` 段，位置是“设置 → 记忆”和“屏幕的悬浮窗上”。对外仍是 `install`（进程启动时由 `BothyApplication` 调）、`connect`（给一个进程内客户端）、`wakeUp`（没有前端时起状态来源，比如唤醒词、计划）。界面语言变化走协议的 `app/languageChanged`。

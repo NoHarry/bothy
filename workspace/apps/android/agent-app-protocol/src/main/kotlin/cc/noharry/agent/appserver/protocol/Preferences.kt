@@ -69,8 +69,8 @@ data class Preferences(
     val runtimeSkills: List<RuntimeSkillView> = emptyList(),
     val subagents: SubagentSettingsView = SubagentSettingsView(),
     val subagentKinds: List<SubagentKindView> = emptyList(),
-    /** Some profile has DeepSeek's Search and Fetch APIs, which some subagent types need. */
-    val deepSeekLookup: Boolean = false,
+    /** Some profile has a service's search and fetch APIs, which some subagent types need. */
+    val webLookup: Boolean = false,
 )
 
 @Serializable

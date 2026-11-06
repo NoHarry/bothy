@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ModelSettingsView
-import cc.noharry.agent.appserver.protocol.ProviderConnection
+import cc.noharry.agent.appserver.protocol.deepseek.ProviderConnection
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.protocol.normalizeProviderModels
 import cc.noharry.agent.appserver.protocol.parseContextWindow

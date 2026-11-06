@@ -3,6 +3,9 @@
 package cc.noharry.agent.appserver.model
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import cc.noharry.agent.appserver.deepseek.DeepSeekAdapter
+import cc.noharry.agent.appserver.deepseek.DeepSeekWebSearch
+import cc.noharry.agent.appserver.deepseek.isDeepSeek
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.skills.SubagentSettings
 import cc.noharry.agent.appserver.skills.loadSubagentSettings
@@ -29,6 +32,13 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class WebSearchTest {
+    // DeepSeek's lookups and native updates come from its adapter, which the host installs.
+    @org.junit.Before
+    fun installDeepSeek() = cc.noharry.agent.appserver.runtime.AppHost.install(providerAdapters = listOf(DeepSeekAdapter))
+
+    @org.junit.After
+    fun noAdapters() = cc.noharry.agent.appserver.runtime.AppHost.install(providerAdapters = emptyList())
+
     private val sent = Collections.synchronizedList(mutableListOf<String>())
 
     @Test
@@ -99,9 +109,9 @@ class WebSearchTest {
         // from any profile.
         assertNull(appWebSearch(context, keyed, gateway))
         assertNotNull(appWebFetchFallback(context, keyed, gateway))
-        assertTrue(keyed.hasDeepSeekKey(context))
+        assertTrue(keyed.hasWebLookup(context))
         assertNull(appWebFetchFallback(context, unkeyed, gateway))
-        assertFalse(unkeyed.hasDeepSeekKey(context))
+        assertFalse(unkeyed.hasWebLookup(context))
 
         FetchFallback.set(context, false)
         assertNull(appWebFetchFallback(context, keyed, deepSeek))

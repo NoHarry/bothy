@@ -184,6 +184,18 @@ export interface ArtifactPreview {
   refreshToken: string;
 }
 
+export interface BalanceAmountView {
+  currency: string;
+  total: string;
+  toppedUp: string;
+  granted: string;
+}
+
+export interface BalanceView {
+  available: boolean;
+  amounts?: Array<BalanceAmountView>;
+}
+
 export interface BasicToolView {
   name: string;
   description: string;
@@ -504,13 +516,6 @@ export interface DataClearResult {
   cleared: boolean;
 }
 
-export interface DeepSeekAmountView {
-  currency: string;
-  total: string;
-  toppedUp: string;
-  granted: string;
-}
-
 export interface DeepSeekBalanceParams {
   apiKey?: string;
   connection?: ProviderConnection | null;
@@ -518,13 +523,8 @@ export interface DeepSeekBalanceParams {
 }
 
 export interface DeepSeekBalanceResult {
-  balance?: DeepSeekBalanceView | null;
+  balance?: BalanceView | null;
   failure?: Finding | null;
-}
-
-export interface DeepSeekBalanceView {
-  available: boolean;
-  amounts?: Array<DeepSeekAmountView>;
 }
 
 export interface DeepSeekCheckView {
@@ -632,7 +632,7 @@ export interface Finding {
   code: string;
   args?: Array<string>;
   more?: Array<Finding>;
-  balance?: DeepSeekBalanceView | null;
+  balance?: BalanceView | null;
   count?: number | null;
 }
 
@@ -1103,7 +1103,7 @@ export interface Preferences {
   runtimeSkills?: Array<RuntimeSkillView>;
   subagents?: SubagentSettingsView;
   subagentKinds?: Array<SubagentKindView>;
-  deepSeekLookup?: boolean;
+  webLookup?: boolean;
 }
 
 export interface PresentCardParams {
@@ -1525,7 +1525,7 @@ export interface SubagentKindView {
   searchApi?: boolean | null;
   enabled?: boolean;
   tools?: Array<SubagentToolKind>;
-  requiresDeepSeekLookup?: boolean;
+  requiresWebLookup?: boolean;
   defaultTools?: Array<SubagentToolKind>;
   defaultLookups?: number;
 }
@@ -1981,7 +1981,7 @@ export interface WebLookupView {
   searchApi?: boolean;
   ownSearch?: boolean;
   fetchFallback?: boolean;
-  deepSeekKey?: boolean;
+  lookupKey?: boolean;
 }
 
 export interface WidgetCard {
@@ -2043,9 +2043,6 @@ export interface ClientRequests {
   "memory/lessons": { params: Empty; result: MemoryLessons };
   "modelSettings/read": { params: ModelSettingsParams; result: ModelSettingsResult };
   "modelSettings/save": { params: ModelSettingsSaveParams; result: Empty };
-  "deepseek/balance": { params: DeepSeekBalanceParams; result: DeepSeekBalanceResult };
-  "deepseek/probe": { params: ProviderConnection; result: DeepSeekProbeView };
-  "deepseek/check": { params: ProviderConnection; result: DeepSeekProbeView };
   "webLookup/read": { params: Empty; result: WebLookupView };
   "webLookup/setSearchApi": { params: FlagParams; result: WebLookupView };
   "webLookup/setFetchFallback": { params: FlagParams; result: WebLookupView };
@@ -2090,6 +2087,9 @@ export interface ClientRequests {
   "usage/setPrice": { params: ModelPriceParams; result: Empty };
   "usage/setRate": { params: RateParams; result: Empty };
   "usage/syncPrices": { params: Empty; result: PriceSyncResult };
+  "deepseek/balance": { params: DeepSeekBalanceParams; result: DeepSeekBalanceResult };
+  "deepseek/probe": { params: ProviderConnection; result: DeepSeekProbeView };
+  "deepseek/check": { params: ProviderConnection; result: DeepSeekProbeView };
   "jev/setToolSearch": { params: JevSettings; result: SaveResult };
   "checks/run": { params: IdsParams; result: Empty };
   "companion/read": { params: Empty; result: CompanionView };

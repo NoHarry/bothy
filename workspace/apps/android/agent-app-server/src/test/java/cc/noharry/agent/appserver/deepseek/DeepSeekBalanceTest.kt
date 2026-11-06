@@ -1,13 +1,13 @@
-package cc.noharry.agent.appserver.model
+package cc.noharry.agent.appserver.deepseek
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.finding
-import cc.noharry.agent.appserver.protocol.DeepSeekAmountView
-import cc.noharry.agent.appserver.protocol.DeepSeekBalanceView
+import cc.noharry.agent.appserver.protocol.BalanceAmountView
+import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
-import cc.noharry.agent.appserver.protocol.isDeepSeekUrl
+import cc.noharry.agent.appserver.protocol.deepseek.isDeepSeekUrl
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -38,8 +38,8 @@ class DeepSeekBalanceTest {
         val balance = fetchDeepSeekBalance(" sk-test ", client, "https://api.deepseek.com/user/balance").getOrThrow()
 
         assertEquals(listOf("https://api.deepseek.com/user/balance Bearer sk-test"), asked)
-        assertEquals(DeepSeekBalanceView(true, listOf(DeepSeekAmountView("CNY", "110.00", "100.00", "10.00"))), balance.view())
-        assertEquals(DeepSeekBalanceView(false), parseDeepSeekBalance("""{"is_available":false,"balance_infos":[]}""").view())
+        assertEquals(BalanceView(true, listOf(BalanceAmountView("CNY", "110.00", "100.00", "10.00"))), balance.view())
+        assertEquals(BalanceView(false), parseDeepSeekBalance("""{"is_available":false,"balance_infos":[]}""").view())
     }
 
     @Test
