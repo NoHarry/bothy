@@ -14,6 +14,7 @@ import cc.noharry.agent.a2a.RemoteAgentRef
 import cc.noharry.agent.appserver.protocol.A2aProfile
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
@@ -108,12 +109,14 @@ class A2aBridgeProvider(
         "$EXPERIMENTAL_NOTICE Sends an A2A message/send request to the remote agent " +
             "'${profile.label}' (endpoint host: ${endpointHost()}). " +
             profile.description.takeIf(String::isNotBlank)?.let { "It can: $it. " }.orEmpty() +
-            "The user may also call it 云端助手 or 个人助手 (their cloud / personal assistant). " +
+            AppHost.a2a.nicknames.takeIf { it.isNotEmpty() }?.let { names ->
+                "The user may also call it ${names.joinToString(" or ")}${AppHost.a2a.nicknamesMeaning?.let { " ($it)" }.orEmpty()}. "
+            }.orEmpty() +
             "Use it only when the user names this agent or agrees to hand the task to it; background or parallel work " +
             "the user did not hand to it goes to your own subagents (spawn_agent) or is done by you. " +
             "Pass $ARG_CONTEXT_ID or $ARG_TASK_ID from an earlier result to continue that conversation or task. " +
             "The device's local time and time zone are attached automatically. A task still working is followed in the " +
-            "background and its result, question or failure comes back later as a 【委托回报】/【委托追问】/【委托失败】 " +
+            "background and its result, question or failure comes back later as a ${delegationMarks()} " +
             "message: tell the user it was handed over and finish; never wait or poll."
 
     /**
@@ -190,7 +193,7 @@ class A2aBridgeProvider(
         put(KEY_STATUS, task.status.name)
         task.statusMessage?.textContent()?.takeUnless(String::isBlank)?.let { put(KEY_TEXT, it) }
         task.contextId?.let { put(KEY_CONTEXT_ID, it) }
-        if (followed) put(KEY_FOLLOW_UP, FOLLOW_UP_NOTE)
+        if (followed) put(KEY_FOLLOW_UP, followUpNote())
     }.toString()
 
     private fun failureResult(error: A2aClientError): ToolCallResult = ToolCallResult(
@@ -347,8 +350,8 @@ private const val KEY_TOOL = "tool"
 private const val MAX_PENDING_QUESTIONS_SHOWN = 3
 private const val MAX_QUESTION_CHARS = 80
 private const val KEY_FOLLOW_UP = "followUp"
-private const val FOLLOW_UP_NOTE = "This device follows this task in the background and reports its result, question or failure " +
-    "as a 【委托回报】/【委托追问】/【委托失败】 message. Tell the user in one short sentence that it was handed over; do not wait or poll."
+private fun followUpNote() = "This device follows this task in the background and reports its result, question or failure " +
+    "as a ${delegationMarks()} message. Tell the user in one short sentence that it was handed over; do not wait or poll."
 private const val METADATA_CONTEXT = "context"
 private const val CONTEXT_SOURCE = "source"
 private const val CONTEXT_TIMEZONE = "timezone"
@@ -364,14 +367,14 @@ private const val TEXT_PART_SEPARATOR = "\n"
 /** A stage as the model reads it in a delegation's status. */
 private val DelegationStage.forModel: String
     get() = when (this) {
-        DelegationStage.DELIVERED -> "已送达"
-        DelegationStage.STALLED -> "还没开始"
-        DelegationStage.STARTED -> "已开始"
-        DelegationStage.WORKING -> "处理中"
-        DelegationStage.REPORTING -> "有新结果"
-        DelegationStage.DONE -> "已完成"
-        DelegationStage.ASKING -> "等你回答"
-        DelegationStage.FAILED -> "没办成"
-        DelegationStage.CANCELLED -> "已取消"
-        DelegationStage.LOST -> "没跟上"
+        DelegationStage.DELIVERED -> modelText("已送达", "delivered")
+        DelegationStage.STALLED -> modelText("还没开始", "not started yet")
+        DelegationStage.STARTED -> modelText("已开始", "started")
+        DelegationStage.WORKING -> modelText("处理中", "in progress")
+        DelegationStage.REPORTING -> modelText("有新结果", "has new results")
+        DelegationStage.DONE -> modelText("已完成", "done")
+        DelegationStage.ASKING -> modelText("等你回答", "waiting for an answer")
+        DelegationStage.FAILED -> modelText("没办成", "not done")
+        DelegationStage.CANCELLED -> modelText("已取消", "cancelled")
+        DelegationStage.LOST -> modelText("没跟上", "lost track")
     }

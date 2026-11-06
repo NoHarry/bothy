@@ -29,6 +29,15 @@ interface A2aHost {
     /** What a task this agent hands another agent names as its source, beside the device's time zone and local time. */
     val contextSource: String get() = "device"
 
+    /**
+     * What the user may call any of their own agents whatever its label ("my cloud assistant"), in the persona's
+     * language: a request that says one names the agents, and the send tool tells the model so. None by default.
+     */
+    val nicknames: List<String> get() = emptyList()
+
+    /** What [nicknames] mean, in English, said after them to the model ("their cloud / personal assistant"); null says nothing. */
+    val nicknamesMeaning: String? get() = null
+
     companion object {
         val NONE: A2aHost = object : A2aHost {}
     }

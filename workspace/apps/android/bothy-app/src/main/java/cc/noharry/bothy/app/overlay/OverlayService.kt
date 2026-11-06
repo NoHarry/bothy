@@ -18,6 +18,7 @@ import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.view.*
 import cc.noharry.bothy.app.a2a.*
 import cc.noharry.bothy.app.a2ui.*
+import cc.noharry.bothy.app.a2ui.replyWords
 import cc.noharry.bothy.app.androiduse.*
 import cc.noharry.bothy.app.console.*
 import cc.noharry.bothy.app.console.AppLanguages
@@ -659,7 +660,7 @@ class OverlayService : Service(), OverlayBubble.Listener {
         chosenChoice = choice
         // Confirm on the frame after the tap, not when the follow-up run first reports.
         scheduleRender(force = true)
-        route(choice.replyText)
+        route(choice.replyText(resources.replyWords))
     }
 
     /** What was tapped or confirmed belongs to the offer on screen; a new offer or an ended follow-up clears it. */

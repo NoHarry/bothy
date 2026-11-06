@@ -342,16 +342,24 @@ private fun AgentRuntimeBuilder.applyAndroidUse(context: Context, imageInput: Bo
  */
 private fun pagesRule(offered: Boolean, onScreen: Boolean): String? = when {
     !offered -> null
-    onScreen -> PAGES_RULE
-    else -> PAGES_AWAY_RULE
+    onScreen -> modelText(PAGES_RULE, PAGES_RULE_EN)
+    else -> modelText(
+        "用户现在没在看对话页（App 不在前台）：这次不画界面，用文字回答。",
+        "The user is not looking at the conversation now (the app is not in front): draw no page this time; answer in words.",
+    )
 }
-
-private const val PAGES_AWAY_RULE = "用户现在没在看对话页（App 不在前台）：这次不画界面，用文字回答。"
 
 private const val PAGES_RULE =
     "用户正看着对话页，可以画界面（show_html）：回答会超过三四百字，或有三个以上并列的要点、层次、步骤，或是比较、" +
         "数字、时间线、行程、计划、简报、分析时，先用一句话说结论，再把内容画成页面，finish 只补一两句；不要长篇只用文字，" +
         "也不要问要不要画。一两句能答的、闲聊、要复制的纯文本照常用文字。"
+
+private const val PAGES_RULE_EN =
+    "The user is looking at the conversation, so you may draw a page (show_html): when the answer would run past 300–400 " +
+        "words, or has three or more parallel points, levels or steps, or is a comparison, numbers, a timeline, an itinerary, a " +
+        "plan, a briefing or an analysis, first say the conclusion in one sentence, then draw the content as a page, and finish " +
+        "adds a sentence or two; do not write it all out in words, and do not ask whether to draw. What a sentence or two " +
+        "answers, small talk and plain text to copy stay in words."
 
 /** 画界面 ([PageToolProvider]), when [offered]; it draws only when the run started [onScreen]. */
 private fun AgentRuntimeBuilder.applyPages(context: Context, offered: Boolean, onScreen: Boolean): AgentRuntimeBuilder = apply {

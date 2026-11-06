@@ -5,7 +5,7 @@ import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.workspaceVfs
-import cc.noharry.agent.appserver.skills.CUSTOM_SKILL_TEMPLATE
+import cc.noharry.agent.appserver.skills.customSkillTemplate
 import cc.noharry.agent.appserver.skills.CustomSkills
 import cc.noharry.agent.appserver.skills.SkillIssue
 import cc.noharry.agent.appserver.skills.builtinRuntimeSkillIds
@@ -48,7 +48,7 @@ class CustomSkillsTest {
 
     @Test
     fun theTemplateAndAFullHeaderPass() {
-        val template = checkCustomSkill(CUSTOM_SKILL_TEMPLATE, emptySet())
+        val template = checkCustomSkill(customSkillTemplate(), emptySet())
         assertEquals(emptyList<SkillIssue>(), template.errors)
         assertEquals("my-skill", template.name)
 

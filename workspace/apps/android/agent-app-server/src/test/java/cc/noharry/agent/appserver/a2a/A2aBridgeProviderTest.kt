@@ -208,10 +208,22 @@ class A2aBridgeProviderTest {
         assertEquals(listOf("a2a_message_send"), provider.localToolNames(request))
         assertFalse(provider.remotePrefetchEnabled)
         assertTrue(tool.description.contains("It can: 发邮件、设提醒."))
-        assertTrue(tool.description.contains("【委托回报】"))
+        assertTrue(tool.description.contains("[Delegation report]/[Delegation question]/[Delegation failed]"))
         // Owner 2026-10-17: only a named agent gets the task; other background work stays with the device's subagents.
         assertTrue(tool.description.contains("only when the user names this agent") && tool.description.contains("spawn_agent"))
-        assertTrue(tool.description.contains("云端助手") && tool.description.contains("个人助手"))
+        assertFalse(tool.description.contains("may also call it"))
+        // What the host's users call their agents is named.
+        AppHost.install(
+            a2a = object : A2aHost {
+                override val nicknames = listOf("云端助手", "个人助手")
+                override val nicknamesMeaning = "their cloud / personal assistant"
+            },
+        )
+        try {
+            assertTrue(provider.listTools().single().description.contains("The user may also call it 云端助手 or 个人助手 (their cloud / personal assistant). "))
+        } finally {
+            AppHost.install(a2a = A2aHost.NONE)
+        }
     }
 
     @Test
@@ -382,7 +394,7 @@ class A2aBridgeProviderTest {
         val note = provider.runNote()
 
         assertTrue(note, note.startsWith("Direct Agent (a2a_message_send): Still being handled"))
-        assertTrue(note, note.contains("taskId=task-7 「订明天的车位」 处理中 for 3 min, steps 1/2 done, latest 「在比价」."))
+        assertTrue(note, note.contains("taskId=task-7 「订明天的车位」 in progress for 3 min, steps 1/2 done, latest 「在比价」."))
         assertFalse(provider.listTools().single().description.contains("task-7"))
     }
 

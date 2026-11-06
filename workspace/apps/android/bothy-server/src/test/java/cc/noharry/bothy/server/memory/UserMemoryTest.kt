@@ -24,6 +24,7 @@ import cc.noharry.agent.appserver.protocol.MemorySource
 import cc.noharry.agent.appserver.protocol.UserMemory
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.HostPlaces
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.RuntimeContextRequest
 import cc.noharry.agent.kernel.api.RuntimeContextScalar
@@ -33,6 +34,7 @@ import cc.noharry.bothy.protocol.CompanionConfig
 import cc.noharry.bothy.protocol.CompanionMode
 import cc.noharry.bothy.server.companion.companionMessages
 import cc.noharry.bothy.server.companion.decideCompanionRoute
+import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.server.BothyPlaces
 import cc.noharry.bothy.server.voice.realtime.realtimeInstructions
 import java.io.File
@@ -44,7 +46,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -58,6 +62,17 @@ class UserMemoryTest {
     private val dir: File = Files.createTempDirectory("user-memory").toFile()
     private var clock = 1_000L
     private val book = UserMemoryBook(File(dir, "memories.json")) { clock }
+
+    // These read the memory tool's words as a Chinese persona has them; HostPlacesWordingTest has the English.
+    @Before
+    fun chinese() {
+        AppHost.install(persona = BothyPersona)
+    }
+
+    @After
+    fun generic() {
+        AppHost.install(persona = Persona.GENERIC)
+    }
 
     @Test
     fun remembersChangesForgetsAndReadsBackFromTheFile() {

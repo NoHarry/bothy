@@ -11,6 +11,7 @@ import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.server.A2aOutput
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.A2aInputSource
+import cc.noharry.agent.appserver.runtime.modelText
 
 /** Message metadata a PC debug tool sets so client mode mirrors its request; external clients never set it. */
 @InternalAppServerApi
@@ -120,5 +121,5 @@ class A2aMirror(
     }
 
     /** A cancelled or broken handler flow never produced a result; the mirror still ends the task. */
-    fun close() = publish(A2aOutput.Result("任务已取消或连接中断", A2aOutput.State.CANCELED))
+    fun close() = publish(A2aOutput.Result(modelText("任务已取消或连接中断", "Task cancelled or connection lost"), A2aOutput.State.CANCELED))
 }

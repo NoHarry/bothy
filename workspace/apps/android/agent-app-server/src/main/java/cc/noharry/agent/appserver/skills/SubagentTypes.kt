@@ -8,6 +8,7 @@ import cc.noharry.agent.appserver.R
 import cc.noharry.agent.appserver.protocol.MAX_SUBAGENT_LOOKUPS
 import cc.noharry.agent.appserver.protocol.MIN_SUBAGENT_LOOKUPS
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.runtime.SubagentType
 
 /**
@@ -39,7 +40,8 @@ data class SubagentKind(
 
     /** Its tools in the page's order as the model reads them, e.g. 联网搜索、打开网页、读文件. */
     @InternalAppServerApi
-    fun toolLabels(separator: String = "、"): String = SubagentToolGroup.entries.filter { it in tools }.joinToString(separator) { it.label }
+    fun toolLabels(separator: String = modelText("、", ", ")): String =
+        SubagentToolGroup.entries.filter { it in tools }.joinToString(separator) { it.label }
 }
 
 /**
@@ -47,16 +49,18 @@ data class SubagentKind(
  * prompt cache), and [SubagentGuard] refuses the rest. [changes] marks the ones that change something. [label] is
  * the name the model reads (a refused call, the child's prompt); [screenLabel] and [detail] are what Settings shows.
  */
-enum class SubagentToolGroup(val wire: String, val label: String, val changes: Boolean = false) {
-    SEARCH("search", "联网搜索"),
-    FETCH("fetch", "打开网页"),
-    READ("read", "读文件"),
-    WRITE("write", "写文件", changes = true),
-    TODO("todo", "待办"),
-    DEVICE_QUERY("device_query", "查设备状态"),
-    DEVICE_CONTROL("device_control", "操作设备", changes = true),
-    SERVICES("services", "其他服务", changes = true),
+enum class SubagentToolGroup(val wire: String, private val chinese: String, private val english: String, val changes: Boolean = false) {
+    SEARCH("search", "联网搜索", "web search"),
+    FETCH("fetch", "打开网页", "open web pages"),
+    READ("read", "读文件", "read files"),
+    WRITE("write", "写文件", "write files", changes = true),
+    TODO("todo", "待办", "todo list"),
+    DEVICE_QUERY("device_query", "查设备状态", "read device state"),
+    DEVICE_CONTROL("device_control", "操作设备", "operate devices", changes = true),
+    SERVICES("services", "其他服务", "other services", changes = true),
     ;
+
+    val label: String get() = modelText(chinese, english)
 
     companion object {
         internal fun fromWire(wire: String): SubagentToolGroup? = entries.firstOrNull { it.wire == wire }

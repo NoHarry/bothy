@@ -18,6 +18,7 @@ import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.view.TTS_PROGRESS_PREFIX
 import cc.noharry.agent.appserver.protocol.view.currentTurnItems
+import cc.noharry.bothy.app.a2ui.replyWords
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.frontend.AppClient
 import cc.noharry.bothy.protocol.PlaygroundRequests
@@ -199,7 +200,7 @@ internal fun assistantPayload(
     "step" to hud?.currentStep.orEmpty(),
     // The fixed English of the projection (the idle prompt, a run summary) in the card's language, as the card shows it.
     "reply" to resources.overlayShownText(hud?.resultText.orEmpty()),
-    SURFACE_A2UI to (hud?.takeUnless { it.isRunning }?.surfaceA2ui() ?: ""),
+    SURFACE_A2UI to (hud?.takeUnless { it.isRunning }?.surfaceA2ui(resources.replyWords) ?: ""),
     "tools" to hud?.toolLines.orEmpty().takeLast(MAX_TOOLS).map { "${it.name}|${if (it.running) "running" else if (it.isError) "error" else "done"}" },
 )
 

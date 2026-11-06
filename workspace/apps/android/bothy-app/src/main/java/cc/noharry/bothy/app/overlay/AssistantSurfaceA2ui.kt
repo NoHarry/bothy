@@ -5,7 +5,7 @@ import cc.noharry.agent.appserver.protocol.view.DEBUG_SVG_ICONS
 import cc.noharry.agent.appserver.protocol.view.SliderOffer
 import cc.noharry.agent.appserver.protocol.view.SwitchOffer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.replyText
+import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.protocol.view.OverlayHud
 import kotlinx.serialization.json.JsonArray
@@ -22,7 +22,7 @@ import kotlinx.serialization.json.putJsonArray
  * tapped there comes back as [DisplayChoice.replyText] and a panel confirmed as [panelReply], exactly as from
  * the floating card. Pictures stay out: they are files of this app.
  */
-internal fun OverlayHud.surfaceA2ui(): String {
+internal fun OverlayHud.surfaceA2ui(words: ReplyWords): String {
     if (cards.isEmpty() && choices.isEmpty() && controls.isEmpty()) return ""
     return buildJsonObject {
         put("cards", JsonArray(cards.map(::cardJson)))
@@ -33,7 +33,7 @@ internal fun OverlayHud.surfaceA2ui(): String {
                     put("label", choice.label)
                     put("recommended", choice.recommended)
                     choice.iconFrom(choiceIcons)?.let { put("icon", surfaceIcon(it)) }
-                    put("reply", choice.replyText)
+                    put("reply", choice.replyText(words))
                 })
             }
         })

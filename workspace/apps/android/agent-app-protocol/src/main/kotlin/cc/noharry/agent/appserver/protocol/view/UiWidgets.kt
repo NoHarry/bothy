@@ -13,8 +13,9 @@ import kotlinx.serialization.SerialName
 
 /**
  * One control of a reply's panel: a slider, a switch or a choice, each bound to checked tool calls. A reply may hold
- * a few; one confirm sends the changed ones together ("媒体音量设为22档，座椅加热打开") as the next user turn, and
- * [controlPicks] reads that, or the user's "音量调到20", back into checked calls.
+ * a few; one confirm sends the changed ones together ("媒体音量设为22档，座椅加热打开", "Volume to 22, Seat heating on")
+ * as the next user turn, and [controlPicks] reads that, or the user's "音量调到20" or "set the volume to 20", back into
+ * checked calls.
  */
 @Serializable
 sealed interface Control {
@@ -40,7 +41,7 @@ data class SliderOffer(
         if (integer || abs(number - round(number)) < 1e-9) number.roundToLong().toString() else (round(number * 10) / 10).toString()
 
     /** One slider's part of the confirmed reply, as the user would say it. */
-    fun replyText(number: Double): String = "${label}设为${format(snap(number) ?: number)}$unit"
+    fun replyText(number: Double, words: ReplyWords): String = words.setTo(label, format(snap(number) ?: number) + unit)
 
     /** On the step grid and in range, or null outside it. */
     fun snap(number: Double): Double? {
@@ -49,7 +50,7 @@ data class SliderOffer(
         return (min + steps * step).coerceIn(min, max)
     }
 
-    /** "设为30%", "调到 30" or a bare "30": the value said for this slider, on its grid, or null. */
+    /** "设为30%", "调到 30", "to 30" or a bare "30": the value said for this slider, on its grid, or null. */
     fun valueSaid(text: String): Double? {
         // The unit the reply was built with ("24℃") is dropped first, whatever unit the model gave the slider.
         val said = text.trim().replace(SLIDER_NOISE, "").let { if (unit.isNotEmpty()) it.removeSuffix(unit) else it }
@@ -74,7 +75,7 @@ data class SwitchOffer(
     /** The state now, as read before offering. */
     val value: Boolean,
 ) : Control {
-    fun replyText(state: Boolean): String = "$label${if (state) "打开" else "关闭"}"
+    fun replyText(state: Boolean, words: ReplyWords): String = words.switched(label, state)
 
     fun callAt(state: Boolean): BoundCall = if (state) on else off
 }
@@ -96,21 +97,23 @@ data class ChoiceOffer(
     val value: List<Int>,
     val multiple: Boolean,
 ) : Control {
-    fun replyText(chosen: List<Int>): String {
+    fun replyText(chosen: List<Int>, words: ReplyWords): String {
         val names = chosen.sorted().mapNotNull { options.getOrNull(it)?.label }
-        return if (multiple) "${label}选${names.joinToString("、")}" else "${label}设为${names.firstOrNull().orEmpty()}"
+        return if (multiple) words.chose(label, names) else words.setTo(label, names.firstOrNull().orEmpty())
     }
 
     fun callsAt(chosen: List<Int>): List<BoundCall> = chosen.sorted().mapNotNull { options.getOrNull(it)?.call }
 
     /**
-     * The option a word names exactly ("制冷", "改成制冷", "制冷模式"), or null. Only a whole label counts, like a pick
-     * by label: "帮我找台自动售货机" must not set the mode 自动.
+     * The option a word names exactly ("制冷", "改成制冷", "制冷模式", "to cool"), or null. Only a whole label counts, like
+     * a pick by label: "帮我找台自动售货机" must not set the mode 自动. A label that starts like a verb ("Tomato") counts
+     * as said.
      */
     fun optionSaid(said: String): Int? {
-        val key = said.offerKey().replace(CHOICE_VERB_LEADING, "").removeOptionSuffix()
-        if (key.isEmpty()) return null
-        return options.indexOfFirst { it.label.offerKey().removeOptionSuffix() == key }.takeIf { it >= 0 }
+        val key = said.offerKey()
+        return listOf(key, key.replace(CHOICE_VERB_LEADING, "")).map { it.removeOptionSuffix() }.filter { it.isNotEmpty() }.firstNotNullOfOrNull { word ->
+            options.indexOfFirst { it.label.offerKey().removeOptionSuffix() == word }.takeIf { it >= 0 }
+        }
     }
 }
 
@@ -122,10 +125,10 @@ fun Control.initialValue(): Any = when (this) {
 }
 
 /** What [value] says for this control, as the user would say it. */
-fun Control.replyText(value: Any): String = when (this) {
-    is SliderOffer -> replyText(value as Double)
-    is SwitchOffer -> replyText(value as Boolean)
-    is ChoiceOffer -> replyText(value.indices())
+fun Control.replyText(value: Any, words: ReplyWords): String = when (this) {
+    is SliderOffer -> replyText(value as Double, words)
+    is SwitchOffer -> replyText(value as Boolean, words)
+    is ChoiceOffer -> replyText(value.indices(), words)
 }
 
 /** The checked calls that set [value]; none for a multiple choice with nothing chosen. */
@@ -135,29 +138,32 @@ fun Control.callsAt(value: Any): List<BoundCall> = when (this) {
     is ChoiceOffer -> callsAt(value.indices())
 }
 
-/** How a chosen value reads in the next turn's frame: "「空调温度」24℃", "「座椅加热」打开". */
-fun Control.valueText(value: Any): String = "「$label」" + when (this) {
-    is SliderOffer -> "${format(value as Double)}$unit"
-    is SwitchOffer -> if (value as Boolean) "打开" else "关闭"
-    is ChoiceOffer -> value.indices().sorted().mapNotNull { options.getOrNull(it)?.label }.joinToString("、")
-}
+/** How a chosen value reads in the next turn's frame: "「空调温度」24℃", "「座椅加热」打开", "\"Seat heating\" on". */
+fun Control.valueText(value: Any, words: ReplyWords): String = words.value(
+    label,
+    when (this) {
+        is SliderOffer -> "${format(value as Double)}$unit"
+        is SwitchOffer -> words.state(value as Boolean)
+        is ChoiceOffer -> value.indices().sorted().mapNotNull { options.getOrNull(it)?.label }.joinToString(words.list)
+    },
+)
 
 @Suppress("UNCHECKED_CAST")
 private fun Any.indices(): List<Int> = this as List<Int>
 
-/** "制冷模式" and "2档" name the options 制冷 and 2. */
-private fun String.removeOptionSuffix(): String = removeSuffix("模式").removeSuffix("档").removeSuffix("挡")
+/** "制冷模式", "2档" and "cool mode" name the options 制冷, 2 and cool. */
+private fun String.removeOptionSuffix(): String = removeSuffix("模式").removeSuffix("档").removeSuffix("挡").removeSuffix("mode")
 
 /**
  * What one confirm of [controls] at [values] sends: the controls the user changed, or all of them when nothing
  * changed (a bare confirm sets what is shown). A multiple choice with nothing chosen says nothing.
  */
-fun panelReply(controls: List<Control>, values: List<Any>): String {
+fun panelReply(controls: List<Control>, values: List<Any>, words: ReplyWords): String {
     val pairs = controls.zip(values)
     val changed = pairs.filter { (control, value) -> !control.sameValue(value) }
     return changed.ifEmpty { pairs }
         .filterNot { (control, value) -> control is ChoiceOffer && value.indices().isEmpty() }
-        .joinToString("，") { (control, value) -> control.replyText(value) }
+        .joinToString(words.parts) { (control, value) -> control.replyText(value, words) }
 }
 
 private fun Control.sameValue(value: Any): Boolean = when (this) {
@@ -167,7 +173,8 @@ private fun Control.sameValue(value: Any): Boolean = when (this) {
 }
 
 /**
- * The values a reply sets on [controls]: "媒体音量设为22档", "座椅加热打开", "空调模式改成制冷", "主驾、副驾". Each part names
+ * The values a reply sets on [controls], in Chinese or English whatever the client shows: "媒体音量设为22档", "座椅加热打开",
+ * "空调模式改成制冷", "主驾、副驾", "Volume to 22", "Seat heating on", "Mode: Cool". Each part names
  * its control unless one control could take it; a part naming only an option joins the previous part's multiple
  * choice. Null when a part names nothing, names a control twice, or its value is out of range, so the text then
  * reaches the model as said.
@@ -200,20 +207,46 @@ private fun controlPart(part: String, controls: List<Control>, previous: ChoiceO
 private fun sliderPart(part: String, sliders: List<SliderOffer>): Pair<Control, Any>? {
     if (sliders.isEmpty()) return null
     val split = SLIDER_VERB.find(part)?.range?.first ?: part.indexOfFirst { it.isDigit() || it == '-' }.coerceAtLeast(0)
-    val name = part.substring(0, split).offerKey()
-    val slider = if (name.isEmpty()) sliders.singleOrNull() else sliders.named(name) ?: return null
-    return slider?.valueSaid(part.substring(split))?.let { slider to it }
+    val said = part.substring(0, split)
+    val slider = when {
+        said.isEnglish() -> said.englishName().let { name -> if (name.isEmpty()) sliders.singleOrNull() else sliders.namedExactly(name) }
+        else -> said.offerKey().let { name -> if (name.isEmpty()) sliders.singleOrNull() else sliders.named(name) }
+    } ?: return null
+    return slider.valueSaid(part.substring(split))?.let { slider to it }
 }
 
-/** "座椅加热打开", "打开座椅加热", "关掉方向盘加热", or a bare "打开" when there is one switch. */
+/**
+ * "座椅加热打开", "打开座椅加热", "关掉方向盘加热", "Seat heating on", "turn off the wheel heating", or a bare "打开" or
+ * "on" when there is one switch.
+ */
 private fun switchPart(part: String, switches: List<SwitchOffer>): Pair<Control, Any>? {
     if (switches.isEmpty()) return null
-    val key = part.offerKey()
-    val verb = SWITCH_LEADING.find(key) ?: SWITCH_TRAILING.find(key) ?: return null
-    val name = key.removeRange(verb.range)
-    val switch = if (name.isEmpty()) switches.singleOrNull() else switches.named(name)
-    return switch?.let { it to ('关' !in verb.value) }
+    chineseSwitch(part.offerKey())?.let { (name, on) ->
+        return (if (name.isEmpty()) switches.singleOrNull() else switches.named(name))?.let { it to on }
+    }
+    val (name, on) = englishSwitch(part.trim().trimEnd('.', '!', '。', '！')) ?: return null
+    return (if (name.isEmpty()) switches.singleOrNull() else switches.namedExactly(name))?.let { it to on }
 }
+
+private fun chineseSwitch(key: String): Pair<String, Boolean>? {
+    val verb = SWITCH_LEADING.find(key) ?: SWITCH_TRAILING.find(key) ?: return null
+    return key.removeRange(verb.range) to ('关' !in verb.value)
+}
+
+/** The state is a word of its own, so "Moon" is no switch turned on. */
+private fun englishSwitch(said: String): Pair<String, Boolean>? {
+    SWITCH_BARE_EN.matchEntire(said)?.let { return "" to it.groupValues[1].equals("on", ignoreCase = true) }
+    SWITCH_LEADING_EN.matchEntire(said)?.let { return it.groupValues[2].englishName() to it.groupValues[1].equals("on", ignoreCase = true) }
+    SWITCH_TRAILING_EN.matchEntire(said)?.let { return it.groupValues[1].englishName() to it.groupValues[2].equals("on", ignoreCase = true) }
+    return null
+}
+
+/** Latin words and no Chinese: what the user named is read the English way ([englishName]). */
+private fun String.isEnglish(): Boolean =
+    any { it in 'a'..'z' || it in 'A'..'Z' } && none { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+
+/** "set the volume" names the volume; a leading verb and "the" are dropped, the rest must be the control's name. */
+private fun String.englishName(): String = trim().replace(ENGLISH_NAME_LEAD, "").offerKey()
 
 /** "空调模式设为制冷", "模式改成制冷", "制冷"; an option alone goes to the one choice that has it, else to [previous]. */
 private fun choicePart(part: String, choices: List<ChoiceOffer>, previous: ChoiceOffer?): Pair<Control, Any>? {
@@ -234,6 +267,12 @@ private fun choicePart(part: String, choices: List<ChoiceOffer>, previous: Choic
 /** The one control whose label contains [name] or is contained in it ("音量" for 媒体音量). */
 private fun <T : Control> List<T>.named(name: String): T? =
     filter { it.label.offerKey().let { label -> label.contains(name) || name.contains(label) } }.singleOrNull()
+
+/**
+ * The one control whose label is [name] or holds it ("volume" for Media volume), for English: a sentence that only
+ * holds a label ("Don't set the volume to 30", "is the seat heating on") names nothing.
+ */
+private fun <T : Control> List<T>.namedExactly(name: String): T? = filter { it.label.offerKey().contains(name) }.singleOrNull()
 
 /**
  * Information shown as a card, weather style: a lead icon and value, a few labelled fields, progress bars, and items
@@ -363,16 +402,26 @@ private const val CLOUD_HIGH = "M6.5 15a4.5 4.5 0 0 1-0.5-8.97A6 6 0 0 1 17.65 5
 
 private const val EPSILON = 1e-6
 
-/** "设为30%", "调到 30", "30" as a tap, a keyboard or the user says it. */
-private val SLIDER_VALUE = Regex("""^(?:设为|设到|设成|调到|调成|调为|改成|改为|到)?(-?\d+(?:\.\d+)?)(?:%|％|度|档|级|格|℃|°C|°)?$""")
+/** "设为30%", "调到 30", "to 30", "30" as a tap, a keyboard or the user says it (spaces already dropped). */
+private val SLIDER_VALUE =
+    Regex("""^(?:设为|设到|设成|调到|调成|调为|改成|改为|到|(?i:setto|to|at))?(-?\d+(?:\.\d+)?)(?:%|％|度|档|级|格|℃|°C|°)?$""")
 private val SLIDER_NOISE = Regex("""[\s。！!？?~～，,]""")
-/** Parts of a reply that sets several sliders: "媒体音量设为22档，中控屏亮度设为60%", "音量调到20和亮度调到60". */
-private val SLIDER_PARTS = Regex("""[，,；;、]|和|并且|再把""")
-/** Where a part's slider name ends and its value begins. */
-private val SLIDER_VERB = Regex("""设为|设到|设成|调到|调成|调为|改成|改为|到""")
+/** Parts of a reply that sets several sliders: "媒体音量设为22档，中控屏亮度设为60%", "音量调到20和亮度调到60", "Volume to 20 and Brightness to 60". */
+private val SLIDER_PARTS = Regex("""[，,；;、]|和|并且|再把|(?i:\s+and\s+)""")
+/** Where a part's slider name ends and its value begins: "调到", or " to " in "Volume to 30%". */
+private val SLIDER_VERB = Regex("""设为|设到|设成|调到|调成|调为|改成|改为|到|(?i:(?:^|\s+)(?:set\s+)?(?:to|at)\s+)""")
 /** A switch's state said before or after its name: "打开座椅加热", "座椅加热关掉". */
 private val SWITCH_LEADING = Regex("""^(?:请|把)?(?:打开|开启|关闭|关掉|关上|开|关)""")
 private val SWITCH_TRAILING = Regex("""(?:打开|开启|关闭|关掉|关上|开|关)(?:一下)?$""")
+/** "on", "turn off". */
+private val SWITCH_BARE_EN = Regex("""^(?:(?:turn|switch)\s+)?(on|off)$""", RegexOption.IGNORE_CASE)
+/** "turn on the seat heating". */
+private val SWITCH_LEADING_EN = Regex("""^(?:please\s+)?(?:turn|switch)\s+(on|off)\s+(?:the\s+)?(.+)$""", RegexOption.IGNORE_CASE)
+/** "Seat heating on", "turn the seat heating off". */
+private val SWITCH_TRAILING_EN = Regex("""^(?:(?:please\s+)?(?:turn|switch)\s+)?(?:the\s+)?(.+?)\s+(on|off)$""", RegexOption.IGNORE_CASE)
+/** What leads an English control's name: "please set the", "turn the". */
+private val ENGLISH_NAME_LEAD = Regex("""^(?:please\s+)?(?:(?:set|change|turn|switch|put|make)\s+)?(?:the\s+)?""", RegexOption.IGNORE_CASE)
 /** Where a choice's name ends and its option begins: "空调模式设为制冷", "座椅加热选主驾". */
 private val CHOICE_VERB = Regex("""设为|设成|改成|改为|换成|切换到|切换成|切到|调成|调为|选|用""")
-private val CHOICE_VERB_LEADING = Regex("""^(?:设为|设成|改成|改为|换成|切换到|切换成|切到|调成|调为|选|用)""")
+/** A verb before an option, spaces dropped: "改成制冷", "to cool", "set to cool". */
+private val CHOICE_VERB_LEADING = Regex("""^(?:设为|设成|改成|改为|换成|切换到|切换成|切到|调成|调为|选|用|setto|changeto|switchto|to)""")

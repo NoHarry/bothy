@@ -221,9 +221,9 @@ data class PlanDraft(val title: String, val message: String = "", val instructio
 
 /** How a plan ended: it did its one job, or its time passed while the device slept too long. */
 @Serializable
-enum class PlanEnd(val id: String, val label: String) {
-    DONE("done", "已完成"),
-    MISSED("missed", "已错过"),
+enum class PlanEnd(val id: String) {
+    DONE("done"),
+    MISSED("missed"),
     ;
 
     companion object {
@@ -263,13 +263,13 @@ data class PlanFiring(val planId: String, val title: String, val atMillis: Long,
 
 /** How a watch compares its field: a number above or below a value, equal or not to a value, containing words, or any change. */
 @Serializable
-enum class WatchOp(val id: String, val words: String) {
-    ABOVE("above", "超过"),
-    BELOW("below", "低于"),
-    EQUALS("equals", "是"),
-    NOT_EQUALS("not_equals", "不是"),
-    CONTAINS("contains", "包含"),
-    CHANGES("changes", "变化"),
+enum class WatchOp(val id: String) {
+    ABOVE("above"),
+    BELOW("below"),
+    EQUALS("equals"),
+    NOT_EQUALS("not_equals"),
+    CONTAINS("contains"),
+    CHANGES("changes"),
     ;
 
     val numeric: Boolean get() = this == ABOVE || this == BELOW

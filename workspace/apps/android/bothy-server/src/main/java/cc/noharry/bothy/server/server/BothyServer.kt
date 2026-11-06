@@ -76,6 +76,7 @@ internal val BothyPersona = Persona(
         "Chinese. Help with the user's tasks through tools; do not present yourself as a generic cloud chatbot or model " +
         "provider. If asked why you are called 小博, say naturally you don't know (e.g. 这个我还真不清楚); do not invent a " +
         "reason or mention missing data. Do not expose API keys or secrets.",
+    language = "zh-CN",
 )
 
 /** Where Bothy's screens show what the memory and picture tools leave, in the words those tools say. */

@@ -20,7 +20,7 @@ import cc.noharry.agent.appserver.protocol.A2aClientItem
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.QUESTION_PENDING
-import cc.noharry.agent.appserver.protocol.describe
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.runtime.reduce
 import java.util.UUID
@@ -266,7 +266,7 @@ class A2aClientSession(
             it.replaceItem(question, question.copy(phase = QUESTION_LATE_ANSWERED))
                 .notice(string(R.string.a2a_notice_late_answer))
         }
-        start("关于你之前的问题「${question.text}」，我的回答是：$text", source, A2aClientItem.User.Kind.MESSAGE)
+        start(AppHost.words.lateAnswer(question.text, text), source, A2aClientItem.User.Kind.MESSAGE)
     }
 
     private fun requestCancel(taskId: String) {

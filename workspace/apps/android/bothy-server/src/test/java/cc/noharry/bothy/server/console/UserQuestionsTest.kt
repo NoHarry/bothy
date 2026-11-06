@@ -10,6 +10,7 @@ import cc.noharry.agent.appserver.protocol.UserQuestion
 import cc.noharry.agent.appserver.protocol.view.questionCards
 import cc.noharry.agent.appserver.protocol.view.userQuestions
 import cc.noharry.agent.appserver.runtime.AnswerRoute
+import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.appserver.runtime.answerRoute
 import cc.noharry.agent.appserver.runtime.lateAnswerText
@@ -58,8 +59,8 @@ class UserQuestionsTest {
         // A later turn without questions (for example the late reply itself) retires the older run's cards.
         val replied = TrajectorySnapshot("s1", runGroups = listOf(group("run-3", null, 3L), group("run-2", "EXPIRED", 2L)))
         assertTrue(replied.questionCards(null).isEmpty())
-        val late = lateAnswerText(UserQuestion("run-2/q/0", "run-2", "s1", "去哪？", emptyList(), "EXPIRED"), "苏州")
-        assertTrue(late.contains("去哪？") && late.endsWith("苏州"))
+        val late = lateAnswerText(UserQuestion("run-2/q/0", "run-2", "s1", "去哪？", emptyList(), "EXPIRED"), "苏州", ModelWords.CHINESE)
+        assertEquals("关于你之前的问题「去哪？」，我的回答是：苏州", late)
         assertEquals(AnswerRoute.Late, answerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.RunNotActive, selected = true, running = false, ownsRun = false))
         assertEquals(AnswerRoute.Failed("任务已结束且当前会话正在执行其他任务"), answerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.NotFound, selected = true, running = true, ownsRun = false))
         assertEquals(AnswerRoute.Silent, answerRoute(cc.noharry.agent.kernel.api.PostUserInputResult.RunNotActive, selected = false, running = false, ownsRun = false))

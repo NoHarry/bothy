@@ -14,6 +14,7 @@ import cc.noharry.agent.appserver.plans.PlanHost
 import cc.noharry.agent.appserver.plans.PlanToolProvider
 import cc.noharry.agent.appserver.plans.PlanWatchAsk
 import cc.noharry.agent.appserver.plans.concerns
+import cc.noharry.agent.appserver.plans.describe
 import cc.noharry.agent.appserver.plans.globMatches
 import cc.noharry.agent.appserver.plans.isLoopbackUrl
 import cc.noharry.agent.appserver.plans.matches
@@ -32,15 +33,17 @@ import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.PlanAction
 import cc.noharry.agent.appserver.protocol.PlanTrigger
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.agent.appserver.protocol.view.valueText
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.mcp.McpRpcResponse
 import cc.noharry.agent.mcp.McpStatus
+import cc.noharry.bothy.server.server.BothyPersona
 import java.io.File
 import java.nio.file.Files
 import java.time.ZoneId
@@ -51,10 +54,12 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -65,6 +70,17 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class PlanWatchTest {
+    // These read the plans' words as a Chinese persona has them; PlanTextTest has the English.
+    @Before
+    fun chinese() {
+        AppHost.install(persona = BothyPersona)
+    }
+
+    @After
+    fun generic() {
+        AppHost.install(persona = Persona.GENERIC)
+    }
+
     private val context: Context = ApplicationProvider.getApplicationContext()
     // The policy the app server ships.
     private val policy = AutomationPolicy.parse(File("../agent-app-server/src/main/assets/automation-policy.json").readText())

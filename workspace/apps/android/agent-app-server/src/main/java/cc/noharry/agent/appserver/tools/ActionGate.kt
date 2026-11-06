@@ -1,5 +1,9 @@
 package cc.noharry.agent.appserver.tools
+import cc.noharry.agent.appserver.a2ui.BOUND_PICK_MARK
+import cc.noharry.agent.appserver.a2ui.BOUND_PICK_MARK_EN
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.appserver.plans.isPlanRun
 import cc.noharry.agent.kernel.api.HookContext
 import cc.noharry.agent.kernel.api.HookDecision
 import cc.noharry.agent.kernel.api.RuntimeHook
@@ -24,10 +28,10 @@ internal class ActionGate(
 
     override suspend fun onPreToolUse(call: ToolUse, context: HookContext): HookDecision {
         val name = call.toolName
-        if (child) return if (isTransaction(name)) HookDecision.Deny(reason = CHILD_REFUSED) else HookDecision.Allow()
-        if (userInput.startsWith(PLAN_RUN_MARK)) return HookDecision.Allow()
+        if (child) return if (isTransaction(name)) HookDecision.Deny(reason = childRefused()) else HookDecision.Allow()
+        if (userInput.isPlanRun()) return HookDecision.Allow()
         if (isTransaction(name)) {
-            if (ordered || !confirmsTransaction(userInput, name)) return HookDecision.Deny(reason = TRANSACTION_REFUSED)
+            if (ordered || !confirmsTransaction(userInput, name)) return HookDecision.Deny(reason = transactionRefused())
             ordered = true
         }
         return HookDecision.Allow()
@@ -52,7 +56,7 @@ internal fun confirmsTransaction(input: String, toolName: String): Boolean {
         val howOften = HOW_OFTEN.containsMatchIn(reply) && !ORDER_WORD.containsMatchIn(reply)
         return ORDER_TOPIC.containsMatchIn(quoted) && saysYes(reply) && !howOften
     }
-    if (BOUND_PICK_MARK in input) return "调用 $toolName" in input
+    if (input.isBoundPick()) return "调用 $toolName" in input || "call $toolName " in input
     // 「不要直接下单」「不用现在付」 hold the words of an outright order and mean the opposite.
     return OUTRIGHT.containsMatchIn(input) && !HOLD_OFF.containsMatchIn(input)
 }
@@ -72,16 +76,17 @@ internal fun saysYes(reply: String): Boolean {
  */
 internal fun userWords(input: String): String = when {
     input.startsWith(FOLLOW_UP_FRAME_HEADER) -> input.substringAfter(USER_REPLY_MARK, "").trim()
-    BOUND_PICK_MARK in input -> ""
+    input.isBoundPick() -> ""
     else -> input
 }
+
+/** An on-screen pick's frame ([BOUND_PICK_MARK]), in either language. */
+private fun String.isBoundPick(): Boolean = BOUND_PICK_MARK in this || BOUND_PICK_MARK_EN in this
 
 /** 「createOrder」「submit_order」「android_observe」 as lower-case words. */
 private fun String.toWords(): List<String> = split('_').flatMap { it.split(CAMEL_BOUNDARY) }.map(String::lowercase)
 
-private const val PLAN_RUN_MARK = "【计划到点】"
 private const val USER_REPLY_MARK = "User reply:"
-private const val BOUND_PICK_MARK = "绑定的操作已由宿主按工具定义核对"
 private val ORDER_VERBS = setOf("create", "submit", "place", "confirm")
 private val PAY_WORDS = setOf("pay", "payment", "checkout", "purchase")
 private val CAMEL_BOUNDARY = Regex("(?<=[a-z0-9])(?=[A-Z])")
@@ -93,8 +98,14 @@ private val ORDER_WORD = Regex("下单|付|买")
 private val HOLD_OFF = Regex("不要|不用|不需要|别|先不|暂时不|不急|留着|等等|再说")
 private val OUTRIGHT = Regex("确认下单|直接下单|下单吧|马上下单|现在下单|直接付|现在付|付款吧|帮我付|下单并(付|支付)")
 
-private const val TRANSACTION_REFUSED =
+private fun transactionRefused() = modelText(
     "没有下单：下单和付款要用户先看过订单（门店、商品、价格）并说好。先用预览接口把订单告诉用户，问要不要下单，" +
-        "用户确认后再调用。用户说的是「…的时候」才下单的话，用 plan_manage 建规则，触发时再下。"
-private const val CHILD_REFUSED =
-    "子 agent 不能下单或付款：把预览到的订单（门店、商品、价格）写进结果交回，由主 agent 问用户。"
+        "用户确认后再调用。用户说的是「…的时候」才下单的话，用 plan_manage 建规则，触发时再下。",
+    "Not ordered: an order or a payment needs the user to have seen the order (shop, items, price) and agreed. Tell the " +
+        "user the order from the preview tool first, ask whether to place it, and call this once the user says yes. If the " +
+        "user said to order only \"when …\", make a rule with plan_manage that orders when it fires.",
+)
+private fun childRefused() = modelText(
+    "子 agent 不能下单或付款：把预览到的订单（门店、商品、价格）写进结果交回，由主 agent 问用户。",
+    "A subagent cannot order or pay: put the previewed order (shop, items, price) in the result for the main agent to ask the user.",
+)

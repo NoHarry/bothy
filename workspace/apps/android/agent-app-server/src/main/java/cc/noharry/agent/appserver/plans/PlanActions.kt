@@ -10,6 +10,7 @@ import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.PlanAction
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.validateInputSchema
 import cc.noharry.agent.kernel.api.ToolDescriptor
@@ -47,7 +48,7 @@ data class AutomationPolicy(
     val blockAll: Boolean = false,
 ) {
     fun denied(tool: String): PolicyRule? =
-        if (blockAll) PolicyRule("*", "自动执行的策略读不到") else deny.firstOrNull { globMatches(it.tool, tool) }
+        if (blockAll) PolicyRule("*", modelText("自动执行的策略读不到", "The automation policy cannot be read")) else deny.firstOrNull { globMatches(it.tool, tool) }
 
     /** This policy with [extra]'s rules added: an override can only tighten. */
     fun tightenedBy(extra: AutomationPolicy): AutomationPolicy = copy(deny = deny + extra.deny, blockAll = blockAll || extra.blockAll)
@@ -102,18 +103,25 @@ fun resolvePlanAction(
     catalog: List<ToolDescriptor>,
     policy: AutomationPolicy,
 ): PlanAction {
-    val raw = rawTool ?: throw IllegalArgumentException("actions 里每一项都要有 tool")
+    val raw = rawTool ?: throw IllegalArgumentException(modelText("actions 里每一项都要有 tool", "Each item of actions needs tool"))
     fun refuse(tool: String) = policy.denied(tool)?.let { rule ->
-        throw IllegalArgumentException("计划里不能自动执行 $tool${rule.why.takeIf(String::isNotEmpty)?.let { "（$it）" }.orEmpty()}")
+        throw IllegalArgumentException(
+            modelText("计划里不能自动执行 $tool", "A plan cannot run $tool") + rule.why.takeIf(String::isNotEmpty)?.let { modelText("（$it）", " ($it)") }.orEmpty(),
+        )
     }
     refuse(planToolName(raw).replace('.', '_'))
     val descriptor = planCatalogTool(raw, catalog)
-        ?: throw IllegalArgumentException("$server 现在没有 ${planToolName(raw)} 这个工具，先用 search_tools 找到正确的名字和所在的服务")
+        ?: throw IllegalArgumentException(
+            modelText(
+                "$server 现在没有 ${planToolName(raw)} 这个工具，先用 search_tools 找到正确的名字和所在的服务",
+                "$server has no tool ${planToolName(raw)} now: find the right name and its service with search_tools first",
+            ),
+        )
     val tool = descriptor.name
     refuse(tool)
     val args = arguments ?: JsonObject(emptyMap())
     (validateInputSchema(descriptor.inputSchemaJson, args.toString()) as? SchemaValidation.Invalid)?.let {
-        throw IllegalArgumentException("$tool 的参数不对：${it.message}")
+        throw IllegalArgumentException(modelText("$tool 的参数不对：${it.message}", "$tool's arguments are wrong: ${it.message}"))
     }
     val words = label?.let(::singleLine)?.takeIf(String::isNotEmpty)?.take(MAX_ACTION_LABEL_CHARS)
     return PlanAction(server, tool, args, words ?: descriptor.title?.takeIf(String::isNotBlank) ?: tool)

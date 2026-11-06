@@ -1,6 +1,7 @@
 package cc.noharry.agent.appserver.plans
 import cc.noharry.agent.appserver.mcp.McpResource
 import cc.noharry.agent.appserver.protocol.PlanAction
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -50,14 +51,16 @@ internal suspend fun planActionsOf(
     serverOf: (String) -> String = { it },
 ): List<PlanAction>? {
     val items = args["actions"] as? JsonArray ?: return null
-    require(items.size <= MAX_PLAN_ACTIONS) { "一个计划最多 $MAX_PLAN_ACTIONS 个动作" }
+    require(items.size <= MAX_PLAN_ACTIONS) { modelText("一个计划最多 $MAX_PLAN_ACTIONS 个动作", "A plan has at most $MAX_PLAN_ACTIONS actions") }
     val catalogs = mutableMapOf<String, List<ToolDescriptor>>()
     return items.map { element ->
-        val item = element as? JsonObject ?: throw IllegalArgumentException("actions 里每一项都要是对象")
+        val item = element as? JsonObject ?: throw IllegalArgumentException(modelText("actions 里每一项都要是对象", "Each item of actions is an object"))
         val raw = item.argText("tool")
         val server = serverOf(
             item.argText("server") ?: raw?.takeIf { it.startsWith(MCP_PREFIX) }?.removePrefix(MCP_PREFIX)?.substringBefore("__")
-                ?: throw IllegalArgumentException("actions 里每一项都要写 server，或用 mcp__<server>__<tool> 形式的 tool"),
+                ?: throw IllegalArgumentException(
+                    modelText("actions 里每一项都要写 server，或用 mcp__<server>__<tool> 形式的 tool", "Each item of actions needs server, or a tool written mcp__<server>__<tool>"),
+                ),
         )
         val catalog = catalogs.getOrPut(server) { tools(server) }
         resolvePlanAction(server, raw, item["arguments"] as? JsonObject, item.argText("label"), catalog, policy)
@@ -86,7 +89,7 @@ internal fun planSignalsJson(resources: List<McpResource>, query: String?): Json
                 }
             },
         )
-        put("message", "用 inspect 读一次看字段；字段值的含义先看服务的说明或相关 skill，再建 watch。")
+        put("message", modelText("用 inspect 读一次看字段；字段值的含义先看服务的说明或相关 skill，再建 watch。", "Read once with inspect to see the fields; what their values mean is in the service's description or a skill: read that, then write the watch."))
     }
 }
 
@@ -96,15 +99,25 @@ internal fun planInspectJson(server: String, uri: String, readings: List<JsonObj
     put("server", server)
     if (tool != null) put("tool", tool) else put("uri", uri)
     if (readings == null) {
-        put("message", if (tool != null) "现在调不通：服务没开、没有这个工具，或者参数不对。" else "现在读不到：服务没开、没有这个资源，或者它只在推送时才有值。")
+        put(
+            "message",
+            if (tool != null) {
+                modelText("现在调不通：服务没开、没有这个工具，或者参数不对。", "It cannot be called now: the service is off, it has no such tool, or the arguments are wrong.")
+            } else {
+                modelText("现在读不到：服务没开、没有这个资源，或者它只在推送时才有值。", "It cannot be read now: the service is off, it has no such resource, or the resource has a value only when pushed.")
+            },
+        )
     } else if (readings.size == 1) {
         put("reading", readings.single())
-        put("message", "field 用 reading 里的字段名（嵌套用点，列表用序号：itineraries.0.price）。")
+        put("message", modelText("field 用 reading 里的字段名（嵌套用点，列表用序号：itineraries.0.price）。", "field is a field name of reading (dots for nesting, indexes for lists: itineraries.0.price)."))
     } else {
         put("readings", JsonArray(readings))
         put(
             "message",
-            "每条是一项的读数，watch 用 where 选你要的那条（如 {\"id\":1}），field 用读数里的字段名。-1000 这类值是读不到，不代表状态。",
+            modelText(
+                "每条是一项的读数，watch 用 where 选你要的那条（如 {\"id\":1}），field 用读数里的字段名。-1000 这类值是读不到，不代表状态。",
+                "Each is one object's reading: a watch picks the one you want with where (such as {\"id\":1}) and names a field of the reading. A value like -1000 means unreadable, not a state.",
+            ),
         )
     }
 }

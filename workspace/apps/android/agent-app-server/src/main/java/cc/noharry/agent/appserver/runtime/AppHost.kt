@@ -88,17 +88,18 @@ interface RunAddOns {
 }
 
 /**
- * Who the assistant is: its [name] as the user calls it, and the [identity] line its system prompt opens with (who it
- * is, in which app). Text the model reads about itself says "你" and needs neither.
+ * Who the assistant is: its [name] as the user calls it, the [identity] line its system prompt opens with (who it is, in
+ * which app), and the [language] it answers in (a BCP 47 tag such as `zh-CN`), which the server's own lines to the model
+ * are in too; null answers in the user's own language, with those lines in English. Text the model reads about itself
+ * says "you" and needs no name.
  */
-class Persona(val name: String, val identity: String) {
+class Persona(val name: String, val identity: String, val language: String? = null) {
     companion object {
         @InternalAppServerApi
         val GENERIC = Persona(
-            name = "助手",
-            identity = "You are the assistant of this app, running on the user's device. Answer in concise Chinese. Help with the " +
-                "user's tasks through tools; do not present yourself as a generic cloud chatbot or model provider. Do not expose " +
-                "API keys or secrets.",
+            name = "Assistant",
+            identity = "You are the assistant of this app, running on the user's device. Help with the user's tasks through " +
+                "tools; do not present yourself as a generic cloud chatbot or model provider. Do not expose API keys or secrets.",
         )
     }
 }
@@ -124,7 +125,8 @@ class ProviderPresets(
 /**
  * Where the host's screens let the user see what some tools leave, named in the words the model reads: [memoryPage]
  * where the user reads and edits what is remembered, [picturesShownOn] where a generated picture appears (it follows
- * 「显示在」). Words with a null place leave it out. A host that names none keeps [NONE].
+ * 「显示在」, or "shows it right away": "on the screen"). They are in the persona's language ([Persona.language]). Words
+ * with a null place leave it out. A host that names none keeps [NONE].
  */
 class HostPlaces(val memoryPage: String? = null, val picturesShownOn: String? = null) {
     companion object {
@@ -149,6 +151,17 @@ object AppHost {
     @Volatile
     var persona: Persona = Persona.GENERIC
         private set
+
+    @Volatile
+    private var wordsFor: Pair<String?, ModelWords>? = null
+
+    /** What the server's own code tells the model, in [persona]'s language. */
+    val words: ModelWords
+        get() {
+            val language = persona.language
+            wordsFor?.takeIf { it.first == language }?.let { return it.second }
+            return ModelWords.forLanguage(language).also { wordsFor = language to it }
+        }
 
     @Volatile
     var presets: ProviderPresets = ProviderPresets.NONE

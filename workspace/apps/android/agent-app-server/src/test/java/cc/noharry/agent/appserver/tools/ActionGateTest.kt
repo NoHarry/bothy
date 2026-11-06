@@ -77,6 +77,11 @@ class ActionGateTest {
         assertTrue(ActionGate("帮我点杯生椰拿铁，直接下单").decide(order) is HookDecision.Allow)
         val pick = "用户在屏幕上点了第1项（原话：1）。\n绑定的操作已由宿主按工具定义核对：调用 $order，参数 {}。"
         assertTrue(ActionGate(pick).decide(order) is HookDecision.Allow)
+        // The same pick as an English persona's frame words it.
+        val englishPick = "The user picked option 1, \"Two lattes\", from your last reply's options (their words: Option 1).\n" +
+            "The host checked the bound actions against the tools' definitions: call $order with {}.\n"
+        assertTrue(ActionGate(englishPick).decide(order) is HookDecision.Allow)
+        assertEquals("", userWords(englishPick))
     }
 
     @Test

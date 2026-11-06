@@ -9,6 +9,7 @@ import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.lines
 import cc.noharry.agent.appserver.protocol.listing
 import cc.noharry.agent.appserver.protocol.text
+import cc.noharry.agent.appserver.runtime.modelText
 import java.io.File
 
 /**
@@ -199,9 +200,10 @@ private fun checkSections(body: String, errors: MutableList<SkillIssue>) {
     }
 }
 
-/** A new skill's starting text. */
+/** A new skill's starting text, in the words the model reads. */
 @InternalAppServerApi
-const val CUSTOM_SKILL_TEMPLATE = """---
+fun customSkillTemplate(): String = modelText(
+    """---
 name: my-skill
 description: 一句话写清这个技能做什么、什么时候用（模型靠它决定要不要读）。
 ---
@@ -209,7 +211,17 @@ description: 一句话写清这个技能做什么、什么时候用（模型靠�
 # 技能标题
 
 写给助手的做法：先做什么、再做什么，什么时候要先问用户。
-"""
+""",
+    """---
+name: my-skill
+description: In one sentence, what this skill does and when to use it (the model reads this to decide whether to load it).
+---
+
+# Skill title
+
+How the assistant should go about it: what to do first, what next, and when to ask the user first.
+""",
+)
 
 private const val CUSTOM_SKILLS_DIR = "custom-skills"
 private const val SKILL_FILE = "SKILL.md"

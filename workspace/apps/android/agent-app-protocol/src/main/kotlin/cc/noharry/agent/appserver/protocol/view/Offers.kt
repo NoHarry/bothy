@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
  * Options the model offered with `offer_options`, each optionally bound to one checked tool call.
  *
  * The reply still shows its numbered list as today; the offer only remembers what each item does. When the next
- * user turn picks an item (a tap sends "第N个", or the user says it or the item's label), the host hands the model
+ * user turn picks an item (a tap sends "第N个" or "Option N", or the user says it or the item's label), the host hands the model
  * the bound call instead of a bare ordinal, so it acts in one round without searching again. An offer answers only
  * the turn that made it: any later turn leaves it behind.
  */
@@ -40,10 +40,10 @@ data class BoundCall(
     val argumentsJson: String,
 )
 
-/** Spaces, punctuation and polite particles dropped, so "第二个吧。" and "蓝色！" compare by their words. */
+/** Spaces, punctuation, case and polite particles dropped, so "第二个吧。", "蓝色！" and "Blue." compare by their words. */
 fun String.offerKey(): String =
-    trim().replace(OFFER_KEY_NOISE, "").removeSuffix("吧").removeSuffix("啊").removeSuffix("呀")
+    trim().lowercase().replace(OFFER_KEY_NOISE, "").removeSuffix("吧").removeSuffix("啊").removeSuffix("呀")
 
-private val OFFER_KEY_NOISE = Regex("""[\s，,。.！!？?、~～“”"'：:；;]""")
+private val OFFER_KEY_NOISE = Regex("""[\s，,。.！!？?、~～“”"'‘’：:；;]""")
 
 const val MAX_OFFER_OPTIONS = 8

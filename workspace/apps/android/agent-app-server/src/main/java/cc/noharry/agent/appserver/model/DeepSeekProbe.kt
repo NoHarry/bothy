@@ -7,7 +7,6 @@ import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.protocol.alternatives
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.jsonrpc.ProtocolJson
 import cc.noharry.agent.appserver.protocol.logText

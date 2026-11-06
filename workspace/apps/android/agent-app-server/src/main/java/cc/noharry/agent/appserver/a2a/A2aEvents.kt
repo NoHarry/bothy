@@ -6,6 +6,7 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
 import cc.noharry.agent.appserver.protocol.view.displayReplyText
 import cc.noharry.agent.appserver.runtime.followUpQuestion
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
 import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
@@ -22,12 +23,13 @@ fun a2aRuntimeOutput(event: AgentEvent): A2aOutput? = when (event) {
     is AgentEvent.RuntimeBlocked -> event.followUpQuestion()?.let { (_, question) ->
         A2aOutput.Result(question, A2aOutput.State.INPUT_REQUIRED)
     }
-    is AgentEvent.Started -> A2aOutput.Status("运行已开始", "running")
-    is AgentEvent.SearchActivity -> A2aOutput.Status("正在搜索", "search")
-    is AgentEvent.NetworkToolActivity -> A2aOutput.Status("网络工具状态更新", "network", event.toolName, event.toolCallId)
-    is AgentEvent.RetryAttempted -> A2aOutput.Status("正在重试，第 ${event.attempt} 次", "retry")
-    is AgentEvent.CompactionApplied -> A2aOutput.Status("上下文已压缩", "compaction")
-    is AgentEvent.BudgetWarning -> A2aOutput.Status("执行预算即将用完", "budget-warning")
+    is AgentEvent.Started -> A2aOutput.Status(modelText("运行已开始", "Run started"), "running")
+    is AgentEvent.SearchActivity -> A2aOutput.Status(modelText("正在搜索", "Searching"), "search")
+    is AgentEvent.NetworkToolActivity ->
+        A2aOutput.Status(modelText("网络工具状态更新", "Network tool update"), "network", event.toolName, event.toolCallId)
+    is AgentEvent.RetryAttempted -> A2aOutput.Status(modelText("正在重试，第 ${event.attempt} 次", "Retrying, attempt ${event.attempt}"), "retry")
+    is AgentEvent.CompactionApplied -> A2aOutput.Status(modelText("上下文已压缩", "Context compacted"), "compaction")
+    is AgentEvent.BudgetWarning -> A2aOutput.Status(modelText("执行预算即将用完", "The run's budget is nearly spent"), "budget-warning")
     is AgentEvent.ResultAvailable -> A2aOutput.Result(event.result.response.displayReplyText(), a2aTerminalState(event.result))
     else -> null
 }

@@ -14,7 +14,7 @@ import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 @InternalAppServerApi
 fun appModelInput(text: String, previous: PreviousExchange?): String {
     val reply = text.trim()
-    if (reply.isEmpty() || '\n' in reply || reply.codePointCount(0, reply.length) > MAX_SHORT_REPLY_CODE_POINTS) return text
+    if (reply.isEmpty() || '\n' in reply || !reply.isShortReply()) return text
     if (previous == null || previous.status !in ANSWERABLE_STATUSES) return text
     val closing = previous.assistantText.closingExcerpt().ifBlank { return text }
     return "$FOLLOW_UP_FRAME_HEADER\n$closing\n$FOLLOW_UP_FRAME_FOOTER\nUser reply: $reply"
@@ -38,13 +38,29 @@ internal fun SessionStore.prepareRunInput(sessionId: String, text: String): Pair
     return appModelInput(text, previous) to previous
 }
 
+/**
+ * A reply as short as 「要」「3」「好的，就第二个」 or "yes, the second one": a few characters for a Chinese persona, whatever
+ * the script (as it always was); for another, a few characters of Chinese (or Japanese) or a few words.
+ */
+private fun String.isShortReply(): Boolean = when {
+    AppHost.words.isChinese || any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN } ->
+        codePointCount(0, length) <= MAX_SHORT_REPLY_CODE_POINTS
+    else -> split(WHITESPACE).count { it.isNotEmpty() } <= MAX_SHORT_REPLY_WORDS && length <= MAX_SHORT_REPLY_CHARS
+}
+
 /** The tail of a reply, where the question or offer sits, starting at a sentence or line boundary when possible. */
 private fun String.closingExcerpt(): String {
     val text = trim()
     if (text.length <= MAX_CLOSING_EXCERPT_CHARS) return text
     // Never start inside a surrogate pair: a lone low surrogate would reach the model as U+FFFD.
     val window = text.takeLast(MAX_CLOSING_EXCERPT_CHARS).let { if (it.first().isLowSurrogate()) it.drop(1) else it }
-    val boundary = window.indexOfFirst { it == '\n' || it in SENTENCE_ENDS }
+    // For a persona that is not Chinese, a full stop before a space ends a sentence too (not in 3.5 or example.com); a
+    // Chinese reply's 「1. 东广场」 keeps its list whole.
+    val fullStops = !AppHost.words.isChinese
+    val boundary = window.indices.firstOrNull { i ->
+        val char = window[i]
+        char == '\n' || char in SENTENCE_ENDS || (fullStops && char == '.' && window.getOrNull(i + 1)?.isWhitespace() == true)
+    } ?: -1
     val start = if (boundary in 0 until window.length - MIN_CLOSING_EXCERPT_CHARS) boundary + 1 else 0
     return "… " + window.substring(start).trimStart()
 }
@@ -55,6 +71,9 @@ const val FOLLOW_UP_FRAME_HEADER =
 private const val FOLLOW_UP_FRAME_FOOTER =
     "Bind the reply below to this message only; older offers are not pending. If the reply is a new request instead, handle it as new."
 private const val MAX_SHORT_REPLY_CODE_POINTS = 12
+private const val MAX_SHORT_REPLY_WORDS = 6
+private const val MAX_SHORT_REPLY_CHARS = 40
+private val WHITESPACE = Regex("\\s+")
 private const val MAX_CLOSING_EXCERPT_CHARS = 360
 private const val MIN_CLOSING_EXCERPT_CHARS = 40
 private const val SENTENCE_ENDS = "。！？!?；;"

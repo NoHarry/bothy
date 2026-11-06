@@ -3,6 +3,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.model.appSystemPrompt
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.PreviousExchange
 import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.THINK_IN_CHINESE
@@ -23,6 +24,7 @@ import cc.noharry.agent.appserver.skills.systemPromptIds
 import cc.noharry.agent.kernel.core.context.MAX_HOST_SYSTEM_PROMPT_BYTES
 import cc.noharry.agent.kernel.core.context.validateHostSystemPrompt
 import cc.noharry.agent.vfs.VfsReadResult
+import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.tools.BothyRuns
 import java.io.File
 import kotlinx.coroutines.runBlocking
@@ -39,12 +41,12 @@ import org.robolectric.annotation.Config
 class RuntimePromptTest {
     @After
     fun resetRuns() {
-        AppHost.install(runs = RunAddOns.NONE)
+        AppHost.install(runs = RunAddOns.NONE, persona = Persona.GENERIC)
     }
 
     @Before
     fun installBothyRuns() {
-        AppHost.install(runs = BothyRuns)
+        AppHost.install(runs = BothyRuns, persona = BothyPersona)
     }
 
     private lateinit var context: Context

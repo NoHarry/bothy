@@ -39,10 +39,13 @@ import cc.noharry.agent.appserver.protocol.GeneratedImageResult
 import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
 import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
 import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.bothy.protocol.view.overlayHud
 import cc.noharry.bothy.server.TextRoute
 import cc.noharry.bothy.server.parseA2aClientSwitch
+import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.textRoute
 import java.net.URI
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -53,10 +56,12 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -67,6 +72,17 @@ import org.robolectric.annotation.Config
 @Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class A2aClientSessionTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
+
+    // A late answer goes out in Bothy's Chinese.
+    @Before
+    fun chinese() {
+        AppHost.install(persona = BothyPersona)
+    }
+
+    @After
+    fun generic() {
+        AppHost.install(persona = Persona.GENERIC)
+    }
 
     @Test
     fun streamRoutesChannelsAndSpeaksOnlySpeech() = runTest(UnconfinedTestDispatcher()) {

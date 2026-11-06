@@ -15,11 +15,11 @@ import cc.noharry.agent.appserver.protocol.PlanDraft
 import cc.noharry.agent.appserver.protocol.PlanEnd
 import cc.noharry.agent.appserver.protocol.PlanFiring
 import cc.noharry.agent.appserver.protocol.PlanTrigger
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.listing
 import cc.noharry.agent.appserver.protocol.nextDueMillis
 import cc.noharry.agent.appserver.runtime.RuntimeSession
+import cc.noharry.agent.appserver.runtime.modelText
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -252,7 +252,10 @@ class PlanAlarmReceiver : BroadcastReceiver() {
 }
 
 /** A reminder for a device still running a turn: that turn's agent passes it on. */
-internal fun planReminderSteer(reply: String): String = "【计划提醒】用户之前安排的提醒现在到点了。在这一轮的回复里把它原样告诉用户：「$reply」"
+internal fun planReminderSteer(reply: String): String = modelText(
+    "【计划提醒】用户之前安排的提醒现在到点了。在这一轮的回复里把它原样告诉用户：「$reply」",
+    "[Plan reminder] A reminder the user set is due now. In this turn's reply, tell the user exactly: \"$reply\"",
+)
 
 /**
  * What a plan coming due shows and says: [reply] spoken as written, or, with [modelText], a turn the assistant runs.
@@ -266,20 +269,31 @@ internal data class PlanDelivery(val display: String, val reply: String, val mod
 internal fun planDelivery(plan: Plan, dueAt: Long, late: Boolean, reading: String?, now: Long, zone: ZoneId): PlanDelivery {
     val watch = plan.trigger.watch()
     val lead = when {
-        late -> "你之前让我${Instant.ofEpochMilli(dueAt).atZone(zone).format(CLOCK_TEXT)}提醒你："
+        late -> Instant.ofEpochMilli(dueAt).atZone(zone).let { at ->
+            modelText("你之前让我${at.format(CLOCK_TEXT)}提醒你：", "You asked me to remind you at ${at.format(CLOCK_PLAIN)}: ")
+        }
         // A number's words say what was reached unless the model already did (「续航低于50公里了，该充电了」): an old
         // plan's 「该充电了」 alone would not say why.
-        watch != null && watch.op.numeric -> if (watch.text.take(2) in plan.message) "" else "${watch.text}了，"
-        watch != null || plan.message.startsWith("提醒") -> ""
-        else -> "提醒你："
+        watch != null && watch.op.numeric -> if (plan.message.namesReading(watch.text)) "" else modelText("${watch.text}了，", "${watch.text}: ")
+        watch != null || plan.message.startsWith("提醒") || plan.message.startsWith("remind", ignoreCase = true) -> ""
+        else -> modelText("提醒你：", "Reminder: ")
     }
-    val reply = if (plan.message.isNotBlank()) lead + plan.message else "到点了，我来办：${plan.instruction.orEmpty()}"
-    val modelText = plan.instruction?.let { task ->
-        val current = if (watch != null && reading != null) "（现在 ${watch.field} 是 $reading）" else ""
-        "【计划到点】用户之前安排的计划「${plan.title}」（${plan.trigger.describe(now, zone)}）到了$current，现在去办：$task。" +
-            "办完用一两句话告诉用户；用户此刻没有说话，不要追问。"
+    val reply = if (plan.message.isNotBlank()) {
+        lead + plan.message
+    } else {
+        modelText("到点了，我来办：${plan.instruction.orEmpty()}", "It is time; I am on it: ${plan.instruction.orEmpty()}")
     }
-    return PlanDelivery(display = "计划 · ${plan.title}", reply = reply, modelText = modelText)
+    val forModel = plan.instruction?.let { task ->
+        val current = if (watch != null && reading != null) modelText("（现在 ${watch.field} 是 $reading）", " (${watch.field} is $reading now)") else ""
+        val trigger = plan.trigger.describe(now, zone)
+        modelText(
+            "${PLAN_DUE_MARK_ZH}用户之前安排的计划「${plan.title}」（$trigger）到了$current，现在去办：$task。" +
+                "办完用一两句话告诉用户；用户此刻没有说话，不要追问。",
+            "$PLAN_DUE_MARK_EN The plan \"${plan.title}\" the user set ($trigger) is due$current. Do it now: $task. " +
+                "Then tell the user in a sentence or two; the user did not just speak, so ask nothing.",
+        )
+    }
+    return PlanDelivery(display = modelText("计划 · ", "Plan · ") + plan.title, reply = reply, modelText = forModel)
 }
 
 private fun PlanTrigger.kind(): String = when (this) {
@@ -300,5 +314,20 @@ private const val MILLIS_PER_MINUTE = 60_000L
 const val PLAN_LOG_TAG = "DebugPlans"
 private const val TAG = PLAN_LOG_TAG
 internal const val PLAN_SCENE = "plan"
-internal const val PLAN_LABEL = "计划"
 private val CLOCK_TEXT: DateTimeFormatter = DateTimeFormatter.ofPattern(" HH:mm ")
+private val CLOCK_PLAIN: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+/** The mark a plan's own run starts with, which the action gate lets order what the plan was made to. */
+private const val PLAN_DUE_MARK_ZH = "【计划到点】"
+private const val PLAN_DUE_MARK_EN = "[Plan due]"
+
+/** Whether [this] run input is a plan's own run coming due. */
+internal fun String.isPlanRun(): Boolean = startsWith(PLAN_DUE_MARK_ZH) || startsWith(PLAN_DUE_MARK_EN)
+
+/** Whether a reminder's message already says what its watch reached: 「续航低于50公里了」 names 「续航低于50公里」. */
+private fun String.namesReading(watchText: String): Boolean =
+    if (watchText.any { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }) {
+        watchText.take(2) in this
+    } else {
+        watchText.split(' ').firstOrNull { it.length > 2 }?.let { contains(it, ignoreCase = true) } == true
+    }

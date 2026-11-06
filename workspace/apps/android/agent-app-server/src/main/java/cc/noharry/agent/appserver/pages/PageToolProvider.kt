@@ -5,6 +5,8 @@ package cc.noharry.agent.appserver.pages
 import android.content.Context
 import cc.noharry.agent.appserver.protocol.view.SHOW_HTML_TOOL
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.agent.kernel.api.ToolCallResult
@@ -40,13 +42,18 @@ internal class PageToolProvider(
         this(onScreen, { sessionId, html -> saveDrawnPage(context.applicationContext, sessionId, html) })
 
     override val serverId: String = PAGE_TOOL_SERVER_ID
-    override val displayName: String = "画界面"
-    override val catalogCacheIdentity: String = "app-server:$PAGE_TOOL_SERVER_ID:v2"
+    override val displayName: String get() = modelText("画界面", "Pages")
+    override val catalogCacheIdentity: String get() = "app-server:$PAGE_TOOL_SERVER_ID:v3:${if (AppHost.words.isChinese) "zh" else "en"}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
 
     override suspend fun listTools(): List<ToolDescriptor> =
-        listOf(ToolDescriptor(SHOW_HTML_TOOL, title = "画界面", description = SHOW_HTML_DESCRIPTION, inputSchemaJson = SHOW_HTML_SCHEMA))
+        listOf(
+            ToolDescriptor(
+                SHOW_HTML_TOOL, title = modelText("画界面", "Draw a page"), description = modelText(SHOW_HTML_DESCRIPTION, SHOW_HTML_DESCRIPTION_EN),
+                inputSchemaJson = showHtmlSchema(),
+            ),
+        )
 
     /**
      * Offered from the first round while the conversation is on screen, as the cards are: whether to draw is decided
@@ -75,7 +82,13 @@ internal class PageToolProvider(
                 put("ok", true)
                 put("page", reference)
                 put("title", title)
-                put("message", "已显示在对话里。finish 用一两句话说要点或怎么用，不要把页面里的内容再写一遍。")
+                put(
+                    "message",
+                    modelText(
+                        "已显示在对话里。finish 用一两句话说要点或怎么用，不要把页面里的内容再写一遍。",
+                        "Shown in the conversation. In finish, give the main point or how to use it in a sentence or two; do not write the page out again.",
+                    ),
+                )
             }.toString(),
             trace = ToolCallTrace(validationOk = true, validationCode = "OK"),
         )
@@ -86,7 +99,7 @@ internal class PageToolProvider(
         resultJson = buildJsonObject {
             put("ok", false)
             put("code", code)
-            put("message", "$message $PAGE_FALLBACK")
+            put("message", "$message " + modelText("没有显示；改正后再调用一次，或直接在 finish 里用文字回答。", "Not shown: fix it and call again, or answer in words in finish."))
         }.toString(),
         trace = ToolCallTrace(validationOk = false, validationCode = code, validationMessage = message),
     )
@@ -113,7 +126,6 @@ private val EXTERNAL_LOAD = Regex("""<(?:script|link|img|iframe)\b[^>]{0,512}?\b
 
 internal const val MAX_PAGE_CHARS = 200_000
 private const val PAGE_TOOL_SERVER_ID = "pages"
-private const val PAGE_FALLBACK = "没有显示；改正后再调用一次，或直接在 finish 里用文字回答。"
 private val SHOW_HTML_DESCRIPTION = """
     画界面：把内容画成页面，放进手机或平板上的对话页。运行上下文说用户正看着对话页时，下面这些直接画成页面，
     不要先问要不要画：回答会超过三四百字，
@@ -134,8 +146,34 @@ private val SHOW_HTML_DESCRIPTION = """
     在点击处理里调用 assistant.send('要说的话')，它会作为用户的一句话发出。不要用它代替 show_card 和 offer_*：
     要直接执行的操作（车控、设值、选项）仍用它们。
 """.trimIndent().replace("\n", "")
-private val SHOW_HTML_SCHEMA = """
-    {"type":"object","additionalProperties":false,"required":["title","html"],"properties":{
-    "title":{"type":"string","description":"页面标题，几个字"},
-    "html":{"type":"string","description":"完整的 HTML 页面，样式和脚本都写在里面，不引用任何外部资源"}}}
-""".trimIndent().replace("\n", "")
+private val SHOW_HTML_DESCRIPTION_EN = """
+    Draw a page: lays content out as a page in the conversation on the phone or tablet. While the run context says the user is
+    looking at the conversation, draw these as a page without asking first: an answer that would run past 300–400 words, or has
+    three or more parallel points, levels or steps; comparisons and trade-offs; numbers and charts; timelines, itineraries and
+    plans; news briefings, analyses and reports; calculators, converters, checklists, quizzes and other things to try out.
+    Answer in words what a sentence or two answers, small talk and follow-ups, plain text to copy (addresses, commands, code),
+    and whatever the user wants in words. Order: first say the conclusion in one sentence (the user sees it at once), then call
+    this tool; finish adds a sentence or two and does not write the page out again. title is the page's title; html is the
+    whole page, its styles and scripts inside. The screen is offline: no external scripts, styles, fonts or images; draw
+    graphics with inline SVG or canvas. The page lies open in the conversation and does not scroll itself: its width follows
+    the screen (about 360–420px on a phone), so fix no width, and make a table with many columns a small card per item; its
+    height follows the content, so no vh and no fixed-height scrolling areas; fit it in a screen or two, with tabs or folds
+    when there is a lot. Let people choose with buttons or radio buttons, not select drop-downs or date and time inputs that
+    open a system picker (the page also shows in a floating panel, where those cannot open). The host has styles ready, so use
+    the class names and write little CSS: b-stack (vertical spacing), b-grid (automatic columns), b-row (a row), b-card (a
+    block), b-h (section heading), b-sub (secondary note), b-stat (a big number: <div class="b-stat"><b>63%</b><span>note</span></div>),
+    b-tag (a tag; add warn or bad to colour it), b-steps (ol steps), b-timeline (ul timeline), b-bar (a progress bar:
+    <div class="b-bar"><i style="width:60%"></i></div>), b-btn (a button; add ghost for a secondary one). Colour with the
+    host's CSS variables, which follow light and dark: --page-bg (page background), --page-surface (block background),
+    --page-text, --page-muted (secondary text), --page-accent (accent), --page-on-accent (text on the accent), --page-border,
+    --page-warn, --page-danger. To bring the user's choice back to the conversation, call assistant.send('what to say') in the
+    click handler; it is sent as something the user said. Do not use it in place of show_card and offer_*: actions to carry
+    out right away (device controls, settings, options) still go through them.
+""".trimIndent().replace("\n", " ")
+private fun showHtmlSchema(): String =
+    """{"type":"object","additionalProperties":false,"required":["title","html"],"properties":{""" +
+        """"title":{"type":"string","description":"${modelText("页面标题，几个字", "the page's title, a few words")}"},""" +
+        """"html":{"type":"string","description":"${modelText(
+            "完整的 HTML 页面，样式和脚本都写在里面，不引用任何外部资源",
+            "the whole HTML page, its styles and scripts inside, loading nothing from elsewhere",
+        )}"}}}"""

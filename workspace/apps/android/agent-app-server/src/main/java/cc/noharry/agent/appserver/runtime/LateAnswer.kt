@@ -7,8 +7,8 @@ import cc.noharry.agent.kernel.api.PostUserInputResult
 
 /** A late reply must carry the question, since the new run's model request starts from this text. */
 @InternalAppServerApi
-fun lateAnswerText(question: UserQuestion, text: String): String =
-    "关于你之前的问题「${question.title}」，我的回答是：$text"
+fun lateAnswerText(question: UserQuestion, text: String, words: ModelWords = AppHost.words): String =
+    words.lateAnswer(question.title, text)
 
 /** Why a reply to an ended run could not become a new turn; the console shows it in the screen's language. */
 internal const val SESSION_BUSY_REASON = "任务已结束且当前会话正在执行其他任务"

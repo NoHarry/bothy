@@ -15,6 +15,7 @@ import cc.noharry.agent.appserver.protocol.WatchMode
 import cc.noharry.agent.appserver.protocol.WatchOp
 import cc.noharry.agent.appserver.protocol.repeatAt
 import cc.noharry.agent.appserver.protocol.view.valueText
+import cc.noharry.agent.appserver.runtime.modelText
 import java.io.File
 import java.time.DayOfWeek
 import java.time.Instant
@@ -112,19 +113,19 @@ internal data class PlanWhen(
 internal fun resolvePlanWhen(ask: PlanWhen, now: Long, zone: ZoneId): Result<PlanTrigger> = runCatching {
     val repeat = ask.repeat?.takeUnless { it == "none" }
     ask.inMinutes?.let { minutes ->
-        require(repeat == null) { "in_minutes 只用于一次性的计划；重复的计划用 time 和 repeat" }
-        require(minutes in 1..MAX_IN_MINUTES) { "in_minutes 要在 1 到 $MAX_IN_MINUTES 之间（最多 7 天）" }
+        require(repeat == null) { modelText("in_minutes 只用于一次性的计划；重复的计划用 time 和 repeat", "in_minutes is for a one-off plan; a repeating one takes time and repeat") }
+        require(minutes in 1..MAX_IN_MINUTES) { modelText("in_minutes 要在 1 到 $MAX_IN_MINUTES 之间（最多 7 天）", "in_minutes is 1 to $MAX_IN_MINUTES (7 days at most)") }
         return@runCatching PlanTrigger.Once(now + minutes * MILLIS_PER_MINUTE)
     }
-    val time = parseClock(ask.time) ?: throw IllegalArgumentException("需要 in_minutes，或者 HH:mm 格式的 time")
+    val time = parseClock(ask.time) ?: throw IllegalArgumentException(modelText("需要 in_minutes，或者 HH:mm 格式的 time", "Needs in_minutes, or time as HH:mm"))
     val minuteOfDay = time.hour * MINUTES_PER_HOUR + time.minute
     if (repeat != null) return@runCatching PlanTrigger.Repeat(minuteOfDay, repeatDays(repeat, ask.days))
     val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
     val date = ask.date?.let(::parseDate) ?: today
     var at = date.atTime(time).atZone(zone).toInstant().toEpochMilli()
     if (ask.date == null && at <= now) at = date.plusDays(1).atTime(time).atZone(zone).toInstant().toEpochMilli()
-    require(at > now) { "这个时间已经过了" }
-    require(date <= today.plusDays(MAX_DAYS_AHEAD)) { "最多安排一年以内的计划" }
+    require(at > now) { modelText("这个时间已经过了", "That time has passed") }
+    require(date <= today.plusDays(MAX_DAYS_AHEAD)) { modelText("最多安排一年以内的计划", "A plan can be at most a year ahead") }
     PlanTrigger.Once(at)
 }
 
@@ -133,9 +134,9 @@ private fun repeatDays(repeat: String, days: List<Int>?): Set<Int> = when (repea
     "weekdays" -> (DayOfWeek.MONDAY.value..DayOfWeek.FRIDAY.value).toSet()
     "weekends" -> setOf(DayOfWeek.SATURDAY.value, DayOfWeek.SUNDAY.value)
     "weekly" -> days.orEmpty().toSet().also { picked ->
-        require(picked.isNotEmpty() && picked.all { it in 1..WEEK_DAYS.toInt() }) { "weekly 需要 days，1 是周一，7 是周日" }
+        require(picked.isNotEmpty() && picked.all { it in 1..WEEK_DAYS.toInt() }) { modelText("weekly 需要 days，1 是周一，7 是周日", "weekly needs days, 1 for Monday to 7 for Sunday") }
     }
-    else -> throw IllegalArgumentException("repeat 只能是 none、daily、weekdays、weekends 或 weekly")
+    else -> throw IllegalArgumentException(modelText("repeat 只能是 none、daily、weekdays、weekends 或 weekly", "repeat is none, daily, weekdays, weekends or weekly"))
 }
 
 private fun parseClock(text: String?): LocalTime? =
@@ -146,7 +147,7 @@ private fun parseClock(text: String?): LocalTime? =
 private fun parseDate(text: String): LocalDate = try {
     LocalDate.parse(text.trim())
 } catch (_: DateTimeParseException) {
-    throw IllegalArgumentException("date 要写成 YYYY-MM-DD，比如 2026-10-20")
+    throw IllegalArgumentException(modelText("date 要写成 YYYY-MM-DD，比如 2026-10-20", "date is YYYY-MM-DD, such as 2026-10-20"))
 }
 
 /** What the model asked for in `watch`, before it becomes a trigger. */
@@ -177,28 +178,39 @@ data class PlanWatchAsk(
 fun resolvePlanWatch(ask: PlanWatchAsk, repeatByDefault: Boolean): Result<PlanTrigger> = runCatching {
     val tool = ask.tool?.trim()?.takeIf(String::isNotEmpty)?.let(::serverToolName)
     val uri = ask.uri?.trim()?.takeIf(String::isNotEmpty)
-    require(uri == null || tool == null) { "watch 的 uri 和 tool 只能写一个" }
-    require(uri != null || tool != null) { "watch 需要 uri（资源，用 signals 查有哪些）或 tool（服务的只读查询工具，再加 arguments）" }
-    val field = ask.field?.trim()?.takeIf(String::isNotEmpty) ?: throw IllegalArgumentException("watch 需要 field（用 inspect 看读数里有哪些字段）")
-    val op = WatchOp.byId(ask.op) ?: throw IllegalArgumentException("op 只能是：${WatchOp.entries.joinToString("、") { it.id }}")
+    require(uri == null || tool == null) { modelText("watch 的 uri 和 tool 只能写一个", "A watch takes uri or tool, not both") }
+    require(uri != null || tool != null) {
+        modelText("watch 需要 uri（资源，用 signals 查有哪些）或 tool（服务的只读查询工具，再加 arguments）", "A watch needs uri (a resource; signals lists them) or tool (a service's read-only query tool, with arguments)")
+    }
+    val field = ask.field?.trim()?.takeIf(String::isNotEmpty) ?: throw IllegalArgumentException(
+        modelText("watch 需要 field（用 inspect 看读数里有哪些字段）", "A watch needs field (inspect shows the reading's fields)"),
+    )
+    val op = WatchOp.byId(ask.op) ?: throw IllegalArgumentException(
+        modelText("op 只能是：${WatchOp.entries.joinToString("、") { it.id }}", "op is one of: ${WatchOp.entries.joinToString(", ") { it.id }}"),
+    )
     val value = ask.value
-    require(op == WatchOp.CHANGES || value != null) { "op=${op.id} 需要 value" }
+    require(op == WatchOp.CHANGES || value != null) { modelText("op=${op.id} 需要 value", "op=${op.id} needs value") }
     val threshold = value?.let(::valueText)?.toDoubleOrNull()
-    require(!op.numeric || threshold != null) { "op=${op.id} 的 value 要是数字" }
-    val mode = ask.mode?.let { WatchMode.byId(it) ?: throw IllegalArgumentException("mode 只能是 enter 或 each") } ?: WatchMode.ENTER
-    require(!(op.numeric && mode == WatchMode.EACH)) { "数字比较用 enter：超过（低于）时触发一次，回落后才再触发" }
+    require(!op.numeric || threshold != null) { modelText("op=${op.id} 的 value 要是数字", "op=${op.id} needs a number as value") }
+    val mode = ask.mode?.let { WatchMode.byId(it) ?: throw IllegalArgumentException(modelText("mode 只能是 enter 或 each", "mode is enter or each")) } ?: WatchMode.ENTER
+    require(!(op.numeric && mode == WatchMode.EACH)) {
+        modelText("数字比较用 enter：超过（低于）时触发一次，回落后才再触发", "A number comparison takes enter: it fires once on going above (below), and again only after going back")
+    }
     val hold = if (op.numeric) ask.holdSeconds ?: 0 else 0
-    require(hold in 0..MAX_HOLD_SECONDS) { "hold_seconds 要在 0 到 $MAX_HOLD_SECONDS 之间" }
+    require(hold in 0..MAX_HOLD_SECONDS) { modelText("hold_seconds 要在 0 到 $MAX_HOLD_SECONDS 之间", "hold_seconds is 0 to $MAX_HOLD_SECONDS") }
     val defaultPoll = if (tool != null) DEFAULT_TOOL_WATCH_POLL_MS else DEFAULT_WATCH_POLL_MS
     val poll = ask.pollSeconds ?: (defaultPoll / MILLIS_PER_SECOND).toInt()
-    require(poll in 1..MAX_POLL_SECONDS) { "poll_seconds 要在 1 到 $MAX_POLL_SECONDS 之间" }
+    require(poll in 1..MAX_POLL_SECONDS) { modelText("poll_seconds 要在 1 到 $MAX_POLL_SECONDS 之间", "poll_seconds is 1 to $MAX_POLL_SECONDS") }
     require(tool == null || poll * MILLIS_PER_SECOND >= MIN_TOOL_WATCH_POLL_MS) {
-        "调用工具的监听最快 ${MIN_TOOL_WATCH_POLL_MS / MILLIS_PER_SECOND} 秒一次（poll_seconds），别给别人的服务添负担"
+        modelText(
+            "调用工具的监听最快 ${MIN_TOOL_WATCH_POLL_MS / MILLIS_PER_SECOND} 秒一次（poll_seconds），别给别人的服务添负担",
+            "A watch that calls a tool reads every ${MIN_TOOL_WATCH_POLL_MS / MILLIS_PER_SECOND} s at most (poll_seconds), to spare other people's services",
+        )
     }
     val words = ask.text?.let(::singleLine)?.takeIf(String::isNotEmpty)?.take(MAX_WATCH_TEXT_CHARS)
-        ?: "${tool ?: uri} 的 $field ${op.words}${value?.let { " " + valueText(it) }.orEmpty()}"
+        ?: modelText("${tool ?: uri} 的 $field ", "${tool ?: uri}'s $field ") + "${op.words}${value?.let { " " + valueText(it) }.orEmpty()}"
     val watch = PlanWatch(
-        server = ask.server?.trim()?.takeIf(String::isNotEmpty) ?: throw IllegalArgumentException("watch 要写 server（MCP 服务器 id）"),
+        server = ask.server?.trim()?.takeIf(String::isNotEmpty) ?: throw IllegalArgumentException(modelText("watch 要写 server（MCP 服务器 id）", "A watch needs server (the MCP server's id)")),
         uri = uri.orEmpty(), field = field, op = op, value = value, text = words, where = ask.where, mode = mode,
         margin = threshold?.let { kotlin.math.abs(it) * MARGIN_SHARE } ?: 0.0,
         pollMillis = poll * MILLIS_PER_SECOND,
@@ -231,12 +243,16 @@ private const val MINUTES_PER_DAY = 24 * 60
 
 /** Why [title], [message] or [instruction] cannot be a plan's, or null; a plan with [actions] needs no words. */
 internal fun planTextError(title: String, message: String, instruction: String?, actions: Boolean = false): String? = when {
-    title.isBlank() -> "需要 title（计划的名字，比如「拿快递」）"
-    title.length > MAX_PLAN_TITLE_CHARS -> "title 不超过 $MAX_PLAN_TITLE_CHARS 个字"
+    title.isBlank() -> modelText("需要 title（计划的名字，比如「拿快递」）", "Needs title (the plan's name, such as 'parcel')")
+    title.length > MAX_PLAN_TITLE_CHARS -> modelText("title 不超过 $MAX_PLAN_TITLE_CHARS 个字", "title has at most $MAX_PLAN_TITLE_CHARS characters")
     message.isBlank() && instruction.isNullOrBlank() && !actions ->
-        "需要 message（到点时说的话）、instruction（到点让你去办的事）或 actions（到点直接执行的操作）"
-    message.length > MAX_PLAN_MESSAGE_CHARS -> "message 不超过 $MAX_PLAN_MESSAGE_CHARS 个字"
-    (instruction?.length ?: 0) > MAX_PLAN_INSTRUCTION_CHARS -> "instruction 不超过 $MAX_PLAN_INSTRUCTION_CHARS 个字"
+        modelText(
+            "需要 message（到点时说的话）、instruction（到点让你去办的事）或 actions（到点直接执行的操作）",
+            "Needs message (what is said when it fires), instruction (what you are to do then) or actions (what runs then)",
+        )
+    message.length > MAX_PLAN_MESSAGE_CHARS -> modelText("message 不超过 $MAX_PLAN_MESSAGE_CHARS 个字", "message has at most $MAX_PLAN_MESSAGE_CHARS characters")
+    (instruction?.length ?: 0) > MAX_PLAN_INSTRUCTION_CHARS ->
+        modelText("instruction 不超过 $MAX_PLAN_INSTRUCTION_CHARS 个字", "instruction has at most $MAX_PLAN_INSTRUCTION_CHARS characters")
     else -> null
 }
 
@@ -281,7 +297,7 @@ class PlanBook(
         var kept = plans
         if (kept.size >= MAX_PLANS) {
             val oldestEnded = kept.filter { it.end != null }.minByOrNull { it.lastFiredAtMillis ?: it.createdAtMillis }
-                ?: return Result.failure(IllegalStateException("已经有 $MAX_PLANS 个计划了：先在「计划」页删掉一些"))
+                ?: return Result.failure(IllegalStateException(modelText("已经有 $MAX_PLANS 个计划了：先在「计划」页删掉一些", "There are $MAX_PLANS plans already: delete some first")))
             kept = kept - oldestEnded
         }
         val plan = Plan(

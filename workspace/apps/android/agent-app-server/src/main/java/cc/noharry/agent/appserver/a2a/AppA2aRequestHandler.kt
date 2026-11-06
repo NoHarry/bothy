@@ -8,6 +8,7 @@ import cc.noharry.agent.appserver.runtime.ExecutionEvents
 import cc.noharry.agent.appserver.runtime.ExecutionMessage
 import cc.noharry.agent.appserver.runtime.RunIntake
 import cc.noharry.agent.appserver.runtime.RuntimeSession
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.agent.kernel.api.PostUserInputResult
 import kotlinx.coroutines.*
@@ -45,7 +46,10 @@ internal class AppA2aRequestHandler(context: Context) : A2aRequestHandler {
             for (message in subscription.events) {
                 if (message == ExecutionMessage.Ended) break
                 if (message is ExecutionMessage.Runtime && message.event is AgentEvent.ConfirmationRequired) {
-                    result = A2aOutput.Result("操作需要本地确认，A2A 入口暂不支持批准", A2aOutput.State.REJECTED)
+                    result = A2aOutput.Result(
+                        modelText("操作需要本地确认，A2A 入口暂不支持批准", "The action needs a confirmation on the device, which A2A cannot give"),
+                        A2aOutput.State.REJECTED,
+                    )
                     RuntimeSession.cancelExternal(sessionId, request.taskId)
                     continue
                 }
@@ -57,7 +61,7 @@ internal class AppA2aRequestHandler(context: Context) : A2aRequestHandler {
                     emit(output)
                 }
             }
-            val terminal = result ?: A2aOutput.Result("运行结束但没有终态结果", A2aOutput.State.FAILED)
+            val terminal = result ?: A2aOutput.Result(modelText("运行结束但没有终态结果", "The run ended without a result"), A2aOutput.State.FAILED)
             mirror?.publish(terminal)
             emit(terminal)
         } finally {
@@ -86,11 +90,17 @@ fun a2aExecutionOutput(message: ExecutionMessage): A2aOutput? = when (message) {
     is ExecutionMessage.Runtime -> a2aRuntimeOutput(message.event)
     is ExecutionMessage.Speech -> A2aOutput.Speech(message.text, message.final)
     is ExecutionMessage.ToolStatus -> A2aOutput.Status(
-        "${message.name} ${when (message.phase) { "started" -> "正在调用"; "completed" -> "调用完成"; else -> "调用失败" }}",
+        "${message.name} " + when (message.phase) {
+            "started" -> modelText("正在调用", "calling")
+            "completed" -> modelText("调用完成", "done")
+            else -> modelText("调用失败", "failed")
+        },
         message.phase, message.name, message.callId,
     )
-    is ExecutionMessage.Failure -> A2aOutput.Result("执行服务失败，请查看设备日志", A2aOutput.State.FAILED)
-    ExecutionMessage.Stopped -> A2aOutput.Result("任务已取消", A2aOutput.State.CANCELED)
-    is ExecutionMessage.ObserverIssue -> A2aOutput.Status("展示订阅中断，执行继续", "observer-failed")
+    is ExecutionMessage.Failure ->
+        A2aOutput.Result(modelText("执行服务失败，请查看设备日志", "The run failed; see the device's log"), A2aOutput.State.FAILED)
+    ExecutionMessage.Stopped -> A2aOutput.Result(modelText("任务已取消", "Task cancelled"), A2aOutput.State.CANCELED)
+    is ExecutionMessage.ObserverIssue ->
+        A2aOutput.Status(modelText("展示订阅中断，执行继续", "The display subscription broke; the run goes on"), "observer-failed")
     else -> null
 }

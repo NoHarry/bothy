@@ -12,6 +12,7 @@ import cc.noharry.agent.appserver.protocol.MemoryCategory
 import cc.noharry.agent.appserver.protocol.MemorySource
 import cc.noharry.agent.appserver.protocol.UserMemory
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import java.io.File
 import java.io.IOException
 import java.util.UUID
@@ -76,10 +77,7 @@ class UserMemoryBook(
             return MemoryWrite.Refused(memoryFullReason(AppHost.places.memoryPage), MemoryRefusal.Full)
         }
         if (memories.count { it.category == category } >= MAX_PER_CATEGORY) {
-            return MemoryWrite.Refused(
-                "「${category.forModel}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的",
-                MemoryRefusal.CategoryFull(category),
-            )
+            return categoryFull(category)
         }
         val stamp = now()
         val memory = UserMemory(newId(), category, text, source, keptWords(said), stamp, stamp)
@@ -94,10 +92,7 @@ class UserMemoryBook(
         memoryContentRefusal(text)?.let { return it }
         val kind = category ?: old.category
         if (kind != old.category && memories.count { it.category == kind } >= MAX_PER_CATEGORY) {
-            return MemoryWrite.Refused(
-                "「${kind.forModel}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的",
-                MemoryRefusal.CategoryFull(kind),
-            )
+            return categoryFull(kind)
         }
         val memory = old.copy(
             category = kind,
@@ -115,7 +110,15 @@ class UserMemoryBook(
         return save(memories.filterNot { it.id == id }) ?: MemoryWrite.Removed(old)
     }
 
-    private fun missing(id: String) = MemoryWrite.Refused("没有这条记忆（$id）", MemoryRefusal.Missing(id))
+    private fun missing(id: String) = MemoryWrite.Refused(modelText("没有这条记忆（$id）", "No memory $id"), MemoryRefusal.Missing(id))
+
+    private fun categoryFull(category: MemoryCategory) = MemoryWrite.Refused(
+        modelText(
+            "「${category.forModel}」已经记了 $MAX_PER_CATEGORY 件事：先改掉或删掉一条旧的",
+            "\"${category.forModel}\" already holds $MAX_PER_CATEGORY memories: change or delete an old one first",
+        ),
+        MemoryRefusal.CategoryFull(category),
+    )
 
     /** False when the disk took nothing (the memories stay). */
     @Synchronized fun clear(): Boolean = save(emptyList()) == null
@@ -133,7 +136,7 @@ class UserMemoryBook(
         null
     } catch (e: IOException) {
         Log.w(TAG, "memories not saved: ${e.javaClass.simpleName}")
-        MemoryWrite.Refused("没存上：设备存储出错了", MemoryRefusal.NotSaved)
+        MemoryWrite.Refused(modelText("没存上：设备存储出错了", "Not saved: the device storage failed"), MemoryRefusal.NotSaved)
     }
 
     /** A file that cannot be read is set aside rather than written over by the next save. */
@@ -230,8 +233,11 @@ fun memoryContentError(content: String): String? = memoryContentRefusal(content)
 
 /** [memoryContentError] as a refused write. */
 internal fun memoryContentRefusal(content: String): MemoryWrite.Refused? = when {
-    content.isBlank() -> MemoryWrite.Refused("内容是空的", MemoryRefusal.Empty)
-    content.length > MAX_MEMORY_CHARS -> MemoryWrite.Refused("太长了：一条记忆不超过 $MAX_MEMORY_CHARS 个字", MemoryRefusal.TooLong)
+    content.isBlank() -> MemoryWrite.Refused(modelText("内容是空的", "The content is empty"), MemoryRefusal.Empty)
+    content.length > MAX_MEMORY_CHARS -> MemoryWrite.Refused(
+        modelText("太长了：一条记忆不超过 $MAX_MEMORY_CHARS 个字", "Too long: a memory is at most $MAX_MEMORY_CHARS characters"),
+        MemoryRefusal.TooLong,
+    )
     else -> sensitiveRefusal(content)
 }
 
@@ -239,15 +245,20 @@ internal fun memoryContentRefusal(content: String): MemoryWrite.Refused? = when 
  * Why a remember was refused once [MAX_MEMORIES] are kept, for the model to pass on: delete some on the host's
  * [memoryPage], or, without one, ask the user which to forget.
  */
-private fun memoryFullReason(memoryPage: String?): String =
-    "已经记了 $MAX_MEMORIES 件事，记满了：" + (memoryPage?.let { "先在 $it 删掉一些" } ?: "先问用户要忘掉哪几条")
+private fun memoryFullReason(memoryPage: String?): String = modelText(
+    "已经记了 $MAX_MEMORIES 件事，记满了：" + (memoryPage?.let { "先在 $it 删掉一些" } ?: "先问用户要忘掉哪几条"),
+    "$MAX_MEMORIES memories are kept, the most there can be: " +
+        (memoryPage?.let { "delete some on $it first" } ?: "ask the user which to forget first"),
+)
 
 /** Why [text] holds what is never kept (a password or code, a card or ID number), or null. 计划 keeps the 原话 out too. */
 internal fun sensitiveTextError(text: String): String? = sensitiveRefusal(text)?.reason
 
 private fun sensitiveRefusal(text: String): MemoryWrite.Refused? = when {
-    SECRET_WORDS.any { it in text } -> MemoryWrite.Refused("不记密码、验证码这类信息", MemoryRefusal.Secret)
-    LONG_NUMBER.containsMatchIn(text) -> MemoryWrite.Refused("不记身份证号、银行卡号这类长号码", MemoryRefusal.LongNumber)
+    SECRET_WORDS.any { it in text } ->
+        MemoryWrite.Refused(modelText("不记密码、验证码这类信息", "Passwords, codes and the like are not kept"), MemoryRefusal.Secret)
+    LONG_NUMBER.containsMatchIn(text) ->
+        MemoryWrite.Refused(modelText("不记身份证号、银行卡号这类长号码", "ID, card and other long numbers are not kept"), MemoryRefusal.LongNumber)
     else -> null
 }
 
@@ -257,9 +268,12 @@ private fun sensitiveRefusal(text: String): MemoryWrite.Refused? = when {
 fun memoryProfileText(memories: List<UserMemory>): String {
     if (memories.isEmpty()) return ""
     val lines = memories.groupBy { it.category }.toSortedMap().map { (category, items) ->
-        "- ${category.forModel}：" + items.joinToString("；") { it.content }
+        "- ${category.forModel}" + modelText("：", ": ") + items.joinToString(modelText("；", "; ")) { it.content }
     }
-    return "关于用户（用户亲口告诉你的，自然地用上，不要逐条念出来，也不要说是从记录里看到的）：\n" + lines.joinToString("\n")
+    return modelText(
+        "关于用户（用户亲口告诉你的，自然地用上，不要逐条念出来，也不要说是从记录里看到的）：",
+        "About the user (what the user told you themself: use it naturally, don't read it out item by item, and don't say it came from a record):",
+    ) + "\n" + lines.joinToString("\n")
 }
 
 fun userMemoryEnabled(context: Context): Boolean =
@@ -325,11 +339,11 @@ private val LONG_NUMBER = Regex("""\d(?:[\s\-/.·_]{0,3}\d){14,}""")
 /** A kind as the model reads it: in the facts, the chat prompts and a refusal's reason. */
 internal val MemoryCategory.forModel: String
     get() = when (this) {
-        MemoryCategory.IDENTITY -> "称呼与身份"
-        MemoryCategory.PLACES -> "常去地点"
-        MemoryCategory.HOME -> "设备与家居偏好"
-        MemoryCategory.MEDIA -> "娱乐"
-        MemoryCategory.TRAVEL -> "出行习惯"
-        MemoryCategory.PEOPLE -> "家人朋友"
-        MemoryCategory.OTHER -> "其他"
+        MemoryCategory.IDENTITY -> modelText("称呼与身份", "name and identity")
+        MemoryCategory.PLACES -> modelText("常去地点", "frequent places")
+        MemoryCategory.HOME -> modelText("设备与家居偏好", "device and home preferences")
+        MemoryCategory.MEDIA -> modelText("娱乐", "entertainment")
+        MemoryCategory.TRAVEL -> modelText("出行习惯", "travel habits")
+        MemoryCategory.PEOPLE -> modelText("家人朋友", "family and friends")
+        MemoryCategory.OTHER -> modelText("其他", "other")
     }

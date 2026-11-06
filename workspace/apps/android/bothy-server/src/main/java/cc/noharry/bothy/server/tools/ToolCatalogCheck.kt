@@ -11,7 +11,6 @@ import cc.noharry.agent.appserver.mcp.loadMcpProviders
 import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.McpProviderState
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.listing
 import cc.noharry.agent.appserver.protocol.parts

@@ -8,6 +8,7 @@ import cc.noharry.agent.appserver.mcp.saveMcpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerKind
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.skills.AppSubagents
 import cc.noharry.agent.appserver.skills.MAX_LOOKUPS
@@ -24,6 +25,7 @@ import cc.noharry.agent.appserver.skills.subagentKindText
 import cc.noharry.agent.appserver.skills.withA2aSections
 import cc.noharry.agent.appserver.skills.withSections
 import cc.noharry.agent.runtime.SubagentSpec
+import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.tools.BothyRuns
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -41,14 +43,14 @@ import org.robolectric.annotation.Config
 class SubagentKindsTest {
     @Before
     fun installBothyRuns() {
-        AppHost.install(runs = BothyRuns)
+        AppHost.install(runs = BothyRuns, persona = BothyPersona)
     }
 
     private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @After
     fun switchEveryTypeBackOn() {
-        AppHost.install(runs = RunAddOns.NONE)
+        AppHost.install(runs = RunAddOns.NONE, persona = Persona.GENERIC)
         loadSubagentKinds(context).forEach {
             saveSubagentKind(context, it.id, true)
             resetSubagentKindTools(context, it.id)

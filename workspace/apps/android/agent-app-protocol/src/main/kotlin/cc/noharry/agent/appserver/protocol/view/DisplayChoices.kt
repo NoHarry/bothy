@@ -6,8 +6,8 @@ package cc.noharry.agent.appserver.protocol.view
  * no runtime protocol. Listed results or route details that ask nothing stay plain text.
  */
 data class DisplayChoice(val ordinal: Int, val label: String, val recommended: Boolean) {
-    /** What a tap sends: the spoken ordinal reply, short enough to be framed against the reply it answers. */
-    val replyText: String get() = "第${ordinal}个"
+    /** What a tap sends: the spoken ordinal reply ("第2个", "Option 2"), short enough to be framed against the reply it answers. */
+    fun replyText(words: ReplyWords): String = words.pick(ordinal)
 }
 
 /** [text] is the reply without the choice lines; [choices] is empty when the reply offers no pick. */
@@ -40,7 +40,7 @@ private fun String.numberedChoice(): DisplayChoice? {
     val ordinal = (match.groupValues[1].ifEmpty { match.groupValues[2] }).toInt()
     val label = match.groupValues[3].replace(MARKDOWN_EMPHASIS_MARKS, "").trim()
     if (label.isEmpty()) return null
-    return DisplayChoice(ordinal, label, recommended = "推荐" in label)
+    return DisplayChoice(ordinal, label, recommended = "推荐" in label || RECOMMENDED_EN.containsMatchIn(label))
 }
 
 /** Every listed line starts with a label the model registered with offer_options for this list. */
@@ -49,14 +49,18 @@ private fun List<DisplayChoice>.areOffered(labels: List<String>): Boolean {
     return keys.isNotEmpty() && all { choice -> choice.label.offerKey().let { line -> keys.any { line.startsWith(it) } } }
 }
 
-/** The skill marks the pick "（推荐，理由）"; without it, a question must ask which one. "还要别的吗？" does not. */
+/**
+ * The skill marks the pick "（推荐，理由）" or "(recommended: why)"; without it, a question must ask which one. "还要别的吗？"
+ * does not.
+ */
 private fun List<String>.asksForChoice(): Boolean =
     any { line -> (line.contains('？') || line.contains('?')) && CHOICE_WORDS.containsMatchIn(line) }
 
 /** "1. ", "2、", "3）", "（4）"; a decimal such as "12.5公里" is not a marker. Bullets carry no ordinal to say. */
 private val NUMBERED_CHOICE = Regex("""^\s*(?:(\d{1,2})[.、)）](?!\d)|[（(](\d{1,2})[）)])\s*(.*)$""")
 private val MARKDOWN_EMPHASIS_MARKS = Regex("""\*\*|__|`""")
-private val CHOICE_WORDS = Regex("""选|哪个|哪一个|哪家|哪条|哪种|哪首|哪部|第几""")
+private val CHOICE_WORDS = Regex("""选|哪个|哪一个|哪家|哪条|哪种|哪首|哪部|第几|(?i:\b(?:which|choose|pick|prefer)\b)""")
+private val RECOMMENDED_EN = Regex("""\brecommended\b""", RegexOption.IGNORE_CASE)
 private val BLANK_LINE_RUN = Regex("""\n{3,}""")
 private const val MIN_DISPLAY_CHOICES = 2
 /** Same cap as ask_async options; a longer list stays text and can still be answered by voice. */

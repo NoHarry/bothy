@@ -6,7 +6,9 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.protocol.SessionPolicy
 import cc.noharry.agent.appserver.protocol.SessionSummary
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BasicTool
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.basicToolPrompt
 import cc.noharry.agent.appserver.runtime.disabledBasicTools
 import cc.noharry.agent.appserver.runtime.wakeStartsNewSession
@@ -20,21 +22,33 @@ import cc.noharry.agent.runtime.SubagentSpec
 import cc.noharry.agent.runtime.SubagentState
 import cc.noharry.agent.runtime.SubagentStatus
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The lines the screen shows are checked in Chinese. */
+/** The lines the screen shows and the model reads are checked in Chinese, for a Chinese persona; the English ones at the end. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class SubagentsTest {
     private val context = HookContext(sessionId = "s", runId = "r", requestId = "q")
     private val appContext: Context = ApplicationProvider.getApplicationContext()
+
+    @Before
+    fun chinese() {
+        AppHost.install(persona = CHINESE)
+    }
+
+    @After
+    fun generic() {
+        AppHost.install(persona = Persona.GENERIC)
+    }
 
     @Test
     fun byDefaultAChildQueriesTheDeviceButNeitherOperatesItNorTalksToTheUser() = runBlocking {
@@ -192,7 +206,7 @@ class SubagentsTest {
 
     @Test
     @Config(qualifiers = "en")
-    fun theReportTurnKeepsTheModelsWordsInEnglishToo() {
+    fun theReportTurnIsInThePersonasWordsWhateverTheScreensLanguage() {
         val status = SubagentStatus(
             id = "sub-1", label = "Suzhou weather", state = SubagentState.COMPLETED, startedAtEpochMillis = 0L,
             lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
@@ -204,6 +218,40 @@ class SubagentsTest {
         // The display becomes the turn's user text, which later requests show the model.
         assertEquals("后台任务「Suzhou weather」「Hangzhou weather」都完成了", batch.display)
         assertTrue(batch.model, batch.model.contains("「Suzhou weather」（sub-1）"))
+    }
+
+    @Test
+    fun aPersonaWithoutChineseGetsEnglishReportsPromptsAndRefusals() = runBlocking {
+        AppHost.install(persona = Persona.GENERIC)
+        val status = SubagentStatus(
+            id = "sub-1", label = "Suzhou weather", state = SubagentState.COMPLETED, startedAtEpochMillis = 0L,
+            lastActivityEpochMillis = 40_000L, finishedAtEpochMillis = 42_000L, toolCalls = 3, latest = "",
+            result = "Sunny tomorrow\nImage: https://img.example.com/a.jpg", error = "",
+        )
+        val other = status.copy(id = "sub-2", label = "Hangzhou weather", result = "Cloudy")
+        val batch = SubagentReport("s", listOf(status, other)).toReport(
+            stillWorking = listOf(other.copy(id = "sub-3", label = "Nanjing weather", state = SubagentState.RUNNING)),
+        )
+
+        assertEquals("Background tasks \"Suzhou weather\", \"Hangzhou weather\" are all done", batch.display)
+        assertTrue(batch.model, batch.model.contains("\"Suzhou weather\" (sub-1) is done, in 42 s. Result:"))
+        assertTrue(batch.model, batch.model.contains("Still running: \"Nanjing weather\" (sub-3)") && batch.model.contains("picture card"))
+        val input = subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "Suzhou weather", "Find tomorrow's weather in Suzhou", 1, null, false))
+        assertTrue(input, input.contains("cannot operate devices") && input.contains("Task (Suzhou weather):\nFind tomorrow's weather in Suzhou"))
+        val typed = SubagentGuard(allowDeviceControl = false, maxLookups = 0, tools = setOf(SubagentToolGroup.SEARCH), kindId = "trip")
+        assertEquals(
+            "This subagent (trip) may not use \"write files\": finish with the tools it has, or put what should be done in the result.",
+            (typed.decide("write_file", ToolSource.NATIVE_WRITE) as HookDecision.Deny).reason,
+        )
+        assertTrue((typed.decide("web_search", ToolSource.NETWORK) as HookDecision.Deny).reason.startsWith("0 pages and searches are used up"))
+        val all = SubagentStatus(
+            id = "sub-1", label = "x", state = SubagentState.STALLED, startedAtEpochMillis = 0L, lastActivityEpochMillis = 5_000L,
+            finishedAtEpochMillis = 0L, toolCalls = 0, latest = "web_search", result = "", error = "",
+        )
+        assertEquals(
+            "Background task \"x\" is making no progress",
+            SubagentReport("s", listOf(all)).toReport(now = 35_000L).display,
+        )
     }
 
     @Test
@@ -230,7 +278,7 @@ class SubagentsTest {
             lastActivityEpochMillis = 5_000L, finishedAtEpochMillis = 5_500L, toolCalls = 1, latest = "", result = "8.57",
             error = "", modelCalls = 1, inputTokens = 27_376, cachedTokens = 20_608, outputTokens = 639,
         )
-        assertEquals("5s · 工具 1 次 · 模型 1 次 · 输入 27376 缓存 75% · 输出 639", done.logLine())
+        assertEquals("5s · tools 1 · model 1 · in 27376 cached 75% · out 639", done.logLine())
         assertEquals(
             "后台任务「上海油价」完成：5s · 工具 1 次 · 模型 1 次 · 输入 27376 缓存 75% · 输出 639",
             done.transcriptLine(SubagentChange.FINISHED, appContext),
@@ -239,4 +287,8 @@ class SubagentsTest {
 
     private suspend fun SubagentGuard.decide(name: String, source: ToolSource = ToolSource.BACKEND) =
         onPreToolUse(ToolUse(name, "{}", source), context)
+
+    private companion object {
+        val CHINESE = Persona("助手", "", language = "zh-CN")
+    }
 }

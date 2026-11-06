@@ -6,7 +6,6 @@ import android.util.Log
 import cc.noharry.agent.appserver.a2a.describe
 import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.ImageModelConfig
-import cc.noharry.agent.appserver.protocol.describe
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

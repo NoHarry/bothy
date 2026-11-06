@@ -7,7 +7,6 @@ import cc.noharry.agent.appserver.protocol.PlanAction
 import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.PlanWatch
 import cc.noharry.agent.appserver.protocol.WatchOp
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.bothy.app.console.ConsoleView
 import cc.noharry.bothy.app.console.consoleViewFor
 import cc.noharry.bothy.app.overlay.clientMode
@@ -26,29 +25,22 @@ import org.robolectric.annotation.Config
 class PlansUiTest {
     @Test
     fun triggersReadAsAPersonWouldSayThem() {
-        assertEquals("今天 16:30", PlanTrigger.Once(at("2026-10-15T16:30")).describe(clock, zone))
-        assertEquals("明天 08:00", PlanTrigger.Once(at("2026-10-16T08:00")).describe(clock, zone))
-        assertEquals("10月20日 周二 08:00", PlanTrigger.Once(at("2026-10-20T08:00")).describe(clock, zone))
-        assertEquals("工作日 08:00", PlanTrigger.Repeat(480, setOf(1, 2, 3, 4, 5)).describe(clock, zone))
-        assertEquals("每天 07:05", PlanTrigger.Repeat(425, (1..7).toSet()).describe(clock, zone))
-        assertEquals("每周一、周三 21:30", PlanTrigger.Repeat(1290, setOf(3, 1)).describe(clock, zone))
-        assertEquals("深圳气温超过 30 度 持续 5 秒，一次", temperatureWatch(30.0, hold = 5).describe(clock, zone))
-        assertEquals("空气质量指数低于 50，每次", airWatch(50.0, repeat = true).describe(clock, zone))
-        assertEquals("最低价低于 800 元，一次", fareWatch(800.0).describe(clock, zone))
+        assertEquals("今天 16:30", PlanTrigger.Once(at("2026-10-15T16:30")).describeOnScreen(context, clock, zone))
+        assertEquals("明天 08:00", PlanTrigger.Once(at("2026-10-16T08:00")).describeOnScreen(context, clock, zone))
+        assertEquals("10月20日 周二 08:00", PlanTrigger.Once(at("2026-10-20T08:00")).describeOnScreen(context, clock, zone))
+        assertEquals("工作日 08:00", PlanTrigger.Repeat(480, setOf(1, 2, 3, 4, 5)).describeOnScreen(context, clock, zone))
+        assertEquals("每天 07:05", PlanTrigger.Repeat(425, (1..7).toSet()).describeOnScreen(context, clock, zone))
+        assertEquals("每周一、周三 21:30", PlanTrigger.Repeat(1290, setOf(3, 1)).describeOnScreen(context, clock, zone))
+        assertEquals("深圳气温超过 30 度 持续 5 秒，一次", temperatureWatch(30.0, hold = 5).describeOnScreen(context, clock, zone))
+        assertEquals("空气质量指数低于 50，每次", airWatch(50.0, repeat = true).describeOnScreen(context, clock, zone))
+        assertEquals("最低价低于 800 元，一次", fareWatch(800.0).describeOnScreen(context, clock, zone))
         assertEquals("1 小时 20 分钟后", untilText(context, 80 * 60_000L))
         assertEquals("3 分钟后", untilText(context, 150_000L))
         assertEquals("2 天后", untilText(context, 2 * 24 * 3_600_000L + 1))
     }
 
     @Test
-    fun thePageShowsTriggersAsTheModelReadsThemInChinese() {
-        listOf(
-            PlanTrigger.Once(at("2026-10-15T16:30")), PlanTrigger.Once(at("2026-10-16T08:00")),
-            PlanTrigger.Once(at("2026-10-17T08:00")), PlanTrigger.Once(at("2026-10-14T08:00")),
-            PlanTrigger.Once(at("2026-10-20T08:00")), PlanTrigger.Repeat(480, setOf(1, 2, 3, 4, 5)),
-            PlanTrigger.Repeat(425, (1..7).toSet()), PlanTrigger.Repeat(600, setOf(6, 7)), PlanTrigger.Repeat(1290, setOf(3, 1)),
-            temperatureWatch(30.0, hold = 5), airWatch(50.0, repeat = true), fareWatch(800.0),
-        ).forEach { trigger -> assertEquals(trigger.describe(clock, zone), trigger.describeOnScreen(context, clock, zone)) }
+    fun theTimeLeftReadsAsAPersonWouldSayIt() {
         assertEquals("2 小时后", untilText(context, 2 * 3_600_000L))
         assertEquals("马上", untilText(context, 0L))
     }

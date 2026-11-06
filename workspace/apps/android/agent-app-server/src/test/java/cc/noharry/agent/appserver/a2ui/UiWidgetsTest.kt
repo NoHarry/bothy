@@ -7,10 +7,14 @@ import cc.noharry.agent.appserver.protocol.view.CardItemKind
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.ChoiceOffer
 import cc.noharry.agent.appserver.protocol.view.Offer
+import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.agent.appserver.protocol.view.SliderOffer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
+import cc.noharry.agent.appserver.protocol.view.offerKey
 import cc.noharry.agent.appserver.protocol.view.panelReply
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.PreviousExchange
 import cc.noharry.agent.kernel.api.*
 import kotlinx.coroutines.runBlocking
@@ -19,6 +23,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -30,8 +35,61 @@ import org.robolectric.annotation.Config
 class UiWidgetsTest {
     private val tools = OfferToolProvider(BindableTools(listOf(ScreenProvider()))) { NOW }
 
+    // The frames of these picks as a Chinese persona words them; anEnglishPanelIsSentAndReadInEnglish has the English.
+    @Before
+    fun chinese() {
+        AppHost.install(persona = Persona("助手", "", language = "zh-CN"))
+    }
+
     @After
-    fun clearStore() = OfferStore.clear()
+    fun clearStore() {
+        OfferStore.clear()
+        AppHost.install(persona = Persona.GENERIC)
+    }
+
+    @Test
+    fun anEnglishPanelIsSentAndReadInEnglish() = runBlocking {
+        AppHost.install(persona = Persona.GENERIC)
+        call(OFFER_SLIDER_TOOL, """{"label":"Volume","tool":"volume_set","param":"volume","arguments":{"stream":"media"},"value":17}""")
+        call(OFFER_CHOICE_TOOL, AC_MODE.replace("空调模式", "AC mode").replace("自动", "Auto").replace("制冷", "Cool").replace("制热", "Heat"))
+        call(OFFER_SWITCH_TOOL, SEAT_SWITCH.replace("主驾座椅加热", "Seat heating"))
+        val offer = OfferStore.latest(SESSION)!!
+        val previous = PreviousExchange(SESSION, TURN, "adjust the car", "Set them and confirm.", "COMPLETED", "SUCCEEDED")
+
+        val confirmed = panelReply(offer.controls, listOf(22.0, listOf(1), true), ReplyWords.ENGLISH)
+        assertEquals("Volume to 22, AC mode to Cool, Seat heating on", confirmed)
+        val pick = offerPick(confirmed, previous, offer, NOW)!!
+        assertEquals(listOf("volume_set", "ac_mode_set", "seat_heat_set"), pick.calls.map { it.toolName })
+        assertTrue(pick.input, pick.input.startsWith("The user set \"Volume\" 22, \"AC mode\" Cool, \"Seat heating\" on"))
+        // As said, rather than tapped.
+        assertEquals(listOf("""{"stream":"media","volume":20}""", """{"zone":"all","mode":"heat"}"""), offerPick("set the volume to 20 and heat", previous, offer, NOW)!!.calls.map { it.argumentsJson })
+        assertEquals("""{"seat":"driver","level":0}""", offerPick("Turn off the seat heating.", previous, offer, NOW)!!.calls.single().argumentsJson)
+        assertEquals("""{"zone":"all","mode":"cool"}""", offerPick("cool mode", previous, offer, NOW)!!.calls.single().argumentsJson)
+        // "on" is a word of its own: "Moon" switches nothing.
+        assertNull(offerPick("Moon", previous, offer, NOW))
+        // A sentence that only holds a control's name sets nothing: a no, a question.
+        assertNull(offerPick("Don't turn the seat heating on", previous, offer, NOW))
+        assertNull(offerPick("is the seat heating on", previous, offer, NOW))
+        assertNull(offerPick("Don't set the volume to 30", previous, offer, NOW))
+        // One slider: a bare value is its.
+        assertEquals("""{"stream":"media","volume":30}""", offerPick("to 30", previous, offer, NOW)!!.calls.single().argumentsJson)
+
+        OfferStore.endTurn(SESSION)
+        call(OFFER_CHOICE_TOOL, SEATS.replace("座椅加热", "Seat heating").replace("主驾", "Driver").replace("副驾", "Passenger"))
+        val seats = OfferStore.latest(SESSION)!!
+        val both = panelReply(seats.controls, listOf(listOf(1, 0)), ReplyWords.ENGLISH)
+        assertEquals("Seat heating: Driver, Passenger", both)
+        assertEquals(2, offerPick(both, previous, seats, NOW)!!.calls.size)
+    }
+
+    @Test
+    fun anOptionIsPickedByItsOrdinalInEitherLanguage() {
+        for (said in listOf("第2个", "选第二个", "2", "Option 2", "the second one", "I'll take the 2nd", "I’ll take the second", "number 2", "Second, please")) {
+            assertEquals(said, 2, pickOrdinal(said.offerKey()))
+        }
+        assertNull(pickOrdinal("second hand shop".offerKey()))
+        assertNull(pickOrdinal("Option 9".offerKey()))
+    }
 
     @Test
     fun aSliderTakesItsRangeFromTheSchemaAndActsOnTheValueSaid() = runBlocking {
@@ -40,7 +98,7 @@ class UiWidgetsTest {
         val slider = OfferStore.latest(SESSION)!!.sliders().single()
         assertEquals(0.0, slider.min, 0.0)
         assertEquals(100.0, slider.max, 0.0)
-        assertEquals("中控屏亮度设为35%", slider.replyText(33.2))
+        assertEquals("中控屏亮度设为35%", slider.replyText(33.2, ReplyWords.CHINESE))
 
         val previous = PreviousExchange(SESSION, TURN, "亮度调一下", "可以拖动下面的滑块设置亮度。", "COMPLETED", "SUCCEEDED")
         val pick = offerPick("设为35%", previous, OfferStore.latest(SESSION), NOW)!!
@@ -58,7 +116,7 @@ class UiWidgetsTest {
         assertEquals(listOf("媒体音量", "中控屏亮度"), offer.controls.map { it.label })
         val previous = PreviousExchange(SESSION, TURN, "我想调下音量和亮度", "拖动下面的滑块，调好点确定。", "COMPLETED", "SUCCEEDED")
 
-        val confirmed = panelReply(offer.controls, listOf(22.0, 60.0))
+        val confirmed = panelReply(offer.controls, listOf(22.0, 60.0), ReplyWords.CHINESE)
         assertEquals("媒体音量设为22档，中控屏亮度设为60%", confirmed)
         val pick = offerPick(confirmed, previous, offer, NOW)!!
         assertEquals(listOf("""{"stream":"media","volume":22}""", """{"screen":"center","targetPercent":60}"""), pick.calls.map { it.argumentsJson })
@@ -76,7 +134,7 @@ class UiWidgetsTest {
         assertEquals(24.0, offer.sliders().single().value, 0.0)
         val previous = PreviousExchange(SESSION, TURN, "空调温度调一下", "拖动下面的滑块，调好点确定。", "COMPLETED", "SUCCEEDED")
 
-        val confirmed = panelReply(offer.controls, listOf(26.0))
+        val confirmed = panelReply(offer.controls, listOf(26.0), ReplyWords.CHINESE)
         assertEquals("空调温度设为26℃", confirmed)
         assertEquals("""{"screen":"center","targetPercent":26}""", offerPick(confirmed, previous, offer, NOW)!!.calls.single().argumentsJson)
         assertEquals(22.0, offer.sliders().single().valueSaid("调到22°C")!!, 0.0)
@@ -195,7 +253,7 @@ class UiWidgetsTest {
         val offer = OfferStore.latest(SESSION)!!
         val previous = PreviousExchange(SESSION, TURN, "加热都看看", "拨好开关点确定。", "COMPLETED", "SUCCEEDED")
 
-        val confirmed = panelReply(offer.controls, listOf(true, true))
+        val confirmed = panelReply(offer.controls, listOf(true, true), ReplyWords.CHINESE)
         assertEquals("主驾座椅加热打开", confirmed)
         assertEquals("""{"seat":"driver","level":2}""", offerPick(confirmed, previous, offer, NOW)!!.calls.single().argumentsJson)
         assertEquals("""{"state":"off"}""", offerPick("关掉方向盘加热", previous, offer, NOW)!!.calls.single().argumentsJson)
@@ -213,7 +271,7 @@ class UiWidgetsTest {
         val previous = PreviousExchange(SESSION, TURN, "空调模式", "选好点确定。", "COMPLETED", "SUCCEEDED")
         val offer = OfferStore.latest(SESSION)!!
 
-        assertEquals("空调模式设为制冷", panelReply(offer.controls, listOf(listOf(1))))
+        assertEquals("空调模式设为制冷", panelReply(offer.controls, listOf(listOf(1)), ReplyWords.CHINESE))
         assertEquals("""{"zone":"all","mode":"cool"}""", offerPick("空调模式设为制冷", previous, offer, NOW)!!.calls.single().argumentsJson)
         assertEquals("""{"zone":"all","mode":"heat"}""", offerPick("模式改成制热", previous, offer, NOW)!!.calls.single().argumentsJson)
         assertEquals("""{"zone":"all","mode":"cool"}""", offerPick("制冷", previous, offer, NOW)!!.calls.single().argumentsJson)
@@ -225,7 +283,7 @@ class UiWidgetsTest {
         OfferStore.endTurn(SESSION)
         assertTrue(call(OFFER_CHOICE_TOOL, SEATS).success)
         val seats = OfferStore.latest(SESSION)!!
-        val both = panelReply(seats.controls, listOf(listOf(1, 0)))
+        val both = panelReply(seats.controls, listOf(listOf(1, 0)), ReplyWords.CHINESE)
         assertEquals("座椅加热选主驾、副驾", both)
         assertEquals(
             listOf("""{"seat":"driver","level":2}""", """{"seat":"passenger","level":2}"""),
@@ -233,7 +291,7 @@ class UiWidgetsTest {
         )
         assertEquals(1, offerPick("副驾", previous, seats, NOW)!!.calls.size)
         // Nothing chosen: the confirm says nothing, so nothing is sent.
-        assertEquals("", panelReply(seats.controls, listOf(emptyList<Int>())))
+        assertEquals("", panelReply(seats.controls, listOf(emptyList<Int>()), ReplyWords.CHINESE))
     }
 
     @Test
@@ -245,13 +303,13 @@ class UiWidgetsTest {
         val previous = PreviousExchange(SESSION, TURN, "调一下空调", "调好点确定。", "COMPLETED", "SUCCEEDED")
         val unchanged = listOf(24.0, listOf(0), false)
 
-        val bare = panelReply(offer.controls, unchanged)
+        val bare = panelReply(offer.controls, unchanged, ReplyWords.CHINESE)
         assertEquals("空调温度设为24℃，空调模式设为自动，主驾座椅加热关闭", bare)
         val pick = offerPick(bare, previous, offer, NOW)!!
         assertEquals(listOf("brightness_set", "ac_mode_set", "seat_heat_set"), pick.calls.map { it.toolName })
         assertTrue(pick.input, pick.input.contains("「空调模式」自动"))
-        assertEquals("空调模式设为制热，主驾座椅加热打开", panelReply(offer.controls, listOf(24.0, listOf(2), true)))
-        assertEquals("空调温度设为26℃，空调模式设为制冷", panelReply(offer.controls, listOf(26.0, listOf(1), false)))
+        assertEquals("空调模式设为制热，主驾座椅加热打开", panelReply(offer.controls, listOf(24.0, listOf(2), true), ReplyWords.CHINESE))
+        assertEquals("空调温度设为26℃，空调模式设为制冷", panelReply(offer.controls, listOf(26.0, listOf(1), false), ReplyWords.CHINESE))
         assertEquals(2, offerPick("温度调到26，模式改成制冷", previous, offer, NOW)!!.calls.size)
     }
 

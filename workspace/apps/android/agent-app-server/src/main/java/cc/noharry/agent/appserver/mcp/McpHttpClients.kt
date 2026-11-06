@@ -6,7 +6,8 @@ import cc.noharry.agent.appserver.a2a.describe
 import cc.noharry.agent.appserver.evidence.BenchHttpTransport
 import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.McpServer
-import cc.noharry.agent.appserver.protocol.describe
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.tools.isTransaction
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.mcp.McpClientMessages
@@ -38,7 +39,7 @@ internal object McpHttpClients {
                     query = { McpSecrets.requestQuery(app, server.id) },
                     unreachableCooldownMillis = UNREACHABLE_COOLDOWN_MS,
                     retryScope = retries,
-                    messages = ChineseMcpMessages,
+                    messages = AppHost.words.mcp,
                 ).also { client -> clients.put(server.id, server.url to client)?.second?.close() }
         }
     }
@@ -62,8 +63,8 @@ internal fun httpMcpToolProvider(context: Context, server: McpServer): McpToolPr
     )
 
 /**
- * The app's words for MCP problems on its shared connections: a run's tool errors, which the model reads, so they stay
- * as they are in every language ([ScreenMcpMessages] has the screen's own).
+ * MCP problems in Chinese, for a Chinese persona's runs ([ModelWords.mcp]): a run's tool errors, which the model reads,
+ * so they follow the assistant's language, not the screen's ([ScreenMcpMessages] has the screen's own).
  */
 @InternalAppServerApi
 object ChineseMcpMessages : McpClientMessages {

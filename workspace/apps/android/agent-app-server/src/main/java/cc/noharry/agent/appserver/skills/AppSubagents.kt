@@ -15,6 +15,7 @@ import cc.noharry.agent.appserver.protocol.TokenUsageState
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BasicTool
 import cc.noharry.agent.appserver.runtime.append
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.appserver.trajectory.appSessionEventLogRoot
 import cc.noharry.agent.appserver.usage.plus
 import cc.noharry.agent.appserver.usage.toUsageDelta
@@ -238,8 +239,8 @@ internal fun subagentChange(before: SubagentState?, now: SubagentState): Subagen
 /** Seconds since start (or until the end), tool and model calls, tokens and cache hit. */
 internal fun SubagentStatus.logLine(now: Long = System.currentTimeMillis()): String {
     val seconds = ((if (finishedAtEpochMillis > 0) finishedAtEpochMillis else now) - startedAtEpochMillis) / 1_000
-    val cache = if (inputTokens > 0) " 缓存 ${cachedTokens * 100 / inputTokens}%" else ""
-    return "${seconds}s · 工具 $toolCalls 次 · 模型 $modelCalls 次 · 输入 $inputTokens$cache · 输出 $outputTokens" +
+    val cache = if (inputTokens > 0) " cached ${cachedTokens * 100 / inputTokens}%" else ""
+    return "${seconds}s · tools $toolCalls · model $modelCalls · in $inputTokens$cache · out $outputTokens" +
         (if (error.isNotEmpty()) " · $error" else "")
 }
 
@@ -286,7 +287,12 @@ internal class SubagentGuard(
     override suspend fun onPreToolUse(call: ToolUse, context: HookContext): HookDecision {
         val group = subagentToolGroup(call.toolName, deviceServers)
         if (tools != null && group != null && group !in tools) {
-            return HookDecision.Deny(reason = "这个子 agent（$kindId）不能用「${group.label}」：用能用的工具完成，或把要做的写进结果。")
+            return HookDecision.Deny(
+                reason = modelText(
+                    "这个子 agent（$kindId）不能用「${group.label}」：用能用的工具完成，或把要做的写进结果。",
+                    "This subagent ($kindId) may not use \"${group.label}\": finish with the tools it has, or put what should be done in the result.",
+                ),
+            )
         }
         if (call.toolName in CHILD_LOOKUP_TOOLS && lookups.incrementAndGet() > maxLookups) {
             return HookDecision.Deny(reason = lookupsSpent(maxLookups))
@@ -312,34 +318,66 @@ internal class SubagentGuard(
  */
 @InternalAppServerApi
 fun subagentInput(spec: SubagentSpec, kind: SubagentKind? = null, instructions: String = ""): String = buildString {
-    val maxLookups = kind?.maxLookups ?: MAX_CHILD_LOOKUPS
-    val tools = kind?.tools
-    appendLine("你是主助手派出的后台子助手，独立完成下面的任务，然后用 finish 交回结果。")
-    appendLine("- 你看不到和用户的对话，也不能问用户；信息不全时按最合理的理解去做，并在结果里说明。")
-    if (spec.allowDeviceControl && (tools == null || SubagentToolGroup.DEVICE_CONTROL in tools)) {
-        appendLine("- 只做任务要求的设备操作，不展示卡片。")
-    } else {
-        appendLine("- 不能操作设备、不能展示卡片，只能查询；需要操作的写进结果，由主助手决定。")
-    }
-    if (kind != null) appendLine("- 能用的工具：${kind.toolLabels()}；别的工具会被拒绝。")
-    appendLine("- 结果要完整、简洁，写成主助手可以直接转述的要点。")
-    if (kind == null || kind.searches) {
-        appendLine("- 查资料先联网搜索：有 web_search 就用它，没有时服务端搜索一直可用。web_fetch 只用来打开搜索结果里出现过的详情页或你的分工里写明的网址，不要猜网址。")
-    }
-    if (tools == null || tools.any { it == SubagentToolGroup.SEARCH || it == SubagentToolGroup.FETCH }) {
-        appendLine("- 打开网页和搜索一共最多 $maxLookups 次，够用就停；搜索摘要里已有的信息不用再打开详情页。互不依赖的几次查询在同一步里一起发（一次回复里调用多次），不要一步只查一个。")
-    }
-    if (kind == null) {
-        appendLine("- 查活动、景点、展览、餐厅这类有图的东西时，挑最值得推荐的 2–3 项，用 web_fetch 打开搜索结果里它们的详情页（最多 3 次）：结果里的 image 是那一页的配图，在该项后面另起一行写「图片：https://…」。只用工具结果给出的图片地址，没有就不写，不要编造。")
-    } else if (instructions.isNotBlank()) {
+    childRules(spec, kind).forEach(::appendLine)
+    if (kind != null && instructions.isNotBlank()) {
         appendLine()
-        append("你的分工（").append(kind.id).appendLine("）：")
+        appendLine(modelText("你的分工（${kind.id}）：", "Your role (${kind.id}):"))
         appendLine(instructions.trim())
     }
     appendLine()
-    append("任务（").append(spec.label).appendLine("）：")
+    appendLine(modelText("任务（${spec.label}）：", "Task (${spec.label}):"))
     append(spec.task)
 }
+
+/** The child's role and rules, a line each: what it may do, its tools, how it searches and, untyped, its pictures. */
+private fun childRules(spec: SubagentSpec, kind: SubagentKind?): List<String> {
+    val tools = kind?.tools
+    val operates = spec.allowDeviceControl && (tools == null || SubagentToolGroup.DEVICE_CONTROL in tools)
+    val looksUp = tools == null || tools.any { it == SubagentToolGroup.SEARCH || it == SubagentToolGroup.FETCH }
+    return listOfNotNull(
+        modelText(
+            "你是主助手派出的后台子助手，独立完成下面的任务，然后用 finish 交回结果。",
+            "You are a background helper the main assistant sent: do the task below on your own, then hand the result back with finish.",
+        ),
+        modelText(
+            "- 你看不到和用户的对话，也不能问用户；信息不全时按最合理的理解去做，并在结果里说明。",
+            "- You cannot see the conversation with the user or ask the user anything; when something is missing, go with the " +
+                "likeliest reading and say so in the result.",
+        ),
+        if (operates) modelText("- 只做任务要求的设备操作，不展示卡片。", "- Operate devices only as the task asks; show no cards.") else queriesOnly(),
+        kind?.let { modelText("- 能用的工具：${it.toolLabels()}；别的工具会被拒绝。", "- What you can use: ${it.toolLabels()}; other tools are refused.") },
+        modelText("- 结果要完整、简洁，写成主助手可以直接转述的要点。", "- Make the result complete and concise: points the main assistant can pass on as they are."),
+        searchRule().takeIf { kind == null || kind.searches },
+        lookupRule(kind?.maxLookups ?: MAX_CHILD_LOOKUPS).takeIf { looksUp },
+        pictureRule().takeIf { kind == null },
+    )
+}
+
+private fun queriesOnly() = modelText(
+    "- 不能操作设备、不能展示卡片，只能查询；需要操作的写进结果，由主助手决定。",
+    "- You cannot operate devices or show cards, only look things up; put any change to make in the result for the main assistant to decide.",
+)
+
+private fun searchRule() = modelText(
+    "- 查资料先联网搜索：有 web_search 就用它，没有时服务端搜索一直可用。web_fetch 只用来打开搜索结果里出现过的详情页或你的分工里写明的网址，不要猜网址。",
+    "- Search the web first: with web_search when you have it, else the server-side search, which is always there. Use " +
+        "web_fetch only for detail pages that appeared in search results or addresses your role names; never guess an address.",
+)
+
+private fun lookupRule(maxLookups: Int) = modelText(
+    "- 打开网页和搜索一共最多 $maxLookups 次，够用就停；搜索摘要里已有的信息不用再打开详情页。互不依赖的几次查询在同一步里一起发（一次回复里调用多次），不要一步只查一个。",
+    "- Open pages and search at most $maxLookups times in all, and stop once you have enough; what a search summary already " +
+        "says needs no detail page. Send lookups that do not depend on each other together in one step (several calls in " +
+        "one reply), not one per step.",
+)
+
+private fun pictureRule() = modelText(
+    "- 查活动、景点、展览、餐厅这类有图的东西时，挑最值得推荐的 2–3 项，用 web_fetch 打开搜索结果里它们的详情页（最多 3 次）：结果里的 image 是那一页的配图，在该项后面另起一行写「图片：https://…」。只用工具结果给出的图片地址，没有就不写，不要编造。",
+    "- When looking up things with pictures, such as events, sights, exhibitions or restaurants, pick the 2–3 most worth " +
+        "recommending and open their detail pages from the search results with web_fetch (at most 3): the result's image " +
+        "is that page's picture; put it on its own line after the item as \"${IMAGE_LINE_EN}https://…\". Use only image " +
+        "addresses a tool result gave; write none otherwise, and never make one up.",
+)
 
 /**
  * A report as one turn: [A2aReport.display] for the transcript and card, [A2aReport.model] for the agent. The display
@@ -348,47 +386,72 @@ fun subagentInput(spec: SubagentSpec, kind: SubagentKind? = null, instructions: 
  * itself and say "还在查" about results it had not been handed yet), and [stillWorking] names siblings that are not done.
  */
 internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyList(), now: Long = System.currentTimeMillis()): A2aReport {
-    val labels = statuses.joinToString("") { "「${it.label}」" }
+    val labels = statuses.joinToString(modelText("", ", ")) { modelText("「${it.label}」", "\"${it.label}\"") }
     val display = when {
         statuses.size == 1 -> statuses.single().reportHeadline()
-        statuses.all { it.state == SubagentState.COMPLETED } -> "后台任务${labels}都完成了"
-        else -> "后台任务${labels}有消息了"
+        statuses.all { it.state == SubagentState.COMPLETED } -> modelText("后台任务${labels}都完成了", "Background tasks $labels are all done")
+        else -> modelText("后台任务${labels}有消息了", "Background tasks $labels have news")
     }
     val model = buildString {
-        appendLine("【后台子任务回报】你之前用 spawn_agent 委派的后台任务：")
+        appendLine(modelText("【后台子任务回报】你之前用 spawn_agent 委派的后台任务：", "[Background task report] Tasks you delegated with spawn_agent:"))
         statuses.forEach { append(it.reportSection(now)) }
         if (stillWorking.isNotEmpty()) {
-            appendLine("还在进行：${stillWorking.joinToString("") { "「${it.label}」（${it.id}）" }}，结束后会再回报，不要现在等它们。")
+            appendLine(
+                modelText(
+                    "还在进行：${stillWorking.joinToString("") { "「${it.label}」（${it.id}）" }}，结束后会再回报，不要现在等它们。",
+                    "Still running: ${stillWorking.joinToString(", ") { "\"${it.label}\" (${it.id})" }}; they report when done, so do not wait for them now.",
+                ),
+            )
         } else if (statuses.none { it.state == SubagentState.STALLED }) {
-            appendLine("这一批都在这里了，不用再调用 wait_agent。")
+            appendLine(modelText("这一批都在这里了，不用再调用 wait_agent。", "This is the whole batch; no need to call wait_agent."))
         }
-        if (statuses.any { IMAGE_LINE in it.result }) appendLine(DEBUG_PICTURE_CARD_HINT)
+        if (statuses.any { it.result.hasImageLines() }) appendLine(pictureCardHint())
         // 网上核实 adds to an answer already spoken: the details belong on the card, the voice keeps to what changed (on the
         // bench a 「汇总」 here outweighed the system rule and the report was read out for 35–45 s).
-        if (statuses.all { it.agentType == WEB_VERIFY_KIND }) append(VERIFY_REPORT_CLOSING)
-        else append("用一段话把对用户有用的部分汇总告诉用户，不要逐个复述过程，也不要用「好的」之类的话开头。")
+        if (statuses.all { it.agentType == WEB_VERIFY_KIND }) append(verifyReportClosing())
+        else {
+            append(
+                modelText(
+                    "用一段话把对用户有用的部分汇总告诉用户，不要逐个复述过程，也不要用「好的」之类的话开头。",
+                    "Tell the user, in one paragraph, what of it is useful to them; do not go through the steps one by one, and do not open with \"OK\" or the like.",
+                ),
+            )
+        }
     }
     return A2aReport(display = display, model = model)
 }
 
-private const val VERIFY_REPORT_CLOSING =
+private fun verifyReportClosing() = modelText(
     "这是对你刚才那个回答的网上核实。把核实到的细节更新到卡片上（show_card），嘴上最多说两句短话：只说会改变选择的" +
-        "（哪家关了或对不上号、现在最推荐哪家），其余留在卡片上；不要再列选项，不要逐家复述，也不要用「好的」「核实回来」之类的话开头。"
+        "（哪家关了或对不上号、现在最推荐哪家），其余留在卡片上；不要再列选项，不要逐家复述，也不要用「好的」「核实回来」之类的话开头。",
+    "This is the web check of the answer you just gave. Update the card with the checked details (show_card) and say two short " +
+        "sentences at most: only what changes the choice (which place is closed or does not match, which is now the best pick), " +
+        "leaving the rest on the card; do not list the options again or go through each place, and do not open with \"OK\", " +
+        "\"The check is back\" or the like.",
+)
 
 private fun SubagentStatus.reportHeadline(): String = when (state) {
-    SubagentState.COMPLETED -> "后台任务「$label」完成了"
-    SubagentState.STALLED -> "后台任务「$label」没有进展"
-    else -> "后台任务「$label」没有完成"
+    SubagentState.COMPLETED -> modelText("后台任务「$label」完成了", "Background task \"$label\" is done")
+    SubagentState.STALLED -> modelText("后台任务「$label」没有进展", "Background task \"$label\" is making no progress")
+    else -> modelText("后台任务「$label」没有完成", "Background task \"$label\" did not finish")
 }
 
 private fun SubagentStatus.reportSection(now: Long): String {
-    val name = "「$label」（$id）"
+    val name = modelText("「$label」（$id）", "\"$label\" ($id)")
     val seconds = ((if (finishedAtEpochMillis > 0) finishedAtEpochMillis else now) - startedAtEpochMillis) / 1_000
+    val quiet = (now - lastActivityEpochMillis) / 1_000
     return when (state) {
-        SubagentState.COMPLETED -> "$name 已完成，用时 $seconds 秒。结果：\n$result\n"
-        SubagentState.STALLED -> "$name 已经 ${(now - lastActivityEpochMillis) / 1_000} 秒没有动静" +
-            (if (latest.isNotEmpty()) "（最近：$latest）" else "") + "，可以用 wait_agent 继续等，或用 cancel_agent 取消。\n"
-        else -> "$name 没有完成（${state.wireName}：$error），需要的话重新委派或自己处理。\n"
+        SubagentState.COMPLETED -> modelText("$name 已完成，用时 $seconds 秒。结果：\n$result\n", "$name is done, in $seconds s. Result:\n$result\n")
+        SubagentState.STALLED -> modelText(
+            "$name 已经 $quiet 秒没有动静" + (if (latest.isNotEmpty()) "（最近：$latest）" else "") +
+                "，可以用 wait_agent 继续等，或用 cancel_agent 取消。\n",
+            "$name has been quiet for $quiet s" + (if (latest.isNotEmpty()) " (latest: $latest)" else "") +
+                "; keep waiting with wait_agent, or cancel it with cancel_agent.\n",
+        )
+        else -> modelText(
+            "$name 没有完成（${state.wireName}：$error），需要的话重新委派或自己处理。\n",
+            "$name did not finish (${state.wireName}: $error); delegate it again or handle it yourself if needed.\n",
+        )
     }
 }
 
@@ -468,13 +531,26 @@ internal fun subagentToolGroup(toolName: String, deviceServers: Set<String> = BU
 internal fun subagentDeviceServers(context: Context): Set<String> = BUILT_IN_DEVICE_SERVERS + AppHost.runs.deviceServers(context)
 internal const val MAX_CHILD_LOOKUPS = DEFAULT_SUBAGENT_LOOKUPS
 
-private fun lookupsSpent(max: Int) = "已经查了 $max 次网页和搜索，不再查了：用已有的结果调用 finish，查不到的写「待确认」。"
+private fun lookupsSpent(max: Int) = modelText(
+    "已经查了 $max 次网页和搜索，不再查了：用已有的结果调用 finish，查不到的写「待确认」。",
+    "$max pages and searches are used up, so no more: call finish with what you have, and write \"to be confirmed\" for what you did not find.",
+)
 
-private const val IMAGE_LINE = "图片："
+private const val IMAGE_LINE_ZH = "图片："
+private const val IMAGE_LINE_EN = "Image: "
+
+/** Whether a child's result has the picture lines its input asked for, in the persona's words. */
+private fun String.hasImageLines(): Boolean = modelText(IMAGE_LINE_ZH, IMAGE_LINE_EN) in this
+
 /** 图文 (owner 2026-10-17): a subagent's 「图片：https://…」 lines go into the summary card. */
-internal const val DEBUG_PICTURE_CARD_HINT =
+internal fun pictureCardHint(): String = modelText(
     "子 agent 的结果里有「图片：https://…」时，汇总时先用一次 show_card 把这一批结果做成一张图文卡片（卡片一次只显示一张，不同城市或主题用 " +
-        "items 的 group 分组）：每项 image 填它对应的图片，头图 image 用最有代表性的一张，没有图片的项照样列出；然后 finish 只说要点。"
+        "items 的 group 分组）：每项 image 填它对应的图片，头图 image 用最有代表性的一张，没有图片的项照样列出；然后 finish 只说要点。",
+    "When a subagent's result has \"${IMAGE_LINE_EN}https://…\" lines, first make the batch into one picture card with a single " +
+        "show_card while summing up (a card shows one at a time; group different cities or topics with the items' group): each " +
+        "item's image is its own picture, the header image the most telling one, and items without a picture are listed all the " +
+        "same; then finish says only the main points.",
+)
 
 private const val TAG = "DebugSubagents"
 private const val MAX_BOARD_ROWS = 8

@@ -15,6 +15,7 @@ import org.junit.Test
 class A2aNamingGateTest {
     private val context = HookContext(sessionId = "s", runId = "r", requestId = "q")
     private val agents = listOf("Grok Bot")
+    private val nicknames = listOf("云端助手", "个人助手")
 
     @Test
     fun backgroundWorkTheUserDidNotHandToTheAgentIsNotSent() = runBlocking {
@@ -32,10 +33,19 @@ class A2aNamingGateTest {
         assertTrue(send("让云端助手帮我查一下明天的会议", """{"text":"查会议"}""") is HookDecision.Allow)
         assertTrue(send("交给我的个人助手去订", """{"text":"订会议室"}""") is HookDecision.Allow)
         // 「好的」 to the trip's closing question quotes it, and the question names the personal assistant.
-        assertTrue(namesAgent("好的\n（回答你刚才的问题：要不要设成提醒，或者把行程发给你的个人助手备份？）", listOf("Grok Bot")))
+        assertTrue(namesAgent("好的\n（回答你刚才的问题：要不要设成提醒，或者把行程发给你的个人助手备份？）", listOf("Grok Bot"), nicknames))
         val agreed = appModelInput("好的", PreviousExchange("s", "t", "发封邮件给张三", "这个要交给 Grok Bot 去发吗？", "COMPLETED", ""))
         assertTrue(send(agreed, """{"text":"发邮件"}""") is HookDecision.Allow)
         assertTrue(send("发到 zhang@example.com", """{"text":"zhang@example.com","taskId":"task-7"}""") is HookDecision.Allow)
+    }
+
+    @Test
+    fun aNicknameCountsOnlyWhenTheHostHasIt() = runBlocking {
+        assertFalse(namesAgent("让云端助手帮我查一下明天的会议", agents, nicknames = emptyList()))
+        val denied = A2aNamingGate("让云端助手帮我查", agents, nicknames = emptyList())
+            .onPreToolUse(ToolUse("mcp__experimental_a2a_user_grok_bot__a2a_message_send", "{}", ToolSource.BACKEND), context)
+        assertTrue(denied is HookDecision.Deny && !(denied as HookDecision.Deny).reason.contains("(or say"))
+        assertTrue(namesAgent("Ask My Cloud Assistant to book it", agents, nicknames = listOf("my cloud assistant")))
     }
 
     @Test
@@ -44,7 +54,7 @@ class A2aNamingGateTest {
         assertTrue(namesAgent("让小秘书订个会议室", listOf("小秘书")))
     }
 
-    private fun gate(input: String) = A2aNamingGate(input, agents)
+    private fun gate(input: String) = A2aNamingGate(input, agents, nicknames)
 
     private suspend fun send(input: String, arguments: String) =
         gate(input).onPreToolUse(ToolUse("mcp__experimental_a2a_user_grok_bot__a2a_message_send", arguments, ToolSource.BACKEND), context)

@@ -637,7 +637,7 @@ object RuntimeSession {
                 // A reminder already showed in the plan popup and is only spoken; a task opens the card the assistant
                 // works on.
                 if (task != null) Presenter.card(OverlayCommand.SHOW)?.let { android.util.Log.w(PLAN_LOG_TAG, "plan card not shown: $it") }
-                // The card's and the console's name for it; PLAN_LABEL stays for what the model reads.
+                // The card's and the console's name for it.
                 val planLabel = app.getString(R.string.runtime_plan_label)
                 val remind = { recordCompanionTurn(app, delivery.display, delivery.reply, planLabel, scene = PLAN_SCENE, statusText = planLabel) }
                 when {

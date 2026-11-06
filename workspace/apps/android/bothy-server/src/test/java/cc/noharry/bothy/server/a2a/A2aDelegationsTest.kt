@@ -30,18 +30,34 @@ import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Persona
+import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.voice.tts.closesReply
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.net.URI
 
 class A2aDelegationsTest {
     private val delegation = A2aDelegation("Grok Bot", "task-1", "给我自己发封测试邮件", startedAtEpochMillis = 0L)
+
+    // Reports as Bothy's Chinese persona words them; DelegationReportWordsTest has the English.
+    @Before
+    fun chinese() {
+        AppHost.install(persona = BothyPersona)
+    }
+
+    @After
+    fun generic() {
+        AppHost.install(persona = Persona.GENERIC)
+    }
 
     @Test
     fun followsUntilSettledWithAShorterPollFirst() = runBlocking {

@@ -18,6 +18,8 @@ class BothyA2aTest {
     fun bothyRunsTheLocalEndpointAndNamesTheCarAsItsSource() {
         assertTrue(BothyA2a.localServer)
         assertEquals("car", BothyA2a.contextSource)
+        assertEquals(listOf("云端助手", "个人助手"), BothyA2a.nicknames)
+        assertEquals("their cloud / personal assistant", BothyA2a.nicknamesMeaning)
     }
 
     @Test

@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
 import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.protocol.view.PickableReply
-import cc.noharry.agent.appserver.protocol.view.replyText
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -70,7 +69,7 @@ internal fun ConsoleChoices(
 
 /**
  * Everything the reply shows beyond its text, in the console's theme: the cards, the panel, then the picks. Each
- * answer goes out once as the reply the user would say ("第2个", "设为30%，座椅加热打开").
+ * answer goes out once as the reply the user would say ("第2个", "设为30%，座椅加热打开"), in the screens' language.
  */
 @Composable
 internal fun ConsoleWidgets(pickable: PickableReply, onReply: (String) -> Unit) {
@@ -99,7 +98,8 @@ private fun ConsoleWidgetColumn(pickable: PickableReply, onReply: (String) -> Un
             )
         }
         if (pickable.reply.choices.isNotEmpty()) {
-            ConsoleChoices(pickable.reply.choices, { choice -> onReply(choice.replyText) }, pickable.icons)
+            val words = replyWords()
+            ConsoleChoices(pickable.reply.choices, { choice -> onReply(choice.replyText(words)) }, pickable.icons)
         }
     }
 }

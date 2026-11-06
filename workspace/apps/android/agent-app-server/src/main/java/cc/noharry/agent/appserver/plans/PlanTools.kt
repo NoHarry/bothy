@@ -11,13 +11,13 @@ import cc.noharry.agent.appserver.mcp.readMcpResourceAll
 import cc.noharry.agent.appserver.mcp.readMcpTool
 import cc.noharry.agent.appserver.mcp.toolReading
 import cc.noharry.agent.appserver.model.describe
-import cc.noharry.agent.appserver.protocol.PLAN_WEEKDAYS
 import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.WatchOp
-import cc.noharry.agent.appserver.protocol.describe
-import cc.noharry.agent.appserver.protocol.describeMoment
 import cc.noharry.agent.appserver.protocol.nextDueMillis
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.Cues
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.isTransaction
 import cc.noharry.agent.appserver.tools.validateInputSchema
@@ -97,17 +97,20 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
     constructor(context: Context) : this(PlanHost(context.applicationContext))
 
     override val serverId: String = PLAN_SERVER_ID
-    override val displayName: String = "计划"
-    override val catalogCacheIdentity: String = "app-server:$PLAN_SERVER_ID:v1"
+    override val displayName: String get() = modelText("计划", "Plans")
+    override val catalogCacheIdentity: String get() = "app-server:$PLAN_SERVER_ID:v2:${if (AppHost.words.isChinese) "zh" else "en"}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
-        ToolDescriptor(name = PLAN_TOOL, title = "安排计划", description = PLAN_DESCRIPTION, inputSchemaJson = PLAN_SCHEMA),
+        ToolDescriptor(
+            name = PLAN_TOOL, title = modelText("安排计划", "Plans"), description = modelText(PLAN_DESCRIPTION, PLAN_DESCRIPTION_EN),
+            inputSchemaJson = planSchema(),
+        ),
     )
 
     override fun localToolNames(request: ToolPrefetchRequest): List<String> =
-        if (PLAN_CUES.any { it in request.input }) listOf(PLAN_TOOL) else emptyList()
+        if (PLAN_CUES.heardIn(request.input)) listOf(PLAN_TOOL) else emptyList()
 
     override suspend fun prefetchTools(request: ToolPrefetchRequest, trace: ToolPrefetchTrace): List<String> = emptyList()
 
@@ -136,23 +139,23 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
 
     private suspend fun create(args: JsonObject): JsonObject {
         val actions = planActionsOf(args, host.policy(), host::tools, host::serverId).orEmpty()
-        val trigger = triggerOf(args, actions.isNotEmpty()) ?: throw IllegalArgumentException("需要 when（时间）或 watch（服务的状态）其中一个")
+        val trigger = triggerOf(args, actions.isNotEmpty()) ?: throw IllegalArgumentException(modelText("需要 when（时间）或 watch（服务的状态）其中一个", "Needs when (a time) or watch (a service's state)"))
         requireWatchable(trigger)
         val plan = host.write {
             it.add(args.text("title").orEmpty(), args.text("message").orEmpty(), args.text("instruction"), trigger, args.text("said"), actions)
         }.getOrThrow()
         val retell = when {
-            plan.actions.isNotEmpty() -> "什么时候自动做什么"
-            plan.instruction != null -> "什么时候去办什么"
-            else -> "什么时候提醒什么"
+            plan.actions.isNotEmpty() -> modelText("什么时候自动做什么", "when it does what on its own")
+            plan.instruction != null -> modelText("什么时候去办什么", "when you will do what")
+            else -> modelText("什么时候提醒什么", "when it reminds of what")
         }
-        return planJson(plan, "已安排。用一句话向用户复述：$retell。")
+        return planJson(plan, modelText("已安排。用一句话向用户复述：$retell。", "Scheduled. Restate to the user in one sentence: $retell."))
     }
 
     private suspend fun update(args: JsonObject): JsonObject {
-        val id = args.text("id") ?: throw IllegalArgumentException("update 需要 id")
+        val id = args.text("id") ?: throw IllegalArgumentException(modelText("update 需要 id", "update needs id"))
         val actions = planActionsOf(args, host.policy(), host::tools, host::serverId)
-        val old = host.plans().firstOrNull { it.id == id } ?: throw IllegalArgumentException("没有这个计划（$id）")
+        val old = host.plans().firstOrNull { it.id == id } ?: throw noPlan(id)
         val trigger = triggerOf(args, (actions ?: old.actions).isNotEmpty())?.also { requireWatchable(it) }
         val now = host.now()
         val plan = host.write { book ->
@@ -165,39 +168,41 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
                     actions = actions ?: retimed.actions,
                 )
             }
-        } ?: throw IllegalArgumentException("没有这个计划（$id）")
-        return planJson(plan, "已修改。用一句话向用户复述改后的安排。")
+        } ?: throw noPlan(id)
+        return planJson(plan, modelText("已修改。用一句话向用户复述改后的安排。", "Changed. Restate the new arrangement to the user in one sentence."))
     }
 
     private suspend fun inspect(args: JsonObject): JsonObject {
-        val server = args.text("server") ?: throw IllegalArgumentException("inspect 需要 server")
+        val server = args.text("server") ?: throw IllegalArgumentException(modelText("inspect 需要 server", "inspect needs server"))
         args.text("tool")?.let(::serverToolName)?.let { tool ->
             requireWatchableTool(server, tool)
             val arguments = args["arguments"] as? JsonObject ?: JsonObject(emptyMap())
             return planInspectJson(server, "", host.toolReading(server, tool, arguments)?.let(::listOf), tool = tool)
         }
-        val uri = args.text("uri") ?: throw IllegalArgumentException("inspect 需要 uri（用 signals 查）或 tool")
+        val uri = args.text("uri") ?: throw IllegalArgumentException(modelText("inspect 需要 uri（用 signals 查）或 tool", "inspect needs uri (look it up with signals) or tool"))
         return planInspectJson(server, uri, host.readings(server, uri))
     }
 
     private fun toggle(args: JsonObject, on: Boolean): JsonObject {
-        val id = args.text("id") ?: throw IllegalArgumentException("需要 id")
+        val id = args.text("id") ?: throw IllegalArgumentException(modelText("需要 id", "Needs id"))
         val now = host.now()
         val plan = host.write { book ->
-            val old = book.plans().firstOrNull { it.id == id } ?: throw IllegalArgumentException("没有这个计划（$id）")
-            require(!on || old.end == null) { "这个计划${old.end?.label}了；要重新安排就用 update 改时间" }
+            val old = book.plans().firstOrNull { it.id == id } ?: throw noPlan(id)
+            require(!on || old.end == null) {
+                modelText("这个计划${old.end?.label}了；要重新安排就用 update 改时间", "This plan is ${old.end?.label}; to schedule it again, change its time with update")
+            }
             require(!on || (old.trigger as? PlanTrigger.Once)?.let { it.atMillis > now } != false) {
-                "这个计划的时间在暂停期间已经过了；要重新安排就用 update 改时间"
+                modelText("这个计划的时间在暂停期间已经过了；要重新安排就用 update 改时间", "This plan's time passed while it was paused; to schedule it again, change its time with update")
             }
             book.update(id) { if (on) it.resumed(now) else it.copy(enabled = false) }
-        } ?: throw IllegalArgumentException("没有这个计划（$id）")
-        return planJson(plan, if (on) "已恢复。" else "已暂停，用户可以在「计划」页再打开。")
+        } ?: throw noPlan(id)
+        return planJson(plan, if (on) modelText("已恢复。", "Resumed.") else modelText("已暂停，用户可以在「计划」页再打开。", "Paused; the user can switch it back on."))
     }
 
     private fun delete(args: JsonObject): JsonObject {
-        val id = args.text("id") ?: throw IllegalArgumentException("delete 需要 id")
-        val plan = host.write { it.remove(id) } ?: throw IllegalArgumentException("没有这个计划（$id）")
-        return planJson(plan, "已删除。")
+        val id = args.text("id") ?: throw IllegalArgumentException(modelText("delete 需要 id", "delete needs id"))
+        val plan = host.write { it.remove(id) } ?: throw noPlan(id)
+        return planJson(plan, modelText("已删除。", "Deleted."))
     }
 
     private fun list(): JsonObject {
@@ -211,7 +216,7 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
     private fun triggerOf(args: JsonObject, automates: Boolean): PlanTrigger? {
         val time = args["when"] as? JsonObject
         val watch = args["watch"] as? JsonObject
-        require(time == null || watch == null) { "when 和 watch 只能给一个" }
+        require(time == null || watch == null) { modelText("when 和 watch 只能给一个", "Give when or watch, not both") }
         time?.let { return resolvePlanWhen(planWhen(it), host.now(), host.zone()).getOrThrow() }
         // An automation, and a value the device changes into, go on every time; a number reminds once unless asked.
         watch?.let { val ask = planWatchAsk(it); return resolvePlanWatch(ask, automates || WatchOp.byId(ask.op)?.numeric == false).getOrThrow() }
@@ -223,7 +228,10 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
         val watch = trigger.watch() ?: return
         watch.tool?.let { return requireWatchableTool(watch.server, it) }
         require(host.resources().any { it.server == watch.server && it.uri == watch.uri }) {
-            "${watch.server} 现在没有 ${watch.uri} 这个资源（服务没开，或者名字不对）：用 signals 查有哪些"
+            modelText(
+                "${watch.server} 现在没有 ${watch.uri} 这个资源（服务没开，或者名字不对）：用 signals 查有哪些",
+                "${watch.server} has no resource ${watch.uri} now (the service is off, or the name is wrong): look them up with signals",
+            )
         }
     }
 
@@ -233,9 +241,9 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
      */
     private suspend fun requireWatchableTool(server: String, tool: String) {
         val descriptor = host.tools(server).firstOrNull { it.name == tool }
-            ?: throw IllegalArgumentException("$server 现在没有 $tool 这个工具（服务没开，或者名字不对）")
-        require(!isTransaction(tool) && host.policy().denied(tool) == null) { "$tool 会下单、付款或改东西，不能定时调用" }
-        require(descriptor.effectKind == READ_ONLY_EFFECT || tool.readsOnly()) { "$tool 不是只读的查询工具，不能定时调用" }
+            ?: throw IllegalArgumentException(modelText("$server 现在没有 $tool 这个工具（服务没开，或者名字不对）", "$server has no tool $tool now (the service is off, or the name is wrong)"))
+        require(!isTransaction(tool) && host.policy().denied(tool) == null) { modelText("$tool 会下单、付款或改东西，不能定时调用", "$tool orders, pays or changes things, so a plan cannot call it") }
+        require(descriptor.effectKind == READ_ONLY_EFFECT || tool.readsOnly()) { modelText("$tool 不是只读的查询工具，不能定时调用", "$tool is not a read-only query tool, so a plan cannot call it") }
     }
 
     private fun planJson(plan: Plan, message: String): JsonObject = buildJsonObject {
@@ -268,8 +276,9 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
     )
 }
 
-/** 「进行中」「已暂停」「已完成」「已错过」. */
-internal fun planStatus(plan: Plan): String = plan.end?.label ?: if (plan.enabled) "进行中" else "已暂停"
+/** 「进行中」「已暂停」「已完成」「已错过」, "going", "paused", "done", "missed". */
+internal fun planStatus(plan: Plan): String =
+    plan.end?.label ?: if (plan.enabled) modelText("进行中", "going") else modelText("已暂停", "paused")
 
 private fun JsonObject.text(name: String): String? = argText(name)
 
@@ -290,16 +299,19 @@ internal class PlanContext(
     override suspend fun provide(request: RuntimeContextRequest): RuntimeContextContribution {
         val now = request.referenceTimeEpochMillis
         val date = Instant.ofEpochMilli(now).atZone(zone()).toLocalDate()
-        val today = RuntimeContextDatum("today", RuntimeContextDatumKind.FACT, "日期", "today", RuntimeContextScalar.Text("$date ${PLAN_WEEKDAYS[date.dayOfWeek.value - 1]}"))
+        val today = RuntimeContextDatum("today", RuntimeContextDatumKind.FACT, modelText("日期", "date"), "today", RuntimeContextScalar.Text(todayText(date)))
         val going = plans().filter { it.end == null }
             .sortedWith(compareBy<Plan>({ !it.enabled }, { it.nextDueMillis(now, zone()) ?: Long.MAX_VALUE }))
             .take(MAX_PLAN_FACTS - 1)
         val data = going.map { plan ->
             val parts = listOfNotNull(
-                plan.title, plan.trigger.describe(now, zone()), planStatus(plan), plan.instruction?.let { "办：$it" },
-                plan.actions.takeIf { it.isNotEmpty() }?.joinToString("、", prefix = "做：") { it.label },
+                plan.title, plan.trigger.describe(now, zone()), planStatus(plan), plan.instruction?.let { modelText("办：$it", "do: $it") },
+                plan.actions.takeIf { it.isNotEmpty() }?.joinToString(modelText("、", ", "), prefix = modelText("做：", "run: ")) { it.label },
             )
-            RuntimeContextDatum(plan.id, RuntimeContextDatumKind.FACT, "计划", "plan", RuntimeContextScalar.Text(singleLine(parts.joinToString("｜")).take(PLAN_FACT_CHARS)))
+            RuntimeContextDatum(
+                plan.id, RuntimeContextDatumKind.FACT, modelText("计划", "plan"), "plan",
+                RuntimeContextScalar.Text(singleLine(parts.joinToString(modelText("｜", " | "))).take(PLAN_FACT_CHARS)),
+            )
         }
         val blocks = listOfNotNull(
             RuntimeContextBlock("plans.today", ContextStability.STABLE, listOf(today), digest(date.toString())),
@@ -309,15 +321,28 @@ internal class PlanContext(
     }
 }
 
+private fun noPlan(id: String) = IllegalArgumentException(modelText("没有这个计划（$id）", "No plan $id"))
+
 private fun digest(text: String): String =
     MessageDigest.getInstance("SHA-256").digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }.take(DIGEST_CHARS)
 
 /** Words that ask for a reminder, a timed task or a watch on the device. */
-internal val PLAN_CUES = listOf(
-    "提醒", "闹钟", "定时", "计划", "每天", "每周", "工作日", "周末", "分钟后", "小时后", "点叫", "叫醒", "明早", "明天早上",
-    "到时候", "超过", "低于", "降价", "最低价", "便宜到", "时候自动", "时候帮我", "时候提醒", "时候把", "时候就", "每次",
-    "自动化",
+internal val PLAN_CUES = Cues(
+    chinese = listOf(
+        "提醒", "闹钟", "定时", "计划", "每天", "每周", "工作日", "周末", "分钟后", "小时后", "点叫", "叫醒", "明早", "明天早上",
+        "到时候", "超过", "低于", "降价", "最低价", "便宜到", "时候自动", "时候帮我", "时候提醒", "时候把", "时候就", "每次",
+        "自动化",
+    ),
+    english = listOf(
+        "remind", "reminder", "reminders", "alarm", "alarms", "schedule", "scheduled", "every day", "every week", "daily",
+        "weekly", "weekday", "weekdays", "weekend", "weekends",
+        "minutes from now", "hours from now", "in an hour", "wake me", "tomorrow morning", "when the price", "drops below",
+        "goes above", "goes below", "automatically", "every time", "each time",
+    ),
 )
+
+private fun todayText(date: java.time.LocalDate): String =
+    modelText("$date ${PLAN_WEEKDAYS[date.dayOfWeek.value - 1]}", "$date ${date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)}")
 private val NON_NAME = Regex("[^A-Za-z0-9_-]")
 @InternalAppServerApi
 const val PLAN_TOOL = "plan_manage"
@@ -346,6 +371,51 @@ private val PLAN_DESCRIPTION = """
     自动执行却不创建计划。推荐的去处、演出或活动离出发还早时（改天，或几个小时以后），回复结尾问要不要到点提醒你出发（连了
     云端助手的也可以问要不要发给它），不要问现在导航过去；马上要去的才问导航。
 """.trimIndent().replace("\n", "")
+private val PLAN_DESCRIPTION_EN = """
+    Schedule, change, pause, resume, delete and list (list) plans: timed reminders, timed things to do, and a reminder, a
+    task or an automatic action (an automation rule) when a service's state changes, such as "remind me when the lowest
+    Shenzhen–Chengdu fare on Nov 7 drops below 800". A time goes in when: "in two hours" is in_minutes=120; a set time is
+    time=HH:mm (add date=YYYY-MM-DD; without date it is today, or tomorrow when that time has passed); to repeat add
+    repeat=daily/weekdays/weekends/weekly (weekly also takes days, 1 is Monday). Do not work dates out yourself; the tool
+    does. A state change goes in watch, and what can be watched is not fixed but up to the services loaded now: one with
+    resources takes uri (look them up first with action=signals, optionally with query keywords); one with only tools
+    takes tool plus arguments (a service's read-only query tool, such as a flight search; find it first with search_tools
+    and read its parameters). Read once with inspect before writing one, to see the fields. watch takes server, uri or
+    tool, field (a field of the reading, dots for nesting, indexes for lists: itineraries.0.price), op=above/below
+    (numbers), equals/not_equals/contains (values) or changes (any change), and value; where picks one of several
+    objects; mode=each for events, and the default enter for states (fires once on becoming the value); a watch that
+    calls a tool reads every poll_seconds (30 minutes by default, 5 minutes at least); text is how a person would say it
+    ("when the lowest fare drops below 800"). Automatic actions go in actions: each is a tool of a loaded service (find
+    it first with search_tools and read its parameters), with tool and arguments; without server it is read from the
+    mcp__<server>__ in the tool's name; label is a short phrase such as "open the calendar". Restate a plan with actions or
+    an instruction to the user and get a yes before creating it. When the user did not say whether a watch plan should
+    fire each time from now on or only once, ask while restating, and set the watch's repeat by the answer (true each
+    time, false once); do not decide it yourself. title is a short name; message is the whole sentence said to the user
+    as it is when the plan fires; instruction is what you are to do then. Today's date and the plans still going are in
+    runtime_context (predicates today and plan; the id is for update, pause, resume and delete). when and next in a
+    result are already worded: restate them in one sentence as they are. Do not promise a reminder or an automatic
+    action without creating a plan.
+""".trimIndent().replace("\n", " ")
+
+/** The plan tool's parameters, described in the persona's language. */
+private fun planSchema(): String = PLAN_SCHEMA
+    .replace("要改的计划 id", modelText("要改的计划 id", "the id of the plan to change"))
+    .replace("signals 的关键词，比如「天气 航班」", modelText("signals 的关键词，比如「天气 航班」", "keywords for signals, such as 'weather flight'"))
+    .replace("inspect 的服务", modelText("inspect 的服务", "the service to inspect"))
+    .replace("inspect 的资源 uri", modelText("inspect 的资源 uri", "the resource uri to inspect"))
+    .replace("inspect 的只读工具", modelText("inspect 的只读工具", "the read-only tool to inspect"))
+    .replace("inspect 时工具的参数", modelText("inspect 时工具的参数", "the tool's arguments for inspect"))
+    .replace("简短的名字，比如「拿快递」", modelText("简短的名字，比如「拿快递」", "a short name, such as 'parcel'"))
+    .replace("触发时念给用户的话", modelText("触发时念给用户的话", "what is said to the user when it fires"))
+    .replace("触发时让你去办的事", modelText("触发时让你去办的事", "what you are to do when it fires"))
+    .replace("资源；和 tool 二选一", modelText("资源；和 tool 二选一", "a resource; this or tool"))
+    .replace("只读查询工具；和 uri 二选一", modelText("只读查询工具；和 uri 二选一", "a read-only query tool; this or uri"))
+    .replace("tool 的参数", modelText("tool 的参数", "the tool's arguments"))
+    .replace("读数里的字段，嵌套用点，列表用序号", modelText("读数里的字段，嵌套用点，列表用序号", "a field of the reading: dots for nesting, indexes for lists"))
+    .replace("只看这些字段等于这些值的读数", modelText("只看这些字段等于这些值的读数", "only readings whose fields equal these values"))
+    .replace("给人看的说法，比如「最低价低于 800 元时」", modelText("给人看的说法，比如「最低价低于 800 元时」", "how a person would say it, such as 'when the lowest fare drops below 800'"))
+    .replace("用户的原话", modelText("用户的原话", "the user's own words"))
+
 private const val PLAN_SCHEMA =
     """{"type":"object","properties":{""" +
         """"action":{"type":"string","enum":["create","update","pause","resume","delete","list","signals","inspect"]},""" +

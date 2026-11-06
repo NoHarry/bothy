@@ -24,6 +24,7 @@ import cc.noharry.bothy.app.a2ui.a2uiChoiceMessages
 import cc.noharry.bothy.app.a2ui.a2uiLabels
 import cc.noharry.bothy.app.a2ui.a2uiPanelMessages
 import cc.noharry.bothy.app.a2ui.controlValues
+import cc.noharry.bothy.app.a2ui.replyWords
 
 /**
  * Compose needs lifecycle and saved-state owners on the view tree; an overlay window added by a Service has none.
@@ -91,13 +92,14 @@ internal fun OverlayA2uiPanel(
     carLook: Boolean = true,
 ) {
     val labels = a2uiLabels()
+    val words = replyWords()
     val messages = remember(controls, labels) {
         a2uiPanelMessages("panel-${controls.hashCode().toUInt()}", controls, labels)
     }
     BothyA2uiSurface(
         messages,
         onEvent = { event ->
-            event.controlValues(controls)?.let { panelReply(controls, it) }?.takeIf { it.isNotEmpty() }?.let(onSet)
+            event.controlValues(controls)?.let { panelReply(controls, it, words) }?.takeIf { it.isNotEmpty() }?.let(onSet)
         },
         modifier = modifier,
         carLook = carLook,

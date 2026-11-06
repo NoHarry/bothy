@@ -33,7 +33,7 @@ import cc.noharry.agent.appserver.runtime.RuntimeSession
 import cc.noharry.agent.appserver.runtime.safPickerUnavailableMessage
 import cc.noharry.agent.appserver.runtime.saveBasicTool
 import cc.noharry.agent.appserver.session.SessionSettings
-import cc.noharry.agent.appserver.skills.CUSTOM_SKILL_TEMPLATE
+import cc.noharry.agent.appserver.skills.customSkillTemplate
 import cc.noharry.agent.appserver.skills.CustomSkills
 import cc.noharry.agent.appserver.skills.checkCustomSkill
 import cc.noharry.agent.appserver.skills.loadRuntimeSkills
@@ -221,7 +221,7 @@ internal class RuntimeBackend(private val app: Context) : ServerBackend, Setting
 
     /** A skill's text; no id is a new skill, which starts from the template. */
     override fun skillText(id: String): String = if (id.isBlank()) {
-        CUSTOM_SKILL_TEMPLATE
+        customSkillTemplate()
     } else {
         customSkillText(app, id) ?: loadRuntimeSkills(app).firstOrNull { it.id == id }?.let { runtimeSkillText(app, it) }.orEmpty()
     }

@@ -5,6 +5,7 @@ import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
 import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.HostPlaces
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.validateInputSchema
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
@@ -42,23 +43,23 @@ class ImageToolProvider(
     })
 
     override val serverId: String = IMAGE_TOOL_SERVER_ID
-    override val displayName: String = "生图模型"
-    override val catalogCacheIdentity: String = "app-server:$IMAGE_TOOL_SERVER_ID:v1"
+    override val displayName: String get() = modelText("生图模型", "Image model")
+    override val catalogCacheIdentity: String get() = "app-server:$IMAGE_TOOL_SERVER_ID:v2:${if (AppHost.words.isChinese) "zh" else "en"}"
     @OptIn(ExperimentalAgentRuntimeApi::class)
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
         ToolDescriptor(
             name = IMAGE_GENERATE_TOOL,
-            title = "生成图片",
+            title = modelText("生成图片", "Generate a picture"),
             description = imageGenerateDescription(places.picturesShownOn),
-            inputSchemaJson = IMAGE_GENERATE_SCHEMA,
+            inputSchemaJson = imageGenerateSchema(),
         ),
     )
 
     override suspend fun callTool(toolName: String, argumentsJson: String, context: ToolCallContext): ToolCallResult {
         if (toolName != IMAGE_GENERATE_TOOL) return failure("UNKNOWN_TOOL", "Unknown image tool: $toolName", validation = false)
-        val invalid = validateInputSchema(IMAGE_GENERATE_SCHEMA, argumentsJson) as? SchemaValidation.Invalid
+        val invalid = validateInputSchema(imageGenerateSchema(), argumentsJson) as? SchemaValidation.Invalid
         if (invalid != null) return failure(invalid.code, invalid.message, validation = false)
         val prompt = Json.parseToJsonElement(argumentsJson).jsonObject["prompt"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
         PictureBoard.drawing(context.requestId, prompt)
@@ -81,7 +82,13 @@ class ImageToolProvider(
                         put("height", result.image.height)
                     }
                     put("elapsedMs", result.image.elapsedMillis)
-                    put("message", "图片已生成，屏幕上正在显示。用一句话告诉用户画好了，不要描述文件路径。")
+                    put(
+                        "message",
+                        modelText(
+                            "图片已生成，屏幕上正在显示。用一句话告诉用户画好了，不要描述文件路径。",
+                            "The picture is ready and showing on the screen. Tell the user in one sentence that it is done; do not mention the file path.",
+                        ),
+                    )
                 }.toString(),
                 trace = ToolCallTrace(validationOk = true, validationCode = "OK"),
             )
@@ -139,11 +146,20 @@ object PictureBoard {
 
 private const val IMAGE_TOOL_SERVER_ID = "image_gen"
 /** The tool's description; [shownOn], when the host has it, is where the picture appears. */
-private fun imageGenerateDescription(shownOn: String?) = """
+private fun imageGenerateDescription(shownOn: String?) = modelText(
+    """
     生成图片 / 画图 / 生图 / 画一张 / 插画 / 壁纸 / 海报 / 头像（image generation, draw a picture）：
     按文字描述生成一张图片${shownOn?.let { "，并直接显示在$it" }.orEmpty()}。prompt 写清主体、场景、风格、光线和构图；
     用户用中文描述时直接用中文。生成需要 15–30 秒，每个请求只调用一次；完成后用一句话告诉用户画好了。
-""".trimIndent().replace("\n", "")
-private const val IMAGE_GENERATE_SCHEMA =
+    """.trimIndent().replace("\n", ""),
+    """
+    Image generation (draw a picture, an illustration, a wallpaper, a poster, an avatar): makes one picture from a text
+    description${shownOn?.let { " and shows it right away $it" }.orEmpty()}. In prompt, spell out the subject, scene, style, lighting and
+    composition, in the user's own language. It takes 15–30 seconds, so call it once per request; when it is done, tell the user
+    in one sentence.
+    """.trimIndent().replace("\n", " "),
+)
+private fun imageGenerateSchema(): String =
     """{"type":"object","properties":{"prompt":{"type":"string","minLength":1,"maxLength":1000,""" +
-        """"description":"画面描述：主体、场景、风格、光线、构图"}},"required":["prompt"],"additionalProperties":false}"""
+        """"description":"${modelText("画面描述：主体、场景、风格、光线、构图", "what to draw: subject, scene, style, lighting, composition")}"}},""" +
+        """"required":["prompt"],"additionalProperties":false}"""

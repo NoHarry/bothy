@@ -15,6 +15,7 @@ import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
+import cc.noharry.agent.appserver.runtime.modelText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -137,7 +138,7 @@ internal object A2aDelegations : A2aDelegationSink {
         val follower = followers.remove(taskId)
         requests.remove(taskId)
         update(taskId) {
-            it.copy(stage = DelegationStage.CANCELLED, outcome = "已停止跟踪", ended = finding(FindingCode.A2A_STOPPED), updatedAtEpochMillis = System.currentTimeMillis())
+            it.copy(stage = DelegationStage.CANCELLED, outcome = modelText("已停止跟踪", "No longer followed"), ended = finding(FindingCode.A2A_STOPPED), updatedAtEpochMillis = System.currentTimeMillis())
         }
         if (follower != null) scope.launch { runCatching { follower.client.cancelTask(follower.remote, taskId) } }
     }
@@ -259,7 +260,12 @@ internal object A2aDelegations : A2aDelegationSink {
             if (profile == null || client == null) {
                 show(delegation, DelegationStage.LOST)
                 update(delegation.taskId) {
-                    it.copy(outcome = "App 重启后没能接着跟踪（${delegation.agentLabel} 的配置不在了）", ended = finding(FindingCode.A2A_LOST_SETTINGS, delegation.agentLabel))
+                    it.copy(
+                        outcome = modelText(
+                            "App 重启后没能接着跟踪（${delegation.agentLabel} 的配置不在了）",
+                            "Not followed after the app restarted (${delegation.agentLabel}'s settings are gone)",
+                        ),
+                        ended = finding(FindingCode.A2A_LOST_SETTINGS, delegation.agentLabel))
                 }
                 continue
             }
@@ -312,7 +318,11 @@ suspend fun followDelegation(
         val elapsed = now() - delegation.startedAtEpochMillis
         if (elapsed >= FOLLOW_LIMIT_MS) {
             val minutes = FOLLOW_LIMIT_MS / 60_000
-            return A2aFollowed(null, "过了 $minutes 分钟还没有结果，这里已停止跟踪", finding(FindingCode.A2A_TIMED_OUT, minutes))
+            return A2aFollowed(
+                null,
+                modelText("过了 $minutes 分钟还没有结果，这里已停止跟踪", "no result after $minutes minutes, so it is no longer followed here"),
+                finding(FindingCode.A2A_TIMED_OUT, minutes),
+            )
         }
         pause(delegationPollMillis(elapsed))
         when (val result = getTask()) {
@@ -324,7 +334,10 @@ suspend fun followDelegation(
             is A2aResult.Failure -> if (++failures >= MAX_POLL_FAILURES) {
                 return A2aFollowed(
                     null,
-                    "连续 $MAX_POLL_FAILURES 次查不到进度（${result.error.reason}）",
+                    modelText(
+                        "连续 $MAX_POLL_FAILURES 次查不到进度（${result.error.reason}）",
+                        "its progress could not be read $MAX_POLL_FAILURES times in a row (${result.error.reason})",
+                    ),
                     finding(FindingCode.A2A_UNREADABLE, MAX_POLL_FAILURES, result.error.reason),
                 )
             }
@@ -376,32 +389,45 @@ fun delegationReport(
     pictures: List<A2aReportPicture> = emptyList(),
 ): A2aReport {
     val agent = delegation.agentLabel
-    val asked = "「${delegation.instruction.shortened()}」"
+    val asked = modelText("「${delegation.instruction.shortened()}」", "\"${delegation.instruction.shortened()}\"")
     val parts = followed.task?.let(::reportParts)
-    val said = parts?.text.orEmpty().ifBlank { "（没有附带说明）" }
-    val problem = "处理${asked}时，${followed.problem ?: "状态不明"}。"
-    val (mark, lead) = when (followed.task?.status) {
-        A2aTask.Status.COMPLETED -> REPORT_MARK to "$agent 完成了$asked：$said"
-        A2aTask.Status.INPUT_REQUIRED ->
-            QUESTION_MARK to "$agent 关于${asked}问：$said（用户回答后，用 $agent 的 a2a_message_send 带 taskId=${delegation.taskId} 把回答发回去）"
-        A2aTask.Status.CANCELLED -> FAILURE_MARK to "$agent 那边取消了$asked：$said"
-        A2aTask.Status.FAILED -> FAILURE_MARK to "$agent 没能完成$asked：$said"
-        else -> FAILURE_MARK to "$agent $problem"
+    val said = parts?.text.orEmpty().ifBlank { modelText("（没有附带说明）", "(no note attached)") }
+    val problem = modelText("处理${asked}时，${followed.problem ?: "状态不明"}。", "Handling $asked: ${followed.problem ?: "its state is unknown"}.")
+    val (marks, lead) = when (followed.task?.status) {
+        A2aTask.Status.COMPLETED -> REPORT_MARKS to modelText("$agent 完成了$asked：$said", "$agent finished $asked: $said")
+        A2aTask.Status.INPUT_REQUIRED -> QUESTION_MARKS to modelText(
+            "$agent 关于${asked}问：$said（用户回答后，用 $agent 的 a2a_message_send 带 taskId=${delegation.taskId} 把回答发回去）",
+            "$agent asks about $asked: $said (once the user answers, send the answer back with $agent's a2a_message_send and " +
+                "taskId=${delegation.taskId})",
+        )
+        A2aTask.Status.CANCELLED -> FAILURE_MARKS to modelText("$agent 那边取消了$asked：$said", "$agent cancelled $asked on its side: $said")
+        A2aTask.Status.FAILED -> FAILURE_MARKS to modelText("$agent 没能完成$asked：$said", "$agent could not finish $asked: $said")
+        else -> FAILURE_MARKS to modelText("$agent $problem", "$agent: $problem")
     }
+    val mark = modelText(marks.first, marks.second + " ")
     val extras = listOfNotNull(
-        parts?.card?.let { "卡片：$it" },
-        pictures.takeIf { it.isNotEmpty() }?.joinToString("、", prefix = "图片：") { picture ->
-            picture.reference + picture.caption.takeIf(String::isNotEmpty)?.let { "（$it）" }.orEmpty()
+        parts?.card?.let { modelText("卡片：", "Card: ") + it },
+        pictures.takeIf { it.isNotEmpty() }?.joinToString(modelText("、", ", "), prefix = modelText("图片：", "Pictures: ")) { picture ->
+            picture.reference + picture.caption.takeIf(String::isNotEmpty)?.let { modelText("（$it）", " ($it)") }.orEmpty()
         },
-        parts?.details?.let { "详细：$it" },
+        parts?.details?.let { modelText("详细：", "Details: ") + it },
     )
     val shown = if (followed.task == null) problem else said
-    return A2aReport(display = "$mark$agent：$shown", model = (listOf(mark + lead) + extras).joinToString("\n"), taskId = delegation.taskId)
+    return A2aReport(
+        display = mark + agent + modelText("：", ": ") + shown,
+        model = (listOf(mark + lead) + extras).joinToString("\n"),
+        taskId = delegation.taskId,
+    )
 }
 
-/** A turn opened by a delegation report rather than by the user. */
+/** A turn opened by a delegation report rather than by the user, in either language's marks. */
 @InternalAppServerApi
-fun String.isDelegationReport(): Boolean = startsWith(REPORT_MARK) || startsWith(QUESTION_MARK) || startsWith(FAILURE_MARK)
+fun String.isDelegationReport(): Boolean =
+    listOf(REPORT_MARKS, QUESTION_MARKS, FAILURE_MARKS).any { (chinese, english) -> startsWith(chinese) || startsWith(english) }
+
+/** The three marks as the bridge's tool tells the model, in the persona's language. */
+internal fun delegationMarks(): String =
+    listOf(REPORT_MARKS, QUESTION_MARKS, FAILURE_MARKS).joinToString("/") { (chinese, english) -> modelText(chinese, english) }
 
 /** Who opened a turn, for its header: the user, or a delegated agent reporting back. */
 @InternalAppServerApi
@@ -436,9 +462,10 @@ private val SETTLED = setOf(
 const val FOLLOW_LIMIT_MS = 30 * 60_000L
 @InternalAppServerApi
 const val MAX_POLL_FAILURES = 5
-internal const val REPORT_MARK = "【委托回报】"
-internal const val QUESTION_MARK = "【委托追问】"
-internal const val FAILURE_MARK = "【委托失败】"
+/** A report's first words, Chinese and English: what the model and the turn's header tell it by. */
+private val REPORT_MARKS = "【委托回报】" to "[Delegation report]"
+private val QUESTION_MARKS = "【委托追问】" to "[Delegation question]"
+private val FAILURE_MARKS = "【委托失败】" to "[Delegation failed]"
 private const val QUESTION_TTL_MS = 30 * 60_000L
 private const val MAX_INSTRUCTION_CHARS = 40
 private const val MAX_DATA_CHARS = 300

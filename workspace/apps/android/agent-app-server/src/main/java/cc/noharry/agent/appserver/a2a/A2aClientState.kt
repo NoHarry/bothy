@@ -19,7 +19,6 @@ import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aOutcome
 import cc.noharry.agent.appserver.protocol.A2aTaskStatus
-import cc.noharry.agent.appserver.protocol.describe
 import cc.noharry.agent.appserver.protocol.view.wireLabel
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.runtime.reduce

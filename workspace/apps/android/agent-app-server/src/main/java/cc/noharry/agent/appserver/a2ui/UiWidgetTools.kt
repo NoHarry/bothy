@@ -15,6 +15,8 @@ import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.iconKnown
 import cc.noharry.agent.appserver.protocol.view.offerKey
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import kotlin.math.abs
 import kotlin.math.round
 import kotlin.math.roundToLong
@@ -241,6 +243,9 @@ internal const val SHOW_CARD_TOOL = "show_card"
 /** The panel rule every control's description repeats, so the model learns it from whichever tool it reads. */
 private const val PANEL_RULE = "滑块、开关、档位会合成一个面板，共用一个确定（同一轮最多 5 个控件，其中滑块最多 3 个），" +
     "全部调用完再调用 finish 用一句话说明调好后点确定，也可以直接说（不列选项）；用户点确定或直接说出时，宿主直接给出这次调用。"
+private const val PANEL_RULE_EN = "Sliders, switches and choices make one panel with one confirm (at most 5 controls a round, at most 3 " +
+    "of them sliders); after all the calls, call finish and say in one sentence to confirm once it is set, or just say it (list no " +
+    "options); when the user confirms or says it, the host hands you the call."
 
 internal val OFFER_SLIDER_DESCRIPTION = """
     滑块 / 范围设值：用户想调一个或几个有范围的数值、但没说具体值时（“我想调下音量和亮度”、灯光色温、
@@ -250,12 +255,29 @@ internal val OFFER_SLIDER_DESCRIPTION = """
     $PANEL_RULE
 """.trimIndent().replace("\n", "")
 
+internal val OFFER_SLIDER_DESCRIPTION_EN = """
+    Slider / set a value in a range: when the user wants to adjust one or more values in a range but names no value ("I want
+    to adjust the volume and brightness", a light's colour temperature, the font size), do not ask: give sliders, one call per
+    value. tool is the full name of the setting tool (as search_tools returned it), param the numeric parameter to vary,
+    arguments the other fixed parameters (such as screen: center); without min/max the range in the tool's parameter
+    definition applies; value is required, the current value (read it first with a query tool; if it cannot be read, a usual
+    value); unit is the unit (such as %, ℃, level). $PANEL_RULE_EN
+""".trimIndent().replace("\n", " ")
+
 internal val OFFER_SWITCH_DESCRIPTION = """
     开关：用户想开或关某个功能但没说开还是关，或想一起设置几个开关时（“勿扰和夜间模式”“蓝牙相关的都看看”），
     不要追问，每个开关调用一次。label 写名称（如 勿扰模式），on 和 off 分别写打开、关闭时要调用的工具全名
     （search_tools 返回的）和完整参数，如 on={"tool":"…dnd_mode_set","arguments":{"enabled":true}}、
     off 同一工具 enabled 写 false；开和关是两个工具时各写各的。value 写当前状态（先读出来，读不到写 false）。$PANEL_RULE
 """.trimIndent().replace("\n", "")
+
+internal val OFFER_SWITCH_DESCRIPTION_EN = """
+    Switch: when the user wants something on or off but does not say which, or wants to set several switches together ("do not
+    disturb and night mode", "show me the Bluetooth ones"), do not ask: one call per switch. label is the name (such as Do not
+    disturb); on and off are the full tool names (as search_tools returned them) and complete arguments to call to switch it on
+    and off, such as on={"tool":"…dnd_mode_set","arguments":{"enabled":true}} and off the same tool with enabled false; when on
+    and off are two tools, give each its own. value is the current state (read it first; if it cannot be read, false). $PANEL_RULE_EN
+""".trimIndent().replace("\n", " ")
 
 internal val OFFER_CHOICE_DESCRIPTION = """
     档位 / 模式选择：一个参数只有 2–6 个取值时（主题 浅色/深色/跟随系统、画质档位、播放模式），
@@ -264,6 +286,15 @@ internal val OFFER_CHOICE_DESCRIPTION = """
     几项可以同时选、每项各是一个操作时（如 打开哪几个房间的灯），写 multiple: true，不写 tool/param，
     options 每项写 label、tool 和完整 arguments。$PANEL_RULE
 """.trimIndent().replace("\n", "")
+
+internal val OFFER_CHOICE_DESCRIPTION_EN = """
+    Choice of a level or mode: when a parameter has only 2–6 values (theme light/dark/system, picture quality, play mode), call
+    this to show them as a row of buttons. tool is the full name of the setting tool, param the parameter to choose, arguments
+    the other fixed parameters; each of options has a label (the words shown) and a value (one the parameter allows, such as
+    dark); current is the current value. When several can be chosen together and each is an action of its own (such as which
+    rooms' lights to turn on), write multiple: true and no tool or param, and give each option a label, a tool and complete
+    arguments. $PANEL_RULE_EN
+""".trimIndent().replace("\n", " ")
 
 internal val SHOW_CARD_DESCRIPTION = """
     展示卡片 / 天气卡片 / 信息卡片：查天气、电量、行程、机票这类信息时，先调用它把结果做成卡片，再在同一轮
@@ -280,6 +311,60 @@ internal val SHOW_CARD_DESCRIPTION = """
     （generated-images/…/1.jpg）或公网 https 地址（子 agent 结果里的「图片：https://…」也算，有就做成图文卡片）；不要编造图片地址，没有就不写。只展示，不执行操作。
     图标名：$DEBUG_ICON_HINT。
 """.trimIndent().replace("\n", "")
+
+internal val SHOW_CARD_DESCRIPTION_EN = """
+    Show a card / weather card / info card: when looking up information such as the weather, the battery, an itinerary or
+    flights, first make the result a card with this, then call finish in the same round with the main point in a sentence or
+    two, without listing the card's content again. title is the title (such as Huadu · Today), icon an icon name, value the
+    main value (such as 31°), subtitle a one-line summary (such as Sunny · 32/21°), fields 2–4 names and values (such as
+    Humidity 60%), progress up to 3 bars (label, value, max defaulting to 100, text the words shown, such as Battery 78,
+    Charging 12/30 min). items are the entries; pick the layout by the content: multi-day weather and hourly forecasts always
+    strip (2–6 items in a row, title such as Sat, icon a weather icon, value 30/22°); a set of readings such as several
+    sensors, or a few photos, grid (2–6 items in two columns, title the name, value the reading, detail a note); a few places
+    or plans compared, compare (2–3 side by side, each with title, value the main value and fields of the same names, such as
+    Distance, Price, Rating); a multi-day trip, trip (a wide card: the outward and return journeys drawn as tickets, a column
+    per day with its first picture on top, stays with pictures; an item's kind is transport, stay, place or weather, place and
+    weather items name their day in group; at most 18 items); a one-day itinerary or a checklist, list (the default, at most
+    14 rows, value at the row's end; for a multi-day itinerary each item's group is Day 1, Day 2, a group's items together).
+    Two cities or two kinds of thing looked up apart get a card each, one call each (at most 3 a round, side by side; calling
+    again with the same title replaces that card). image (the card's header picture) and each item's image only take pictures
+    a tool result or a delegation report gave: a path saved on the device (generated-images/…/1.jpg) or a public https address
+    (a subagent result's "Image: https://…" lines count too; with them, make a picture card); never make up a picture address,
+    and leave it out when there is none. It only shows; it carries out nothing. Icon names: $DEBUG_ICON_HINT.
+""".trimIndent().replace("\n", " ")
+
+/** A schema's descriptions in English for a persona that is not Chinese: [english] maps each Chinese description to its English. */
+internal fun String.inModelWords(english: Map<String, String>): String =
+    if (AppHost.words.isChinese) {
+        this
+    } else {
+        english.entries.fold(this) { schema, (chinese, words) -> schema.replace("\"description\":\"$chinese\"", "\"description\":\"$words\"") }
+    }
+
+/** The panel and card schemas' descriptions in English. */
+internal val WIDGET_SCHEMA_ENGLISH = mapOf(
+    "工具全名" to "the full tool name",
+    "完整参数" to "complete arguments",
+    "滑块名称，如 中控屏亮度" to "the slider's name, such as Screen brightness",
+    "设值工具全名" to "the full name of the setting tool",
+    "要调的数值参数名" to "the numeric parameter to vary",
+    "其余固定参数" to "the other fixed parameters",
+    "当前值" to "the current value",
+    "开关名称，如 勿扰模式" to "the switch's name, such as Do not disturb",
+    "当前是否打开" to "whether it is on now",
+    "名称，如 主题" to "the name, such as Theme",
+    "设值工具全名；multiple 时不写" to "the full name of the setting tool; none with multiple",
+    "要选的参数名" to "the parameter to choose",
+    "当前取值" to "the current value",
+    "几项可同时选，每项各是一个操作" to "several can be chosen together, each an action of its own",
+    "参数取值（有 tool/param 时）" to "the parameter's value (with tool/param)",
+    "multiple 时这一项的工具全名" to "this option's full tool name, with multiple",
+    "工具结果给出的图片：设备上已保存的路径或公网 https 地址" to "a picture a tool result gave: a path saved on the device or a public https address",
+    "list 里的分组，如 第1天；trip 里写哪一天，如 D1 10/23 周五" to "a group in list, such as Day 1; in trip the day, such as D1 10/23 Fri",
+    "trip 用：transport 去程回程，stay 住宿，place 每天的去处（默认），weather 那天的天气（group 写哪一天，icon 写天气图标，title 写天气，value 写气温，detail 写降雨）" to
+        "for trip: transport the outward and return journeys, stay where to stay, place the day's places (the default), weather " +
+        "that day's weather (group the day, icon a weather icon, title the weather, value the temperature, detail the rain)",
+)
 
 private const val CALL_SCHEMA = """{"type":"object","additionalProperties":false,"required":["tool"],""" +
     """"properties":{"tool":{"type":"string","description":"工具全名"},"arguments":{"type":"object","description":"完整参数"}}}"""

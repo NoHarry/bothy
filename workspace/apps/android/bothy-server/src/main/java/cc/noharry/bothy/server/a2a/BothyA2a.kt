@@ -19,6 +19,10 @@ internal class BothyA2aHost(
 
     override val contextSource: String get() = "car"
 
+    override val nicknames: List<String> get() = BOTHY_AGENT_NICKNAMES
+
+    override val nicknamesMeaning: String get() = "their cloud / personal assistant"
+
     override suspend fun intercept(metadata: Map<String, String>): A2aOutput.Result? {
         val applied = overlayCommand(metadata)?.let { applyCard(it) }
         // A control-only message never runs its placeholder text, even when its command is missing or unknown.
@@ -37,6 +41,9 @@ internal class BothyA2aHost(
         return A2aOutput.Result(failure, A2aOutput.State.FAILED)
     }
 }
+
+/** What Bothy's users call their own cloud agents, whatever their labels (owner 2026-10-17). */
+internal val BOTHY_AGENT_NICKNAMES = listOf("云端助手", "个人助手")
 
 /** The one Bothy installs. */
 internal val BothyA2a: A2aHost = BothyA2aHost()

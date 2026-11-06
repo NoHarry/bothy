@@ -1,6 +1,7 @@
 package cc.noharry.agent.appserver.model
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.runtime.PromptPrefix
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH
@@ -109,8 +110,8 @@ private class ModelRoundRecovery(private val request: ModelRequest) {
 
 /** [nativeTools]: backend tools load into the tool list (DeepSeek tool_addition) instead of going through call_tool. */
 @InternalAppServerApi
-fun appSystemPrompt(sessionContext: String, nativeTools: Boolean = false): String {
-    val rules = if (nativeTools) DEBUG_PROMPT.replace(CALL_TOOL_LINE, NATIVE_TOOL_LINE) else DEBUG_PROMPT
+fun appSystemPrompt(sessionContext: String, nativeTools: Boolean = false, words: ModelWords = AppHost.words): String {
+    val rules = coreRules(words).let { if (nativeTools) it.replace(CALL_TOOL_LINE, NATIVE_TOOL_LINE) else it }
     val prompt = AppHost.persona.identity + "\n\n" + rules
     return if (sessionContext.isBlank()) prompt else "$prompt\n\n$SESSION_CONTEXT_HEADER\n$sessionContext"
 }
@@ -217,11 +218,12 @@ private fun String.jsonString(): String =
 private const val FINISH_TOOL_NAME = "finish"
 private const val UPDATE_TODO_TOOL_NAME = "update_todo"
 private const val MIN_RECOVERED_FINISH_CHARS = 8
-private val DEBUG_PROMPT = """
+/** The core rules, with the reply language and the short replies in [words]' language; a Chinese persona's read as they always did. */
+private fun coreRules(words: ModelWords) = """
     Current turn and continuity:
-    - Execute only intents present in the current user text, including an unambiguous affirmative or negative answer to the immediately preceding assistant question. For acceptance, treat the offered action itself as the current-turn intent: discover and call the matching current backend tool. Do not repeat the question or merely acknowledge the answer. Then give only a concise Chinese report of its result; do not quote the prior question or narrate internal reasoning. For rejection, acknowledge and take no offered action.
+    - Execute only intents present in the current user text, including an unambiguous affirmative or negative answer to the immediately preceding assistant question. For acceptance, treat the offered action itself as the current-turn intent: discover and call the matching current backend tool. Do not repeat the question or merely acknowledge the answer. Then give only ${words.briefReport}; do not quote the prior question or narrate internal reasoning. For rejection, acknowledge and take no offered action.
     - Do not continue previous-turn side intents unless explicitly requested or accepted now. History and leftover TODOs are continuity, not proof that the new user request is already done. Repeated requests require fresh actions; prior PARTIAL/FAILED results do not prove success.
-    - Bind an initial short reply (可以、不要、继续、刚才那个) to the Immediately preceding exchange, not the last line of historical summaries or lastSuccessfulAction. For later user messages, use the latest in-run question instead of that snapshot. Clarify unresolved choices; do not treat bare approval as consent to older or other-session offers. For context-dependent requests not resolvable from this exchange, only explicit references to another session may use $SESSION_QUERY_INDEX_PATH; use actionDomains and lastAction to read only relevant listed session summary files.
+    - Bind an initial short reply (${words.shortReplies}) to the Immediately preceding exchange, not the last line of historical summaries or lastSuccessfulAction. For later user messages, use the latest in-run question instead of that snapshot. Clarify unresolved choices; do not treat bare approval as consent to older or other-session offers. For context-dependent requests not resolvable from this exchange, only explicit references to another session may use $SESSION_QUERY_INDEX_PATH; use actionDomains and lastAction to read only relevant listed session summary files.
 
     Tools and execution:
     Discover host capabilities progressively before calling a backend tool; do not assume fixed server names, tool names, or call orders.
@@ -233,7 +235,7 @@ private val DEBUG_PROMPT = """
 
     Completion:
     Every successful run should use finish with {"response":"...","outcome":"success"} exactly once. For actions, first reconcile every requested target, order, setting and readout against current backend business tool results. Accepted calls and completed TODOs alone do not prove full completion. Changed state invalidates old readings. Report actual values and distinguish completed, failed and unknown parts.
-    Use outcome="partial" or "blocked" when anything remains unresolved; success requires the whole request. response is concise Chinese, with no internal plans, TODOs or XML/parameter tags; outcome is a separate JSON field. Discovery and progress alone are not completion.
+    Use outcome="partial" or "blocked" when anything remains unresolved; success requires the whole request. response is ${words.conciseResponse}, with no internal plans, TODOs or XML/parameter tags; outcome is a separate JSON field. Discovery and progress alone are not completion.
 """.trimIndent()
 
 private const val SESSION_CONTEXT_HEADER = "Current debug session context for continuity:"

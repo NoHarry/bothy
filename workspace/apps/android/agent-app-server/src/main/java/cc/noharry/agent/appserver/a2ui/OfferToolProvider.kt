@@ -11,6 +11,8 @@ import cc.noharry.agent.appserver.protocol.view.SliderOffer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.offerKey
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.modelText
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.validateInputSchema
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
@@ -50,18 +52,34 @@ internal class OfferToolProvider(
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) : McpClientProvider, ToolPrefetchProvider, ToolCatalogCacheIdentity {
     override val serverId: String = OFFER_TOOL_SERVER_ID
-    override val displayName: String = "选项卡片"
-    override val catalogCacheIdentity: String = "app-server:$OFFER_TOOL_SERVER_ID:v1"
+    override val displayName: String get() = modelText("选项卡片", "Cards and options")
+    override val catalogCacheIdentity: String get() = "app-server:$OFFER_TOOL_SERVER_ID:v2:${if (AppHost.words.isChinese) "zh" else "en"}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
     private val tripTiming = TripTimingGate()
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
-        ToolDescriptor(OFFER_OPTIONS_TOOL, title = "登记选项", description = OFFER_OPTIONS_DESCRIPTION, inputSchemaJson = OFFER_OPTIONS_SCHEMA),
-        ToolDescriptor(OFFER_SLIDER_TOOL, title = "滑块设值", description = OFFER_SLIDER_DESCRIPTION, inputSchemaJson = OFFER_SLIDER_SCHEMA),
-        ToolDescriptor(OFFER_SWITCH_TOOL, title = "开关", description = OFFER_SWITCH_DESCRIPTION, inputSchemaJson = OFFER_SWITCH_SCHEMA),
-        ToolDescriptor(OFFER_CHOICE_TOOL, title = "档位选择", description = OFFER_CHOICE_DESCRIPTION, inputSchemaJson = OFFER_CHOICE_SCHEMA),
-        ToolDescriptor(SHOW_CARD_TOOL, title = "展示卡片", description = SHOW_CARD_DESCRIPTION, inputSchemaJson = SHOW_CARD_SCHEMA),
+        ToolDescriptor(
+            OFFER_OPTIONS_TOOL, title = modelText("登记选项", "Register options"),
+            description = modelText(OFFER_OPTIONS_DESCRIPTION, OFFER_OPTIONS_DESCRIPTION_EN),
+            inputSchemaJson = OFFER_OPTIONS_SCHEMA.inModelWords(OFFER_OPTIONS_SCHEMA_ENGLISH),
+        ),
+        ToolDescriptor(
+            OFFER_SLIDER_TOOL, title = modelText("滑块设值", "Slider"), description = modelText(OFFER_SLIDER_DESCRIPTION, OFFER_SLIDER_DESCRIPTION_EN),
+            inputSchemaJson = OFFER_SLIDER_SCHEMA.inModelWords(WIDGET_SCHEMA_ENGLISH),
+        ),
+        ToolDescriptor(
+            OFFER_SWITCH_TOOL, title = modelText("开关", "Switch"), description = modelText(OFFER_SWITCH_DESCRIPTION, OFFER_SWITCH_DESCRIPTION_EN),
+            inputSchemaJson = OFFER_SWITCH_SCHEMA.inModelWords(WIDGET_SCHEMA_ENGLISH),
+        ),
+        ToolDescriptor(
+            OFFER_CHOICE_TOOL, title = modelText("档位选择", "Choice"), description = modelText(OFFER_CHOICE_DESCRIPTION, OFFER_CHOICE_DESCRIPTION_EN),
+            inputSchemaJson = OFFER_CHOICE_SCHEMA.inModelWords(WIDGET_SCHEMA_ENGLISH),
+        ),
+        ToolDescriptor(
+            SHOW_CARD_TOOL, title = modelText("展示卡片", "Show a card"), description = modelText(SHOW_CARD_DESCRIPTION, SHOW_CARD_DESCRIPTION_EN),
+            inputSchemaJson = SHOW_CARD_SCHEMA.inModelWords(WIDGET_SCHEMA_ENGLISH),
+        ),
     )
 
     override fun localToolNames(request: ToolPrefetchRequest): List<String> =
@@ -78,7 +96,7 @@ internal class OfferToolProvider(
 
     /** A control of the panel, or a card, checked and kept for this turn's reply. */
     private suspend fun showWidget(toolName: String, argumentsJson: String, context: ToolCallContext): ToolCallResult {
-        val args = parseJsonObject(argumentsJson) ?: return failure("ARGUMENT_INVALID", "Arguments must be an object.", WIDGET_FALLBACK)
+        val args = parseJsonObject(argumentsJson) ?: return failure("ARGUMENT_INVALID", "Arguments must be an object.", widgetFallback())
         val change: (Offer) -> Offer = try {
             when (toolName) {
                 OFFER_SLIDER_TOOL -> withControl(parseSliderOffer(args, bindable))
@@ -90,17 +108,25 @@ internal class OfferToolProvider(
                 }
             }
         } catch (invalid: IllegalArgumentException) {
-            return failure("WIDGET_INVALID", invalid.message.orEmpty(), WIDGET_FALLBACK)
+            return failure("WIDGET_INVALID", invalid.message.orEmpty(), widgetFallback())
         }
         val cards = OfferStore.update(context.sessionId, context.requestId, nowMillis(), change).cards.size
         val message = if (toolName == SHOW_CARD_TOOL) {
-            val shown = if (cards > 1) "（这一轮共 $cards 张卡片，一起显示）" else ""
+            val shown = if (cards > 1) modelText("（这一轮共 $cards 张卡片，一起显示）", " ($cards cards this round, shown together)") else ""
             // The reply's closing offer follows when the place is due (owner 2026-10-19: 周六的演出问「要不要算路过去」不符合
             // 现实). Here, right before finish, rather than in the voice skill, which has no room left in the host prompt.
-            "已显示在屏幕上$shown。finish 用一两句话说要点，不要再逐条列出卡片内容。结尾问下一步要合时宜：马上要去的才问导航；" +
-                "改天或几个小时以后的，问要不要到点提醒出发。" + if (cloudAssistant) CLOUD_ASSISTANT_OFFER else ""
+            modelText(
+                "已显示在屏幕上$shown。finish 用一两句话说要点，不要再逐条列出卡片内容。结尾问下一步要合时宜：马上要去的才问导航；" +
+                    "改天或几个小时以后的，问要不要到点提醒出发。",
+                "Shown on the screen$shown. In finish, give the main point in a sentence or two, without listing the card's content " +
+                    "again. End by offering a next step that fits the time: directions only for a place to go now; for one days or " +
+                    "hours away, a reminder when it is time to set off.",
+            ) + if (cloudAssistant) cloudAssistantOffer() else ""
         } else {
-            "已显示在屏幕上。finish 用一句话说明调好后点确定，也可以直接说，不要列选项。"
+            modelText(
+                "已显示在屏幕上。finish 用一句话说明调好后点确定，也可以直接说，不要列选项。",
+                "Shown on the screen. In finish, say in one sentence to confirm once it is set, or just say it; list no options.",
+            )
         }
         return ToolCallResult(
             success = true,
@@ -150,7 +176,14 @@ internal class OfferToolProvider(
                 put("ok", true)
                 put("options", options.size)
                 put("bound", options.count { it.call != null })
-                put("message", "已登记。finish 里按同样顺序、以同样的文字开头列出这些选项；用户选中后宿主会给出要执行的调用。")
+                put(
+                    "message",
+                    modelText(
+                        "已登记。finish 里按同样顺序、以同样的文字开头列出这些选项；用户选中后宿主会给出要执行的调用。",
+                        "Registered. In finish, list these options in the same order, each line starting with the same words; once " +
+                            "the user picks one, the host hands you the call to make.",
+                    ),
+                )
             }.toString(),
             trace = ToolCallTrace(validationOk = true, validationCode = "OK"),
         )
@@ -180,7 +213,7 @@ internal class OfferToolProvider(
         return OfferOption(label, BoundCall(target.providerId, target.descriptor.name, target.qualifiedName, arguments.toString()), icon)
     }
 
-    private fun failure(code: String, message: String, fallback: String = OPTIONS_FALLBACK): ToolCallResult = ToolCallResult(
+    private fun failure(code: String, message: String, fallback: String = optionsFallback()): ToolCallResult = ToolCallResult(
         success = false,
         resultJson = buildJsonObject {
             put("ok", false)
@@ -240,7 +273,11 @@ private const val MAX_CARDS = 3
  * Owner 2026-10-19: 云端助手已经登录时，旅行规划要问要不要发给云端助手. The trip skill's own closing said so, but the
  * line here, right before finish, offered only reminders and won; with the assistant connected it now says it too.
  */
-private const val CLOUD_ASSISTANT_OFFER = "云端助手连着，同一个问题里也问要不要把这些发给云端助手（备份行程、订票、存进日历）。"
+private fun cloudAssistantOffer() = modelText(
+    "云端助手连着，同一个问题里也问要不要把这些发给云端助手（备份行程、订票、存进日历）。",
+    " The user's own agent is connected: in the same question, also offer to hand this to it (to keep the itinerary, book " +
+        "tickets, put it in the calendar).",
+)
 
 /**
  * Whether [next] draws this card again: the same title but for spaces and punctuation, or mostly the same items (on
@@ -259,8 +296,9 @@ internal fun WidgetCard.redrawnAs(next: WidgetCard): Boolean {
 
 private fun String.cardKey(): String = lowercase().filter(Char::isLetterOrDigit)
 private const val GENERIC_ITEM_CHARS = 3
-private const val OPTIONS_FALLBACK = "选项仍会照常显示，但点选时不会直接执行。"
-private const val WIDGET_FALLBACK = "没有显示；改正参数后再调用一次，或直接在 finish 里用文字说明。"
+private fun optionsFallback() = modelText("选项仍会照常显示，但点选时不会直接执行。", "The options still show, but a tap will not act directly.")
+private fun widgetFallback() =
+    modelText("没有显示；改正参数后再调用一次，或直接在 finish 里用文字说明。", "Not shown: fix the arguments and call again, or explain in words in finish.")
 private const val OFFER_TOOL_SERVER_ID = "car_ui"
 private val OFFER_OPTIONS_DESCRIPTION = """
     登记选项 / 让用户选 / 选项卡片：回复要让用户从 2–8 项里选一项时，先调用它登记，再在同一轮调用 finish，
@@ -273,6 +311,20 @@ private val OFFER_OPTIONS_DESCRIPTION = """
     缺目的地、缺名字这类开放问题照常问，不为凑选项编造选项。只是推荐几家酒店、餐厅、景点给用户看（卡片已经列出）、
     选了也没有要办的事时不要登记，finish 里也不要编号标推荐。
 """.trimIndent().replace("\n", "")
+private val OFFER_OPTIONS_DESCRIPTION_EN = """
+    Register options / let the user choose / option card: when the reply asks the user to pick one of 2–8 items, register them
+    with this first, then call finish in the same round and list the options there, numbered in the same order (mark the
+    recommended one "(recommended: why)"). For: parameter values (colour, mode, play mode), on or off, a few common levels (such
+    as brightness 30%/50%/80%), whether to carry out a specific action ("1. Change to the west square car park (recommended)"
+    "2. Leave it"), places or songs from search results. Each item has a label (the words its line in the list starts with); an
+    item that can be done directly also has a tool (the full tool name search_tools returned) and complete arguments, using
+    only values the tool's parameters allow (color is blue, not "Blue"); an item such as "No thanks" that calls no tool has
+    only a label; each item may add an icon (names as for show_card, such as charging, parking, settings), shown as an icon
+    list. When the user taps or says an item, the host hands you that call, with no search or question needed. Open questions,
+    such as a missing destination or name, are asked as usual: never make up options to have some. When you only recommend a
+    few hotels, restaurants or sights to look at (the card lists them) and choosing one leads to nothing to do, do not register
+    them, and do not number them with a recommendation in finish either.
+""".trimIndent().replace("\n", " ")
 private val OFFER_OPTIONS_SCHEMA = """
     {"type":"object","additionalProperties":false,"required":["options"],"properties":{"options":{"type":"array",
     "minItems":2,"maxItems":$MAX_OFFER_OPTIONS,"description":"与 finish 列表同样顺序的选项","items":{"type":"object",
@@ -282,3 +334,10 @@ private val OFFER_OPTIONS_SCHEMA = """
     "arguments":{"type":"object","description":"该工具的完整参数，必须符合它的参数定义"},
     "icon":{"type":"string","description":"可选图标名，显示成图标列表"}}}}}}
 """.trimIndent().replace("\n", "")
+private val OFFER_OPTIONS_SCHEMA_ENGLISH = mapOf(
+    "与 finish 列表同样顺序的选项" to "the options in the same order as finish's list",
+    "列表里这一项开头的文字，如 蓝色、打开、深圳北站西广场停车场" to "the words this item's line starts with, such as Blue, On, West square car park",
+    "选中后要调用的工具全名；不调用工具的项留空" to "the full name of the tool to call once chosen; empty for an item that calls none",
+    "该工具的完整参数，必须符合它的参数定义" to "the tool's complete arguments, matching its parameter definition",
+    "可选图标名，显示成图标列表" to "an optional icon name, shown as an icon list",
+)

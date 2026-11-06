@@ -5,13 +5,16 @@ import cc.noharry.agent.appserver.protocol.view.BoundCall
 import cc.noharry.agent.appserver.protocol.view.MAX_OFFER_OPTIONS
 import cc.noharry.agent.appserver.protocol.view.Offer
 import cc.noharry.agent.appserver.protocol.view.OfferOption
+import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.agent.appserver.protocol.view.callsAt
 import cc.noharry.agent.appserver.protocol.view.controlPicks
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
 import cc.noharry.agent.appserver.protocol.view.offerKey
 import cc.noharry.agent.appserver.protocol.view.valueText
 import cc.noharry.agent.appserver.runtime.ANSWERABLE_STATUSES
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.PreviousExchange
+import cc.noharry.agent.appserver.runtime.modelText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,16 +90,21 @@ internal fun offerPick(
     val shown = previous.assistantText.displayChoiceReply(offer.options.map { it.label }).choices.map { it.label }
     pickedOption(text, shown, offer.options)?.let { (ordinal, option) ->
         val call = option.call ?: return null
-        val said = "你上一条回复的选项里选了第${ordinal}项「${option.label}」"
+        val said = modelText(
+            "你上一条回复的选项里选了第${ordinal}项「${option.label}」",
+            "picked option $ordinal, \"${option.label}\", from your last reply's options",
+        )
         return OfferPick(ordinal, option.label, listOf(call), boundPickInput(said, text, listOf(call)))
     }
     val set = controlPicks(text, offer.controls) ?: return null
     val calls = set.flatMap { (control, value) -> control.callsAt(value) }.takeIf { it.isNotEmpty() } ?: return null
-    val values = set.joinToString("、") { (control, value) -> control.valueText(value) }
-    return OfferPick(0, set.joinToString("、") { it.first.label }, calls, boundPickInput("你上一条回复的控件上设了$values", text, calls))
+    val words = if (AppHost.words.isChinese) ReplyWords.CHINESE else ReplyWords.ENGLISH
+    val values = set.joinToString(words.list) { (control, value) -> control.valueText(value, words) }
+    val said = modelText("你上一条回复的控件上设了$values", "set $values on your last reply's controls")
+    return OfferPick(0, set.joinToString(words.list) { it.first.label }, calls, boundPickInput(said, text, calls))
 }
 
-/** By ordinal ("第2个", "第二个", "2") through the list as shown, else by the item's own label ("蓝色"). */
+/** By ordinal ("第2个", "第二个", "the second one", "2") through the list as shown, else by the item's own label ("蓝色"). */
 private fun pickedOption(text: String, shown: List<String>, options: List<OfferOption>): Pair<Int, OfferOption>? {
     val spoken = text.offerKey()
     if (spoken.isEmpty()) return null
@@ -117,21 +125,40 @@ private fun matchOption(shownLine: String, options: List<OfferOption>): OfferOpt
         .maxByOrNull { it.label.length }
 }
 
+/** An ordinal pick in Chinese or English, whatever the persona's ([offerKey] already dropped spaces and case). */
 internal fun pickOrdinal(spoken: String): Int? {
-    val match = PICK_ORDINAL.matchEntire(spoken) ?: return null
+    PICK_ORDINAL.matchEntire(spoken)?.let { match ->
+        val token = match.groupValues[1].ifEmpty { match.groupValues[2] }
+        return (token.toIntOrNull() ?: CHINESE_ORDINALS.indexOf(token).takeIf { it >= 0 }?.plus(1))?.takeIf { it in 1..MAX_OFFER_OPTIONS }
+    }
+    val match = PICK_ORDINAL_EN.matchEntire(spoken) ?: return null
     val token = match.groupValues[1].ifEmpty { match.groupValues[2] }
-    return (token.toIntOrNull() ?: CHINESE_ORDINALS.indexOf(token).takeIf { it >= 0 }?.plus(1))
-        ?.takeIf { it in 1..MAX_OFFER_OPTIONS }
+    return (token.toIntOrNull() ?: ENGLISH_ORDINALS.indexOf(token).takeIf { it >= 0 }?.plus(1))?.takeIf { it in 1..MAX_OFFER_OPTIONS }
 }
 
-private fun boundPickInput(said: String, text: String, calls: List<BoundCall>): String =
+private fun boundPickInput(said: String, text: String, calls: List<BoundCall>): String = modelText(
     "用户在${said}（原话：${text.trim()}）。\n" +
-        "绑定的操作已由宿主按工具定义核对：" + calls.joinToString("；") { "调用 ${it.qualifiedName}，参数 ${it.argumentsJson}" } + "。\n" +
-        "直接按这些参数各调用一次，不要再搜索或追问；完成后用一句话告诉用户结果。"
+        "$BOUND_PICK_MARK：" + calls.joinToString("；") { "调用 ${it.qualifiedName}，参数 ${it.argumentsJson}" } + "。\n" +
+        "直接按这些参数各调用一次，不要再搜索或追问；完成后用一句话告诉用户结果。",
+    "The user $said (their words: ${text.trim()}).\n" +
+        "$BOUND_PICK_MARK_EN: " + calls.joinToString("; ") { "call ${it.qualifiedName} with ${it.argumentsJson}" } + ".\n" +
+        "Call each once with exactly these arguments, without searching or asking again; then tell the user the result in one sentence.",
+)
+
+/** How a bound pick's frame says its calls were checked, in each language: [ActionGate][cc.noharry.agent.appserver.tools.ActionGate] knows a pick by it. */
+internal const val BOUND_PICK_MARK = "绑定的操作已由宿主按工具定义核对"
+internal const val BOUND_PICK_MARK_EN = "The host checked the bound actions against the tools' definitions"
 
 /** "第2个", "选第二个", "就第三项", or a bare digit as a tap or keyboard sends it. */
 private val PICK_ORDINAL = Regex("""^(?:选|要|就|用)?(?:第([1-8一二三四五六七八])(?:个|项|条|家|首|种)?|([1-8]))$""")
 
+/** "option2", "thesecondone", "i'lltakethethird", "number3", "2nd" (spaces and punctuation dropped). */
+private val PICK_ORDINAL_EN = Regex(
+    """^(?:i'?lltake|i'?dlike|letsgowith|gowith|pick|choose|select|take)?(?:the)?(?:option|number|no)?""" +
+        """(?:(first|second|third|fourth|fifth|sixth|seventh|eighth)|([1-8])(?:st|nd|rd|th)?)(?:one|option)?(?:please)?$""",
+)
+
 private const val CHINESE_ORDINALS = "一二三四五六七八"
+private val ENGLISH_ORDINALS = listOf("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth")
 
 private const val OFFER_TTL_MILLIS = 30 * 60 * 1000L

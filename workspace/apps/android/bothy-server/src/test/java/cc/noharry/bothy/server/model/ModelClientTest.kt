@@ -5,6 +5,7 @@ import cc.noharry.agent.appserver.model.AppModelClient
 import cc.noharry.agent.appserver.model.appSystemPrompt
 import cc.noharry.agent.appserver.model.withFirstEventTimeout
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
@@ -126,6 +127,7 @@ class ModelClientTest {
         val prompt = appSystemPrompt(
             "- user=还是有点热 | assistant=需要我为您打开空调设置页面吗？ | " +
                 "runStatus=COMPLETED | completion=PARTIAL",
+            words = ModelWords.CHINESE,
         )
 
         assertTrue(prompt.contains("Current debug session context"))
@@ -136,7 +138,9 @@ class ModelClientTest {
         assertTrue(prompt.contains("treat the offered action itself as the current-turn intent"))
         assertTrue(prompt.contains("discover and call the matching current"))
         assertTrue(prompt.contains("Do not repeat the question or merely acknowledge the answer"))
-        assertTrue(prompt.contains("only a concise Chinese report"))
+        assertTrue(prompt.contains("Then give only a concise Chinese report of its result; do not quote"))
+        assertTrue(prompt.contains("response is concise Chinese, with no internal plans"))
+        assertTrue(prompt.contains("short reply (可以、不要、继续、刚才那个)"))
         assertTrue(prompt.contains("do not quote the prior question or narrate internal reasoning"))
         assertTrue(prompt.contains("take no offered action"))
     }

@@ -2,7 +2,6 @@ package cc.noharry.agent.appserver.runtime
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.model.appSystemPrompt
 import cc.noharry.agent.appserver.plans.PlanRunner
-import cc.noharry.agent.appserver.protocol.PLAN_WEEKDAYS
 import cc.noharry.agent.appserver.skills.RuntimeSkill
 import cc.noharry.agent.appserver.trajectory.render
 import cc.noharry.agent.kernel.api.model.ModelMessage
@@ -35,10 +34,12 @@ fun runtimePrompt(
     webSearch: Boolean = false,
     /** Skills that go in the system prompt ([RuntimeSkill.systemPrompt]), in full and before history and workflows. */
     systemSkills: Set<String> = emptySet(),
+    /** The language the server's own lines are in, the persona's. */
+    words: ModelWords = AppHost.words,
 ): RuntimePrompt {
     val (voice, workflows) = skillBodies.partition { it.first in systemSkills }
     val rules = listOf(if (webSearch) WEB_SEARCH_RULE else "", if (verifyAgent) WEB_VERIFY_RULE else "")
-    val fixed = (listOf(appSystemPrompt("", nativeTools), basicToolPrompt(basicTools)) + rules +
+    val fixed = (listOf(appSystemPrompt("", nativeTools, words), basicToolPrompt(basicTools)) + rules +
         voice.map { (id, body) -> "$ACTIVE_SKILL_PREFIX$id\n$body" }).joinPromptSections()
     val canRead = "read_file" !in disabledBasicTools(basicTools)
     val replyContext = previousExchange?.prompt(canRead).orEmpty()
@@ -47,7 +48,7 @@ fun runtimePrompt(
     }.toMutableList()
     // Reserve the immediate exchange before background history/skills.
     // The thinking's language last, nearest to where the model starts thinking.
-    fun render(context: String) = RuntimePrompt(fixed, (listOf(clock, context) + sections + replyContext + THINK_IN_CHINESE).joinPromptSections())
+    fun render(context: String) = RuntimePrompt(fixed, (listOf(clock, context) + sections + replyContext + words.thinkLine).joinPromptSections())
 
     // Continuity takes priority over eager loading. Keep whole history lines; the full history
     // and all enabled skill files remain in the same VFS snapshot used by this runtime.
@@ -98,10 +99,8 @@ private fun List<String>.joinPromptSections(): String = filter { it.isNotBlank()
  * context gives only the date, kept stable for the prompt cache).
  */
 @InternalAppServerApi
-fun clockLine(now: Long, zone: java.time.ZoneId = PlanRunner.zone()): String {
-    val time = java.time.Instant.ofEpochMilli(now).atZone(zone)
-    return "现在：%s %s %02d:%02d".format(time.toLocalDate(), PLAN_WEEKDAYS[time.dayOfWeek.value - 1], time.hour, time.minute)
-}
+fun clockLine(now: Long, zone: java.time.ZoneId = PlanRunner.zone(), words: ModelWords = AppHost.words): String =
+    words.clock(java.time.Instant.ofEpochMilli(now).atZone(zone))
 
 /**
  * The app in front, as Android Use's service sees it (owner 2026-10-25: with 抖音 open, the assistant still offered to
@@ -112,8 +111,8 @@ internal fun appForegroundLine(context: android.content.Context): String {
     return if (app.packageName == context.packageName) "" else foregroundLine(app.label, app.packageName)
 }
 
-internal fun foregroundLine(label: String, packageName: String): String =
-    "屏幕前台：「$label」（$packageName），已经开着，操作它不用再打开；用户没说对象的「暂停」「继续」「下一个」「这个」，先想到它里面正在放、正在看的内容。"
+internal fun foregroundLine(label: String, packageName: String, words: ModelWords = AppHost.words): String =
+    words.foregroundApp(label, packageName)
 
 /**
  * When to send 网上核实 (owner 2026-10-19: 除了导航给出的数据，也派一个核实的 agent 去网页上搜一下，不一定在哪种场景下
@@ -157,10 +156,3 @@ const val WEB_SEARCH_RULE =
         "around, decide which fit today before you calculate, route today only those, and say what moves to tomorrow " +
         "with an offer to remind; what you say and the route you start must match."
 
-/**
- * A car's screen shows the thinking as it comes, for the user to read; DeepSeek thinks in English for an English system
- * prompt and keeps to it even when told there. This line, last in the run's own context, comes right before it starts
- * thinking; at the start of that context it was followed only now and then (2026-10-21).
- */
-@InternalAppServerApi
-const val THINK_IN_CHINESE = "本轮的思考过程（thinking）全程用简体中文写，不要用英文。"

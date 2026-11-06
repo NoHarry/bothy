@@ -43,8 +43,6 @@ import cc.noharry.agent.appserver.protocol.PlanFiring
 import cc.noharry.agent.appserver.protocol.PlanTrigger
 import cc.noharry.agent.appserver.protocol.SubscriptionState
 import cc.noharry.agent.appserver.protocol.client.ServerState
-import cc.noharry.agent.appserver.protocol.describe
-import cc.noharry.agent.appserver.protocol.describeMoment
 import cc.noharry.agent.appserver.protocol.nextDueMillis
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.BothyAlertDialog
@@ -321,7 +319,7 @@ internal fun PlanTrigger.describeOnScreen(context: Context, now: Long, zone: Zon
     }
 }
 
-/** [describeMoment] for the page: 「今天 16:30」「明天 08:00」「10月20日 周二 08:00」, "Today 16:30", "Tue 10/20 08:00". */
+/** A moment worded for the page, as the server words it for the model: 「今天 16:30」「明天 08:00」「10月20日 周二 08:00」, "Today 16:30", "Tue 10/20 08:00". */
 internal fun describeMomentOnScreen(context: Context, atMillis: Long, now: Long, zone: ZoneId): String {
     val at = Instant.ofEpochMilli(atMillis).atZone(zone)
     val days = at.toLocalDate().toEpochDay() - Instant.ofEpochMilli(now).atZone(zone).toLocalDate().toEpochDay()

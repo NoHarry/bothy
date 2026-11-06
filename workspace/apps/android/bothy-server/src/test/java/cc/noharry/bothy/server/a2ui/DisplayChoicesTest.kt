@@ -13,10 +13,10 @@ import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
 import cc.noharry.agent.appserver.protocol.view.Offer
 import cc.noharry.agent.appserver.protocol.view.OfferOption
+import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.appPickableReply
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
-import cc.noharry.agent.appserver.protocol.view.replyText
 import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
 import cc.noharry.agent.appserver.runtime.PreviousExchange
 import cc.noharry.agent.appserver.runtime.appModelInput
@@ -42,7 +42,7 @@ class DisplayChoicesTest {
         assertEquals("猎德大道公厕（推荐，离肯德基最近）", reply.choices[0].label)
         assertEquals(listOf(true, false, false), reply.choices.map { it.recommended })
         assertEquals("海心沙公厕", reply.choices[2].label)
-        assertEquals("第2个", reply.choices[1].replyText)
+        assertEquals("第2个", reply.choices[1].replyText(ReplyWords.CHINESE))
     }
 
     @Test
@@ -116,7 +116,7 @@ class DisplayChoicesTest {
         val previous = PreviousExchange("s", "t", "找厕所", "要加上哪个？\n1. 猎德大道公厕（推荐）\n2. 花城广场公厕",
             RuntimeRunStatus.COMPLETED.name, "PARTIAL")
 
-        val input = appModelInput(DisplayChoice(2, "花城广场公厕", false).replyText, previous)
+        val input = appModelInput(DisplayChoice(2, "花城广场公厕", false).replyText(ReplyWords.CHINESE), previous)
 
         assertTrue(input.startsWith(FOLLOW_UP_FRAME_HEADER))
         assertTrue(input.endsWith("User reply: 第2个"))
