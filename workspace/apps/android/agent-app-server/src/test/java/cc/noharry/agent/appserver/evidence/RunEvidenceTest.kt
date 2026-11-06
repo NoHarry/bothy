@@ -1,5 +1,8 @@
 package cc.noharry.agent.appserver.evidence
 import cc.noharry.agent.appserver.protocol.LessonEntry
+import cc.noharry.agent.appserver.runtime.AnswerProblems
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.agent.kernel.api.AgentRequest
 import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
@@ -7,12 +10,60 @@ import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
 import cc.noharry.agent.kernel.api.reliability.RuntimeResult
 import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import java.nio.file.Files
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class RunEvidenceTest {
+    // A host that says which requests must act and what is wrong with an answer, as Bothy's car does (Bothy's own tests
+    // read its words); the server judges neither by itself.
+    @Before
+    fun actingHost() {
+        AppHost.install(runs = ACTING_HOST)
+    }
+
+    @After
+    fun noHost() {
+        AppHost.install(runs = RunAddOns.NONE)
+    }
+
+    @Test
+    fun withoutAHostNothingMustActAndNoAnswerIsWrong() {
+        AppHost.install(runs = RunAddOns.NONE)
+        val recorder = recorder(input = "我想去广州塔，在那找一个停车场")
+        recorder.recordEvent(AgentEvent.Started(RUN_ID))
+        recorder.recordEvent(AgentEvent.ResultAvailable(result(RuntimeRunStatus.COMPLETED, "process only")))
+
+        val evidence = recorder.snapshot()
+        assertFalse(evidence.requiresBusinessAction)
+        assertTrue(RunReplayVerifier.verify(evidence).passed)
+    }
+
+    @Test
+    fun theHostsAnswerChecksFailOrWarnARunThatPassedOtherwise() {
+        val recorder = recorder(input = "user text")
+        recorder.recordEvent(AgentEvent.Started(RUN_ID))
+        recorder.recordEvent(AgentEvent.ResultAvailable(result(RuntimeRunStatus.COMPLETED, "process only")))
+        val failed = RunReplayVerifier.verify(recorder.snapshot())
+        assertFalse(failed.passed)
+        assertEquals(listOf("final response is process narration"), failed.failures)
+
+        val warned = recorder(input = "user text")
+        warned.recordEvent(AgentEvent.Started(RUN_ID))
+        warned.recordEvent(AgentEvent.ResultAvailable(result(RuntimeRunStatus.COMPLETED, "short")))
+        val replay = RunReplayVerifier.verify(warned.snapshot())
+        assertTrue(replay.passed)
+        assertTrue(replay.warnings.contains("final response is short"))
+
+        // A run that failed by itself is not judged by its answer.
+        val stopped = recorder(input = "user text")
+        stopped.recordEvent(AgentEvent.Started(RUN_ID))
+        stopped.recordEvent(AgentEvent.ResultAvailable(result(RuntimeRunStatus.FAILED, "process only")))
+        assertFalse(RunReplayVerifier.verify(stopped.snapshot()).failures.contains("final response is process narration"))
+    }
     @Test
     fun completedRunWithPublicToolLifecycleReplaysPassFromJson() {
         val recorder = recorder(input = "one\ntwo")
@@ -364,61 +415,6 @@ class RunEvidenceTest {
     }
 
     @Test
-    fun complexNameRouteFinalResponseFailsReplayWhenItIsProcessNarration() {
-        val recorder = completedComplexNameRouteRecorder(
-            response = "All tasks completed! Let me update the todo and provide the final response.",
-        )
-
-        val replay = RunReplayVerifier.verify(recorder.snapshot())
-
-        assertFalse(replay.passed)
-        assertTrue(replay.failures.any { it.contains("process narration") })
-    }
-
-    @Test
-    fun complexNameRouteFinalResponseAllowsMixedNarrationWithResults() {
-        val recorder = completedComplexNameRouteRecorder(
-            response = "Let me now call finish with a final response: 我是小博，名字代表随时响应。" +
-                "已规划不走高速路线去广州塔，途中去深圳北站附近肯德基，找停车场和沿途厕所，并播放周杰伦的歌。",
-        )
-
-        val replay = RunReplayVerifier.verify(recorder.snapshot())
-
-        assertTrue(replay.passed)
-    }
-
-    @Test
-    fun complexNameRouteFinalResponseWarnsWhenNameOrRouteContentIsMissing() {
-        val recorder = completedComplexNameRouteRecorder(response = "已完成。")
-
-        val replay = RunReplayVerifier.verify(recorder.snapshot())
-
-        assertTrue(replay.passed)
-        assertTrue(replay.warnings.any { it.contains("missing name explanation") })
-        assertTrue(replay.warnings.any { it.contains("missing route key info") })
-    }
-
-    @Test
-    fun complexNameRouteFinalResponsePassesReplayWhenItIsDirectAndComplete() {
-        val recorder = completedComplexNameRouteRecorder(
-            response = "我是小博，这个名字代表我会贴近你的日常任务、快速响应。" +
-                "已为你规划不走高速路线去广州塔，途中去深圳北站附近肯德基用餐，" +
-                "同时查找广州塔停车场和沿途厕所；开始导航后会播放周杰伦的歌。",
-        )
-
-        val evidence = RunEvidenceJson.parse(RunEvidenceJson.write(recorder.snapshot()))
-        val replay = RunReplayVerifier.verify(evidence)
-
-        assertTrue(replay.passed)
-        assertEquals(
-            "我是小博，这个名字代表我会贴近你的日常任务、快速响应。" +
-                "已为你规划不走高速路线去广州塔，途中去深圳北站附近肯德基用餐，" +
-                "同时查找广州塔停车场和沿途厕所；开始导航后会播放周杰伦的歌。",
-            evidence.finalResponse,
-        )
-    }
-
-    @Test
     fun hotFollowUpRequiresBusinessTool() {
         val recorder = recorder(input = "还是很热")
         recorder.recordEvent(AgentEvent.Started(RUN_ID))
@@ -532,15 +528,6 @@ class RunEvidenceTest {
             nowEpochMillis = nowEpochMillis,
         )
 
-    private fun completedComplexNameRouteRecorder(response: String): RunEvidenceRecorder {
-        val recorder = recorder(input = COMPLEX_NAME_ROUTE_INPUT)
-        recorder.recordEvent(AgentEvent.Started(RUN_ID))
-        recorder.recordEvent(AgentEvent.NativeToolCallStarted(RUN_ID, TOOL_NAME, """{"redacted":true}"""))
-        recorder.recordEvent(AgentEvent.NativeToolCallFinished(RUN_ID, TOOL_NAME, """{"redacted":true}"""))
-        recorder.recordEvent(AgentEvent.ResultAvailable(result(RuntimeRunStatus.COMPLETED, response)))
-        return recorder
-    }
-
     private fun result(
         status: RuntimeRunStatus,
         response: String = "done",
@@ -628,8 +615,15 @@ class RunEvidenceTest {
         const val SESSION_ID = "session-1"
         const val RUN_ID = "run-1"
         const val TOOL_NAME = "command_navi_SearchParking"
-        const val COMPLEX_NAME_ROUTE_INPUT =
-            "介绍下你自己，为什么叫这个名字，我想去广州塔，在那找一个停车场，中间去一下深圳北站附近的肯德基吃个饭，" +
-                "不走高速，出了肯德基之后找一下沿途的厕所，开始导航后放首周杰伦的歌"
+    }
+}
+
+private val ACTING_HOST = object : RunAddOns {
+    override fun requiresAction(request: String): Boolean = listOf("广州塔", "歌", "热").any { it in request }
+
+    override fun answerProblems(request: String, answer: String): AnswerProblems = when (answer) {
+        "process only" -> AnswerProblems(failures = listOf("final response is process narration"))
+        "short" -> AnswerProblems(warnings = listOf("final response is short"))
+        else -> AnswerProblems.NONE
     }
 }

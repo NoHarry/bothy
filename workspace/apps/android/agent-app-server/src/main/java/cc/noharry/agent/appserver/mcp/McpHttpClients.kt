@@ -8,8 +8,6 @@ import cc.noharry.agent.appserver.model.describe
 import cc.noharry.agent.appserver.protocol.McpServer
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ModelWords
-import cc.noharry.agent.appserver.tools.isTransaction
-import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.mcp.McpClientMessages
 import cc.noharry.agent.mcp.McpHttpClient
 import cc.noharry.agent.mcp.McpToolProvider
@@ -59,7 +57,7 @@ internal fun httpMcpToolProvider(context: Context, server: McpServer): McpToolPr
         serverId = server.id,
         displayName = server.label,
         catalog = McpToolCatalogs.cache(server.id),
-        describe = { it.withSpokenHint() },
+        describe = { AppHost.runs.describeTool(it) },
     )
 
 /**
@@ -150,15 +148,6 @@ class ScreenMcpMessages(private val context: Context) : McpClientMessages {
 
 /** Where [ScreenMcpMessages.timedOut]'s resource puts the seconds. */
 private const val SECONDS_PLACEHOLDER = "%1\$d"
-
-/** An order or payment tool, from any server, says it waits for the user's pick ([TRANSACTION_HINT]). */
-internal fun ToolDescriptor.withSpokenHint(): ToolDescriptor =
-    if (isTransaction(name)) copy(description = "$description $TRANSACTION_HINT") else this
-
-/** On every order or payment tool ([isTransaction]): a model said 「先帮你下单了」 before [ActionGate] refused the call. */
-private const val TRANSACTION_HINT =
-    "这会真的下单或付款：先用预览把门店、商品、价格告诉用户，用 offer_options 给「下单」（绑定这次调用）和「先不下」，等用户选；" +
-        "调用成功之前不要说已经下单。"
 
 private fun Context.versionName(): String =
     runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()

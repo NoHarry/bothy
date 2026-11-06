@@ -145,9 +145,15 @@ private fun boundPickInput(said: String, text: String, calls: List<BoundCall>): 
         "Call each once with exactly these arguments, without searching or asking again; then tell the user the result in one sentence.",
 )
 
-/** How a bound pick's frame says its calls were checked, in each language: [ActionGate][cc.noharry.agent.appserver.tools.ActionGate] knows a pick by it. */
-internal const val BOUND_PICK_MARK = "绑定的操作已由宿主按工具定义核对"
-internal const val BOUND_PICK_MARK_EN = "The host checked the bound actions against the tools' definitions"
+/** Whether a run's input is an on-screen pick's frame ([offerPick]), in either language. */
+fun String.isBoundPick(): Boolean = BOUND_PICK_MARK in this || BOUND_PICK_MARK_EN in this
+
+/** Whether a pick's frame binds a call of the tool [qualifiedName] (an order the user picked, say). */
+fun String.picksBoundCall(qualifiedName: String): Boolean = isBoundPick() && ("调用 $qualifiedName" in this || "call $qualifiedName " in this)
+
+/** How a bound pick's frame says its calls were checked, in each language. */
+private const val BOUND_PICK_MARK = "绑定的操作已由宿主按工具定义核对"
+private const val BOUND_PICK_MARK_EN = "The host checked the bound actions against the tools' definitions"
 
 /** "第2个", "选第二个", "就第三项", or a bare digit as a tap or keyboard sends it. */
 private val PICK_ORDINAL = Regex("""^(?:选|要|就|用)?(?:第([1-8一二三四五六七八])(?:个|项|条|家|首|种)?|([1-8]))$""")

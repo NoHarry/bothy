@@ -1,4 +1,5 @@
-package cc.noharry.agent.appserver.a2ui
+package cc.noharry.bothy.server.cards
+
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardItemKind
 import cc.noharry.agent.appserver.protocol.view.CardLayout

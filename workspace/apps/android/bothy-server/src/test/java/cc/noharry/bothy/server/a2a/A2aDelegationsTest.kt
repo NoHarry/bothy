@@ -32,7 +32,9 @@ import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.Persona
+import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.bothy.server.server.BothyPersona
+import cc.noharry.bothy.server.tools.BothyRuns
 import cc.noharry.bothy.server.voice.tts.closesReply
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -51,12 +53,12 @@ class A2aDelegationsTest {
     // Reports as Bothy's Chinese persona words them; DelegationReportWordsTest has the English.
     @Before
     fun chinese() {
-        AppHost.install(persona = BothyPersona)
+        AppHost.install(persona = BothyPersona, runs = BothyRuns)
     }
 
     @After
     fun generic() {
-        AppHost.install(persona = Persona.GENERIC)
+        AppHost.install(persona = Persona.GENERIC, runs = RunAddOns.NONE)
     }
 
     @Test

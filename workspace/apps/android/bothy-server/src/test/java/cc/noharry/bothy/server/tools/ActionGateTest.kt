@@ -1,22 +1,15 @@
 @file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
-package cc.noharry.agent.appserver.tools
+package cc.noharry.bothy.server.tools
+
+import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
 import cc.noharry.agent.kernel.api.HookContext
 import cc.noharry.agent.kernel.api.HookDecision
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.kernel.api.ToolSource
 import cc.noharry.agent.kernel.api.ToolUse
-import cc.noharry.agent.appserver.mcp.withSpokenHint
-import cc.noharry.agent.appserver.plans.WatchTrail
-import cc.noharry.agent.appserver.plans.loggable
-import cc.noharry.agent.appserver.plans.reading
-import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -26,15 +19,6 @@ class ActionGateTest {
     private val window = "mcp__device__home_window_position_set"
 
     private fun ActionGate.decide(tool: String) = runBlocking { onPreToolUse(ToolUse(tool, "{}", ToolSource.BACKEND), context) }
-
-    @Test
-    fun theRuleIsReadInTheUsersOwnWords() {
-        val quoted = "$FOLLOW_UP_FRAME_HEADER\n… 已帮你建一条规则：客厅窗户打开的时候点一杯瑞幸。要现在先开窗吗？\n" +
-            "Bind the reply below to this message only.\nUser reply: 好"
-        assertEquals("好", userWords(quoted))
-        assertEquals("", userWords("用户在屏幕上点了第1项（原话：1）。\n绑定的操作已由宿主按工具定义核对：调用 x，参数 {}。"))
-        assertEquals("窗户打开的时候点咖啡", userWords("窗户打开的时候点咖啡"))
-    }
 
     @Test
     fun aSubagentNeverOrdersWhateverItsTaskSays() {
@@ -81,7 +65,6 @@ class ActionGateTest {
         val englishPick = "The user picked option 1, \"Two lattes\", from your last reply's options (their words: Option 1).\n" +
             "The host checked the bound actions against the tools' definitions: call $order with {}.\n"
         assertTrue(ActionGate(englishPick).decide(order) is HookDecision.Allow)
-        assertEquals("", userWords(englishPick))
     }
 
     @Test
@@ -93,46 +76,12 @@ class ActionGateTest {
     }
 
     @Test
-    fun ordersAndPaymentsAreToldFromPreviewsAndReadings() {
-        assertTrue(isTransaction("mcp__luckin__createOrder"))
-        assertTrue(isTransaction("mcp__shop__submit_order"))
-        assertTrue(isTransaction("mcp__shop__payOrder"))
-        assertFalse(isTransaction("mcp__luckin__previewOrder"))
-        assertFalse(isTransaction("mcp__luckin__queryOrderList"))
-        assertFalse(isTransaction("mcp__device__home_window_position_set"))
-    }
-
-    @Test
     fun anOrderToolSaysItWaitsForTheUsersPick() {
         val other = ToolDescriptor("weather_query", "查询天气。", "{}")
-        assertEquals(other, other.withSpokenHint())
+        assertEquals(other, BothyRuns.describeTool(other))
         val order = ToolDescriptor("createOrder", "瑞幸咖啡创建订单", "{}")
-        assertTrue(order.withSpokenHint().description.contains("调用成功之前不要说已经下单"))
-        assertEquals(ToolDescriptor("previewOrder", "瑞幸咖啡订单预览", "{}"), ToolDescriptor("previewOrder", "瑞幸咖啡订单预览", "{}").withSpokenHint())
+        assertTrue(BothyRuns.describeTool(order).description.contains("调用成功之前不要说已经下单"))
+        val preview = ToolDescriptor("previewOrder", "瑞幸咖啡订单预览", "{}")
+        assertEquals(preview, BothyRuns.describeTool(preview))
     }
-
-    @Test
-    fun theWatchTrailHoldsBackRepeatsButNotFirings() {
-        var now = 0L
-        val lines = mutableListOf<String>()
-        val trail = WatchTrail(nowMillis = { now }, log = { lines += it })
-
-        trail.note("signal speed", "push 60")
-        now += 1_000
-        trail.note("signal speed", "push 61")
-        trail.always("「拿蛋糕」 type=2 met: FIRE")
-        now += 10_000
-        trail.note("signal speed", "push 62")
-
-        assertEquals(listOf("push 60", "「拿蛋糕」 type=2 met: FIRE", "push 62 (+1 since)"), lines)
-        assertNull(lines.firstOrNull { it.contains("61") })
-        // What reaches the device's log: numbers and switches, never a destination's name.
-        val reading = Json.parseToJsonElement("""{"type":2,"poi":{"name":"深圳北站"},"name":"公司","on":true}""").jsonObject
-        assertEquals("{type=2 poi=‹…› name=‹text› on=true}", reading.loggable())
-        assertEquals("‹text›", "深圳北站".loggable())
-        assertEquals("20.5", "20.5".loggable())
-    }
-}
-
-class UniqueKeysTest {
 }

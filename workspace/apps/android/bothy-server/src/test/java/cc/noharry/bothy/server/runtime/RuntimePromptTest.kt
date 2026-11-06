@@ -6,9 +6,8 @@ import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.appserver.runtime.PreviousExchange
 import cc.noharry.agent.appserver.runtime.RunAddOns
+import cc.noharry.agent.appserver.runtime.RunFacts
 import cc.noharry.agent.appserver.runtime.THINK_IN_CHINESE
-import cc.noharry.agent.appserver.runtime.WEB_SEARCH_RULE
-import cc.noharry.agent.appserver.runtime.WEB_VERIFY_RULE
 import cc.noharry.agent.appserver.runtime.basicToolPrompt
 import cc.noharry.agent.appserver.runtime.carriesSkill
 import cc.noharry.agent.appserver.runtime.clockLine
@@ -26,6 +25,9 @@ import cc.noharry.agent.kernel.core.context.validateHostSystemPrompt
 import cc.noharry.agent.vfs.VfsReadResult
 import cc.noharry.bothy.server.server.BothyPersona
 import cc.noharry.bothy.server.tools.BothyRuns
+import cc.noharry.bothy.server.tools.WEB_SEARCH_RULE
+import cc.noharry.bothy.server.tools.WEB_VERIFY_KIND
+import cc.noharry.bothy.server.tools.WEB_VERIFY_RULE
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -203,8 +205,8 @@ class RuntimePromptTest {
 
     @Test
     fun theVerifyRuleIsPartOfTheCachedSystemPromptOnlyWhileTheTypeIsOffered() {
-        val with = runtimePrompt("", emptyList(), emptyList(), verifyAgent = true)
-        val without = runtimePrompt("", emptyList(), emptyList())
+        val with = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true)))
+        val without = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts()))
 
         assertTrue(with.system.contains("agent=web-verify") && with.system.contains("do not wait_agent"))
         assertTrue(with.system.contains("speak at most two short sentences") && with.system.contains("details stay on the card"))
@@ -214,8 +216,8 @@ class RuntimePromptTest {
 
     @Test
     fun webAnswersAreCheckedInOneParallelStepAndNotSentToTheVerifier() {
-        val both = runtimePrompt("", emptyList(), emptyList(), verifyAgent = true, webSearch = true)
-        val noSearch = runtimePrompt("", emptyList(), emptyList(), verifyAgent = true)
+        val both = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true, search = true)))
+        val noSearch = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true)))
 
         assertTrue(both.system.contains("several search calls in the same response") && both.system.contains("answer once"))
         assertTrue(both.system.contains("decide which fit today before you calculate, route today only those"))
@@ -226,6 +228,15 @@ class RuntimePromptTest {
         assertTrue(WEB_VERIFY_RULE.contains("in the same response as show_card"))
         assertFalse(noSearch.system.contains(WEB_SEARCH_RULE))
     }
+
+    private fun facts(verify: Boolean = false, search: Boolean = false) = RunFacts(
+        context = ApplicationProvider.getApplicationContext(),
+        userInput = "",
+        child = false,
+        webSearch = search,
+        subagentTypes = if (verify) setOf(WEB_VERIFY_KIND) else emptySet(),
+        drawsPages = false,
+    )
 }
 
 private const val TRIP_TEXT = "下周去成都玩三天，帮我规划一下行程"

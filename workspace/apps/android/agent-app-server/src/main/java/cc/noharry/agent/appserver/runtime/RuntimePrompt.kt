@@ -28,18 +28,15 @@ fun runtimePrompt(
     nativeTools: Boolean = false,
     /** 「现在：2026-10-19 周一 11:35」 ([clockLine]): per run, so it goes with the run context, never the system prompt. */
     clock: String = "",
-    /** 网上核实 is offered ([WEB_VERIFY_RULE]); that changes only when a DeepSeek key comes or goes, so it stays cached. */
-    verifyAgent: Boolean = false,
-    /** The main agent can search the web itself ([WEB_SEARCH_RULE]); fixed for the profile, so it stays cached too. */
-    webSearch: Boolean = false,
+    /** The host's rules ([RunAddOns.systemRules]), after the server's own; cached with the system prompt. */
+    hostRules: List<String> = emptyList(),
     /** Skills that go in the system prompt ([RuntimeSkill.systemPrompt]), in full and before history and workflows. */
     systemSkills: Set<String> = emptySet(),
     /** The language the server's own lines are in, the persona's. */
     words: ModelWords = AppHost.words,
 ): RuntimePrompt {
     val (voice, workflows) = skillBodies.partition { it.first in systemSkills }
-    val rules = listOf(if (webSearch) WEB_SEARCH_RULE else "", if (verifyAgent) WEB_VERIFY_RULE else "")
-    val fixed = (listOf(appSystemPrompt("", nativeTools, words), basicToolPrompt(basicTools)) + rules +
+    val fixed = (listOf(appSystemPrompt("", nativeTools, words), basicToolPrompt(basicTools)) + hostRules +
         voice.map { (id, body) -> "$ACTIVE_SKILL_PREFIX$id\n$body" }).joinPromptSections()
     val canRead = "read_file" !in disabledBasicTools(basicTools)
     val replyContext = previousExchange?.prompt(canRead).orEmpty()
@@ -113,46 +110,4 @@ internal fun appForegroundLine(context: android.content.Context): String {
 
 internal fun foregroundLine(label: String, packageName: String, words: ModelWords = AppHost.words): String =
     words.foregroundApp(label, packageName)
-
-/**
- * When to send 网上核实 (owner 2026-10-19: 除了导航给出的数据，也派一个核实的 agent 去网页上搜一下，不一定在哪种场景下
- * 触发; 先答再补报; 不能拖慢正常导航，只在需要印证的查询里触发). A rule of the main agent's, not a skill matched by
- * words, so any scene can use it; on the bench the type's description alone left a nearby-food answer at the map's data,
- * and a spawn of its own cost the answer a model round (≈3.5 s), so it goes out with the card.
- */
-@InternalAppServerApi
-const val WEB_VERIFY_RULE =
-    "Verify online with web-verify only where the map's data is not enough to choose: places to eat, stay or visit the " +
-        "user asked you to find or recommend (from a place search), or a flight or train the user named. Answer from the " +
-        "service data and call spawn_agent with agent=web-verify in the same response as show_card, not as a step of its " +
-        "own (task: the items as the service gave them with their addresses, the city, today's date, what to check). Say in " +
-        "the reply that you are checking online; do not wait_agent (except for a flight or train whose arrival decides when " +
-        "the user sets off: wait, then say when to leave): its result comes back as a report. When it does, put " +
-        "what it found on the card (show_card) and speak at most two short sentences: only what changes the choice (a place " +
-        "that is closed or not what it seemed, the best pick now); the details stay on the card. Do not read the list or " +
-        "the options again. Never for navigating to a place the user named; fuel, charging, parking, toilets or service " +
-        "areas; a route, distance or arrival time; device control; what you found by searching the web yourself (check " +
-        "that in the same turn instead); or things the user did not ask about."
-
-/**
- * Questions the web answers (owner 2026-10-19: 「这周末有什么活动」本来就该走 search，不用再派核实; 需要印证的同时发出去，
- * 最后综合判断一起发出来). On the bench the agent searched once, answered, then sent web-verify, which searched the
- * same events one per step for 35 s and came back as a second answer; parallel calls of one response run together.
- * Sightseeing routes are here too, not a skill of their own (owner 2026-10-19: 不要一个功能一个 skill): on the bench
- * 「八景都玩一遍」 was filled from memory and routed all eight for one afternoon although two closed before arrival.
- * Weather too (owner 2026-10-25: 「天气直接走deepseek的搜索就行了」): asked with the time, the agent looked for a tool and
- * listed files twice before it searched.
- */
-@InternalAppServerApi
-const val WEB_SEARCH_RULE =
-    "Weather (now, today, tomorrow, the coming days; rain, temperature, wind) is a web search: search in the first step, " +
-        "not search_tools for a weather tool and not files, and answer with the place and the day. " +
-        "Questions the web answers (events and shows, news, opening times, prices): search. When the results leave several " +
-        "items the user would pick from unsure (dates, venue or tickets only from a listing or an old page), search those " +
-        "all in one step, several search calls in the same response rather than one per step, then answer once with what " +
-        "you checked on the card (show_card). Do not answer before those checks, and do not spawn web-verify for them. " +
-        "A route through places with opening hours (sights, shops; for a named set such as 「经典景点」 search which they " +
-        "are, not from memory): check today's hours in that same step, estimate each arrival from now with time to look " +
-        "around, decide which fit today before you calculate, route today only those, and say what moves to tomorrow " +
-        "with an offer to remind; what you say and the route you start must match."
 

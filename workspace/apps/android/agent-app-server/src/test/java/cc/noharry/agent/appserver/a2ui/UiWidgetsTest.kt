@@ -179,14 +179,22 @@ class UiWidgetsTest {
     }
 
     @Test
-    fun theClosingOfferNamesTheCloudAssistantOnlyWhileItIsConnected() = runBlocking {
+    fun aCardShowsAsDrawnAndTheHostsHooksCheckFinishAndClose() = runBlocking {
         val card = """{"title":"潮州两日游","items":[{"title":"广济桥"}]}"""
-        val connected = OfferToolProvider(BindableTools(listOf(ScreenProvider())), cloudAssistant = true) { NOW }
-            .callTool(SHOW_CARD_TOOL, card, ToolCallContext(SESSION, TURN, TURN))
         val alone = call(SHOW_CARD_TOOL, card)
+        assertEquals("已显示在屏幕上。finish 用一两句话说要点，不要再逐条列出卡片内容。", alone.message())
 
-        assertTrue(connected.resultJson, connected.resultJson.contains("发给云端助手"))
-        assertTrue(alone.resultJson.contains("提醒出发") && !alone.resultJson.contains("云端助手"))
+        val hooks = object : CardHooks {
+            override fun problem(runId: String, card: WidgetCard) = "太赶了".takeIf { card.title == "太赶" }
+            override suspend fun finish(card: WidgetCard) = card.copy(subtitle = "已核对")
+            override fun closing() = "结尾问要不要提醒。"
+        }
+        val hosted = OfferToolProvider(BindableTools(listOf(ScreenProvider())), hooks) { NOW }
+        val shown = hosted.callTool(SHOW_CARD_TOOL, card, ToolCallContext(SESSION, TURN, TURN))
+        assertTrue(shown.resultJson, shown.message()!!.endsWith("不要再逐条列出卡片内容。结尾问要不要提醒。"))
+        assertEquals("已核对", OfferStore.latest(SESSION)!!.cards.single().subtitle)
+        val refused = hosted.callTool(SHOW_CARD_TOOL, """{"title":"太赶","items":[{"title":"广济桥"}]}""", ToolCallContext(SESSION, TURN, TURN))
+        assertTrue(refused.resultJson, !refused.success && refused.message()!!.startsWith("太赶了"))
     }
 
     @Test
@@ -345,13 +353,12 @@ class UiWidgetsTest {
     }
 
     @Test
-    fun aTripTooTightIsSentBackOnceAndItsRevisionShows() = runBlocking {
+    fun aTripShowsAsDrawnWithoutAHostsCheck() = runBlocking {
         val tight = """{"title":"上海⇄杭州 · 2 日行程","layout":"trip","items":[
             {"kind":"transport","title":"去程 · G205 高铁","value":"07:00 → 07:45"},
             {"kind":"transport","title":"回程 · G7364 高铁","value":"16:00 → 16:50"},
             {"group":"D2","title":"河坊街","value":"14:00–15:30"}]}"""
 
-        assertEquals("WIDGET_INVALID", call(SHOW_CARD_TOOL, tight).code())
         assertTrue(call(SHOW_CARD_TOOL, tight).success)
         assertEquals(CardLayout.TRIP, OfferStore.latest(SESSION)!!.cards.last().layout)
     }
@@ -407,6 +414,8 @@ class UiWidgetsTest {
     private suspend fun call(tool: String, args: String): ToolCallResult = tools.callTool(tool, args, ToolCallContext(SESSION, TURN, TURN))
 
     private fun ToolCallResult.code(): String? = Json.parseToJsonElement(resultJson).jsonObject["code"]?.jsonPrimitive?.content
+
+    private fun ToolCallResult.message(): String? = Json.parseToJsonElement(resultJson).jsonObject["message"]?.jsonPrimitive?.content
 
     private fun Offer.sliders(): List<SliderOffer> = controls.filterIsInstance<SliderOffer>()
 }

@@ -17,7 +17,7 @@ fun appModelInput(text: String, previous: PreviousExchange?): String {
     if (reply.isEmpty() || '\n' in reply || !reply.isShortReply()) return text
     if (previous == null || previous.status !in ANSWERABLE_STATUSES) return text
     val closing = previous.assistantText.closingExcerpt().ifBlank { return text }
-    return "$FOLLOW_UP_FRAME_HEADER\n$closing\n$FOLLOW_UP_FRAME_FOOTER\nUser reply: $reply"
+    return "$FOLLOW_UP_FRAME_HEADER\n$closing\n$FOLLOW_UP_FRAME_FOOTER\n$USER_REPLY_MARK $reply"
 }
 
 /**
@@ -68,6 +68,14 @@ private fun String.closingExcerpt(): String {
 @InternalAppServerApi
 const val FOLLOW_UP_FRAME_HEADER =
     "Short reply to your immediately preceding message. Closing part of that message (quoted conversation data):"
+/**
+ * A framed short reply ([appModelInput]) as the message it answers, quoted, and the user's own reply; null for any other
+ * input.
+ */
+fun String.followUpParts(): Pair<String, String>? =
+    if (startsWith(FOLLOW_UP_FRAME_HEADER)) substringBefore(USER_REPLY_MARK) to substringAfter(USER_REPLY_MARK, "").trim() else null
+
+private const val USER_REPLY_MARK = "User reply:"
 private const val FOLLOW_UP_FRAME_FOOTER =
     "Bind the reply below to this message only; older offers are not pending. If the reply is a new request instead, handle it as new."
 private const val MAX_SHORT_REPLY_CODE_POINTS = 12

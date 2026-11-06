@@ -7,7 +7,7 @@ import okhttp3.Dns
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
-// What a card's picture may name when the server fetches it (trip photos, the header it picks). The app keeps the same
+// What a card's picture may name when the server fetches it (a page's pictures, a photo's size). The app keeps the same
 // rules for the pictures it loads (image/Pictures.kt): the two sides check alike, each with its own client.
 
 /**

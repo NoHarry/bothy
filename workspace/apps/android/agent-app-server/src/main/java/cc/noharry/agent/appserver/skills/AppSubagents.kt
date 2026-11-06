@@ -128,6 +128,9 @@ object AppSubagents {
     /** Whether spawn_agent offers the type [name] now. */
     fun offers(name: String): Boolean = types.any { it.name == name }
 
+    /** The types spawn_agent offers now, by id. */
+    fun offeredTypeIds(): Set<String> = types.mapTo(linkedSetOf()) { it.name }
+
     private fun offeredTypes(context: Context, deepSeekLookup: Boolean): List<SubagentType> =
         loadSubagentKinds(context).filter { it.enabled && (deepSeekLookup || !it.requiresDeepSeekLookup) }.map { it.toSubagentType() }
 
@@ -384,8 +387,13 @@ private fun pictureRule() = modelText(
  * is kept as the turn's user text, which later requests show the model, so it stays in the model's words whatever the
  * screens' language. It carries every child of the batch (owner 2026-10-17: a turn per child made the agent repeat
  * itself and say "还在查" about results it had not been handed yet), and [stillWorking] names siblings that are not done.
+ * [closingOf] gives a type's own closing ([SubagentKind.reportClosing]).
  */
-internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyList(), now: Long = System.currentTimeMillis()): A2aReport {
+internal fun SubagentReport.toReport(
+    stillWorking: List<SubagentStatus> = emptyList(),
+    now: Long = System.currentTimeMillis(),
+    closingOf: (type: String) -> String? = { type -> AppHost.runs.subagentKinds().firstOrNull { it.id == type }?.reportClosing },
+): A2aReport {
     val labels = statuses.joinToString(modelText("", ", ")) { modelText("「${it.label}」", "\"${it.label}\"") }
     val display = when {
         statuses.size == 1 -> statuses.single().reportHeadline()
@@ -406,10 +414,11 @@ internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyL
             appendLine(modelText("这一批都在这里了，不用再调用 wait_agent。", "This is the whole batch; no need to call wait_agent."))
         }
         if (statuses.any { it.result.hasImageLines() }) appendLine(pictureCardHint())
-        // 网上核实 adds to an answer already spoken: the details belong on the card, the voice keeps to what changed (on the
-        // bench a 「汇总」 here outweighed the system rule and the report was read out for 35–45 s).
-        if (statuses.all { it.agentType == WEB_VERIFY_KIND }) append(verifyReportClosing())
-        else {
+        // A type may say what its report is for ([SubagentKind.reportClosing]); a batch of one such type gets it.
+        val closing = statuses.map { it.agentType }.distinct().singleOrNull()?.let(closingOf)
+        if (closing != null) {
+            append(closing)
+        } else {
             append(
                 modelText(
                     "用一段话把对用户有用的部分汇总告诉用户，不要逐个复述过程，也不要用「好的」之类的话开头。",
@@ -420,15 +429,6 @@ internal fun SubagentReport.toReport(stillWorking: List<SubagentStatus> = emptyL
     }
     return A2aReport(display = display, model = model)
 }
-
-private fun verifyReportClosing() = modelText(
-    "这是对你刚才那个回答的网上核实。把核实到的细节更新到卡片上（show_card），嘴上最多说两句短话：只说会改变选择的" +
-        "（哪家关了或对不上号、现在最推荐哪家），其余留在卡片上；不要再列选项，不要逐家复述，也不要用「好的」「核实回来」之类的话开头。",
-    "This is the web check of the answer you just gave. Update the card with the checked details (show_card) and say two short " +
-        "sentences at most: only what changes the choice (which place is closed or does not match, which is now the best pick), " +
-        "leaving the rest on the card; do not list the options again or go through each place, and do not open with \"OK\", " +
-        "\"The check is back\" or the like.",
-)
 
 private fun SubagentStatus.reportHeadline(): String = when (state) {
     SubagentState.COMPLETED -> modelText("后台任务「$label」完成了", "Background task \"$label\" is done")

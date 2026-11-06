@@ -27,6 +27,9 @@ import kotlinx.serialization.json.put
 /** The A2A profiles saved on this device, as the settings list them. */
 fun loadA2aProfiles(context: Context): List<A2aProfile> = A2aModuleConfig.load(context).state.profiles
 
+/** Whether the user has an agent of their own connected (an enabled A2A profile); preferences only, cheap per run. */
+fun a2aAgentConnected(context: Context): Boolean = A2aModuleConfig.hasEnabledProfiles(context)
+
 /** Outcome of a user-profile save attempt: either a reloaded config or a validation reason. */
 @InternalAppServerApi
 sealed interface A2aSaveResult {

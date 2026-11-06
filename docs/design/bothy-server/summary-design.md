@@ -137,7 +137,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 名字（握手时的 `serverInfo.name`）；
   - 人设（`Persona`）：助手叫什么，系统提示词开头那句“你是谁、在哪个 App 里”；不给就是通用的“助手”。提示词和工具说明里模型读到的关于自己的话一律写“你”，不写名字；
   - 插件（`AppServerFeature`）：进程启动时起什么（`install`）、答哪些请求（`routes`）、往状态里发布什么（`publish`，多是 `ExtensionSection`）、App 进出前台和悬浮窗来去时做什么，每样都可以不要；
-  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、工具包装、自带的工具、skill 和子 agent 类型，以及哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们）；
+  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、系统提示里的规则、工具调用的闸门、远端工具的说明、工具包装、自带的工具、skill 和子 agent 类型，哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们；卡片显示前的检查和补充、回复怎么收尾（`CardHooks`）；回放检查里哪些请求必须调用服务、回答还有什么问题。通用层默认都不加：Bothy 的下单确认、网上核实、天气活动走联网搜索、长回答画页面、行程卡片的时间检查和配图、车机请求的回放检查都在 `BothyRuns` 里）；
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
   - A2A（`A2aHost`）：本机的 A2A 端点（`127.0.0.1:8766/a2a`）开不开，别的客户端交来的请求里宿主自己的命令（`intercept`），别的客户端的任务开始时宿主做什么（`inboundStarted`），交给别的 agent 的任务把来源写成什么（`contextSource`）；不给就不开端点、什么都不弹，来源写 `device`。Bothy 开端点，外部任务一来就弹出卡片，认 `carOverlay=show|hide`、`carOverlayOnly=true`，来源写 `car`（中转那边已配对的 Bot 认这个名字）。

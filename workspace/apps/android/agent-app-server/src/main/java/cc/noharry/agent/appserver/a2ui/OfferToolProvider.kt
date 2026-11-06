@@ -45,10 +45,8 @@ import kotlinx.serialization.json.put
  */
 internal class OfferToolProvider(
     private val bindable: BindableTools,
-    /** What a card gets before it shows: a trip's photos, the header the device picks ([cardFinisher]). */
-    private val finishCard: (suspend (WidgetCard) -> WidgetCard)? = null,
-    /** The user's own cloud assistant is connected (an enabled A2A profile): the closing offer names it too. */
-    private val cloudAssistant: Boolean = false,
+    /** The host's check of a card, what a card gets before it shows and how the reply closes ([CardHooks]). */
+    private val cards: CardHooks = CardHooks.NONE,
     private val nowMillis: () -> Long = System::currentTimeMillis,
 ) : McpClientProvider, ToolPrefetchProvider, ToolCatalogCacheIdentity {
     override val serverId: String = OFFER_TOOL_SERVER_ID
@@ -56,7 +54,6 @@ internal class OfferToolProvider(
     override val catalogCacheIdentity: String get() = "app-server:$OFFER_TOOL_SERVER_ID:v2:${if (AppHost.words.isChinese) "zh" else "en"}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
-    private val tripTiming = TripTimingGate()
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
         ToolDescriptor(
@@ -103,25 +100,20 @@ internal class OfferToolProvider(
                 OFFER_SWITCH_TOOL -> withControl(parseSwitchOffer(args, bindable))
                 OFFER_CHOICE_TOOL -> withControl(parseChoiceOffer(args, bindable))
                 else -> parseCard(args).let { parsed ->
-                    tripTiming.problem(context.requestId, parsed)?.let { throw IllegalArgumentException(it) }
-                    withCard(finishCard?.invoke(parsed) ?: parsed)
+                    cards.problem(context.requestId, parsed)?.let { throw IllegalArgumentException(it) }
+                    withCard(cards.finish(parsed))
                 }
             }
         } catch (invalid: IllegalArgumentException) {
             return failure("WIDGET_INVALID", invalid.message.orEmpty(), widgetFallback())
         }
-        val cards = OfferStore.update(context.sessionId, context.requestId, nowMillis(), change).cards.size
+        val shownCards = OfferStore.update(context.sessionId, context.requestId, nowMillis(), change).cards.size
         val message = if (toolName == SHOW_CARD_TOOL) {
-            val shown = if (cards > 1) modelText("（这一轮共 $cards 张卡片，一起显示）", " ($cards cards this round, shown together)") else ""
-            // The reply's closing offer follows when the place is due (owner 2026-10-19: 周六的演出问「要不要算路过去」不符合
-            // 现实). Here, right before finish, rather than in the voice skill, which has no room left in the host prompt.
+            val shown = if (shownCards > 1) modelText("（这一轮共 $shownCards 张卡片，一起显示）", " ($shownCards cards this round, shown together)") else ""
             modelText(
-                "已显示在屏幕上$shown。finish 用一两句话说要点，不要再逐条列出卡片内容。结尾问下一步要合时宜：马上要去的才问导航；" +
-                    "改天或几个小时以后的，问要不要到点提醒出发。",
-                "Shown on the screen$shown. In finish, give the main point in a sentence or two, without listing the card's content " +
-                    "again. End by offering a next step that fits the time: directions only for a place to go now; for one days or " +
-                    "hours away, a reminder when it is time to set off.",
-            ) + if (cloudAssistant) cloudAssistantOffer() else ""
+                "已显示在屏幕上$shown。finish 用一两句话说要点，不要再逐条列出卡片内容。",
+                "Shown on the screen$shown. In finish, give the main point in a sentence or two, without listing the card's content again.",
+            ) + cards.closing()
         } else {
             modelText(
                 "已显示在屏幕上。finish 用一句话说明调好后点确定，也可以直接说，不要列选项。",
@@ -268,16 +260,6 @@ internal const val OFFER_OPTIONS_TOOL = "offer_options"
 private const val MAX_SLIDERS = 3
 private const val MAX_CONTROLS = 5
 private const val MAX_CARDS = 3
-
-/**
- * Owner 2026-10-19: 云端助手已经登录时，旅行规划要问要不要发给云端助手. The trip skill's own closing said so, but the
- * line here, right before finish, offered only reminders and won; with the assistant connected it now says it too.
- */
-private fun cloudAssistantOffer() = modelText(
-    "云端助手连着，同一个问题里也问要不要把这些发给云端助手（备份行程、订票、存进日历）。",
-    " The user's own agent is connected: in the same question, also offer to hand this to it (to keep the itinerary, book " +
-        "tickets, put it in the calendar).",
-)
 
 /**
  * Whether [next] draws this card again: the same title but for spaces and punctuation, or mostly the same items (on

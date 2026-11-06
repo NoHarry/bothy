@@ -321,8 +321,8 @@ private val CLOCK_PLAIN: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm"
 private const val PLAN_DUE_MARK_ZH = "【计划到点】"
 private const val PLAN_DUE_MARK_EN = "[Plan due]"
 
-/** Whether [this] run input is a plan's own run coming due. */
-internal fun String.isPlanRun(): Boolean = startsWith(PLAN_DUE_MARK_ZH) || startsWith(PLAN_DUE_MARK_EN)
+/** Whether [this] run input is a plan's own run coming due: it carries what the user approved when making the plan. */
+fun String.isPlanRun(): Boolean = startsWith(PLAN_DUE_MARK_ZH) || startsWith(PLAN_DUE_MARK_EN)
 
 /** Whether a reminder's message already says what its watch reached: 「续航低于50公里了」 names 「续航低于50公里」. */
 private fun String.namesReading(watchText: String): Boolean =

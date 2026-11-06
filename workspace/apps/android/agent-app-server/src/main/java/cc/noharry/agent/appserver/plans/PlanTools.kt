@@ -98,14 +98,16 @@ class PlanToolProvider(private val host: PlanHost) : McpClientProvider, ToolPref
 
     override val serverId: String = PLAN_SERVER_ID
     override val displayName: String get() = modelText("计划", "Plans")
-    override val catalogCacheIdentity: String get() = "app-server:$PLAN_SERVER_ID:v2:${if (AppHost.words.isChinese) "zh" else "en"}"
+    override val catalogCacheIdentity: String get() = "app-server:$PLAN_SERVER_ID:v3:${if (AppHost.words.isChinese) "zh" else "en"}"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
 
     override suspend fun listTools(): List<ToolDescriptor> = listOf(
-        ToolDescriptor(
-            name = PLAN_TOOL, title = modelText("安排计划", "Plans"), description = modelText(PLAN_DESCRIPTION, PLAN_DESCRIPTION_EN),
-            inputSchemaJson = planSchema(),
+        AppHost.runs.describeTool(
+            ToolDescriptor(
+                name = PLAN_TOOL, title = modelText("安排计划", "Plans"), description = modelText(PLAN_DESCRIPTION, PLAN_DESCRIPTION_EN),
+                inputSchemaJson = planSchema(),
+            ),
         ),
     )
 
@@ -344,7 +346,7 @@ internal val PLAN_CUES = Cues(
 private fun todayText(date: java.time.LocalDate): String =
     modelText("$date ${PLAN_WEEKDAYS[date.dayOfWeek.value - 1]}", "$date ${date.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)}")
 private val NON_NAME = Regex("[^A-Za-z0-9_-]")
-@InternalAppServerApi
+/** The plan tool's name ([RunAddOns.describeTool] sees it as the host words it). */
 const val PLAN_TOOL = "plan_manage"
 /** Today plus up to six plans: what is left of the runtime's 32 context facts after 记忆's 24, with one to spare. */
 internal const val MAX_PLAN_FACTS = 7
@@ -368,8 +370,7 @@ private val PLAN_DESCRIPTION = """
     时一起问，按回答写 watch 的 repeat（true 每次、false 一次），不要自己定。title 是简短的名字；message 是触发时原样念给用户的
     完整一句话；instruction 是触发时让你去办的事。今天的日期和进行中的计划在 runtime_context 里（predicate 为 today 和
     plan，id 用于 update、pause、resume、delete）。结果里的 when 和 next 是算好的说法，照着用一句话复述。不要答应提醒或
-    自动执行却不创建计划。推荐的去处、演出或活动离出发还早时（改天，或几个小时以后），回复结尾问要不要到点提醒你出发（连了
-    云端助手的也可以问要不要发给它），不要问现在导航过去；马上要去的才问导航。
+    自动执行却不创建计划。
 """.trimIndent().replace("\n", "")
 private val PLAN_DESCRIPTION_EN = """
     Schedule, change, pause, resume, delete and list (list) plans: timed reminders, timed things to do, and a reminder, a

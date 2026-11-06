@@ -1,17 +1,11 @@
-package cc.noharry.agent.appserver.a2ui
+package cc.noharry.bothy.server.cards
 
-import android.content.Context
-import android.graphics.BitmapFactory
-import cc.noharry.agent.appserver.image.generatedImageFile
 import cc.noharry.agent.appserver.protocol.view.CardLayout
-import cc.noharry.agent.appserver.protocol.view.SAVED_PICTURE
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import java.io.IOException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -44,17 +38,6 @@ internal suspend fun WidgetCard.withBestHeader(measure: suspend (String) -> Pair
         .filter { (_, size) -> size.first >= HEADER_MIN_WIDTH_PX && size.first >= size.second * HEADER_MIN_ASPECT }
         .maxByOrNull { (_, size) -> size.first.toLong() * size.second }
     return copy(image = best?.first)
-}
-
-/** A card picture's size: a saved one's from its file, a public one's from the first bytes of the photo. */
-internal suspend fun cardPictureSize(context: Context, reference: String): Pair<Int, Int>? = when {
-    SAVED_PICTURE.matches(reference) -> withContext(Dispatchers.IO) {
-        val file = generatedImageFile(context, reference) ?: return@withContext null
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.path, bounds)
-        (bounds.outWidth to bounds.outHeight).takeIf { it.first > 0 && it.second > 0 }
-    }
-    else -> photoSize(reference)
 }
 
 private const val MAX_HEADER_CANDIDATES = 6

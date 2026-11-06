@@ -1,11 +1,10 @@
-package cc.noharry.agent.appserver.a2ui
+package cc.noharry.bothy.server.cards
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardItemKind
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.TripMode
+import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.tripMode
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -87,13 +86,14 @@ class TripTimingTest {
         assertNull(tripTimingProblem(trip(back = "待确认", lastDay = listOf("下午" to "杜甫草堂"))))
         assertNull(tripTimingProblem(listOf(CardItem(null, "宽窄巷子", null, "14:00", group = "D1"))))
 
-        val card = parseCard(
-            Json.parseToJsonElement(
-                """{"title":"上海⇄成都 · 3 日行程","layout":"trip","items":[
-                  {"kind":"transport","title":"去程 · 3U6992 川航","value":"08:00 → 10:55"},
-                  {"kind":"transport","title":"回程 · 3U8961 川航","value":"17:30 → 20:20"},
-                  {"title":"杜甫草堂","value":"14:00–16:00","group":"D3"}]}""",
-            ).jsonObject,
+        val card = WidgetCard(
+            "上海⇄成都 · 3 日行程", null, null, null, emptyList(),
+            listOf(
+                CardItem(null, "去程 · 3U6992 川航", null, "08:00 → 10:55", kind = CardItemKind.TRANSPORT),
+                CardItem(null, "回程 · 3U8961 川航", null, "17:30 → 20:20", kind = CardItemKind.TRANSPORT),
+                CardItem(null, "杜甫草堂", null, "14:00–16:00", group = "D3"),
+            ),
+            layout = CardLayout.TRIP,
         )
         val gate = TripTimingGate()
 

@@ -32,6 +32,11 @@ data class SubagentKind(
     val tools: Set<SubagentToolGroup> = DEFAULT_SUBAGENT_TOOLS,
     /** Offered only while some profile has DeepSeek's Search and Fetch APIs (an official key, or a relay that passed 检测). */
     val requiresDeepSeekLookup: Boolean = false,
+    /**
+     * What the main agent is told to do with this type's report, in the persona's language, instead of summing it up for
+     * the user: a check of an answer already given goes onto its card, say. Null sums it up.
+     */
+    val reportClosing: String? = null,
 ) {
     internal fun toSubagentType(): SubagentType = SubagentType(id, description)
 
@@ -133,7 +138,6 @@ val DEFAULT_SUBAGENT_TOOLS = setOf(
 private val SUBAGENT_KINDS: List<SubagentKind> get() = AppHost.runs.subagentKinds()
 
 internal const val AGENT_SECTION_PREFIX = "agent:"
-const val WEB_VERIFY_KIND = "web-verify"
 private const val SUBAGENT_KIND_PREFS = "debug_subagent_types"
 private const val KEY_TOOLS = ".tools"
 private const val KEY_MAX_LOOKUPS = ".max_lookups"

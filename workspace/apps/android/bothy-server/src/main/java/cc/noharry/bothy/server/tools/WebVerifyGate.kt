@@ -1,10 +1,9 @@
-package cc.noharry.agent.appserver.tools
+package cc.noharry.bothy.server.tools
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.HookContext
 import cc.noharry.agent.kernel.api.HookDecision
 import cc.noharry.agent.kernel.api.RuntimeHook
 import cc.noharry.agent.kernel.api.ToolUse
-import cc.noharry.agent.appserver.skills.WEB_VERIFY_KIND
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive

@@ -3,11 +3,15 @@ package cc.noharry.agent.appserver.runtime
 import android.content.Context
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.a2a.A2aHost
+import cc.noharry.agent.appserver.a2ui.CardHooks
 import cc.noharry.agent.appserver.evidence.AppDiagnostics
 import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.skills.RuntimeSkill
 import cc.noharry.agent.appserver.skills.SubagentKind
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.kernel.api.RuntimeHook
+import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.agent.kernel.api.ToolProvider
 import cc.noharry.agent.kernel.api.model.ModelClient
 
@@ -53,13 +57,47 @@ interface HostModels {
 }
 
 /**
- * What the host adds to each run it builds: lines for the run's context, a wrapper for every mounted tool provider (a
- * tool search picking tools before the first model call), whether the bundled example tools may be mounted, tool
- * providers, skills and subagent types of its own, and which of its servers work devices. An app without any keeps
- * [NONE].
+ * What the host adds to each run it builds: lines for the run's context, rules for its system prompt and gates on its
+ * tool calls, a wrapper for every mounted tool provider (a tool search picking tools before the first model call), how
+ * a remote tool reads, whether the bundled example tools may be mounted, tool providers, skills and subagent types of its
+ * own, which of its servers work devices, what its cards get before they show, and what a finished run must have done.
+ * An app without any keeps [NONE]: no rules, no gates, cards as the model drew them.
  */
 interface RunAddOns {
-    fun contextLines(context: Context): List<String> = emptyList()
+    /** Lines for this run's context, which changes every run (never the cached system prompt). */
+    fun contextLines(facts: RunFacts): List<String> = emptyList()
+
+    /**
+     * Rules for the system prompt beside the server's own, in the persona's language. The prompt is cached across runs,
+     * so they may depend only on what stays the same from run to run ([RunFacts.webSearch], [RunFacts.subagentTypes]).
+     */
+    fun systemRules(facts: RunFacts): List<String> = emptyList()
+
+    /** Gates on this run's tool calls (a yes before an order, say), after the server's own. */
+    @ExperimentalAgentRuntimeApi
+    fun runHooks(facts: RunFacts): List<RuntimeHook> = emptyList()
+
+    /**
+     * A tool as the model reads it, each time its list is read: a configured MCP server's, and the server's own plan tool
+     * ([cc.noharry.agent.appserver.plans.PLAN_TOOL]); a host adds a note on what one does or when to offer it.
+     */
+    fun describeTool(tool: ToolDescriptor): ToolDescriptor = tool
+
+    /** What show_card does with a card in this run: a check, what it gets before it shows, how the reply closes. */
+    fun cards(context: Context): CardHooks = CardHooks.NONE
+
+    /**
+     * Whether [request] asks for something a service must do (navigate, play, set): a run that ends without any such tool
+     * call fails its replay check (REPLAY_FAILED). None does by default.
+     */
+    fun requiresAction(request: String): Boolean = false
+
+    /**
+     * What the host finds wrong with a run's [answer] that passed otherwise; failures fail its replay. [request] is the run's
+     * input as its evidence keeps it: what the model read (a short reply framed with what it answers), spaces collapsed,
+     * at most 120 characters.
+     */
+    fun answerProblems(request: String, answer: String): AnswerProblems = AnswerProblems.NONE
 
     /** How each mounted tool provider is wrapped in a run with [sessionContext]; [simulated] for the fixture model. */
     fun toolWrapper(context: Context, sessionContext: String, simulated: Boolean): (ToolProvider) -> ToolProvider = { it }
@@ -84,6 +122,28 @@ interface RunAddOns {
 
     companion object {
         val NONE: RunAddOns = object : RunAddOns {}
+    }
+}
+
+/** What a run is, for the host's lines, rules and gates ([RunAddOns]). */
+class RunFacts(
+    val context: Context,
+    /** The request as the model reads it this run: a short reply framed with what it answers, a pick's frame. */
+    val userInput: String,
+    /** A subagent's run: its input is the task the main agent wrote, never the user's words. */
+    val child: Boolean,
+    /** The main agent searches the web itself (a web_search tool or the provider's own search); false in a subagent's run. */
+    val webSearch: Boolean,
+    /** The subagent types the main agent can start now ([SubagentKind.id]); none in a child or with spawn_agent off. */
+    val subagentTypes: Set<String>,
+    /** The model may draw a page now: show_html is offered and the conversation is on screen. */
+    val drawsPages: Boolean,
+)
+
+/** What a host's check found in a run's answer: [failures] fail its replay, [warnings] are only logged. */
+class AnswerProblems(val failures: List<String> = emptyList(), val warnings: List<String> = emptyList()) {
+    companion object {
+        val NONE = AnswerProblems()
     }
 }
 

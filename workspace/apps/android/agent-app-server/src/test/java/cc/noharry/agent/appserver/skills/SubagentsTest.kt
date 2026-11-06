@@ -195,10 +195,10 @@ class SubagentsTest {
         val pictured = SubagentReport("s", listOf(status.copy(result = "草莓音乐节\n图片：https://img.example.com/a.jpg")))
             .toReport()
         assertTrue(pictured.model, pictured.model.contains("图文卡片"))
-        // 网上核实 is relayed in two sentences at most, the details on the card.
-        val verified = SubagentReport("s", listOf(status.copy(agentType = WEB_VERIFY_KIND)))
-            .toReport()
-        assertTrue(verified.model, verified.model.contains("最多说两句短话") && verified.model.contains("show_card") && !verified.model.contains("用一段话"))
+        // A type that says how its report closes gets that instead of the summing up.
+        val checked = SubagentReport("s", listOf(status.copy(agentType = "check")))
+            .toReport(closingOf = { type -> "把核实到的放进卡片。".takeIf { type == "check" } })
+        assertTrue(checked.model, checked.model.endsWith("把核实到的放进卡片。") && !checked.model.contains("用一段话"))
         val input = subagentInput(SubagentSpec("sub-1", "s-sub-1", "s", "r", "苏州天气", "查苏州明天的天气", 1, null, false))
         assertTrue(input.contains("不能操作设备") && input.endsWith("查苏州明天的天气"))
         assertTrue(input.contains("web_fetch") && input.contains("图片："))

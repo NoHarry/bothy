@@ -2,10 +2,11 @@ package cc.noharry.agent.appserver.evidence
 
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.a2a.isDelegationReport
+import cc.noharry.agent.appserver.runtime.AppHost
 /**
- * Tools that count toward replay "business action" for actionable prompts
- * (navi/music/AC backend, plus hosted web_search for chat-style song trivia).
- * [web_search] is intentionally not internal so SearchActivity-backed runs pass.
+ * Tools that count toward replay "business action" for a request the host says must act ([requiresBusinessAction]): any
+ * service's tool, plus hosted web_search, so a question the web answers passes once searched (SearchActivity-backed
+ * runs).
  */
 internal fun RunToolEvidence.isMeaningfulBusinessTool(): Boolean =
     toolName.isNotBlank() && !toolName.isInternalToolName()
@@ -17,55 +18,16 @@ internal fun String.isInternalToolName(): Boolean =
 internal fun String.isHostedSearchToolName(): Boolean =
     equals(WEB_SEARCH_TOOL_NAME, ignoreCase = true)
 
+/**
+ * Whether [this] request asks for something a service must do, as the host judges it ([cc.noharry.agent.appserver.runtime.RunAddOns.requiresAction]): a
+ * delegation report is the device passing on another agent's result, never a request to act on.
+ */
 @InternalAppServerApi
-fun String.requiresBusinessAction(): Boolean {
-    // A delegation report is the device passing on another agent's result, not a request to act on.
-    if (isDelegationReport()) return false
-    val normalized = lowercase()
-    return ACTION_KEYWORDS.any { keyword -> normalized.contains(keyword) }
-}
-
-private val ACTION_KEYWORDS = listOf(
-    "导航",
-    "去",
-    "停车",
-    "厕所",
-    "洗手间",
-    "沿途",
-    "高速",
-    "路线",
-    "回家",
-    "音乐",
-    "歌曲",
-    "歌",
-    "播放",
-    "听",
-    "主题曲",
-    "电视剧",
-    "周杰伦",
-    "王菲",
-    "空调",
-    "温度",
-    "热",
-    "冷",
-    "音量",
-    "navigate",
-    "parking",
-    "toilet",
-    "restroom",
-    "route",
-    "music",
-    "song",
-    "play",
-    "hot",
-    "cold",
-    "warmer",
-    "cooler",
-)
+fun String.requiresBusinessAction(): Boolean = !isDelegationReport() && AppHost.runs.requiresAction(this)
 
 private const val WEB_SEARCH_TOOL_NAME = "web_search"
 
-/** Scaffold / harness tools — alone do not satisfy actionable car or music chat requests. */
+/** Scaffold / harness tools: alone they do not satisfy a request that must act. */
 private val INTERNAL_DEBUG_TOOL_NAMES = setOf(
     "finish",
     "list_dir",

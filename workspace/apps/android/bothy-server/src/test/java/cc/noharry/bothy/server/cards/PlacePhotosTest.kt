@@ -1,11 +1,10 @@
-package cc.noharry.agent.appserver.a2ui
+package cc.noharry.bothy.server.cards
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardItemKind
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import java.util.Collections
 import kotlinx.coroutines.runBlocking
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -66,18 +65,5 @@ class PlacePhotosTest {
         assertEquals(listOf("熊猫基地 成都 景点"), searched)
         assertNull(findPlacePhoto(listOf("熊猫基地 成都"), search, { pictures.getValue(it) }, { sizes[it] }))
         assertNull(findPlacePhoto(listOf("没有"), { emptyList() }, { emptyList() }, { null }))
-    }
-
-    @Test
-    fun aPagesCoverComesFirstThenThePhotosInItsText() {
-        val page = "https://you.example.com/sight/panda".toHttpUrl()
-        val html = """<head><meta content="/p/panda.jpg?a=1&amp;b=2" property="og:image"></head><body>
-            <img src="/static/logo.png"><img data-original="https://cdn.example.com/hall.jpg" src="/loading.gif">
-            <img src="http://cdn.example.com/plain.jpg"><img src="https://cdn.example.com/saleslist/sales_legacy.png"><img src="https://res.example.com/images/w_1200,l_Site_water_br_trans/tianchi.jpg"><img src="https://cdn.example.com/qrcode.jpg"><img src="//cdn.example.com/garden.jpg"></body>"""
-
-        assertEquals(
-            listOf("https://you.example.com/p/panda.jpg?a=1&b=2", "https://cdn.example.com/hall.jpg", "https://cdn.example.com/garden.jpg"),
-            pagePictures(html, page),
-        )
     }
 }

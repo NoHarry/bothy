@@ -7,12 +7,10 @@ import cc.noharry.agent.androiduse.AndroidUseOptions
 import cc.noharry.agent.androiduse.AndroidUseToolProvider
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.a2a.A2aBridgeProvider
-import cc.noharry.agent.appserver.a2a.A2aModuleConfig
 import cc.noharry.agent.appserver.a2a.A2aNamingGate
 import cc.noharry.agent.appserver.a2ui.BindableTools
 import cc.noharry.agent.appserver.a2ui.BoundCallHints
 import cc.noharry.agent.appserver.a2ui.OfferToolProvider
-import cc.noharry.agent.appserver.a2ui.cardFinisher
 import cc.noharry.agent.appserver.androiduse.AppAndroidUsePresenter
 import cc.noharry.agent.appserver.androiduse.androidUseReady
 import cc.noharry.agent.appserver.evidence.AppDiagnostics
@@ -51,7 +49,6 @@ import cc.noharry.agent.appserver.server.AppScreen
 import cc.noharry.agent.appserver.skills.AppSubagents
 import cc.noharry.agent.appserver.skills.SkillToolProvider
 import cc.noharry.agent.appserver.skills.SubagentKind
-import cc.noharry.agent.appserver.skills.WEB_VERIFY_KIND
 import cc.noharry.agent.appserver.skills.WorkflowSkill
 import cc.noharry.agent.appserver.skills.loadRuntimeSkills
 import cc.noharry.agent.appserver.skills.loadSubagentSettings
@@ -59,9 +56,7 @@ import cc.noharry.agent.appserver.skills.preloadedSkillBodies
 import cc.noharry.agent.appserver.skills.selectedWorkflowSkills
 import cc.noharry.agent.appserver.skills.systemPromptIds
 import cc.noharry.agent.appserver.skills.withSubagentSwitch
-import cc.noharry.agent.appserver.tools.ActionGate
 import cc.noharry.agent.appserver.tools.MediaToolHints
-import cc.noharry.agent.appserver.tools.WebVerifyGate
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
@@ -146,7 +141,7 @@ fun buildRuntime(
     // DeepSeek's Search API in place of the provider's server-side search, when the profile (or, for a subagent, the
     // subagent settings) say so.
     val childSearchApi = subagentChild && (subagentKind?.searchApi ?: loadSubagentSettings(context).searchApi)
-    // A type that needs DeepSeek's lookups (网上核实) is offered only while some profile has them.
+    // A type that needs DeepSeek's lookups ([SubagentKind.requiresDeepSeekLookup]) is offered only while some profile has them.
     if (!subagentChild) AppSubagents.refreshTypes(context, config.hasDeepSeekKey(context))
     // A type without 联网搜索 gets neither web_search nor the provider's own search (the guard cannot stop the latter).
     val searches = subagentKind?.searches ?: true
@@ -164,23 +159,28 @@ fun buildRuntime(
     // The time, the app in front and where delegations stand, all per run (the run context, never the cached system prompt).
     val drawPages = !subagentChild && pagesOffered(profile)
     val pageOnScreen = AppScreen.inFront
-    val clock = (listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context)) + AppHost.runs.contextLines(context) +
-        a2aBridgeProviders.map(A2aBridgeProvider::runNote) + listOfNotNull(pagesRule(drawPages, pageOnScreen)))
+    val spawns = !subagentChild && basicTools.any { it.name == "spawn_agent" && it.enabled }
+    val facts = RunFacts(
+        context = context,
+        userInput = userInput,
+        child = subagentChild,
+        webSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool()),
+        subagentTypes = if (spawns) AppSubagents.offeredTypeIds() else emptySet(),
+        drawsPages = drawPages && pageOnScreen,
+    )
+    val clock = (listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context)) + AppHost.runs.contextLines(facts) +
+        a2aBridgeProviders.map(A2aBridgeProvider::runNote) + listOfNotNull(pagesAwayRule(drawPages, pageOnScreen)))
         .filter(String::isNotBlank).joinToString("\n")
-    val verifyAgent = !subagentChild && AppSubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
-    val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
+    val hostRules = AppHost.runs.systemRules(facts)
     val systemSkills = skills.systemPromptIds()
     val prompt = if (carried.isEmpty()) {
         runtimePrompt(
             sessionContext, basicTools, preloadedSkillBodies(context, skills, userInput), previousExchange, deepSeekNative, clock,
-            verifyAgent, mainSearch, systemSkills,
+            hostRules, systemSkills,
         )
     } else {
         val bodies = preloadedSkillBodies(context, skills, userInput).filterNot { (id, _) -> carried.carriesSkill(id) }
-        runtimePrompt(
-            "", basicTools, bodies, nativeTools = deepSeekNative, clock = clock, verifyAgent = verifyAgent, webSearch = mainSearch,
-            systemSkills = systemSkills,
-        )
+        runtimePrompt("", basicTools, bodies, nativeTools = deepSeekNative, clock = clock, hostRules = hostRules, systemSkills = systemSkills)
     }
     val wrapTools = AppHost.runs.toolWrapper(context, sessionContext, useSimulatedModel)
     val imageInput = loadModelImageInput(context, config.editState(profile))
@@ -240,10 +240,8 @@ fun buildRuntime(
     .hook(RawToolTranscriptHook(onRawToolTranscript))
     .apply {
         hostHook?.let(::hook)
-        if (verifyAgent) hook(WebVerifyGate(userInput))
-        // Orders and payments wait for the user's yes (ActionGate), read in the user's own words, never in a
-        // quoted reply or a child's task.
-        hook(ActionGate(userInput, child = subagentChild))
+        // The host's gates: an order waiting for the user's yes, say.
+        AppHost.runs.runHooks(facts).forEach(::hook)
         if (basicTools.any { it.name == "exec_js" && it.enabled }) execEngine(ZiplineExecEngine())
         // Production entry: only when host explicitly sets benchCaseBound=true.
         // Hash [userInput] as-is (same bytes as AgentRequest.input) — no trim/normalize.
@@ -312,8 +310,7 @@ private fun AgentRuntimeBuilder.applyMcpProviders(
         toolProvider(
             OfferToolProvider(
                 BindableTools(mounted),
-                finishCard = cardFinisher(context),
-                cloudAssistant = A2aModuleConfig.hasEnabledProfiles(context),
+                cards = AppHost.runs.cards(context),
             ),
         )
     }
@@ -335,31 +332,17 @@ private fun AgentRuntimeBuilder.applyAndroidUse(context: Context, imageInput: Bo
 }
 
 /**
- * When to draw (owner 2026-11-05: 长段的东西生成式 UI 应该更积极): a rule of the run while the conversation is on
- * screen, since in the tool's description alone the model kept a 978-character analysis as text and offered a drawing
- * at its end. While it is not, the run is told not to draw (a session may have taken the tool up in the app), in words
- * that do not name the tool.
+ * While the conversation is not on screen, the run is told not to draw (a session may have taken the tool up in the
+ * app, and a page nobody sees is refused), in words that do not name the tool. When to draw while it is on screen is
+ * the tool's description, and the host's rules ([RunAddOns.contextLines]).
  */
-private fun pagesRule(offered: Boolean, onScreen: Boolean): String? = when {
-    !offered -> null
-    onScreen -> modelText(PAGES_RULE, PAGES_RULE_EN)
+private fun pagesAwayRule(offered: Boolean, onScreen: Boolean): String? = when {
+    !offered || onScreen -> null
     else -> modelText(
         "用户现在没在看对话页（App 不在前台）：这次不画界面，用文字回答。",
         "The user is not looking at the conversation now (the app is not in front): draw no page this time; answer in words.",
     )
 }
-
-private const val PAGES_RULE =
-    "用户正看着对话页，可以画界面（show_html）：回答会超过三四百字，或有三个以上并列的要点、层次、步骤，或是比较、" +
-        "数字、时间线、行程、计划、简报、分析时，先用一句话说结论，再把内容画成页面，finish 只补一两句；不要长篇只用文字，" +
-        "也不要问要不要画。一两句能答的、闲聊、要复制的纯文本照常用文字。"
-
-private const val PAGES_RULE_EN =
-    "The user is looking at the conversation, so you may draw a page (show_html): when the answer would run past 300–400 " +
-        "words, or has three or more parallel points, levels or steps, or is a comparison, numbers, a timeline, an itinerary, a " +
-        "plan, a briefing or an analysis, first say the conclusion in one sentence, then draw the content as a page, and finish " +
-        "adds a sentence or two; do not write it all out in words, and do not ask whether to draw. What a sentence or two " +
-        "answers, small talk and plain text to copy stay in words."
 
 /** 画界面 ([PageToolProvider]), when [offered]; it draws only when the run started [onScreen]. */
 private fun AgentRuntimeBuilder.applyPages(context: Context, offered: Boolean, onScreen: Boolean): AgentRuntimeBuilder = apply {

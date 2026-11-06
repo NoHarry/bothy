@@ -5,7 +5,6 @@ import cc.noharry.agent.appserver.skills.DEFAULT_SUBAGENT_TOOLS
 import cc.noharry.agent.appserver.skills.RuntimeSkill
 import cc.noharry.agent.appserver.skills.SubagentKind
 import cc.noharry.agent.appserver.skills.SubagentToolGroup
-import cc.noharry.agent.appserver.skills.WEB_VERIFY_KIND
 import cc.noharry.bothy.server.R
 
 /**
@@ -92,5 +91,6 @@ internal val BOTHY_SUBAGENT_KINDS = listOf(
         searchApi = true,
         tools = VERIFY_TOOLS,
         requiresDeepSeekLookup = true,
+        reportClosing = VERIFY_REPORT_CLOSING,
     ),
 )

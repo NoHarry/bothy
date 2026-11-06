@@ -87,6 +87,17 @@ class FollowUpReplyTest {
     }
 
     @Test fun replayJudgesActionFromTypedTextNotFromTheQuotedFrame() {
+        AppHost.install(runs = object : RunAddOns {
+            override fun requiresAction(request: String) = "导航" in request
+        })
+        try {
+            replayJudgesTypedText()
+        } finally {
+            AppHost.install(runs = RunAddOns.NONE)
+        }
+    }
+
+    private fun replayJudgesTypedText() {
         val framed = appModelInput("不要", PreviousExchange(SESSION, "t", "u", TRIP_OFFER, "COMPLETED", "SUCCEEDED"))
         val request = AgentRequest("r", SESSION, framed, "debug-console")
         fun recorder(userText: String) = RunEvidenceRecorder(temporary.newFolder(), request, "p", "s", "b", userText = userText)
