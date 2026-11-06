@@ -137,7 +137,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 名字（握手时的 `serverInfo.name`）；
   - 人设（`Persona`）：助手叫什么，系统提示词开头那句“你是谁、在哪个 App 里”；不给就是通用的“助手”。提示词和工具说明里模型读到的关于自己的话一律写“你”，不写名字；
   - 插件（`AppServerFeature`）：进程启动时起什么（`install`）、答哪些请求（`routes`）、往状态里发布什么（`publish`，多是 `ExtensionSection`）、App 进出前台和悬浮窗来去时做什么，每样都可以不要；
-  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、系统提示里的规则、工具调用的闸门、远端工具的说明、工具包装、自带的工具、skill 和子 agent 类型，哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们；卡片显示前的检查和补充、回复怎么收尾（`CardHooks`）；回放检查里哪些请求必须调用服务、回答还有什么问题；回复里哪几行是语音边做边说的进度（`progressWords`），屏幕、会话记录和别的 agent 拿到的回复不带这些行，只有进度的回复也不算最终回答。通用层默认都不加：Bothy 的下单确认、网上核实、天气活动走联网搜索、长回答画页面、行程卡片的时间检查和配图、车机请求的回放检查、`TTS:` 进度行都在 `BothyRuns` 里）；
+  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型；模拟后端的模型 `simulated`，Bothy 给的是演示车机的脚本，不给就用通用的：问它是谁就自我介绍，别的只说收到了什么）、`RunAddOns`（每次运行加的上下文、系统提示里的规则、工具调用的闸门、远端工具的说明、工具包装、自带的工具、skill 和子 agent 类型，哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们；卡片显示前的检查和补充、回复怎么收尾（`CardHooks`）；回放检查里哪些请求必须调用服务、回答还有什么问题；回复里哪几行是语音边做边说的进度（`progressWords`），屏幕、会话记录和别的 agent 拿到的回复不带这些行，只有进度的回复也不算最终回答。通用层默认都不加：Bothy 的下单确认、网上核实、天气活动走联网搜索、长回答画页面、行程卡片的时间检查和配图、车机请求的回放检查、`TTS:` 进度行都在 `BothyRuns` 里）；
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
   - 自带功能（`BuiltInFeatures`）：计划（工具、定时和盯状态的计划、闹钟）、操作屏幕（开关打开时服务端自己把无障碍服务列上）、设备媒体、卡片和选项工具、开机和更新后自启（计划要它把闹钟重新设上）。默认都关：一个只带服务端的 App 不会开机自启，也不会去动无障碍设置。关着的功能没有自己的请求（问了回“方法不存在”），计划关着时计划的分区是空的、计划本也不读；握手时 `serverInfo.features` 列出开着的（`plans`、`androidUse`、`deviceMedia`、`cards`），客户端可以据此只给这些出界面。Bothy 全开，并在自己的 manifest 里把 `BootReceiver` 打开，带来这个开关的那次更新也照样自启。
@@ -147,6 +147,8 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
 - `BothyServer`（公开）就是 Bothy 的这份配置：人设是小博，插件是语音（含唤醒、实时、陪聊、Jev 工具检索）、本机模型、检查、Playground 和 Bothy 自己的设置页，口子是 `BothyVoice`、`BothyModels`、`BothyRuns`，配置文件多读一个 `tts` 段，位置是“设置 → 记忆”和“屏幕的悬浮窗上”。对外仍是 `install`（进程启动时由 `BothyApplication` 调）、`connect`（给一个进程内客户端）、`wakeUp`（没有前端时起状态来源，比如唤醒词、计划）。界面语言变化走协议的 `app/languageChanged`。
 - `agent-app-server` 只公开宿主用得上的东西，清单在 `agent-app-server/api/agent-app-server.api`，validate 比对；其余是 `internal`。跑在 Bothy 的 assets 和插件上的那些核心逻辑测试还留在 `bothy-server`，它们要用的名字标 `@InternalAppServerApi`（需要 opt-in，只有 `bothy-server` 的单测打开）；搬去内核仓时这些测试跟着核心走，标记就可以换成 `internal`。
 - 别的 App（手机上的独立 agent、别的场景的快速接入）用同一个 `AppServer`，配自己的插件，或者一个都不配；`agent-app-sample` 就是一个都不配的最小例子（一个界面，模拟模型，通用人设）。
+- 运行的场景（`AppServerConfig.scene`）默认 `app`：运行时按场景存学到的经验、筛选写了 `scenes` 的 skill、放工作区上下文。Bothy 沿用一直以来的 `debug-console`，设备上学到的经验和语音 skill 的场景都在它下面。
+- 卡片和选项工具的服务名是 `app_ui`（模型看到 `mcp__app_ui__show_card`）。宿主自带的示例工具（`assets/mcp/tools.json`）是什么由宿主说：Bothy 的是演示车机，在它的 `deviceServers` 里；通用层不把它们当设备。服务端自己的工具（卡片、计划、操作屏幕）和委托给别的 agent 的工具以外，`isServiceTool` 都认作服务的工具。
 - 通用层自己带运行时工作区的布局（`runtime-workspace/workspace.json`、工作区的 `AGENTS.md`）和计划自动执行的安全策略（`automation-policy.json`）；宿主没带的 assets（预置的 A2A 配置、skill、子 agent、模型预置）一律当作没有，不报错。
 - 状态来源（`StateSources`，接上运行时、MCP、A2A 等）在第一个要状态的客户端连上时才启动；不要状态的客户端（`capabilities.state = false`）连上不会启动任何东西。
 - `ServerHub`：发布状态（`StatePublisher` 算出条目和分区的变化）、管连接、广播通知；`ServerConnection` 一条连接一个，负责握手、审批请求的收发。

@@ -17,7 +17,7 @@ class WebVerifyGateTest {
     @Test
     fun whatTheAgentFoundBySearchingIsNotSentToTheVerifier() = runBlocking {
         val gate = WebVerifyGate("这周六深圳有哪些演出适合带孩子看，帮我确认下时间和票价")
-        gate.onPreToolUse(ToolUse("mcp__car_ui__show_card", "{}", ToolSource.BACKEND), context)
+        gate.onPreToolUse(ToolUse("mcp__app_ui__show_card", "{}", ToolSource.BACKEND), context)
 
         val decision = gate.onPreToolUse(verify, context)
 
@@ -39,7 +39,7 @@ class WebVerifyGateTest {
         val gate = WebVerifyGate("帮我规划下周去杭州三天")
 
         assertTrue(gate.onPreToolUse(ToolUse("spawn_agent", """{"agent":"trip-stay"}""", ToolSource.NATIVE_READ), context) is HookDecision.Allow)
-        assertTrue(gate.onPreToolUse(ToolUse("mcp__car_ui__show_card", "{}", ToolSource.BACKEND), context) is HookDecision.Allow)
+        assertTrue(gate.onPreToolUse(ToolUse("mcp__app_ui__show_card", "{}", ToolSource.BACKEND), context) is HookDecision.Allow)
     }
 
     @Test

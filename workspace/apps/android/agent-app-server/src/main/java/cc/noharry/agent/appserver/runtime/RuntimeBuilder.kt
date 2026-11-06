@@ -187,7 +187,7 @@ fun buildRuntime(
     model =
         AppModelClient(
             delegate = if (useSimulatedModel) {
-                FixtureModelClient()
+                AppHost.models.simulated() ?: FixtureModelClient()
             } else {
                 config.client(profile, streamEnabled, diagnostics)
             },
@@ -276,7 +276,7 @@ private fun AgentRuntimeBuilder.applyMcpProviders(
         mounted += provider
         toolProvider(if (provider is ToolCatalogCacheIdentity) provider else BoundCallHints(provider))
     }
-    // The bundled example tools (a demo car); the host may hold them back ([RunAddOns.exampleToolsAllowed]).
+    // The host's bundled example tools (assets/mcp/tools.json), if any; it may hold them back ([RunAddOns.exampleToolsAllowed]).
     if (providers.isProviderEnabled(DEBUG_MCP_PROVIDER_TOOLS_JSON) && AppHost.runs.exampleToolsAllowed()) {
         mount(configure(ToolsJsonMcpProvider.fromAssets(context)))
     }

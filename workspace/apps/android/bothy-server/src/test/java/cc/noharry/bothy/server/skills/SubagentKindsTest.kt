@@ -60,8 +60,8 @@ class SubagentKindsTest {
     }
 
     @Test
-    fun thePlaygroundsCarAndHomeAndItsOpenToolAreDevices() {
-        assertEquals(setOf("cabin", "home", "playground_screen"), BothyRuns.deviceServers(context))
+    fun thePlaygroundsCarAndHomeItsOpenToolAndTheExampleCarAreDevices() {
+        assertEquals(setOf("cabin", "home", "playground_screen", "tools_json"), BothyRuns.deviceServers(context))
 
         // Added by hand at the virtual car's address, under an id of its own.
         val draft = McpServerDraft(null, "我的座舱", McpServerKind.HTTP, url = "http://127.0.0.1:8790/cabin/mcp/")

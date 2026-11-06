@@ -209,6 +209,7 @@ cc.noharry.agent.appserver.runtime.BuiltInFeatures | class BuiltInFeatures( val 
 cc.noharry.agent.appserver.runtime.BuiltInFeatures.Companion | companion object
 cc.noharry.agent.appserver.runtime.BuiltInFeatures.Companion.NONE | val NONE
 cc.noharry.agent.appserver.runtime.ConfirmationPostUiResult | data class ConfirmationPostUiResult( val status: String, val transcript: SteeringTranscript, val terminal: Boolean = false, val runtimeResult: RuntimeResult? = null, val appliedChoice: ConfirmationChoice? = null, )
+cc.noharry.agent.appserver.runtime.DEFAULT_SCENE | const val DEFAULT_SCENE
 cc.noharry.agent.appserver.runtime.ExecutionSubscription | class ExecutionSubscription( private val channel: Channel<ExecutionMessage>, private val unsubscribe: () -> Unit, ) : AutoCloseable
 cc.noharry.agent.appserver.runtime.ExecutionSubscription.events | val events: ReceiveChannel<ExecutionMessage> get()
 cc.noharry.agent.appserver.runtime.ExecutionSubscription.finish | fun finish()
@@ -225,6 +226,7 @@ cc.noharry.agent.appserver.runtime.HostModels.models | fun models(profileId: Str
 cc.noharry.agent.appserver.runtime.HostModels.owns | fun owns(profileId: String): Boolean
 cc.noharry.agent.appserver.runtime.HostModels.savedValues | fun savedValues(context: Context): Map<String, String>
 cc.noharry.agent.appserver.runtime.HostModels.selected | fun selected(profile: ProviderProfile)
+cc.noharry.agent.appserver.runtime.HostModels.simulated | fun simulated(): ModelClient?
 cc.noharry.agent.appserver.runtime.HostModels.withProfiles | fun withProfiles(context: Context, profiles: List<ProviderProfile>): List<ProviderProfile>
 cc.noharry.agent.appserver.runtime.HostPlaces | class HostPlaces(val memoryPage: String? = null, val picturesShownOn: String? = null)
 cc.noharry.agent.appserver.runtime.HostPlaces.Companion | companion object
@@ -321,7 +323,7 @@ cc.noharry.agent.appserver.server.AppServer.connect | fun connect(context: Conte
 cc.noharry.agent.appserver.server.AppServer.features | val features: List<AppServerFeature> get()
 cc.noharry.agent.appserver.server.AppServer.install | fun install(app: Application, config: AppServerConfig)
 cc.noharry.agent.appserver.server.AppServer.wakeUp | fun wakeUp(context: Context)
-cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, @RawRes val extraTrustRoots: Int? = null, val providerAdapters: List<ProviderAdapter> = emptyList(), )
+cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, @RawRes val extraTrustRoots: Int? = null, val providerAdapters: List<ProviderAdapter> = emptyList(), val scene: String = DEFAULT_SCENE, )
 cc.noharry.agent.appserver.server.AppServerFeature | interface AppServerFeature
 cc.noharry.agent.appserver.server.AppServerFeature.appInFront | fun appInFront(app: Context, inFront: Boolean)
 cc.noharry.agent.appserver.server.AppServerFeature.install | fun install(app: Application)
@@ -435,6 +437,7 @@ cc.noharry.agent.appserver.session.DEBUG_ROUTE_EXTRA | const val DEBUG_ROUTE_EXT
 cc.noharry.agent.appserver.session.DEBUG_STREAM_EXTRA | const val DEBUG_STREAM_EXTRA
 cc.noharry.agent.appserver.session.DEBUG_TEXT_EXTRA | const val DEBUG_TEXT_EXTRA
 cc.noharry.agent.appserver.session.LEGACY_BACKEND_LIVE_ALIAS | const val LEGACY_BACKEND_LIVE_ALIAS
+cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH | const val SESSION_QUERY_INDEX_PATH
 cc.noharry.agent.appserver.session.SessionSettings | object SessionSettings
 cc.noharry.agent.appserver.session.SessionSettings.init | fun init(context: Context)
 cc.noharry.agent.appserver.session.SessionSettings.policy | val policy: StateFlow<SessionPolicy>
@@ -470,6 +473,7 @@ cc.noharry.agent.appserver.tools.PromptStats.Companion | companion object
 cc.noharry.agent.appserver.tools.PromptStats.Companion.of | fun of(system: String): PromptStats?
 cc.noharry.agent.appserver.tools.PromptStats.finding | fun finding(): Finding
 cc.noharry.agent.appserver.tools.PromptStats.overBudget | val overBudget: Boolean get()
+cc.noharry.agent.appserver.tools.isServiceTool | fun isServiceTool(toolName: String): Boolean
 cc.noharry.agent.appserver.tools.isTransaction | fun isTransaction(toolName: String): Boolean
 cc.noharry.agent.appserver.trajectory.CanonicalProjection | data class CanonicalProjection( val records: List<TrajectoryRecord>, val hasSequenceGap: Boolean, val hasSequenceConflict: Boolean, )
 cc.noharry.agent.appserver.trajectory.TrajectoryRepository | interface TrajectoryRepository

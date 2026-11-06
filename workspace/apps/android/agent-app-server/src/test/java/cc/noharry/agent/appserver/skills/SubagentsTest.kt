@@ -65,29 +65,29 @@ class SubagentsTest {
 
     @Test
     fun byDefaultAChildQueriesTheDeviceButNeitherOperatesItNorTalksToTheUser() = runBlocking {
-        val guard = SubagentGuard(allowDeviceControl = false)
+        val guard = SubagentGuard(allowDeviceControl = false, deviceServers = CABIN)
 
-        assertTrue(guard.decide("mcp__tools_json__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
         assertTrue(guard.decide("web_fetch", ToolSource.NETWORK) is HookDecision.Allow)
-        assertTrue(guard.decide("mcp__tools_json__command_ac_TemperatureAdjust") is HookDecision.Deny)
-        assertTrue(guard.decide("mcp__tools_json__window_open") is HookDecision.Deny)
-        assertTrue(guard.decide("mcp__car_ui__show_card") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__cabin__command_ac_TemperatureAdjust") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__cabin__window_open") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__app_ui__show_card") is HookDecision.Deny)
         assertTrue(guard.decide("ask", ToolSource.INTERACTION) is HookDecision.Deny)
     }
 
     @Test
     fun aChildStopsLookingThingsUpAfterItsShare() = runBlocking {
-        val guard = SubagentGuard(allowDeviceControl = false)
+        val guard = SubagentGuard(allowDeviceControl = false, deviceServers = CABIN)
 
         repeat(MAX_CHILD_LOOKUPS) { assertTrue(guard.decide(if (it % 2 == 0) "web_fetch" else "web_search", ToolSource.NETWORK) is HookDecision.Allow) }
         val spent = guard.decide("web_fetch", ToolSource.NETWORK)
 
         assertTrue(spent is HookDecision.Deny && (spent as HookDecision.Deny).reason.contains("finish"))
         // Its other tools, and another child's lookups, are not counted.
-        assertTrue(guard.decide("mcp__tools_json__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
-        assertTrue(SubagentGuard(allowDeviceControl = false).decide("web_fetch", ToolSource.NETWORK) is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
+        assertTrue(SubagentGuard(allowDeviceControl = false, deviceServers = CABIN).decide("web_fetch", ToolSource.NETWORK) is HookDecision.Allow)
         // A typed child has its own share.
-        val typed = SubagentGuard(allowDeviceControl = false, maxLookups = 2)
+        val typed = SubagentGuard(allowDeviceControl = false, maxLookups = 2, deviceServers = CABIN)
         repeat(2) { assertTrue(typed.decide("web_search", ToolSource.NETWORK) is HookDecision.Allow) }
         assertTrue((typed.decide("web_search", ToolSource.NETWORK) as HookDecision.Deny).reason.startsWith("已经查了 2 次"))
     }
@@ -95,14 +95,14 @@ class SubagentsTest {
     @Test
     fun aTypedChildCallsOnlyItsTypesTools() = runBlocking {
         val tools = setOf(SubagentToolGroup.SEARCH, SubagentToolGroup.FETCH, SubagentToolGroup.DEVICE_QUERY)
-        val guard = SubagentGuard(allowDeviceControl = true, maxLookups = 1, tools = tools, kindId = "trip-transport")
+        val guard = SubagentGuard(allowDeviceControl = true, maxLookups = 1, tools = tools, kindId = "trip-transport", deviceServers = CABIN)
 
         val write = guard.decide("write_file", ToolSource.NATIVE_WRITE)
         assertTrue(write is HookDecision.Deny && (write as HookDecision.Deny).reason.startsWith("这个子 agent（trip-transport）不能用「写文件」"))
         assertTrue(guard.decide("mcp__amap__route_plan") is HookDecision.Deny)
         // Allowed by the settings, but not this type's to do.
-        assertTrue(guard.decide("mcp__tools_json__command_ac_TemperatureAdjust") is HookDecision.Deny)
-        assertTrue(guard.decide("mcp__tools_json__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__command_ac_TemperatureAdjust") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__cabin__command_cmd_QueryActiveAudioTrack") is HookDecision.Allow)
         // What every child has.
         assertTrue(guard.decide("search_tools", ToolSource.NATIVE_READ) is HookDecision.Allow)
         assertTrue(guard.decide("finish", ToolSource.TERMINAL) is HookDecision.Allow)
@@ -115,8 +115,8 @@ class SubagentsTest {
     fun toolsAreGroupedByWhatTheyDo() {
         assertEquals(SubagentToolGroup.READ, subagentToolGroup("grep"))
         assertEquals(SubagentToolGroup.TODO, subagentToolGroup("update_todo"))
-        assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__tools_json__window_open"))
-        assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__tools_json__get_seat_status"))
+        assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__cabin__window_open", CABIN))
+        assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__cabin__get_seat_status", CABIN))
         assertEquals(SubagentToolGroup.SERVICES, subagentToolGroup("mcp__memory__user_memory"))
         assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__android_use__android_action"))
         assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__android_use__android_observe"))
@@ -125,7 +125,7 @@ class SubagentsTest {
         // The host's devices are the ones it names.
         assertEquals(SubagentToolGroup.SERVICES, subagentToolGroup("mcp__cabin__get_cabin_status"))
         assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__cabin__get_cabin_status", setOf("cabin")))
-        assertNull(subagentToolGroup("mcp__car_ui__show_card"))
+        assertNull(subagentToolGroup("mcp__app_ui__show_card"))
         assertNull(subagentToolGroup("mcp__experimental_a2a_agent__a2a_message_send"))
         assertNull(subagentToolGroup("spawn_agent"))
     }
@@ -158,9 +158,9 @@ class SubagentsTest {
 
     @Test
     fun deviceControlCanBeAllowedButCardsAndQuestionsStayWithTheMainAgent() = runBlocking {
-        val guard = SubagentGuard(allowDeviceControl = true)
+        val guard = SubagentGuard(allowDeviceControl = true, deviceServers = CABIN)
 
-        assertTrue(guard.decide("mcp__tools_json__command_ac_TemperatureAdjust") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__command_ac_TemperatureAdjust") is HookDecision.Allow)
         assertTrue(guard.decide("mcp__plans__plan_create") is HookDecision.Deny)
         assertTrue(guard.decide("ask_async", ToolSource.INTERACTION) is HookDecision.Deny)
     }
@@ -305,3 +305,6 @@ class SubagentsTest {
         val CHINESE = Persona("助手", "", language = "zh-CN")
     }
 }
+
+/** A host's device server, as a car app names its own ([cc.noharry.agent.appserver.runtime.RunAddOns.deviceServers]). */
+private val CABIN = setOf("cabin")

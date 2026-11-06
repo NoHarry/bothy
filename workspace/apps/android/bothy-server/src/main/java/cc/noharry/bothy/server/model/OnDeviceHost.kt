@@ -20,14 +20,17 @@ import cc.noharry.bothy.server.voice.tts.savedTtsValues
 import kotlin.math.roundToLong
 
 /**
- * Bothy's own model for the runtime ([HostModels]): the built-in on-device profile, served by [OnDeviceModel]'s
- * llama-server; and the voice's saved TTS settings, read with the providers'.
+ * Bothy's own models for the runtime ([HostModels]): the built-in on-device profile, served by [OnDeviceModel]'s
+ * llama-server; the demo car's simulated model ([BothyFixtureModel]); and the voice's saved TTS settings, read with the
+ * providers'.
  */
 internal object BothyModels : HostModels {
     override fun withProfiles(context: Context, profiles: List<ProviderProfile>): List<ProviderProfile> =
         profiles.withOnDeviceProfile(context.getString(R.string.model_on_device))
 
     override fun owns(profileId: String): Boolean = profileId == ON_DEVICE_PROFILE_ID
+
+    override fun simulated(): ModelClient = BothyFixtureModel()
 
     override fun isReady(profile: ProviderProfile): Boolean = OnDeviceModel.isDownloaded(OnDeviceModel.spec(profile.model))
 

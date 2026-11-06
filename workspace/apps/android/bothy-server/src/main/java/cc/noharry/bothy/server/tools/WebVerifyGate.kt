@@ -1,4 +1,5 @@
 package cc.noharry.bothy.server.tools
+import cc.noharry.agent.appserver.tools.isServiceTool
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.HookContext
 import cc.noharry.agent.kernel.api.HookDecision
@@ -21,7 +22,7 @@ internal class WebVerifyGate(private val userInput: String) : RuntimeHook {
     @Volatile private var serviceCalled = false
 
     override suspend fun onPreToolUse(call: ToolUse, context: HookContext): HookDecision {
-        if (call.toolName.isServiceTool()) serviceCalled = true
+        if (isServiceTool(call.toolName)) serviceCalled = true
         if (call.toolName != SPAWN_TOOL || call.argumentsJson.spawnedType() != WEB_VERIFY_KIND) return HookDecision.Allow()
         if (serviceCalled || namesTrip(userInput)) return HookDecision.Allow()
         return HookDecision.Deny(
@@ -34,22 +35,12 @@ internal class WebVerifyGate(private val userInput: String) : RuntimeHook {
 /** Whether [text] names a flight (CA3636, 3U8888) or a train (G7311, C3636). */
 internal fun namesTrip(text: String): Boolean = FLIGHT_NUMBER.containsMatchIn(text) || TRAIN_NUMBER.containsMatchIn(text)
 
-/** A backend service the agent looked something up in: not the device's own screen, plans, phone screen or A2A agents. */
-private fun String.isServiceTool(): Boolean {
-    if (!startsWith(MCP_PREFIX)) return false
-    val server = removePrefix(MCP_PREFIX).substringBefore("__")
-    return server !in NON_SERVICE_SERVERS && !server.startsWith(A2A_SERVER_PREFIX)
-}
-
 private fun String.spawnedType(): String = runCatching {
     // Trimmed as the runtime trims it, so 「 web-verify」 is the same type.
     Json.parseToJsonElement(this).jsonObject["agent"]?.jsonPrimitive?.content.orEmpty().trim()
 }.getOrDefault("")
 
 private const val SPAWN_TOOL = "spawn_agent"
-private const val MCP_PREFIX = "mcp__"
-private const val A2A_SERVER_PREFIX = "experimental_a2a"
-private val NON_SERVICE_SERVERS = setOf("car_ui", "plans", "android_use")
 // Lookarounds, not \b: on Android (ICU) 坐 is a word character, so \b would miss the CA3636 in 「坐CA3636过来」, while
 // the JVM's ASCII \b finds it and the unit tests would pass.
 // Letter-digit airline codes are left out: they read like a plate (粤B12345).

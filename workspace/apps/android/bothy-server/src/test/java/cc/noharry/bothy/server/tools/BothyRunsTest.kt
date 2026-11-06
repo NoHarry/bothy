@@ -11,6 +11,7 @@ import cc.noharry.agent.appserver.runtime.RunFacts
 import cc.noharry.agent.kernel.api.ToolDescriptor
 import cc.noharry.bothy.server.R
 import cc.noharry.bothy.server.cards.BothyCards
+import cc.noharry.bothy.server.model.BothyFixtureModel
 import cc.noharry.bothy.server.server.BothyBuiltIns
 import cc.noharry.bothy.server.server.bothyConfig
 import org.junit.Assert.assertEquals
@@ -71,6 +72,9 @@ class BothyRunsTest {
         assertTrue(bothyConfig().builtIns === BothyBuiltIns)
         // The roots some head units' trimmed stores lack.
         assertEquals(R.raw.deepseek_cas, bothyConfig().extraTrustRoots)
+        // The scene its devices' lessons and its voice skill's scenes are under, and the demo car as its simulated model.
+        assertEquals("debug-console", bothyConfig().scene)
+        assertTrue(bothyConfig().models.simulated() is BothyFixtureModel)
     }
 
     private fun facts(types: Set<String> = emptySet(), pages: Boolean = false) =

@@ -16,8 +16,6 @@ fun agentRequest(
         requestId = requestId,
         sessionId = sessionId,
         input = input,
-        scene = DEBUG_SCENE,
+        scene = AppHost.scene,
         modelRef = config.modelRef(profile),
     )
-
-internal const val DEBUG_SCENE = "debug-console"

@@ -7,7 +7,6 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.R
 import cc.noharry.agent.appserver.a2a.A2aReport
 import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_MEDIA
-import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.hasWebLookup
 import cc.noharry.agent.appserver.protocol.DEFAULT_SUBAGENT_LOOKUPS
@@ -16,6 +15,10 @@ import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BasicTool
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.runtime.modelText
+import cc.noharry.agent.appserver.tools.A2A_SERVER_PREFIX
+import cc.noharry.agent.appserver.tools.ANDROID_USE_TOOL_SERVER
+import cc.noharry.agent.appserver.tools.CARD_TOOL_SERVER
+import cc.noharry.agent.appserver.tools.PLAN_TOOL_SERVER
 import cc.noharry.agent.appserver.trajectory.appSessionEventLogRoot
 import cc.noharry.agent.appserver.usage.plus
 import cc.noharry.agent.appserver.usage.toUsageDelta
@@ -270,9 +273,8 @@ internal fun SubagentStatus.transcriptLine(
 
 /**
  * What a child may call. Never: questions to the user (no one is there), cards, plans and external delegation (the
- * main agent's). Device tools ([deviceServers]: the screen, media playback, the example car tools and the host's own
- * devices) only when the settings allow it; otherwise their queries only. At most [MAX_CHILD_LOOKUPS]
- * pages and searches of its own (owner 2026-10-17: 开了子 agent 后用得好快): a child hunting train times opened 20
+ * main agent's). Device tools ([deviceServers]: the screen, media playback and the host's own devices) only when the
+ * settings allow it; otherwise their queries only. At most [MAX_CHILD_LOOKUPS] pages and searches of its own (owner 2026-10-17: 开了子 agent 后用得好快): a child hunting train times opened 20
  * pages, and what pages bring in is new input every round, the part of a trip that costs (cache hits are 1/50 of it).
  * A typed child also keeps to its type's [tools]; the tool list itself stays the main agent's.
  */
@@ -528,7 +530,7 @@ internal fun subagentToolGroup(toolName: String, deviceServers: Set<String> = BU
     }
 }
 
-/** The servers whose tools work a device: the screen, media playback and the example car tools, and the host's own. */
+/** The servers whose tools work a device: the screen and media playback, and the host's own. */
 internal fun subagentDeviceServers(context: Context): Set<String> = BUILT_IN_DEVICE_SERVERS + AppHost.runs.deviceServers(context)
 internal const val MAX_CHILD_LOOKUPS = DEFAULT_SUBAGENT_LOOKUPS
 
@@ -562,11 +564,9 @@ internal const val REPORT_QUEUED = 0L
 private const val MAX_DELIVERY_MARKS = 64
 private const val MCP_PREFIX = "mcp__"
 private val USER_FACING_TOOLS = setOf("ask", "ask_async")
-private val MAIN_AGENT_SERVERS = setOf("car_ui", "plans")
-private const val A2A_SERVER_PREFIX = "experimental_a2a"
+private val MAIN_AGENT_SERVERS = setOf(CARD_TOOL_SERVER, PLAN_TOOL_SERVER)
 // The screen has no query a child may make: looking at it holds it too, so the main agent's taps wait meanwhile.
-private val BUILT_IN_DEVICE_SERVERS = setOf(ANDROID_USE_SERVER, DEBUG_MCP_PROVIDER_DEVICE_MEDIA, DEBUG_MCP_PROVIDER_TOOLS_JSON)
-private const val ANDROID_USE_SERVER = "android_use"
+private val BUILT_IN_DEVICE_SERVERS = setOf(ANDROID_USE_TOOL_SERVER, DEBUG_MCP_PROVIDER_DEVICE_MEDIA)
 
 /**
  * Whole words only ("TemperatureAdjust" holds "reAd" but no word "read"): split at underscores and capitals. An action

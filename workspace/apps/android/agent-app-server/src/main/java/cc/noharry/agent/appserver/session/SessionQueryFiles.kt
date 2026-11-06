@@ -1,5 +1,4 @@
 package cc.noharry.agent.appserver.session
-import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.SessionSummary
 import cc.noharry.agent.appserver.protocol.SessionToolCall
 import cc.noharry.agent.appserver.protocol.SessionTurn
@@ -127,7 +126,7 @@ private fun String.compactQueryText(): String =
 internal const val SESSION_QUERY_ROOT = "/debug-sessions"
 private const val SESSION_QUERY_INDEX_FILE = "index.json"
 private const val SESSION_QUERY_SUMMARY_FILE = "summary.json"
-@InternalAppServerApi
+/** Where the model reads the index of the past sessions it may look into. */
 const val SESSION_QUERY_INDEX_PATH = "$SESSION_QUERY_ROOT/$SESSION_QUERY_INDEX_FILE"
 private const val SESSION_QUERY_INDEX_DESCRIPTION =
     "Debug session index. Use actionDomains and lastAction to choose summaryPath when cross-session continuity is needed."

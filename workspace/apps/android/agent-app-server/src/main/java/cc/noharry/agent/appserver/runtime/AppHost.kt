@@ -53,6 +53,12 @@ interface HostModels {
     /** Values the host saved itself, read with the providers' and winning over local.properties (its TTS settings). */
     fun savedValues(context: Context): Map<String, String> = emptyMap()
 
+    /**
+     * A new model for one run with the simulated backend (a host's scripted demo); null for the server's own, which
+     * introduces the assistant when asked and otherwise says what it heard.
+     */
+    fun simulated(): ModelClient? = null
+
     companion object {
         val NONE: HostModels = object : HostModels {}
     }
@@ -111,6 +117,7 @@ interface RunAddOns {
     /** How each mounted tool provider is wrapped in a run with [sessionContext]; [simulated] for the fixture model. */
     fun toolWrapper(context: Context, sessionContext: String, simulated: Boolean): (ToolProvider) -> ToolProvider = { it }
 
+    /** Whether the host's bundled example tools (`assets/mcp/tools.json`) may be mounted in this run. */
     fun exampleToolsAllowed(): Boolean = true
 
     fun toolProviders(context: Context): List<ToolProvider> = emptyList()
@@ -122,10 +129,10 @@ interface RunAddOns {
     fun subagentKinds(): List<SubagentKind> = emptyList()
 
     /**
-     * The tool servers of the host's own that work things around the user (a car, a home), besides the screen, media and
-     * example car tools every app has: a subagent only queries them unless the settings let it operate devices. Each is
-     * the `<id>` of its tools' `mcp__<id>__<tool>`; a tool whose name has a query word (get, status, search, …) and no
-     * action word (set, play, open, …) is a query. Read each time a subagent starts.
+     * The tool servers of the host's own that work things around the user (a car, a home; its bundled example tools, if
+     * they do), besides the screen and media every app has: a subagent only queries them unless the settings let it
+     * operate devices. Each is the `<id>` of its tools' `mcp__<id>__<tool>`; a tool whose name has a query word (get,
+     * status, search, …) and no action word (set, play, open, …) is a query. Read each time a subagent starts.
      */
     fun deviceServers(context: Context): Set<String> = emptySet()
 
@@ -285,6 +292,11 @@ object AppHost {
     var providerAdapters: List<ProviderAdapter> = emptyList()
         private set
 
+    /** The scene the person's turns run in ([cc.noharry.agent.appserver.server.AppServerConfig.scene]). */
+    @Volatile
+    var scene: String = DEFAULT_SCENE
+        private set
+
     fun install(
         models: HostModels = this.models,
         runs: RunAddOns = this.runs,
@@ -295,8 +307,10 @@ object AppHost {
         builtIns: BuiltInFeatures = this.builtIns,
         extraTrustRoots: Int? = this.extraTrustRoots,
         providerAdapters: List<ProviderAdapter> = this.providerAdapters,
+        scene: String = this.scene,
     ) {
         this.providerAdapters = providerAdapters
+        this.scene = scene
         this.builtIns = builtIns
         this.extraTrustRoots = extraTrustRoots
         this.models = models
@@ -307,3 +321,6 @@ object AppHost {
         this.a2a = a2a
     }
 }
+
+/** The scene a host's turns run in unless it names its own. */
+const val DEFAULT_SCENE = "app"

@@ -13,6 +13,7 @@ import cc.noharry.agent.appserver.protocol.view.offerKey
 import cc.noharry.agent.appserver.protocol.view.parseJsonObject
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.modelText
+import cc.noharry.agent.appserver.tools.CARD_TOOL_SERVER
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.validateInputSchema
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
@@ -281,7 +282,7 @@ private const val GENERIC_ITEM_CHARS = 3
 private fun optionsFallback() = modelText("选项仍会照常显示，但点选时不会直接执行。", "The options still show, but a tap will not act directly.")
 private fun widgetFallback() =
     modelText("没有显示；改正参数后再调用一次，或直接在 finish 里用文字说明。", "Not shown: fix the arguments and call again, or explain in words in finish.")
-private const val OFFER_TOOL_SERVER_ID = "car_ui"
+private const val OFFER_TOOL_SERVER_ID = CARD_TOOL_SERVER
 private val OFFER_OPTIONS_DESCRIPTION = """
     登记选项 / 让用户选 / 选项卡片：回复要让用户从 2–8 项里选一项时，先调用它登记，再在同一轮调用 finish，
     finish 的“看”里按同样顺序列出编号选项（推荐项标“（推荐，理由）”）。适用：参数值（颜色、模式、播放模式）、

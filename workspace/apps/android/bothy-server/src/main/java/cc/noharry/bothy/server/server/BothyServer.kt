@@ -55,7 +55,11 @@ internal fun bothyConfig() = AppServerConfig(
     extraTrustRoots = R.raw.deepseek_cas,
     // DeepSeek beyond chat: its balance and relay check, its Search and Fetch APIs, its native history updates.
     providerAdapters = listOf(DeepSeekAdapter),
+    // The scene its turns have always run in: the lessons learnt on devices and its voice skill's scenes are under it.
+    scene = BOTHY_SCENE,
 )
+
+internal const val BOTHY_SCENE = "debug-console"
 
 /** Everything the server offers of its own: plans, operating the screen, device media, cards, and starting after boot. */
 internal val BothyBuiltIns = BuiltInFeatures(plans = true, androidUse = true, deviceMedia = true, cards = true, startOnBoot = true)

@@ -4,6 +4,7 @@ package cc.noharry.bothy.server.tools
 
 import android.content.Context
 import cc.noharry.agent.appserver.a2ui.CardHooks
+import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.plans.PLAN_TOOL
 import cc.noharry.agent.appserver.runtime.AnswerProblems
 import cc.noharry.agent.appserver.runtime.RunAddOns
@@ -76,7 +77,9 @@ internal object BothyRuns : RunAddOns {
     override fun subagentKinds(): List<SubagentKind> = BOTHY_SUBAGENT_KINDS
 
     // 「回到车机」 brings a Playground screen to the front over whatever the user is doing: working the screen too.
-    override fun deviceServers(context: Context): Set<String> = playgroundDeviceServers(context) + PLAYGROUND_TOOL_SERVER_ID
+    // The bundled example tools are a demo car.
+    override fun deviceServers(context: Context): Set<String> =
+        playgroundDeviceServers(context) + PLAYGROUND_TOOL_SERVER_ID + DEBUG_MCP_PROVIDER_TOOLS_JSON
 }
 
 private const val TTS_MARK = "TTS:"

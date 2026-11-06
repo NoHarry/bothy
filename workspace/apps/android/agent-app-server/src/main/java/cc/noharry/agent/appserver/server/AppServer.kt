@@ -14,6 +14,7 @@ import cc.noharry.agent.appserver.protocol.transport.InProcessChannels
 import cc.noharry.agent.appserver.protocol.transport.MessageChannel
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BuiltInFeatures
+import cc.noharry.agent.appserver.runtime.DEFAULT_SCENE
 import cc.noharry.agent.appserver.runtime.HostModels
 import cc.noharry.agent.appserver.runtime.HostPlaces
 import cc.noharry.agent.appserver.runtime.Persona
@@ -66,8 +67,9 @@ interface PublishedState {
  * where its screens show what tools leave, what it plugs into the runtime, what it does with other A2A clients' tasks,
  * which of the server's own features it turns on ([BuiltInFeatures]; none by default), [extraTrustRoots]: a raw
  * resource of PEM certificates trusted beside the system's for every HTTPS call the server makes (devices whose system
- * store lacks a root a service needs; none by default), and the model services it supports beyond chat
- * ([providerAdapters]: a balance, web lookups, native history updates; none by default).
+ * store lacks a root a service needs; none by default), the model services it supports beyond chat
+ * ([providerAdapters]: a balance, web lookups, native history updates; none by default), and the [scene] its turns run
+ * in: the runtime files the lessons it learns, the skills that name scenes and its workspace context under it.
  */
 class AppServerConfig(
     val name: String,
@@ -82,6 +84,7 @@ class AppServerConfig(
     val builtIns: BuiltInFeatures = BuiltInFeatures.NONE,
     @RawRes val extraTrustRoots: Int? = null,
     val providerAdapters: List<ProviderAdapter> = emptyList(),
+    val scene: String = DEFAULT_SCENE,
 )
 
 /**
@@ -100,7 +103,10 @@ object AppServer {
     fun install(app: Application, config: AppServerConfig) {
         this.config = config
         RuntimeVoice.install(config.voice)
-        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns, config.extraTrustRoots, config.providerAdapters)
+        AppHost.install(
+            config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns,
+            config.extraTrustRoots, config.providerAdapters, config.scene,
+        )
         installServer(app, config.features)
     }
 

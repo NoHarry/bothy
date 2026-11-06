@@ -17,6 +17,7 @@ import cc.noharry.agent.appserver.protocol.nextDueMillis
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.Cues
 import cc.noharry.agent.appserver.runtime.modelText
+import cc.noharry.agent.appserver.tools.PLAN_TOOL_SERVER
 import cc.noharry.agent.appserver.tools.SchemaValidation
 import cc.noharry.agent.appserver.tools.isTransaction
 import cc.noharry.agent.appserver.tools.validateInputSchema
@@ -349,7 +350,7 @@ private val NON_NAME = Regex("[^A-Za-z0-9_-]")
 const val PLAN_TOOL = "plan_manage"
 /** Today plus up to six plans: what is left of the runtime's 32 context facts after 记忆's 24, with one to spare. */
 internal const val MAX_PLAN_FACTS = 7
-private const val PLAN_SERVER_ID = "plans"
+private const val PLAN_SERVER_ID = PLAN_TOOL_SERVER
 /** Under the renderer's 512 bytes per value (3 bytes per Chinese character). */
 private const val PLAN_FACT_CHARS = 150
 private const val DIGEST_CHARS = 16
