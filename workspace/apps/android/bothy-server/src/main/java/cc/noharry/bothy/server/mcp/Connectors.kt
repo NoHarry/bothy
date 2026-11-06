@@ -2,9 +2,9 @@ package cc.noharry.bothy.server.mcp
 import android.content.Context
 import android.os.Build
 import androidx.annotation.StringRes
-import cc.noharry.agent.appserver.a2a.A2aModuleConfig
 import cc.noharry.agent.appserver.a2a.A2aTokens
 import cc.noharry.agent.appserver.a2a.DIRECT_MODULE_ID
+import cc.noharry.agent.appserver.a2a.loadA2aProfiles
 import cc.noharry.agent.appserver.mcp.McpSecrets
 import cc.noharry.agent.appserver.model.buildConfigValues
 import cc.noharry.agent.appserver.protocol.McpServer
@@ -108,7 +108,7 @@ internal object SessionConnectorProfiles : ConnectorProfiles {
     }
 
     private fun userProfile(context: Context, label: String) =
-        A2aModuleConfig.load(context).state.profiles.firstOrNull { it.userDefined && it.label == label }
+        loadA2aProfiles(context).firstOrNull { it.userDefined && it.label == label }
 }
 
 /**

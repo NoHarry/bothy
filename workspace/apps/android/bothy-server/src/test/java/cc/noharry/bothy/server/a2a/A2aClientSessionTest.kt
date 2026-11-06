@@ -36,14 +36,9 @@ import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aTaskStatus
 import cc.noharry.agent.appserver.protocol.GeneratedImageResult
-import cc.noharry.agent.appserver.protocol.OverlayCommand
 import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
 import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
 import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.server.CAR_OVERLAY_METADATA
-import cc.noharry.agent.appserver.server.CAR_OVERLAY_ONLY_METADATA
-import cc.noharry.agent.appserver.server.isOverlayControlOnly
-import cc.noharry.agent.appserver.server.overlayCommand
 import cc.noharry.agent.kernel.api.ToolCallContext
 import cc.noharry.bothy.protocol.view.overlayHud
 import cc.noharry.bothy.server.TextRoute
@@ -361,17 +356,6 @@ class A2aClientSessionTest {
         val failing = ImageToolProvider { _, _ -> ImageResult.Failure("Network error: timeout", 120_000) }
         failing.callTool(IMAGE_GENERATE_TOOL, """{"prompt":"狗"}""", ToolCallContext("a2a-ctx", "run-2", "task-8"))
         assertNull(PictureBoard.forTask("task-8"))
-    }
-
-    @Test
-    fun overlayCommandsAreReadFromMessageMetadata() {
-        assertEquals(OverlayCommand.SHOW, overlayCommand(mapOf(CAR_OVERLAY_METADATA to " Show ")))
-        assertEquals(OverlayCommand.HIDE, overlayCommand(mapOf(CAR_OVERLAY_METADATA to "hide")))
-        assertNull(overlayCommand(mapOf(CAR_OVERLAY_METADATA to "toggle")))
-        assertNull(overlayCommand(emptyMap()))
-        assertTrue(isOverlayControlOnly(mapOf(CAR_OVERLAY_ONLY_METADATA to "true")))
-        assertFalse(isOverlayControlOnly(mapOf(CAR_OVERLAY_ONLY_METADATA to "yes")))
-        assertFalse(isOverlayControlOnly(emptyMap()))
     }
 
     @Test

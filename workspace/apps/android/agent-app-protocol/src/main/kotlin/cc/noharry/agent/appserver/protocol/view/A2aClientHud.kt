@@ -35,7 +35,7 @@ fun A2aClientState.pickableDisplay(offers: Map<String, Offer>): PickableReply? {
     val terminal = turn.lastOrNull { it is A2aClientItem.Terminal } as? A2aClientItem.Terminal ?: return null
     if (terminal.state == A2aTaskStatus.CANCELLED) return null
     val display = turn.lastOrNull { it is A2aClientItem.Display } as? A2aClientItem.Display ?: return null
-    // This car's own server registered the offer under the A2A context's session; a remote server's never is.
+    // This device's own server registered the offer under the A2A context's session; a remote server's never is.
     val offer = contextId?.let { offers["a2a-$it"] }
     return appPickableReply(display.id, display.text.overlayHudMultiline(Int.MAX_VALUE), offer)
 }

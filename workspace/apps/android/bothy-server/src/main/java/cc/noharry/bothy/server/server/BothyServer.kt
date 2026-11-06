@@ -12,6 +12,7 @@ import cc.noharry.agent.appserver.server.AppServerFeature
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.coreModules
 import cc.noharry.bothy.server.BuildConfig
+import cc.noharry.bothy.server.a2a.BothyA2a
 import cc.noharry.bothy.server.model.BothyModels
 import cc.noharry.bothy.server.tools.BothyRuns
 import cc.noharry.bothy.server.voice.BothyVoice
@@ -45,6 +46,7 @@ internal fun bothyConfig() = AppServerConfig(
     voice = BothyVoice,
     models = BothyModels,
     runs = BothyRuns,
+    a2a = BothyA2a,
 )
 
 /** The model services this build carries, from local.properties (see this module's build.gradle.kts). */

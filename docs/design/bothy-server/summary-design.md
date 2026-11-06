@@ -111,7 +111,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
 | `approval/respond`、`question/answer` | 回答审批和提问 |
 | `model/select`、`run/set`、`provider/*`、`config/reload`、`modelSettings/*`、`deepseek/*`、`webLookup/*`、`onDevice/*` | 模型、变体、确认模式、服务商配置、上下文窗口、DeepSeek 余额和检测、联网搜索、本机模型 |
 | `voice/*`、`voiceSettings/*`、`realtime/*`、`companion/*` | 唤醒、麦克风、按住说话、播报；语音设置和四个密钥；端到端语音；陪聊 |
-| `mcp/*`、`connectors/*`、`a2a/profile/*`、`a2aClient/*` | MCP 服务器和工具、连接应用、A2A 档案、A2A 客户端模式 |
+| `mcp/*`、`connectors/*`、`a2a/profile/*`、`a2aClient/*` | MCP 服务器和工具、连接应用、A2A 档案、A2A 客户端模式（连的是本机 A2A 端点，宿主不开端点时开不起来） |
 | `tools/*`、`skills/*`、`subagents/*`、`jev/*`、`plans/*`、`preferences/*` | 基础工具、技能、子 agent、工具检索、计划、会话策略 |
 | `memory/*`、`usage/*`、`imageModel/*`、`files/*`、`workspace/*`、`data/*`、`trajectory/*` | 记忆、用量和价格、生图模型、工作区浏览、清数据、轨迹分页 |
 | `checks/run`、`onboarding/*`、`app/*`、`playground/*` | 一键检查、首次设置、前台/语言变化、Playground |
@@ -140,6 +140,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、工具包装、自带的工具、skill 和子 agent 类型，以及哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们）；
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
+  - A2A（`A2aHost`）：本机的 A2A 端点（`127.0.0.1:8766/a2a`）开不开，别的客户端交来的请求里宿主自己的命令（`intercept`），别的客户端的任务开始时宿主做什么（`inboundStarted`），交给别的 agent 的任务把来源写成什么（`contextSource`）；不给就不开端点、什么都不弹，来源写 `device`。Bothy 开端点，外部任务一来就弹出卡片，认 `carOverlay=show|hide`、`carOverlayOnly=true`，来源写 `car`（中转那边已配对的 Bot 认这个名字）。
 - `BothyServer`（公开）就是 Bothy 的这份配置：人设是小博，插件是语音（含唤醒、实时、陪聊、Jev 工具检索）、本机模型、检查、Playground 和 Bothy 自己的设置页，口子是 `BothyVoice`、`BothyModels`、`BothyRuns`，配置文件多读一个 `tts` 段，位置是“设置 → 记忆”和“屏幕的悬浮窗上”。对外仍是 `install`（进程启动时由 `BothyApplication` 调）、`connect`（给一个进程内客户端）、`wakeUp`（没有前端时起状态来源，比如唤醒词、计划）。界面语言变化走协议的 `app/languageChanged`。
 - `agent-app-server` 只公开宿主用得上的东西，清单在 `agent-app-server/api/agent-app-server.api`，validate 比对；其余是 `internal`。跑在 Bothy 的 assets 和插件上的那些核心逻辑测试还留在 `bothy-server`，它们要用的名字标 `@InternalAppServerApi`（需要 opt-in，只有 `bothy-server` 的单测打开）；搬去内核仓时这些测试跟着核心走，标记就可以换成 `internal`。
 - 别的 App（手机上的独立 agent、别的场景的快速接入）用同一个 `AppServer`，配自己的插件，或者一个都不配；`agent-app-sample` 就是一个都不配的最小例子（一个界面，模拟模型，通用人设）。

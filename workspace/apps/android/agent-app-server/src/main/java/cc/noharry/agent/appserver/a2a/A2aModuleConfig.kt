@@ -24,6 +24,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 
+/** The A2A profiles saved on this device, as the settings list them. */
+fun loadA2aProfiles(context: Context): List<A2aProfile> = A2aModuleConfig.load(context).state.profiles
+
 /** Outcome of a user-profile save attempt: either a reloaded config or a validation reason. */
 @InternalAppServerApi
 sealed interface A2aSaveResult {
@@ -87,6 +90,7 @@ data class A2aModuleConfig(
     fun createClient(): A2aClient? = state.activeProfileId?.let(::createClient)
 
     companion object {
+        @InternalAppServerApi
         fun load(
             context: Context,
             registry: A2aModuleRegistry = A2aModuleRegistry.packaged(),

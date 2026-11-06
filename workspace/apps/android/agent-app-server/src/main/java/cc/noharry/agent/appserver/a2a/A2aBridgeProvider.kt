@@ -13,6 +13,7 @@ import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.RemoteAgentRef
 import cc.noharry.agent.appserver.protocol.A2aProfile
 import cc.noharry.agent.appserver.protocol.DelegationStage
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
@@ -228,17 +229,17 @@ class A2aBridgeProvider(
                 parts = listOf(A2aPart.Text(text)),
                 contextId = contextId,
                 taskId = taskId,
-                metadata = A2aValue.ObjectValue(mapOf(METADATA_CONTEXT to carContext())),
+                metadata = A2aValue.ObjectValue(mapOf(METADATA_CONTEXT to deviceContext())),
             ),
         )
 
     /** Where and when the device is, so relative times in [A2aBridgeArguments.text] resolve the device's way. */
-    private fun carContext(): A2aValue.ObjectValue {
+    private fun deviceContext(): A2aValue.ObjectValue {
         val zoneId = zone()
         val localTime = Instant.ofEpochMilli(clock()).atZone(zoneId).toOffsetDateTime().truncatedTo(ChronoUnit.SECONDS)
         return A2aValue.ObjectValue(
             mapOf(
-                CONTEXT_SOURCE to A2aValue.StringValue(CONTEXT_SOURCE_CAR),
+                CONTEXT_SOURCE to A2aValue.StringValue(AppHost.a2a.contextSource),
                 CONTEXT_TIMEZONE to A2aValue.StringValue(zoneId.id),
                 CONTEXT_LOCAL_TIME to A2aValue.StringValue(DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(localTime)),
             ),
@@ -346,11 +347,10 @@ private const val KEY_TOOL = "tool"
 private const val MAX_PENDING_QUESTIONS_SHOWN = 3
 private const val MAX_QUESTION_CHARS = 80
 private const val KEY_FOLLOW_UP = "followUp"
-private const val FOLLOW_UP_NOTE = "The car follows this task in the background and reports its result, question or failure " +
+private const val FOLLOW_UP_NOTE = "This device follows this task in the background and reports its result, question or failure " +
     "as a 【委托回报】/【委托追问】/【委托失败】 message. Tell the user in one short sentence that it was handed over; do not wait or poll."
 private const val METADATA_CONTEXT = "context"
 private const val CONTEXT_SOURCE = "source"
-private const val CONTEXT_SOURCE_CAR = "car"
 private const val CONTEXT_TIMEZONE = "timezone"
 private const val CONTEXT_LOCAL_TIME = "local_time"
 private const val OUTCOME_MESSAGE = "message"

@@ -4,7 +4,6 @@ import android.content.Context
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.RouteTable
-import cc.noharry.agent.appserver.server.done
 import cc.noharry.bothy.llm.GEMMA_4_E4B
 import cc.noharry.bothy.llm.LlamaServer
 import cc.noharry.bothy.llm.LocalModelSpec

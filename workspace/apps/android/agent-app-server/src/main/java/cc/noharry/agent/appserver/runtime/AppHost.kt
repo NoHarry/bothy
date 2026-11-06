@@ -2,6 +2,7 @@ package cc.noharry.agent.appserver.runtime
 
 import android.content.Context
 import cc.noharry.agent.appserver.InternalAppServerApi
+import cc.noharry.agent.appserver.a2a.A2aHost
 import cc.noharry.agent.appserver.evidence.AppDiagnostics
 import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.Finding
@@ -133,7 +134,7 @@ class HostPlaces(val memoryPage: String? = null, val picturesShownOn: String? = 
 
 /**
  * What the host app plugs into the runtime ([HostModels], [RunAddOns], its [Persona], its [ProviderPresets], its
- * [HostPlaces]); none until it installs them.
+ * [HostPlaces], its [A2aHost]); none until it installs them.
  */
 @InternalAppServerApi
 object AppHost {
@@ -157,17 +158,23 @@ object AppHost {
     var places: HostPlaces = HostPlaces.NONE
         private set
 
+    @Volatile
+    var a2a: A2aHost = A2aHost.NONE
+        private set
+
     fun install(
         models: HostModels = this.models,
         runs: RunAddOns = this.runs,
         persona: Persona = this.persona,
         presets: ProviderPresets = this.presets,
         places: HostPlaces = this.places,
+        a2a: A2aHost = this.a2a,
     ) {
         this.models = models
         this.runs = runs
         this.persona = persona
         this.presets = presets
         this.places = places
+        this.a2a = a2a
     }
 }

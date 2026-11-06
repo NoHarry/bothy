@@ -561,9 +561,9 @@ object RuntimeSession {
     }
 
     /**
-     * A delegated task settled ([A2aDelegations]): its report becomes a spoken turn once the device is free, so the
-     * overlay opens and the agent tells the user. While the user reads another result on the card it waits
-     * (the card shows 有新结果 meanwhile, and 查看 releases it), at most [DELEGATION_REPORT_WAIT_MS]. A car still busy
+     * A delegated task settled ([A2aDelegations]): its report becomes a spoken turn once the device is free, and the
+     * agent tells the user. While the person still reads a result, as the presenting screen reports ([Presenter.reading]),
+     * it waits, at most [DELEGATION_REPORT_WAIT_MS]; a screen that reports no reading never holds it. A device still busy
      * after that gets it appended to the running turn instead, which falls back to a new turn if that turn ends first.
      */
     internal fun deliverDelegationReport(context: Context, report: A2aReport) {
@@ -577,7 +577,7 @@ object RuntimeSession {
             // Reports go one at a time, each once the device is idle and no result is being read, so several delegations
             // settling close together never replace one another on the card (owner 2026-10-12).
             reportQueue.withLock {
-                awaitIdleCar()
+                awaitIdleDevice()
                 val title = app.getString(R.string.runtime_delegation_report_title)
                 turnOrSteer(report.model, report.display, title, asTurn) { A2aDelegations.markDelivered(report.taskId) }
             }
@@ -608,7 +608,7 @@ object RuntimeSession {
         scope.launch {
             val since = SystemClock.elapsedRealtime()
             reportQueue.withLock {
-                awaitIdleCar(holdForReading = false)
+                awaitIdleDevice(holdForReading = false)
                 // Read now, not when the report came: siblings may have finished while it waited.
                 val working = AppSubagents.instance.statuses(report.parentSessionId).filter { !it.state.finished && it.id !in report.statuses.map { s -> s.id } }
                 val turn = report.toReport(working)
@@ -623,7 +623,7 @@ object RuntimeSession {
     /**
      * A plan came due ([PlanRunner]): once the device is idle (at most [DELEGATION_REPORT_WAIT_MS], in turn with the
      * delegation reports) the card opens. A reminder is shown and spoken as written, without the model; a task becomes
-     * a spoken turn the agent runs. A car still busy then gets either into the running turn, like a late report (the
+     * a spoken turn the agent runs. A device still busy then gets either into the running turn, like a late report (the
      * reminder for the agent to pass on, never just spoken over it, where the run's own answer would cut it), and as
      * usual if that turn ends first.
      */
@@ -632,7 +632,7 @@ object RuntimeSession {
         scope.launch {
             val since = SystemClock.elapsedRealtime()
             reportQueue.withLock {
-                awaitIdleCar()
+                awaitIdleDevice()
                 val task = delivery.modelText
                 // A reminder already showed in the plan popup and is only spoken; a task opens the card the assistant
                 // works on.
@@ -659,7 +659,7 @@ object RuntimeSession {
      * 2026-10-20, a plan's weather). Not at all when the card's X closed voice after [since].
      */
     private suspend fun followUpOnceSpoken(app: Context, since: Long) {
-        if (awaitIdleCar(holdForReading = false) != null) RuntimeVoice.port.listenAfterReport(app, since)
+        if (awaitIdleDevice(holdForReading = false) != null) RuntimeVoice.port.listenAfterReport(app, since)
     }
 
     /** The card's X: the run going on now finishes without speaking ([RunSpeech]). */
@@ -681,7 +681,7 @@ object RuntimeSession {
      * is spoken ([holdForReading] false): it adds to the result on the card rather than replacing it with something else,
      * and holding it for the reading time kept a 网上核实 report back 47 s after that answer ended (bench 2026-10-19).
      */
-    private suspend fun awaitIdleCar(holdForReading: Boolean = true) = withTimeoutOrNull(DELEGATION_REPORT_WAIT_MS) {
+    private suspend fun awaitIdleDevice(holdForReading: Boolean = true) = withTimeoutOrNull(DELEGATION_REPORT_WAIT_MS) {
         val busy = { runner.isRunning || if (holdForReading) Presenter.reading() else RuntimeVoice.port.active.value }
         do {
             while (busy()) delay(DELEGATION_REPORT_POLL_MS)
@@ -690,8 +690,8 @@ object RuntimeSession {
     }
 
     /**
-     * [asTurn] on an idle car, waiting until that turn runs, so the next one in [reportQueue] cannot replace it; on a
-     * busy car [model] goes into the running turn ([beforeSteer] first), and becomes a turn if that one ends first.
+     * [asTurn] on an idle device, waiting until that turn runs, so the next one in [reportQueue] cannot replace it; on a
+     * busy device [model] goes into the running turn ([beforeSteer] first), and becomes a turn if that one ends first.
      */
     private suspend fun turnOrSteer(model: String, shown: String, title: String, asTurn: () -> Unit, beforeSteer: () -> Unit = {}) {
         if (!runner.isRunning) {
@@ -840,7 +840,7 @@ object RuntimeSession {
             "0", "false" -> { streamEnabled = false; transcript.appendStatus("Stream forced off") }
         }
         transcript.openTurn(text)
-        // A run started on the device itself takes the overlay back from an A2A task.
+        // A run started on the device itself takes the focus back from another client's A2A task.
         InboundFocus.localRun()
         val intake = if (spoken) RunIntake(SpokenRuns.next()) else null
         runner.start(context.applicationContext, text, intake, modelText)

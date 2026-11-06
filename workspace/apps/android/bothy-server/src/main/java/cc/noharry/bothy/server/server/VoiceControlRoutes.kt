@@ -7,7 +7,6 @@ import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.RouteTable
-import cc.noharry.agent.appserver.server.done
 import cc.noharry.bothy.protocol.BothyFindingCode
 import cc.noharry.bothy.protocol.VoiceRequests
 import cc.noharry.bothy.protocol.VoiceWakeResult

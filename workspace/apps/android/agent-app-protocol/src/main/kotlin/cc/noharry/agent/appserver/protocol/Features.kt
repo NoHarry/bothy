@@ -32,7 +32,7 @@ enum class A2aInputSource {
     ASR,
     /** An inbound request from a PC debug tool (`metadata.debugMirror=true`), mirrored read-only. */
     PC,
-    /** An inbound request from any other A2A client, mirrored read-only while "显示外部 A2A 任务" is on. */
+    /** An inbound request from any other A2A client, mirrored read-only. */
     EXTERNAL,
 }
 
@@ -112,12 +112,12 @@ data class A2aClientState(
     val activeTaskId: String? = null,
     val lastTaskId: String? = null,
     val runStartedAtEpochMillis: Long? = null,
-    /** Mirrored inbound debug tasks still running, by task ID, with their start time. */
+    /** Mirrored inbound tasks still running, by task ID, with their start time. */
     val mirrors: Map<String, Long> = emptyMap(),
     val lastOutcome: A2aOutcome? = null,
     val items: List<A2aClientItem> = emptyList(),
     val nextItemId: Long = 1,
-    /** An inbound task holds the overlay's stage, outside client mode too, until a run starts on the device. */
+    /** Another client's task arrived after the device's own last run, so a screen showing one thing shows the A2A tasks. */
     val inboundFocus: Boolean = false,
 ) {
     /** Questions of the active task, or when idle of the latest task; ended tasks answer late as a new message. */

@@ -3,6 +3,7 @@ package cc.noharry.agent.appserver.server
 import android.app.Application
 import android.content.Context
 import cc.noharry.agent.appserver.BuildConfig
+import cc.noharry.agent.appserver.a2a.A2aHost
 import cc.noharry.agent.appserver.pages.PageRoutes
 import cc.noharry.agent.appserver.protocol.ServerInfo
 import cc.noharry.agent.appserver.protocol.client.ServerState
@@ -59,7 +60,7 @@ interface PublishedState {
 
 /**
  * What a host app gives its server: its name, its features, who the assistant is, the model services its build carries,
- * where its screens show what tools leave, and what it plugs into the runtime.
+ * where its screens show what tools leave, what it plugs into the runtime, and what it does with other A2A clients' tasks.
  */
 class AppServerConfig(
     val name: String,
@@ -70,6 +71,7 @@ class AppServerConfig(
     val voice: VoicePort = VoicePort.NONE,
     val models: HostModels = HostModels.NONE,
     val runs: RunAddOns = RunAddOns.NONE,
+    val a2a: A2aHost = A2aHost.NONE,
 )
 
 /**
@@ -88,7 +90,7 @@ object AppServer {
     fun install(app: Application, config: AppServerConfig) {
         this.config = config
         RuntimeVoice.install(config.voice)
-        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places)
+        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a)
         installServer(app, config.features)
     }
 

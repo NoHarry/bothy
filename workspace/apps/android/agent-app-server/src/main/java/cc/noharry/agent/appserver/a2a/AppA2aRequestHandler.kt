@@ -1,16 +1,13 @@
 package cc.noharry.agent.appserver.a2a
 import android.content.Context
+import android.util.Log
 import cc.noharry.agent.a2a.server.*
 import cc.noharry.agent.appserver.InternalAppServerApi
-import cc.noharry.agent.appserver.protocol.OverlayCommand
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ExecutionEvents
 import cc.noharry.agent.appserver.runtime.ExecutionMessage
 import cc.noharry.agent.appserver.runtime.RunIntake
 import cc.noharry.agent.appserver.runtime.RuntimeSession
-import cc.noharry.agent.appserver.server.Presenter
-import cc.noharry.agent.appserver.server.done
-import cc.noharry.agent.appserver.server.isOverlayControlOnly
-import cc.noharry.agent.appserver.server.overlayCommand
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.agent.kernel.api.PostUserInputResult
 import kotlinx.coroutines.*
@@ -32,21 +29,18 @@ internal class AppA2aRequestHandler(context: Context) : A2aRequestHandler {
         }
 
     override fun execute(request: A2aRequest): Flow<A2aOutput> = flow {
-        // The overlay pops up before the task, so its mirror is seen from the first event.
-        val overlay = applyOverlayCommand(request)
-        // A control-only message never runs its placeholder text, even when its command is missing or unknown.
-        if (isOverlayControlOnly(request.metadata)) {
-            emit(overlay ?: A2aOutput.Result("carOverlayOnly 需要同时设置 carOverlay=show 或 hide", A2aOutput.State.REJECTED))
+        // A command of the host's own goes first, so what it shows is there from the task's first event.
+        AppHost.a2a.intercept(request.metadata)?.let { ended ->
+            emit(ended)
             return@flow
         }
         val sessionId = "a2a-${request.contextId}"
         val subscription = ExecutionEvents.subscribe(request.taskId)
-        // Every caller's task is mirrored onto the device; never the device's own client's, which it already shows.
+        // Every caller's task is listed on the device; never the device's own client's, which it already shows.
         val mirror = A2aClientConsole.mirror(context, request)
-        // Every other client's task brings the card up, so the device visibly responds; an explicit hide wins.
-        if (mirror != null && overlay == null) Presenter.card(OverlayCommand.SHOW)
         var result: A2aOutput.Result? = null
         try {
+            if (mirror != null) announceInbound(request.metadata)
             RuntimeSession.submitExternal(context, request.text, RunIntake(request.taskId, sessionId, external = true))
             for (message in subscription.events) {
                 if (message == ExecutionMessage.Ended) break
@@ -73,21 +67,19 @@ internal class AppA2aRequestHandler(context: Context) : A2aRequestHandler {
         }
     }.flowOn(Dispatchers.IO)
 
-    /**
-     * Applies `carOverlay=show|hide` for any caller: the device is meant to respond to A2A without its console being
-     * opened. While the full-screen console is in front a `show` waits until it leaves. Returns how a control-only
-     * message ends, or null when there is no command.
-     */
-    private suspend fun applyOverlayCommand(request: A2aRequest): A2aOutput.Result? {
-        val command = overlayCommand(request.metadata) ?: return null
-        val failure = Presenter.card(command)
-        return if (failure == null) {
-            A2aOutput.Result(command.done, A2aOutput.State.COMPLETED)
-        } else {
-            A2aOutput.Result(failure, A2aOutput.State.FAILED)
+    /** The host's own doing must not keep the task from running, nor its mirror and subscription from closing. */
+    private suspend fun announceInbound(metadata: Map<String, String>) {
+        try {
+            AppHost.a2a.inboundStarted(metadata)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            Log.w(TAG, "The host's inboundStarted failed; the task runs", failure)
         }
     }
 }
+
+private const val TAG = "AppA2a"
 
 @InternalAppServerApi
 fun a2aExecutionOutput(message: ExecutionMessage): A2aOutput? = when (message) {
@@ -97,7 +89,7 @@ fun a2aExecutionOutput(message: ExecutionMessage): A2aOutput? = when (message) {
         "${message.name} ${when (message.phase) { "started" -> "正在调用"; "completed" -> "调用完成"; else -> "调用失败" }}",
         message.phase, message.name, message.callId,
     )
-    is ExecutionMessage.Failure -> A2aOutput.Result("执行服务失败，请检查 sample 日志", A2aOutput.State.FAILED)
+    is ExecutionMessage.Failure -> A2aOutput.Result("执行服务失败，请查看设备日志", A2aOutput.State.FAILED)
     ExecutionMessage.Stopped -> A2aOutput.Result("任务已取消", A2aOutput.State.CANCELED)
     is ExecutionMessage.ObserverIssue -> A2aOutput.Status("展示订阅中断，执行继续", "observer-failed")
     else -> null

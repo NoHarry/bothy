@@ -12,6 +12,7 @@ import cc.noharry.agent.appserver.model.PREFS_NAME
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.DEBUG_A2A_CLIENT_DEFAULT_ENDPOINT
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.RunAnnouncer
 import cc.noharry.agent.appserver.runtime.RuntimeVoice
 import java.net.URI
@@ -22,11 +23,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Opt-in A2A client mode: the sample talks to an A2A endpoint (by default its own server) through the
- * packaged direct client and speaks only `channel=speech`. Independent of [RuntimeSession]: it owns
- * no runtime, never touches the Debug transcript or session selection, and leaves the server unchanged.
+ * Opt-in A2A client mode: the app talks to its own local A2A endpoint through the packaged direct client and speaks
+ * only `channel=speech`, so it is there only when the host runs that endpoint ([A2aHost.localServer]). Independent of
+ * [RuntimeSession]: it owns no runtime, never touches the Debug transcript or session selection, and leaves the server
+ * unchanged.
  *
- * Main thread only, like the other sample entry points.
+ * Main thread only, like the other entry points.
  */
 object A2aClientConsole {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -39,17 +41,19 @@ object A2aClientConsole {
     val state: A2aClientState
         get() = session?.state ?: A2aClientState(enabled = enabled == true, speakExternal = speakExternal == true)
 
-    fun isEnabled(context: Context): Boolean =
-        enabled ?: context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_ENABLED, false).also { enabled = it }
+    /** On only while the host runs the local endpoint the mode talks to. */
+    fun isEnabled(context: Context): Boolean = enabled ?: run {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        (AppHost.a2a.localServer && prefs.getBoolean(KEY_ENABLED, false)).also { enabled = it }
+    }
 
     internal fun isSpeakingExternal(context: Context): Boolean =
         speakExternal ?: context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean(KEY_SPEAK_EXTERNAL, false).also { speakExternal = it }
 
     /**
-     * 收到 A2A 播报: whether other clients' tasks are also spoken on this car. Off by default: a caller such as the
-     * car's voice assistant speaks for itself, and the device only shows the task. Typed input on the device and PC debug
+     * 收到 A2A 播报: whether other clients' tasks are also spoken on this device. Off by default: a caller such as
+     * another voice assistant speaks for itself, and the device only shows the task. Typed input on the device and PC debug
      * tasks are spoken either way. Independent of client mode.
      */
     fun setSpeakExternal(context: Context, value: Boolean) {
@@ -73,6 +77,10 @@ object A2aClientConsole {
     fun setEnabled(context: Context, value: Boolean) {
         val app = context.applicationContext
         if (isEnabled(app) == value) return
+        if (value && !AppHost.a2a.localServer) {
+            Log.w(TAG, "A2A client mode needs the host's local endpoint, which does not run")
+            return
+        }
         app.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().putBoolean(KEY_ENABLED, value).apply()
         enabled = value
         Log.i(TAG, "A2A client mode ${if (value) "on" else "off"}")
@@ -107,7 +115,7 @@ object A2aClientConsole {
     fun newConversation(context: Context) = session(context).newConversation()
 
     /**
-     * Read-only mirror for every inbound task but this car's own client's: a PC debug tool's
+     * Read-only mirror for every inbound task but this device's own client's: a PC debug tool's
      * (`metadata.debugMirror=true`) or any other client's. Callable from the server's IO thread.
      */
     @InternalAppServerApi

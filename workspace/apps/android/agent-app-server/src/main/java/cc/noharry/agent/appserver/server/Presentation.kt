@@ -1,6 +1,5 @@
 package cc.noharry.agent.appserver.server
 
-import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.DragParams
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.EnsureRunningParams
@@ -138,29 +137,3 @@ object Presenter {
 }
 
 private const val NOT_PRESENTED = "no assistant on screen"
-
-/** What an A2A caller is told once [this] was applied to the device's overlay. */
-val OverlayCommand.done: String
-    get() = when (this) {
-        OverlayCommand.SHOW -> "悬浮窗已弹出"
-        OverlayCommand.HIDE -> "悬浮窗已收起"
-    }
-
-/** `carOverlay=show|hide`; anything else is no command. */
-@InternalAppServerApi
-fun overlayCommand(metadata: Map<String, String>): OverlayCommand? =
-    when (metadata[CAR_OVERLAY_METADATA]?.trim()?.lowercase()) {
-        "show" -> OverlayCommand.SHOW
-        "hide" -> OverlayCommand.HIDE
-        else -> null
-    }
-
-/** `carOverlayOnly=true`: the message only controls the overlay; the agent does not run and the text is ignored. */
-@InternalAppServerApi
-fun isOverlayControlOnly(metadata: Map<String, String>): Boolean =
-    metadata[CAR_OVERLAY_ONLY_METADATA]?.trim()?.lowercase() == "true"
-
-@InternalAppServerApi
-const val CAR_OVERLAY_METADATA = "carOverlay"
-@InternalAppServerApi
-const val CAR_OVERLAY_ONLY_METADATA = "carOverlayOnly"

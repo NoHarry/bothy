@@ -19,6 +19,7 @@ import cc.noharry.agent.appserver.protocol.A2aProfile
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.DelegationView
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
 import cc.noharry.agent.kernel.api.ToolCallContext
@@ -155,7 +156,7 @@ class A2aBridgeProviderTest {
     }
 
     @Test
-    fun everyMessageCarriesTheCarsLocalTimeAndZone() = runBlocking {
+    fun everyMessageCarriesTheDevicesLocalTimeAndZoneAndTheHostsSource() = runBlocking {
         val client = FakeA2aClient(A2aResult.Failure(A2aClientError.Transport("unused")))
         val provider = A2aBridgeProvider(
             profile("direct-local"),
@@ -163,14 +164,24 @@ class A2aBridgeProviderTest {
             clock = { 1_791_741_900_500L },
             zone = { ZoneId.of("Asia/Shanghai") },
         ) { client }
+        fun sentContext() = client.sentMessages.last().second.message.metadata?.values?.get("context") as A2aValue.ObjectValue
 
         provider.callTool("a2a_message_send", """{"text":"明天下午两点提醒我"}""", callContext())
 
-        val metadata = client.sentMessages.single().second.message.metadata
-        val context = metadata?.values?.get("context") as A2aValue.ObjectValue
-        assertEquals(A2aValue.StringValue("car"), context.values["source"])
+        val context = sentContext()
+        assertEquals(A2aValue.StringValue("device"), context.values["source"])
         assertEquals(A2aValue.StringValue("Asia/Shanghai"), context.values["timezone"])
         assertEquals(A2aValue.StringValue("2026-10-12T02:05:00+08:00"), context.values["local_time"])
+        // A host names its own source.
+        AppHost.install(a2a = object : A2aHost {
+            override val contextSource: String get() = "car"
+        })
+        try {
+            provider.callTool("a2a_message_send", """{"text":"再提醒一次"}""", callContext())
+            assertEquals(A2aValue.StringValue("car"), sentContext().values["source"])
+        } finally {
+            AppHost.install(a2a = A2aHost.NONE)
+        }
     }
 
     @Test

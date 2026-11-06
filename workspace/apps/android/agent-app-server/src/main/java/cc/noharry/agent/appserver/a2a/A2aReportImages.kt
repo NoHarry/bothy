@@ -17,7 +17,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
-/** A picture a delegation report attached, saved where the overlay and console find generated pictures. */
+/** A picture a delegation report attached, saved where the screens find generated pictures. */
 @InternalAppServerApi
 data class A2aReportPicture(val reference: String, val caption: String)
 

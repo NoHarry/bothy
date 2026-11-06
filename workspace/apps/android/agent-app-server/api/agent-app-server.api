@@ -18,9 +18,15 @@ cc.noharry.agent.appserver.a2a.A2aDelegationSink | interface A2aDelegationSink
 cc.noharry.agent.appserver.a2a.A2aDelegationSink.inFlight | fun inFlight(agentLabel: String): List<DelegationView>
 cc.noharry.agent.appserver.a2a.A2aDelegationSink.pendingQuestions | fun pendingQuestions(agentLabel: String): List<A2aPendingQuestion>
 cc.noharry.agent.appserver.a2a.A2aDelegationSink.track | fun track(delegation: A2aDelegation, client: A2aClient, remote: RemoteAgentRef)
+cc.noharry.agent.appserver.a2a.A2aHost | interface A2aHost
+cc.noharry.agent.appserver.a2a.A2aHost.Companion | companion object
+cc.noharry.agent.appserver.a2a.A2aHost.Companion.NONE | val NONE: A2aHost
+cc.noharry.agent.appserver.a2a.A2aHost.contextSource | val contextSource: String get()
+cc.noharry.agent.appserver.a2a.A2aHost.inboundStarted | suspend fun inboundStarted(metadata: Map<String, String>)
+cc.noharry.agent.appserver.a2a.A2aHost.intercept | suspend fun intercept(metadata: Map<String, String>): A2aOutput.Result?
+cc.noharry.agent.appserver.a2a.A2aHost.localServer | val localServer: Boolean get()
 cc.noharry.agent.appserver.a2a.A2aModuleConfig | data class A2aModuleConfig( val state: A2aModuleState, val modules: Map<String, A2aClientModule> = emptyMap(), val auth: (String) -> A2aAuthProvider = { A2aAuthProvider.None }, )
 cc.noharry.agent.appserver.a2a.A2aModuleConfig.Companion | companion object
-cc.noharry.agent.appserver.a2a.A2aModuleConfig.Companion.load | fun load( context: Context, registry: A2aModuleRegistry = A2aModuleRegistry.packaged(), ): A2aModuleConfig
 cc.noharry.agent.appserver.a2a.A2aModuleConfig.module | val module: A2aClientModule?
 cc.noharry.agent.appserver.a2a.A2aPendingQuestion | data class A2aPendingQuestion( val agentLabel: String, val taskId: String, val question: String, val askedAtEpochMillis: Long, )
 cc.noharry.agent.appserver.a2a.A2aProfileBroadcastReceiver | class A2aProfileBroadcastReceiver : BroadcastReceiver()
@@ -34,6 +40,7 @@ cc.noharry.agent.appserver.a2a.A2aTokens.save | fun save(context: Context, profi
 cc.noharry.agent.appserver.a2a.DIRECT_MODULE_ID | const val DIRECT_MODULE_ID
 cc.noharry.agent.appserver.a2a.RelayProgress | data class RelayProgress(val stage: DelegationStage, val steps: List<DelegationStep>)
 cc.noharry.agent.appserver.a2a.describe | fun A2aClientError.describe(): String
+cc.noharry.agent.appserver.a2a.loadA2aProfiles | fun loadA2aProfiles(context: Context): List<A2aProfile>
 cc.noharry.agent.appserver.androiduse.loadAndroidUseEnabled | fun loadAndroidUseEnabled(context: Context): Boolean
 cc.noharry.agent.appserver.androiduse.repairAndroidUse | suspend fun repairAndroidUse( context: Context, gapMillis: Long = REBIND_GAP_MS, waitMillis: Long = CONNECT_WAIT_MS, ): Boolean
 cc.noharry.agent.appserver.evidence.AppDiagnostics | class AppDiagnostics( private val logFile: File, private val appContext: android.content.Context? = null, private val onEntry: (DiagnosticEntry) -> Unit = {}, private val onTokenUsage: (TokenDelta) -> Unit = {}, private val nowMillis: () -> Long = { System.currentTimeMillis() }, )
@@ -274,7 +281,7 @@ cc.noharry.agent.appserver.server.AppServer.connect | fun connect(context: Conte
 cc.noharry.agent.appserver.server.AppServer.features | val features: List<AppServerFeature> get()
 cc.noharry.agent.appserver.server.AppServer.install | fun install(app: Application, config: AppServerConfig)
 cc.noharry.agent.appserver.server.AppServer.wakeUp | fun wakeUp(context: Context)
-cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, )
+cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, )
 cc.noharry.agent.appserver.server.AppServerFeature | interface AppServerFeature
 cc.noharry.agent.appserver.server.AppServerFeature.appInFront | fun appInFront(app: Context, inFront: Boolean)
 cc.noharry.agent.appserver.server.AppServerFeature.install | fun install(app: Application)
@@ -381,7 +388,6 @@ cc.noharry.agent.appserver.server.SettingsBackend.subagentKindText | fun subagen
 cc.noharry.agent.appserver.server.SettingsBackend.toolsChanged | fun toolsChanged(serverIds: List<String>)
 cc.noharry.agent.appserver.server.SettingsBackend.trajectoryRaw | fun trajectoryRaw(sessionId: String, eventId: String): String?
 cc.noharry.agent.appserver.server.coreModules | fun coreModules(app: Context): List<RouteModule>
-cc.noharry.agent.appserver.server.done | val OverlayCommand.done: String
 cc.noharry.agent.appserver.session.BACKEND_LIVE | const val BACKEND_LIVE
 cc.noharry.agent.appserver.session.DEBUG_A2A_CLIENT_EXTRA | const val DEBUG_A2A_CLIENT_EXTRA
 cc.noharry.agent.appserver.session.DEBUG_BACKEND_EXTRA | const val DEBUG_BACKEND_EXTRA

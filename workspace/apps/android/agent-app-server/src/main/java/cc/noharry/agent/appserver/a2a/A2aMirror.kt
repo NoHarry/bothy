@@ -18,7 +18,7 @@ const val DEBUG_A2A_MIRROR_METADATA = "debugMirror"
 
 /** Message metadata the device's own client sets; its tasks are already on screen and are never mirrored. */
 @InternalAppServerApi
-const val DEBUG_A2A_OWN_CLIENT_METADATA = "debugCarClient"
+const val DEBUG_A2A_OWN_CLIENT_METADATA = "debugOwnClient"
 
 /**
  * Maps host outputs of one inbound task to the wire events its caller receives, with the same channel
@@ -77,8 +77,8 @@ private fun A2aOutput.State.toTaskStatus(): A2aTask.Status = when (this) {
 }
 
 /**
- * Where an inbound task came from, for its read-only mirror on this car: a PC debug tool (marked) or any other
- * client. Every task is shown so the device visibly responds to A2A; only this car's own client's tasks are not
+ * Where an inbound task came from, for its read-only mirror on this device: a PC debug tool (marked) or any other
+ * client. Every task is listed so the device visibly responds to A2A; only this device's own client's tasks are not
  * mirrored, since they are on screen already. The caller is always answered either way.
  */
 @InternalAppServerApi

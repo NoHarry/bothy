@@ -66,7 +66,7 @@ data class A2aPendingQuestion(
 )
 
 /**
- * A settled delegation as one turn: [display] is what the transcript and overlay show, [model] what the agent reads
+ * A settled delegation as one turn: [display] is what the transcript and the screens show, [model] what the agent reads
  * (what was asked, the card, the saved pictures, a question's task id).
  */
 data class A2aReport(val display: String, val model: String, val taskId: String = "")
@@ -84,7 +84,7 @@ interface A2aDelegationSink {
 /**
  * Follows delegated tasks in the background, outside any run. A settled one becomes a [A2aReport] after its
  * pictures are saved, and the app turns it into a spoken turn (see [RuntimeSession.deliverDelegationReport]).
- * Only polls: the user's agent cannot reach the device. [views] is what the console and overlay show; tasks still being
+ * Only polls: the user's agent cannot reach the device. [views] is what the screens show; tasks still being
  * followed are kept in a no-backup file and followed again after the app restarts.
  */
 internal object A2aDelegations : A2aDelegationSink {
