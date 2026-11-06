@@ -67,11 +67,11 @@
     <string name="skills_tool_todo">To-dos</string>
     <string name="skills_tool_todo_detail">update_todo</string>
     <string name="skills_tool_device_query">Check device status</string>
-    <string name="skills_tool_device_query_detail">The query tools of the device service</string>
+    <string name="skills_tool_device_query_detail">The query tools of the car, home devices and media playback</string>
     <string name="skills_tool_device_control">Control the device</string>
-    <string name="skills_tool_device_control_detail">Actions of the device service; “Let subagents control the device” must be on too</string>
+    <string name="skills_tool_device_control_detail">Operating the car, home devices and media playback, and looking at or operating the screen; “Let subagents control the device” must be on too</string>
     <string name="skills_tool_services">Other services</string>
-    <string name="skills_tool_services_detail">Connected tools such as maps, calendar, food delivery, ride hailing and phone control</string>
+    <string name="skills_tool_services_detail">Connected tools such as maps, calendar, food delivery and ride hailing</string>
     <string name="skills_tool_ask">Ask the user</string>
     <string name="skills_tool_ask_detail">ask, ask_async</string>
     <string name="skills_tool_cards">Cards and options</string>

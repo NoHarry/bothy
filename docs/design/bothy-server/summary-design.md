@@ -137,7 +137,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 名字（握手时的 `serverInfo.name`）；
   - 人设（`Persona`）：助手叫什么，系统提示词开头那句“你是谁、在哪个 App 里”；不给就是通用的“助手”。提示词和工具说明里模型读到的关于自己的话一律写“你”，不写名字；
   - 插件（`AppServerFeature`）：进程启动时起什么（`install`）、答哪些请求（`routes`）、往状态里发布什么（`publish`，多是 `ExtensionSection`）、App 进出前台和悬浮窗来去时做什么，每样都可以不要；
-  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、工具包装、自带的工具）；
+  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、工具包装、自带的工具、skill 和子 agent 类型，以及哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们）；
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
 - `BothyServer`（公开）就是 Bothy 的这份配置：人设是小博，插件是语音（含唤醒、实时、陪聊、Jev 工具检索）、本机模型、检查、Playground 和 Bothy 自己的设置页，口子是 `BothyVoice`、`BothyModels`、`BothyRuns`，配置文件多读一个 `tts` 段，位置是“设置 → 记忆”和“屏幕的悬浮窗上”。对外仍是 `install`（进程启动时由 `BothyApplication` 调）、`connect`（给一个进程内客户端）、`wakeUp`（没有前端时起状态来源，比如唤醒词、计划）。界面语言变化走协议的 `app/languageChanged`。

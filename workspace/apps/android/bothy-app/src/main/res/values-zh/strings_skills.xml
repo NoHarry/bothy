@@ -63,11 +63,11 @@
     <string name="skills_tool_todo">待办</string>
     <string name="skills_tool_todo_detail">update_todo</string>
     <string name="skills_tool_device_query">查设备状态</string>
-    <string name="skills_tool_device_query_detail">设备服务里查询类的工具</string>
+    <string name="skills_tool_device_query_detail">车、家里的设备和媒体播放里查询类的工具</string>
     <string name="skills_tool_device_control">操作设备</string>
-    <string name="skills_tool_device_control_detail">设备服务里的操作；「允许子 agent 操作设备」也要开着</string>
+    <string name="skills_tool_device_control_detail">操作车、家里的设备和媒体播放，以及看和操作屏幕；「允许子 agent 操作设备」也要开着</string>
     <string name="skills_tool_services">其他服务</string>
-    <string name="skills_tool_services_detail">地图、日历、外卖、打车、手机操作等已接入的工具</string>
+    <string name="skills_tool_services_detail">地图、日历、外卖、打车等已接入的工具</string>
     <string name="skills_tool_ask">问用户</string>
     <string name="skills_tool_ask_detail">ask、ask_async</string>
     <string name="skills_tool_cards">卡片和选项</string>

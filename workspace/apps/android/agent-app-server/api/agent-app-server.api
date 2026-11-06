@@ -202,6 +202,7 @@ cc.noharry.agent.appserver.runtime.RunAddOns.Companion | companion object
 cc.noharry.agent.appserver.runtime.RunAddOns.Companion.NONE | val NONE: RunAddOns
 cc.noharry.agent.appserver.runtime.RunAddOns.builtinSkills | fun builtinSkills(context: Context): List<RuntimeSkill>
 cc.noharry.agent.appserver.runtime.RunAddOns.contextLines | fun contextLines(context: Context): List<String>
+cc.noharry.agent.appserver.runtime.RunAddOns.deviceServers | fun deviceServers(context: Context): Set<String>
 cc.noharry.agent.appserver.runtime.RunAddOns.exampleToolsAllowed | fun exampleToolsAllowed(): Boolean
 cc.noharry.agent.appserver.runtime.RunAddOns.subagentKinds | fun subagentKinds(): List<SubagentKind>
 cc.noharry.agent.appserver.runtime.RunAddOns.toolProviders | fun toolProviders(context: Context): List<ToolProvider>

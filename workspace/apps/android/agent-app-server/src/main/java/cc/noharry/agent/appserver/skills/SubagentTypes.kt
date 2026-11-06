@@ -116,7 +116,10 @@ fun subagentKindText(context: Context, kind: SubagentKind): String =
 internal fun subagentKindSections(context: Context): Set<String> =
     loadSubagentKinds(context).filter { it.enabled }.mapTo(linkedSetOf()) { "$AGENT_SECTION_PREFIX${it.id}" }
 
-/** What a type can use unless it says otherwise: the web, its skills, a todo list, and services such as maps; nothing that changes the device. */
+/**
+ * What a type can use unless it says otherwise: the web, its skills, a todo list, and connected services such as maps;
+ * none of the devices.
+ */
 val DEFAULT_SUBAGENT_TOOLS = setOf(
     SubagentToolGroup.SEARCH, SubagentToolGroup.FETCH, SubagentToolGroup.READ, SubagentToolGroup.TODO,
     SubagentToolGroup.SERVICES,

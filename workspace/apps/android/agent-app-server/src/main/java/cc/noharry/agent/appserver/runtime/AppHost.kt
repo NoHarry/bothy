@@ -54,7 +54,8 @@ interface HostModels {
 /**
  * What the host adds to each run it builds: lines for the run's context, a wrapper for every mounted tool provider (a
  * tool search picking tools before the first model call), whether the bundled example tools may be mounted, tool
- * providers, skills and subagent types of its own. An app without any keeps [NONE].
+ * providers, skills and subagent types of its own, and which of its servers work devices. An app without any keeps
+ * [NONE].
  */
 interface RunAddOns {
     fun contextLines(context: Context): List<String> = emptyList()
@@ -71,6 +72,14 @@ interface RunAddOns {
 
     /** The subagent types the host ships (AGENT.md in its assets), offered by spawn_agent. */
     fun subagentKinds(): List<SubagentKind> = emptyList()
+
+    /**
+     * The tool servers of the host's own that work things around the user (a car, a home), besides the screen, media and
+     * example car tools every app has: a subagent only queries them unless the settings let it operate devices. Each is
+     * the `<id>` of its tools' `mcp__<id>__<tool>`; a tool whose name has a query word (get, status, search, …) and no
+     * action word (set, play, open, …) is a query. Read each time a subagent starts.
+     */
+    fun deviceServers(context: Context): Set<String> = emptySet()
 
     companion object {
         val NONE: RunAddOns = object : RunAddOns {}

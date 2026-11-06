@@ -50,7 +50,10 @@ internal fun bothySkills(context: Context): List<RuntimeSkill> = listOf(
     ),
 )
 
-/** What a trip type needs: the web, its skills, a todo list, and services such as maps; nothing that changes the device. */
+/**
+ * What a trip type needs: the web, its skills, a todo list, and connected services such as maps; none of the devices
+ * (the car's own navigation included).
+ */
 private val TRIP_TOOLS = DEFAULT_SUBAGENT_TOOLS
 
 /** What 网上核实 needs: the web and nothing else. */

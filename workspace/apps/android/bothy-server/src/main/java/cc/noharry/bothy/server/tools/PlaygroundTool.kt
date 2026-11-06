@@ -161,7 +161,7 @@ private const val NOT_IN_FRONT = "已经发出打开请求，但它没有到前�
 internal const val PLAYGROUND_OPEN_TOOL = "playground_open"
 /** The Playground reads it as the scene to show: `cabin` (the head unit), `home`, or `nav` (where the user drives). */
 private const val PLAYGROUND_EXTRA_SCENE = "scene"
-private const val PLAYGROUND_TOOL_SERVER_ID = "playground_screen"
+internal const val PLAYGROUND_TOOL_SERVER_ID = "playground_screen"
 private val PLAYGROUND_OPENED = mapOf(
     "cabin" to "车机已在前台。",
     "home" to "虚拟小家已在前台（真实导航模式下没有小家，会停在车机）。",

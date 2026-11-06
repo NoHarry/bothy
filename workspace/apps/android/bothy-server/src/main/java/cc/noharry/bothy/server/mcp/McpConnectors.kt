@@ -403,5 +403,16 @@ private val CONTEXT7 = Connector(
 internal val DEBUG_MCP_CONNECTORS: List<Connector> =
     listOf(VIRTUAL_CABIN, VIRTUAL_HOME, KIWI, DEEPWIKI, HUGGING_FACE, CONTEXT7, AMAP, DIDI, LUCKIN, MCDONALDS, TENCENT_DOCS)
 
+/**
+ * The Playground's virtual car and home, devices a subagent only queries unless allowed to operate them: by their
+ * connectors' ids, or the ids of servers added by hand at their addresses.
+ */
+internal fun playgroundDeviceServers(context: Context): Set<String> {
+    val devices = listOf(VIRTUAL_CABIN, VIRTUAL_HOME).mapNotNull { it.mcp }
+    val urls = devices.mapTo(hashSetOf()) { it.url }
+    return devices.mapTo(linkedSetOf()) { it.serverId } +
+        loadMcpServers(context).filter { it.url.trim().trimEnd('/') in urls }.map { it.id }
+}
+
 private const val QUERY_KEY_NAME = "key"
 private const val PROBE_TIMEOUT_MS = 45_000L

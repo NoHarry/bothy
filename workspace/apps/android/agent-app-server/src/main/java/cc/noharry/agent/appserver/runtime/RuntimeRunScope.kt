@@ -26,6 +26,7 @@ import cc.noharry.agent.appserver.skills.AppSubagents
 import cc.noharry.agent.appserver.skills.MAX_CHILD_LOOKUPS
 import cc.noharry.agent.appserver.skills.SubagentGuard
 import cc.noharry.agent.appserver.skills.appSubagentKind
+import cc.noharry.agent.appserver.skills.subagentDeviceServers
 import cc.noharry.agent.appserver.trajectory.appSessionEventLogRoot
 import cc.noharry.agent.appserver.usage.TokenDelta
 import cc.noharry.agent.kernel.api.AgentEvent
@@ -121,7 +122,10 @@ internal fun buildScopedRuntime(
             onRawToolTranscript = { _, _ -> },
             networkConfirmationPolicy = confirmationMode().toNetworkPolicy(),
             userInput = spec.task,
-            hostHook = SubagentGuard(spec.allowDeviceControl, kind?.maxLookups ?: MAX_CHILD_LOOKUPS, kind?.tools, kind?.id.orEmpty()),
+            hostHook = SubagentGuard(
+                spec.allowDeviceControl, kind?.maxLookups ?: MAX_CHILD_LOOKUPS, kind?.tools, kind?.id.orEmpty(),
+                subagentDeviceServers(context),
+            ),
             subagentChild = true,
             subagentKind = kind,
         )

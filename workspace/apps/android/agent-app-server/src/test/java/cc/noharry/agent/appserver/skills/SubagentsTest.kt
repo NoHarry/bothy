@@ -91,9 +91,42 @@ class SubagentsTest {
         assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__tools_json__window_open"))
         assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__tools_json__get_seat_status"))
         assertEquals(SubagentToolGroup.SERVICES, subagentToolGroup("mcp__memory__user_memory"))
+        assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__android_use__android_action"))
+        assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__android_use__android_observe"))
+        assertEquals(SubagentToolGroup.DEVICE_CONTROL, subagentToolGroup("mcp__device_media__media_play_from_search"))
+        assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__device_media__media_status"))
+        // The host's devices are the ones it names.
+        assertEquals(SubagentToolGroup.SERVICES, subagentToolGroup("mcp__cabin__get_cabin_status"))
+        assertEquals(SubagentToolGroup.DEVICE_QUERY, subagentToolGroup("mcp__cabin__get_cabin_status", setOf("cabin")))
         assertNull(subagentToolGroup("mcp__car_ui__show_card"))
         assertNull(subagentToolGroup("mcp__experimental_a2a_agent__a2a_message_send"))
         assertNull(subagentToolGroup("spawn_agent"))
+    }
+
+    @Test
+    fun theScreenMediaAndTheHostsOwnDevicesAreOnlyQueriedByDefault() = runBlocking {
+        val guard = SubagentGuard(allowDeviceControl = false, deviceServers = subagentDeviceServers(appContext) + "cabin")
+
+        // Looking at the screen holds it too.
+        assertTrue(guard.decide("mcp__android_use__android_observe") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__android_use__android_action") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__device_media__media_status") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__device_media__media_control") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__device_media__media_volume") is HookDecision.Deny)
+        // An action word wins over a query word.
+        assertTrue(guard.decide("mcp__device_media__media_play_from_search") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__cabin__get_cabin_status") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__search_places") is HookDecision.Allow)
+        assertTrue(guard.decide("mcp__cabin__set_climate") is HookDecision.Deny)
+        assertTrue(guard.decide("mcp__cabin__start_navigation") is HookDecision.Deny)
+        // A service is not a device.
+        assertTrue(guard.decide("mcp__amap__route_plan") is HookDecision.Allow)
+        // The settings let it operate them.
+        val allowed = SubagentGuard(allowDeviceControl = true, deviceServers = setOf("cabin"))
+        assertTrue(allowed.decide("mcp__cabin__set_climate") is HookDecision.Allow)
+        // A typed child without device queries keeps away from the host's devices too.
+        val stay = SubagentGuard(false, tools = setOf(SubagentToolGroup.SERVICES), kindId = "trip-stay", deviceServers = setOf("cabin"))
+        assertTrue(stay.decide("mcp__cabin__get_cabin_status") is HookDecision.Deny)
     }
 
     @Test

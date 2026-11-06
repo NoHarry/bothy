@@ -6,11 +6,13 @@ import android.util.Log
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.R
 import cc.noharry.agent.appserver.a2a.A2aReport
+import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_MEDIA
 import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.hasDeepSeekKey
 import cc.noharry.agent.appserver.protocol.DEFAULT_SUBAGENT_LOOKUPS
 import cc.noharry.agent.appserver.protocol.TokenUsageState
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.BasicTool
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.trajectory.appSessionEventLogRoot
@@ -264,7 +266,8 @@ internal fun SubagentStatus.transcriptLine(
 
 /**
  * What a child may call. Never: questions to the user (no one is there), cards, plans and external delegation (the
- * main agent's). Device tools only when the settings allow it; otherwise their queries only. At most [MAX_CHILD_LOOKUPS]
+ * main agent's). Device tools ([deviceServers]: the screen, media playback, the example car tools and the host's own
+ * devices) only when the settings allow it; otherwise their queries only. At most [MAX_CHILD_LOOKUPS]
  * pages and searches of its own (owner 2026-10-17: 开了子 agent 后用得好快): a child hunting train times opened 20
  * pages, and what pages bring in is new input every round, the part of a trip that costs (cache hits are 1/50 of it).
  * A typed child also keeps to its type's [tools]; the tool list itself stays the main agent's.
@@ -276,11 +279,12 @@ internal class SubagentGuard(
     /** A typed child's tools ([SubagentKind.tools]); null for a general child. */
     private val tools: Set<SubagentToolGroup>? = null,
     private val kindId: String = "",
+    private val deviceServers: Set<String> = BUILT_IN_DEVICE_SERVERS,
 ) : RuntimeHook {
     private val lookups = java.util.concurrent.atomic.AtomicInteger()
 
     override suspend fun onPreToolUse(call: ToolUse, context: HookContext): HookDecision {
-        val group = subagentToolGroup(call.toolName)
+        val group = subagentToolGroup(call.toolName, deviceServers)
         if (tools != null && group != null && group !in tools) {
             return HookDecision.Deny(reason = "这个子 agent（$kindId）不能用「${group.label}」：用能用的工具完成，或把要做的写进结果。")
         }
@@ -295,7 +299,7 @@ internal class SubagentGuard(
                 HookDecision.Deny(reason = "A subagent cannot ask the user; decide on the likeliest reading and say so in the result.")
             server in MAIN_AGENT_SERVERS || server.startsWith(A2A_SERVER_PREFIX) ->
                 HookDecision.Deny(reason = "Only the main agent shows cards, makes plans or delegates; put what should be done in the result.")
-            server in DEVICE_SERVERS && !allowDeviceControl && !tool.isQuery() ->
+            server in deviceServers && !allowDeviceControl && !tool.isQuery() ->
                 HookDecision.Deny(reason = "A subagent cannot operate the device; put the change you would make in the result.")
             else -> HookDecision.Allow()
         }
@@ -443,7 +447,7 @@ private val CHILD_LOOKUP_TOOLS = setOf("web_fetch", "web_search")
  * The kind of tool [toolName] is, for a type's tools; null for what every child has (finish, search_tools, the subagent
  * tools) and for the main agent's own, which [SubagentGuard] refuses anyway.
  */
-internal fun subagentToolGroup(toolName: String): SubagentToolGroup? {
+internal fun subagentToolGroup(toolName: String, deviceServers: Set<String> = BUILT_IN_DEVICE_SERVERS): SubagentToolGroup? {
     when (toolName) {
         "web_search" -> return SubagentToolGroup.SEARCH
         "web_fetch" -> return SubagentToolGroup.FETCH
@@ -455,10 +459,13 @@ internal fun subagentToolGroup(toolName: String): SubagentToolGroup? {
     val server = toolName.removePrefix(MCP_PREFIX).substringBefore("__")
     return when {
         server in MAIN_AGENT_SERVERS || server.startsWith(A2A_SERVER_PREFIX) -> null
-        server in DEVICE_SERVERS -> if (toolName.substringAfterLast("__").isQuery()) SubagentToolGroup.DEVICE_QUERY else SubagentToolGroup.DEVICE_CONTROL
+        server in deviceServers -> if (toolName.substringAfterLast("__").isQuery()) SubagentToolGroup.DEVICE_QUERY else SubagentToolGroup.DEVICE_CONTROL
         else -> SubagentToolGroup.SERVICES
     }
 }
+
+/** The servers whose tools work a device: the screen, media playback and the example car tools, and the host's own. */
+internal fun subagentDeviceServers(context: Context): Set<String> = BUILT_IN_DEVICE_SERVERS + AppHost.runs.deviceServers(context)
 internal const val MAX_CHILD_LOOKUPS = DEFAULT_SUBAGENT_LOOKUPS
 
 private fun lookupsSpent(max: Int) = "已经查了 $max 次网页和搜索，不再查了：用已有的结果调用 finish，查不到的写「待确认」。"
@@ -480,13 +487,26 @@ private const val MCP_PREFIX = "mcp__"
 private val USER_FACING_TOOLS = setOf("ask", "ask_async")
 private val MAIN_AGENT_SERVERS = setOf("car_ui", "plans")
 private const val A2A_SERVER_PREFIX = "experimental_a2a"
-private val DEVICE_SERVERS = setOf(DEBUG_MCP_PROVIDER_TOOLS_JSON)
-/** Whole words only ("TemperatureAdjust" holds "reAd" but no word "read"): split at underscores and capitals. */
-private fun String.isQuery(): Boolean =
-    split('_').flatMap { it.split(CAMEL_BOUNDARY) }.any { it.lowercase() in QUERY_WORDS }
+// The screen has no query a child may make: looking at it holds it too, so the main agent's taps wait meanwhile.
+private val BUILT_IN_DEVICE_SERVERS = setOf(ANDROID_USE_SERVER, DEBUG_MCP_PROVIDER_DEVICE_MEDIA, DEBUG_MCP_PROVIDER_TOOLS_JSON)
+private const val ANDROID_USE_SERVER = "android_use"
+
+/**
+ * Whole words only ("TemperatureAdjust" holds "reAd" but no word "read"): split at underscores and capitals. An action
+ * word wins over a query word: "media_play_from_search" plays.
+ */
+private fun String.isQuery(): Boolean {
+    val words = split('_').flatMap { it.split(CAMEL_BOUNDARY) }.map { it.lowercase() }
+    return words.any { it in QUERY_WORDS } && words.none { it in ACTION_WORDS }
+}
 
 private val CAMEL_BOUNDARY = Regex("(?<=[a-z0-9])(?=[A-Z])")
 private val QUERY_WORDS = setOf("query", "get", "read", "list", "search", "info", "status", "check")
+private val ACTION_WORDS = setOf(
+    "set", "play", "start", "stop", "pause", "resume", "open", "close", "send", "create", "run", "control", "adjust",
+    "change", "add", "remove", "replace", "reorder", "navigate", "toggle", "turn", "lock", "unlock", "launch", "delete",
+    "update", "write", "action", "begin", "cancel", "call", "order", "pay", "submit", "book", "move", "press", "tap",
+)
 private const val SUBAGENT_PREFS = "debug_subagents"
 private const val KEY_SEARCH_API = "search_api"
 private const val KEY_DEVICE_CONTROL = "allow_device_control"

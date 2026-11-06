@@ -2,7 +2,14 @@
 
 设备不直接访问 Grok。relay 部署在一台服务器上，对设备提供 A2A 0.3 JSON-RPC 接口，对每个用户自己的 Grok Bot 调用其 Routine 的 Webhook；Grok Bot 做完后调用 relay 的 MCP 工具 `car_task_report` 汇报（Grok 账号里接入的自定义 MCP 服务器），设备再查询任务拿到结果。Node.js 20+，不依赖 npm 包。
 
-谁都可以用（没有邀请码）：设备在「连接应用」里点 Grok Bot → 连接，屏幕显示配对码和二维码；手机扫码打开 `/connect`，复制一段话发给自己的 Grok Bot，Bot 自己建例行任务、调 `/connect/claim` 完成配对、接入 car-relay 连接器。用户只需批准 Bot 执行一次命令，并在 Auto-review 里放行两个工具。服务器所有者自己的 Grok 也可以照旧写在 `relay.env` 里（下称 owner）。
+谁都可以用（没有邀请码）：设备在「连接应用」里点 Grok Bot →「开始连接」，屏幕显示配对码和二维码；手机扫码打开 `/connect`，照页面做四步：
+
+1. 把页面上的第一段话发给自己的 Grok Bot。它建好（或更新）例行任务「车载语音助手任务」，发回 Webhook 地址和密钥的两个 `grokbot://` 链接。Grok 不让 Bot 自己读这两个值，所以下一步要用户来。
+2. 点开两个链接，把 Webhook 地址和密钥粘贴到页面上（扫码打开时配对码已经填好），点「连接」：页面调 `/connect/claim` 完成配对。密钥只发给 relay，不进聊天记录。
+3. 把页面给的第二句话发给 Bot，它接入 car-relay 连接器（确认它弹出的审批卡片）；再在 Auto-review 里放行两个汇报工具。
+4. 在设备上点「测试连接」，或者在页面上测试。
+
+全程不用 Bot 跑终端命令，所以没有命令审批。已经连过另一台设备时，第 2 步改填上次拿到的 MCP 令牌（配对成功时只显示一次，要自己存好），这台设备加入同一个连接，Bot 那边不用再配置。服务器所有者自己的 Grok 也可以照旧写在 `relay.env` 里（下称 owner）。
 
 ```text
 设备 ──A2A（Bearer）──▶ relay ──Webhook（Bearer）──▶ Grok Bot Routine
@@ -19,11 +26,11 @@
 | `GET /.well-known/agent-card.json` | 任何人 | Agent Card，不含秘密；`streaming:false` |
 | `POST /a2a` | 设备，`Authorization: Bearer <配对得到的设备令牌，或 RELAY_CLIENT_TOKENS 之一>` | `message/send`、`tasks/get`、`tasks/cancel`；`message/stream` 返回 -32004；还没配对完成的设备 403 |
 | `POST /mcp` | Grok 的自定义 MCP 连接器，`Authorization: Bearer <配对得到的 MCP 令牌，或 RELAY_MCP_TOKENS 之一>` | MCP（Streamable HTTP，只回 JSON）：`car_task_get`、`car_task_report`，以及 `car_list_connections`、`car_disconnect`（列出 / 解除这个用户的设备，后两个不放进 Auto-review 规则，每次由用户确认）；只看得到这个用户的任务 |
-| `GET /connect` | 手机浏览器 | 配对页：一段发给 Bot 的话（含配对码、例行任务指令、`/connect/claim` 命令），手动配置作为备用 |
+| `GET /connect` | 手机浏览器 | 配对页：发给 Bot 的第一段话（例行任务指令）、填 Webhook 地址和密钥（或已有的 MCP 令牌）的表单、接入连接器的第二句话、测试 |
 | `POST /connect/devices` | 设备，无令牌 | 注册：`{label}` → `{device_id, token, code, code_expires_at, connect_url}`；按来源地址每小时限 `RELAY_CONNECT_PER_HOUR` 次 |
 | `GET` / `DELETE /connect/device`，`POST /connect/device/code`、`POST /connect/device/unpair` | 设备，设备令牌 | 配对状态 `{state: pending|connected, verified}`；删除这台设备；换一个配对码 |
-| `POST /connect/claim` | Bot（或手动配置页） | `{code, webhook_url, webhook_key}` → `{mcp_url, mcp_token, connector_name, device_label}`；带 `mcp_token` 时把设备加到已有连接（owner 的 `RELAY_MCP_TOKENS` 也行）；按来源地址限次 |
-| `POST /connect/test`、`GET /connect/test/<任务 ID>` | 手动配置页，MCP 令牌 | 让这个用户的 Grok 走一遍测试任务（设备上的「测试连接」直接走 `/a2a`） |
+| `POST /connect/claim` | 配对页 | `{code, webhook_url, webhook_key}` → `{mcp_url, mcp_token, connector_name, device_label}`；带 `mcp_token` 时把设备加到已有连接（owner 的 `RELAY_MCP_TOKENS` 也行）；按来源地址限次 |
+| `POST /connect/test`、`GET /connect/test/<任务 ID>` | 配对页，MCP 令牌 | 让这个用户的 Grok 走一遍测试任务（设备上的「测试连接」直接走 `/a2a`） |
 | `POST /connect/device/login`、`POST /connect/device/logout` | 设备，设备令牌 | 用账号登录（`{name, password, register?}` → `{account, state, account_url}`）或退出；见下文「账号」 |
 | `GET /account` 及 `/account/…` | 手机浏览器，账号会话 cookie | 账号页：注册、登录、退出，查看连接、设备、24 小时内的委托，用配对码加设备、改名、移除，更新例行任务 Webhook，重置 MCP 令牌，改密码 |
 | `POST /cb/<任务 ID>` | Grok Bot，`Authorization: Bearer <本轮回调令牌>` | 不用 MCP 时的回调 `{"state":"working|input-required|completed|failed","text":"…","data":{…}}` |
@@ -72,6 +79,7 @@
 > - 付款、下单、删除这类操作，除非 instruction 里明确写了"已确认"，否则一律不执行，改用 input-required 问我。
 > - 实际执行的时间、对象或内容和要求不一样时，必须在 text 里说明；completed 要在操作真正生效之后再汇报。
 > - text 里不要包含密码、令牌等敏感信息。
+> - 每一轮汇报之后调用 WakeParent，把设备发来的内容和结果同步到我们的主聊天。
 
 `context` 是设备带来的上下文（时区、当地时间等），由 relay 原样转交并加上 `relay_sent_at`。不配 MCP 时，任务里带 `callback_url` 和 `callback_token`，Routine 指令改为用终端 `curl` 回调（需要在 Auto-review 里放行这条命令）。
 
