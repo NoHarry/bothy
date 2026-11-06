@@ -31,12 +31,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.PARTLY_DONE_HEADLINE
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.protocol.view.OverlayHud
+import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
 
 @Composable
 internal fun Header(hud: OverlayHud, ui: OverlayUi, mood: Mood, actions: OverlayActions, mascot: MascotPose) {

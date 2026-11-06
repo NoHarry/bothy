@@ -4,9 +4,9 @@ import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
 import cc.noharry.agent.appserver.protocol.view.formatWorkedDuration
 import cc.noharry.bothy.app.console.status
+import cc.noharry.bothy.protocol.view.OverlayToolLine
 /**
  * Overlay projection of a conversation item.
  * Tools keep Arguments/Result for expand-in-place (same priority as fullscreen ToolRow).

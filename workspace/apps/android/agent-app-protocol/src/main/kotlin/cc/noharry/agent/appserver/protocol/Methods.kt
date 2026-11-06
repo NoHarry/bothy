@@ -29,8 +29,27 @@ data class ClientCapabilities(
 @Serializable
 data class InitializeParams(val clientInfo: ClientInfo, val capabilities: ClientCapabilities = ClientCapabilities())
 
+/** The server, and which of its own features its host turned on ([ServerFeatures]), for a client to offer only those. */
 @Serializable
-data class ServerInfo(val name: String, val version: String = "")
+data class ServerInfo(val name: String, val version: String = "", val features: Set<String> = emptySet())
+
+/**
+ * The server's own features as [ServerInfo.features] names them. One left off has no requests of its own (asking one
+ * gets "method not found").
+ */
+object ServerFeatures {
+    /** Timed and watched plans: the `plans/` requests, and the plan sections, which stay empty while it is off. */
+    const val PLANS = "plans"
+
+    /** Operating the screen: `tools/setAndroidUse` and the presenting client's `androidUse/` requests. */
+    const val ANDROID_USE = "androidUse"
+
+    /** Playback and volume tools. */
+    const val DEVICE_MEDIA = "deviceMedia"
+
+    /** The option, panel and card tools, whose offers fill the offers section (the image tool's pictures fill it too). */
+    const val CARDS = "cards"
+}
 
 /** The handshake's answer: the server, and the state to start from; notifications that follow are changes to it. */
 @Serializable

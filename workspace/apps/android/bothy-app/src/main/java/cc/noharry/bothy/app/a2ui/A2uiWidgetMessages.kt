@@ -11,8 +11,8 @@ import cc.noharry.agent.appserver.protocol.view.SliderOffer
 import cc.noharry.agent.appserver.protocol.view.SwitchOffer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.iconJson
-import cc.noharry.agent.appserver.protocol.view.tripMode
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.protocol.view.tripMode
 import kotlinx.serialization.json.JsonArrayBuilder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add

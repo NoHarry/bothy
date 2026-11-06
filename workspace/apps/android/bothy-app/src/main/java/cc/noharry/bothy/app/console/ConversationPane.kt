@@ -65,7 +65,6 @@ import cc.noharry.agent.appserver.protocol.RunResult
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.variantChoices
 import cc.noharry.agent.appserver.protocol.view.headerWords
-import cc.noharry.agent.appserver.protocol.view.pickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.QuestionCards
 import cc.noharry.bothy.app.console.ui.PopupDot
@@ -80,6 +79,7 @@ import cc.noharry.bothy.app.usage.ContextUsageIndicator
 import cc.noharry.bothy.app.voice.VoiceMicButton
 import cc.noharry.bothy.app.voice.VoiceStrip
 import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.view.pickableReply
 import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.delay
 

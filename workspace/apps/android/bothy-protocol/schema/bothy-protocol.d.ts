@@ -595,10 +595,6 @@ export interface EnabledParams {
   enabled: boolean;
 }
 
-export interface EnsureRunningParams {
-  forSurface?: boolean;
-}
-
 export type EventLogDurability = "DURABLE" | "VOLATILE" | "UNKNOWN";
 
 export type EventLogHealthStatus = "COMPLETE" | "DEGRADED" | "UNAVAILABLE" | "VOLATILE" | "UNKNOWN";
@@ -647,6 +643,11 @@ export interface GeneratedImageResult {
   bytes: number;
   elapsedMillis: number;
   revisedPrompt?: string | null;
+}
+
+export interface GeneratedPicture {
+  reference?: string | null;
+  prompt: string;
 }
 
 export interface HandOverNoticeView {
@@ -977,11 +978,6 @@ export interface OnboardingView {
 
 export type OverlayCommand = "show" | "hide";
 
-export interface OverlayPicture {
-  reference?: string | null;
-  prompt: string;
-}
-
 export interface PageReadParams {
   reference: string;
 }
@@ -1120,7 +1116,7 @@ export interface PresentStartParams {
 }
 
 export interface PresentWakeParams {
-  origin: WakeOrigin;
+  origin: string;
 }
 
 export interface PresentationState {
@@ -1312,6 +1308,7 @@ export type SegmentLabel = "AGENT" | "SIDE" | "UNCERTAIN";
 export interface ServerInfo {
   name: string;
   version?: string;
+  features?: Array<string>;
 }
 
 export interface ServerSnapshot {
@@ -1474,7 +1471,7 @@ export interface StateSectionModel {
 
 export interface StateSectionOffers {
   offers?: Record<string, Offer>;
-  pictures?: Record<string, OverlayPicture>;
+  pictures?: Record<string, GeneratedPicture>;
 }
 
 export interface StateSectionPlans {
@@ -2151,15 +2148,15 @@ export interface ClientNotifications {
 
 export interface ServerRequests {
   "approval/request": { params: ApprovalRequest; result: ApprovalResponse };
-  "presentation/ensureRunning": { params: EnsureRunningParams; result: PresentResult };
+  "presentation/ensureRunning": { params: Empty; result: PresentResult };
   "presentation/start": { params: PresentStartParams; result: PresentResult };
   "presentation/card": { params: PresentCardParams; result: PresentResult };
   "presentation/wake": { params: PresentWakeParams; result: TakenResult };
-  "presentation/previewMascot": { params: MascotParams; result: TakenResult };
   "androidUse/begin": { params: Empty; result: Empty };
   "androidUse/point": { params: PointParams; result: Empty };
   "androidUse/drag": { params: DragParams; result: Empty };
   "androidUse/hide": { params: Empty; result: Empty };
+  "presentation/previewMascot": { params: MascotParams; result: TakenResult };
 }
 
 export interface ServerNotifications {

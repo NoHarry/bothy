@@ -44,7 +44,6 @@ import androidx.compose.ui.unit.sp
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.client.ServerState
-import cc.noharry.agent.appserver.protocol.view.currentTurnItems
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.overlay.OverlayComposeOwner
 import cc.noharry.bothy.app.overlay.OverlayTaskSignal
@@ -52,6 +51,7 @@ import cc.noharry.bothy.app.overlay.OverlayTaskTone
 import cc.noharry.bothy.app.overlay.overlayFoldedSignal
 import cc.noharry.bothy.app.overlay.overlayWindowType
 import cc.noharry.bothy.app.overlay.stepKind
+import cc.noharry.bothy.protocol.view.currentTurnItems
 import kotlin.math.roundToInt
 
 /**

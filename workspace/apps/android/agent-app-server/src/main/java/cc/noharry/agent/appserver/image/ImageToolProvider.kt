@@ -1,8 +1,8 @@
 package cc.noharry.agent.appserver.image
 import android.content.Context
 import cc.noharry.agent.appserver.InternalAppServerApi
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.HostPlaces
 import cc.noharry.agent.appserver.runtime.modelText
@@ -114,23 +114,23 @@ class ImageToolProvider(
  */
 @InternalAppServerApi
 object PictureBoard {
-    private val pictures = object : LinkedHashMap<String, OverlayPicture>() {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, OverlayPicture>?): Boolean =
+    private val pictures = object : LinkedHashMap<String, GeneratedPicture>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, GeneratedPicture>?): Boolean =
             size > MAX_BOARD_PICTURES
     }
 
-    private val shown = MutableStateFlow<Map<String, OverlayPicture>>(emptyMap())
+    private val shown = MutableStateFlow<Map<String, GeneratedPicture>>(emptyMap())
 
     /** Every picture by request ID, for the A2A card; a new value after every change. */
-    val all: StateFlow<Map<String, OverlayPicture>> = shown.asStateFlow()
+    val all: StateFlow<Map<String, GeneratedPicture>> = shown.asStateFlow()
 
     @Synchronized fun drawing(requestId: String, prompt: String) {
-        pictures[requestId] = OverlayPicture(null, prompt)
+        pictures[requestId] = GeneratedPicture(null, prompt)
         shown.value = LinkedHashMap(pictures)
     }
 
     @Synchronized fun drawn(requestId: String, reference: String, prompt: String) {
-        pictures[requestId] = OverlayPicture(reference, prompt)
+        pictures[requestId] = GeneratedPicture(reference, prompt)
         shown.value = LinkedHashMap(pictures)
     }
 
@@ -139,7 +139,7 @@ object PictureBoard {
         if (pictures[requestId]?.reference == null && pictures.remove(requestId) != null) shown.value = LinkedHashMap(pictures)
     }
 
-    @Synchronized fun forTask(taskId: String): OverlayPicture? = pictures[taskId]
+    @Synchronized fun forTask(taskId: String): GeneratedPicture? = pictures[taskId]
 
     private const val MAX_BOARD_PICTURES = 16
 }

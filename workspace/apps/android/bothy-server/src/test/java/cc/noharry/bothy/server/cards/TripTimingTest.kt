@@ -2,9 +2,9 @@ package cc.noharry.bothy.server.cards
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardItemKind
 import cc.noharry.agent.appserver.protocol.view.CardLayout
-import cc.noharry.agent.appserver.protocol.view.TripMode
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.tripMode
+import cc.noharry.bothy.protocol.view.TripMode
+import cc.noharry.bothy.protocol.view.tripMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

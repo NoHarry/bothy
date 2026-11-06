@@ -1,8 +1,8 @@
 @file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.voice
-import cc.noharry.agent.appserver.protocol.view.displayReplyText
 import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.bothy.protocol.view.displayReplyText
 import cc.noharry.bothy.server.voice.VoiceController
 import cc.noharry.bothy.server.voice.realtime.RealtimeWaits
 import cc.noharry.bothy.server.voice.realtime.realtimeToolResult

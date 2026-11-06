@@ -9,11 +9,13 @@ import cc.noharry.agent.a2a.A2aValue
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
 import cc.noharry.agent.a2a.RemoteAgentRef
 import cc.noharry.agent.appserver.InternalAppServerApi
+import cc.noharry.agent.appserver.protocol.DELEGATION_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.runtime.modelText
 import kotlinx.coroutines.CoroutineScope
@@ -432,9 +434,6 @@ internal fun delegationMarks(): String =
 /** Who opened a turn, for its header: the user, or a delegated agent reporting back. */
 @InternalAppServerApi
 fun turnLabel(text: String): String = if (text.isDelegationReport()) DELEGATION_TURN_LABEL else USER_TURN_LABEL
-
-private const val USER_TURN_LABEL = "You"
-private const val DELEGATION_TURN_LABEL = "委托回报"
 
 @OptIn(ExperimentalA2aClientApi::class)
 private fun List<A2aPart>.text(): String = filterIsInstance<A2aPart.Text>().joinToString("\n") { it.text }.trim()

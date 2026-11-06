@@ -1,4 +1,5 @@
 package cc.noharry.bothy.server.voice
+import cc.noharry.bothy.protocol.WakeOrigin
 import cc.noharry.bothy.server.voice.tts.MimoTtsVoice
 import java.io.File
 import java.nio.ByteBuffer
@@ -14,6 +15,12 @@ import org.junit.Test
 
 /** 小博's spoken answer to a wake: the packaged lines, how one is picked, and the WAV handling behind them. */
 class WakeAckTest {
+    @Test
+    fun everyWakeSourceIsAnOriginTheOverlayKnows() {
+        // A wake handed to the overlay says how it came by name; one it does not know is never taken.
+        assertEquals(WakeOrigin.entries.map { it.name }, WakeSource.entries.map { it.name })
+    }
+
     @Test
     fun everyPresetVoiceShipsLinesThatDecodeShortAndClean() {
         MimoTtsVoice.entries.forEach { voice ->

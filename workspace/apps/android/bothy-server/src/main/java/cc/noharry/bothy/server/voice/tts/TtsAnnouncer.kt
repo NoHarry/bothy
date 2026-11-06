@@ -6,7 +6,6 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.MediaPlayer
 import cc.noharry.agent.appserver.evidence.BenchHttpTransport
-import cc.noharry.agent.appserver.protocol.view.isTtsMarkedLine
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.appserver.runtime.SpokenRuns
 import cc.noharry.agent.appserver.runtime.append
@@ -17,6 +16,7 @@ import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
 import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
 import cc.noharry.bothy.protocol.view.TTS_PROGRESS_MARKER
 import cc.noharry.bothy.protocol.view.consumeProgressEnd
+import cc.noharry.bothy.protocol.view.isTtsMarkedLine
 import cc.noharry.bothy.protocol.view.progressMessageEnd
 import cc.noharry.bothy.server.voice.SpeechAudio
 import java.io.File

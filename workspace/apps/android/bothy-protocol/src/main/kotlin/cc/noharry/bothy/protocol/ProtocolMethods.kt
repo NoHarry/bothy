@@ -72,5 +72,6 @@ object ProtocolMethods {
         request(VoiceSettingsRequests.SET_WAKE_LEVEL),
         request(VoiceSettingsRequests.PREVIEW),
         serverNotification(VoiceNotifications.DISMISSED),
+        serverRequest(BothyPresentationRequests.PREVIEW_MASCOT),
     )
 }

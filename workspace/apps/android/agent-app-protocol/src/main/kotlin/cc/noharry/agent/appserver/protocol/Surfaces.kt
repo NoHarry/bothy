@@ -1,7 +1,6 @@
 package cc.noharry.agent.appserver.protocol
 
 import cc.noharry.agent.appserver.protocol.view.Offer
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -13,12 +12,12 @@ import kotlinx.serialization.Serializable
 @SerialName("offers")
 data class OffersSection(
     val offers: Map<String, Offer> = emptyMap(),
-    val pictures: Map<String, OverlayPicture> = emptyMap(),
+    val pictures: Map<String, GeneratedPicture> = emptyMap(),
 ) : StateSection
 
-/** The reply's loudness at the speaker while it streams (0..1), sampled as it plays; null when nothing plays. */
+/** A picture the image tool draws: [reference] is null while it is still being drawn; [prompt] is what was asked for. */
 @Serializable
-data class SpeechSection(val level: Float? = null)
+data class GeneratedPicture(val reference: String?, val prompt: String)
 
 /** Where a subagent stands. */
 @Serializable

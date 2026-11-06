@@ -6,8 +6,8 @@ import cc.noharry.agent.appserver.protocol.A2aClientItem
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.QUESTION_PENDING
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
 import cc.noharry.bothy.app.overlay.a2aHudTexts
+import cc.noharry.bothy.protocol.view.OverlayPhase
 import cc.noharry.bothy.protocol.view.overlayHud
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -24,6 +24,8 @@ import cc.noharry.agent.appserver.skills.loadSubagentKinds
 import cc.noharry.agent.appserver.skills.loadSubagentSettings
 import cc.noharry.agent.appserver.skills.saveSubagentKind
 import cc.noharry.agent.appserver.skills.saveSubagentSettings
+import cc.noharry.bothy.protocol.BothyPresentationRequests
+import cc.noharry.bothy.protocol.MascotParams
 import cc.noharry.bothy.server.model.OnDeviceModel
 import cc.noharry.bothy.server.model.isOnDevice
 import cc.noharry.bothy.server.voice.VoiceController
@@ -54,8 +56,8 @@ class TextBroadcastReceiver : BroadcastReceiver() {
             else A2aClientConsole.setSpeakExternal(context, speak)
         }
         intent.getStringExtra(DEBUG_MASCOT_ACT_EXTRA)?.let { name ->
-            Presenter.previewMascot(name.trim()) { played ->
-                if (!played) Log.w(TAG, "Ignored $DEBUG_MASCOT_ACT_EXTRA=$name; open the overlay and use an act or reaction name")
+            Presenter.ask(BothyPresentationRequests.PREVIEW_MASCOT, MascotParams(name.trim())) { answer ->
+                if (answer?.taken != true) Log.w(TAG, "Ignored $DEBUG_MASCOT_ACT_EXTRA=$name; open the overlay and use an act or reaction name")
             }
         }
     }

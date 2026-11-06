@@ -37,12 +37,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cc.noharry.agent.appserver.protocol.view.TripMode
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.image.rememberPicture
 import cc.noharry.bothy.app.overlay.OverlayPalette
+import cc.noharry.bothy.protocol.view.TripMode
 
 /**
  * A trip card's pieces (owner 2026-10-17: 信息量大的时候卡片扩大，以更人类友好的形式展示；现在这个布局还是不好看):

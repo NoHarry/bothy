@@ -28,7 +28,8 @@ import cc.noharry.bothy.server.voice.loadJevKey
  * virtual car and home, and 「回到车机」 itself, as devices a subagent only queries unless allowed; its skills and
  * subagent types ([bothySkills], [BOTHY_SUBAGENT_KINDS]); its rules (the web for weather and events, 网上核实, drawing
  * long answers as pages) and gates (an order waits for the user's yes, 网上核实 only after a service's data); its trip
- * cards ([BothyCards]); and what its bench counts as done ([requiresCarAction], [nameRouteProblems]).
+ * cards ([BothyCards]); what its bench counts as done ([requiresCarAction], [nameRouteProblems]); and the progress
+ * lines its voice speaks ([progressWords]).
  */
 internal object BothyRuns : RunAddOns {
     override fun contextLines(facts: RunFacts): List<String> = listOfNotNull(PlaygroundMode.line(), PAGES_RULE.takeIf { facts.drawsPages })
@@ -54,6 +55,10 @@ internal object BothyRuns : RunAddOns {
 
     override fun answerProblems(request: String, answer: String): AnswerProblems = nameRouteProblems(request, answer)
 
+    /** The voice skill marks what is spoken as the run goes `TTS:`, at a line's start after any spaces (full-width too). */
+    override fun progressWords(line: String): String? =
+        line.trimStart().takeIf { it.startsWith(TTS_MARK, ignoreCase = true) }?.drop(TTS_MARK.length)?.trimStart()
+
     override fun toolWrapper(context: Context, sessionContext: String, simulated: Boolean): (ToolProvider) -> ToolProvider {
         val jev = loadJevConfig(context).let { if (simulated) it.copy(enabled = false) else it }
         val key = if (jev.enabled) loadJevKey(context) else ""
@@ -73,3 +78,5 @@ internal object BothyRuns : RunAddOns {
     // 「回到车机」 brings a Playground screen to the front over whatever the user is doing: working the screen too.
     override fun deviceServers(context: Context): Set<String> = playgroundDeviceServers(context) + PLAYGROUND_TOOL_SERVER_ID
 }
+
+private const val TTS_MARK = "TTS:"

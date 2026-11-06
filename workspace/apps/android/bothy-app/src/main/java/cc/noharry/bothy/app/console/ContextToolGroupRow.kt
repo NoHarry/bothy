@@ -30,7 +30,6 @@ import cc.noharry.agent.appserver.protocol.ArtifactPreview
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.PickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ui.Disclosure
 import cc.noharry.bothy.app.console.ui.HtmlPreviewBox
@@ -40,6 +39,7 @@ import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.TurnDividerLine
 import cc.noharry.bothy.app.image.GeneratedImageRow
 import cc.noharry.bothy.app.page.DrawnPageCard
+import cc.noharry.bothy.protocol.view.PickableReply
 import kotlinx.coroutines.delay
 
 @Composable

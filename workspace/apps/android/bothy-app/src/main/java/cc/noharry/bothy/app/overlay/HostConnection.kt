@@ -15,6 +15,8 @@ import cc.noharry.agent.appserver.protocol.TakenResult
 import cc.noharry.agent.appserver.protocol.client.ServerClient
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
 import cc.noharry.agent.appserver.protocol.jsonrpc.paramsOf
+import cc.noharry.bothy.protocol.BothyPresentationRequests
+import cc.noharry.bothy.protocol.WakeOrigin
 import cc.noharry.bothy.server.server.BothyServer
 import kotlin.coroutines.resume
 import kotlinx.coroutines.CompletableDeferred
@@ -67,11 +69,13 @@ internal object HostConnection {
     }
 
     private fun present(client: ServerClient, app: Application) {
-        client.handle(PresentationRequests.ENSURE_RUNNING) { OverlayControl.ensureRunning(app, it.forSurface) }
+        client.handle(PresentationRequests.ENSURE_RUNNING) { OverlayControl.ensureRunning(app) }
         client.handle(PresentationRequests.START) { PresentResult(OverlayControl.start(app, it.open)) }
         client.handle(PresentationRequests.CARD) { PresentResult(OverlayControl.apply(app, it.command)) }
-        client.handle(PresentationRequests.WAKE) { TakenResult(OverlayControl.wake(it.origin)) }
-        client.handle(PresentationRequests.PREVIEW_MASCOT) { TakenResult(OverlayControl.previewMascot(it.name)) }
+        client.handle(PresentationRequests.WAKE) { wake ->
+            TakenResult(WakeOrigin.entries.any { it.name == wake.origin && OverlayControl.wake(it) })
+        }
+        client.handle(BothyPresentationRequests.PREVIEW_MASCOT) { TakenResult(OverlayControl.previewMascot(it.name)) }
         client.handle(PresentationRequests.ANDROID_USE_BEGIN) { androidUse { done -> begin(done) } }
         client.handle(PresentationRequests.ANDROID_USE_POINT) { androidUse { done -> point(it.x, it.y, it.press, done) } }
         client.handle(PresentationRequests.ANDROID_USE_DRAG) {

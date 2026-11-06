@@ -36,9 +36,9 @@ import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aTaskStatus
 import cc.noharry.agent.appserver.protocol.GeneratedImageResult
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
 import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.Persona
 import cc.noharry.agent.kernel.api.ToolCallContext
@@ -366,7 +366,7 @@ class A2aClientSessionTest {
             ),
         )
         // The server publishes what the image tool drew; the card reads it from the state.
-        assertEquals(OverlayPicture(reference, "猫"), state.overlayHud(pictures = PictureBoard.all.value).picture)
+        assertEquals(GeneratedPicture(reference, "猫"), state.overlayHud(pictures = PictureBoard.all.value).picture)
 
         // A call that fails leaves no empty frame for its task.
         val failing = ImageToolProvider { _, _ -> ImageResult.Failure("Network error: timeout", 120_000) }

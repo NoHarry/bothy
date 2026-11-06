@@ -3,6 +3,7 @@ package cc.noharry.agent.appserver.server
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aProfileDraft
 import cc.noharry.agent.appserver.protocol.ApprovalDecision
+import cc.noharry.agent.appserver.protocol.CapabilityRequests
 import cc.noharry.agent.appserver.protocol.ClientCapabilities
 import cc.noharry.agent.appserver.protocol.ClientInfo
 import cc.noharry.agent.appserver.protocol.ClientRequests
@@ -12,6 +13,7 @@ import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.FeatureRequests
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.FlagParams
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerKind
 import cc.noharry.agent.appserver.protocol.ModelProvider
@@ -34,6 +36,7 @@ import cc.noharry.agent.appserver.protocol.ProviderSaveParams
 import cc.noharry.agent.appserver.protocol.RunOutcome
 import cc.noharry.agent.appserver.protocol.RunResult
 import cc.noharry.agent.appserver.protocol.RunSettingsParams
+import cc.noharry.agent.appserver.protocol.ServerFeatures
 import cc.noharry.agent.appserver.protocol.ServerInfo
 import cc.noharry.agent.appserver.protocol.ServerNotifications
 import cc.noharry.agent.appserver.protocol.SessionPolicy
@@ -56,6 +59,8 @@ import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
 import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.agent.appserver.protocol.transport.InProcessChannels
 import cc.noharry.agent.appserver.protocol.transport.MessageChannel
+import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
@@ -207,12 +212,40 @@ class ServerHubTest {
     @Test
     fun aPlanMadeOnThePageIsKeptOrRefusedWithWhy() = runBlocking {
         backend.publish(start)
-        val client = connect()
+        AppHost.install(builtIns = BuiltInFeatures(plans = true))
+        val planning = try {
+            ServerHub(backend, settings, main, scope, ServerInfo("test"))
+        } finally {
+            AppHost.install(builtIns = BuiltInFeatures.NONE)
+        }
+        val client = connect(to = planning)
         val trigger = PlanTrigger.Repeat(minuteOfDay = 8 * 60, days = setOf(1, 2, 3, 4, 5))
         assertNull(client.request(FeatureRequests.PLAN_CREATE, PlanDraft("带伞", message = "记得带伞", trigger = trigger)).error)
         val refused = client.request(FeatureRequests.PLAN_CREATE, PlanDraft(" ", message = "记得带伞", trigger = trigger)).error
         assertEquals(FindingCode.PLANS_PROBLEM_NOT_SAVED.name, refused?.code)
         assertEquals(listOf("plan 带伞", "plan  "), settings.calls)
+    }
+
+    @Test
+    fun theHandshakeNamesTheFeaturesTheHostTurnedOn() = runBlocking {
+        val features = BuiltInFeatures(plans = true, cards = true, startOnBoot = true).offered()
+        assertEquals(setOf(ServerFeatures.PLANS, ServerFeatures.CARDS), features)
+        assertEquals(emptySet<String>(), BuiltInFeatures.NONE.offered())
+        backend.publish(start)
+        val (clientEnd, serverEnd) = InProcessChannels.pair()
+        ServerHub(backend, settings, main, scope, ServerInfo("test", features = features)).connect(serverEnd)
+        val shook = ServerClient(clientEnd, ClientInfo("test"), ClientCapabilities(), scope).connect()
+        assertEquals(features, shook.serverInfo.features)
+    }
+
+    @Test
+    fun withoutPlansTheirRequestsAreNotThere() = runBlocking {
+        backend.publish(start)
+        val client = connect()
+        val trigger = PlanTrigger.Repeat(minuteOfDay = 8 * 60, days = setOf(1))
+        assertRefused(JsonRpcErrorCodes.METHOD_NOT_FOUND) { client.request(FeatureRequests.PLAN_CREATE, PlanDraft("带伞", message = "记得带伞", trigger = trigger)) }
+        assertRefused(JsonRpcErrorCodes.METHOD_NOT_FOUND) { client.request(CapabilityRequests.SET_ANDROID_USE, FlagParams(true)) }
+        assertEquals(emptyList<String>(), settings.calls)
     }
 
     @Test

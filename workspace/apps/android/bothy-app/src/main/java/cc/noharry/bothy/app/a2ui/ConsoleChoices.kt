@@ -17,9 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.protocol.view.PickableReply
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
@@ -28,6 +27,7 @@ import cc.noharry.bothy.app.image.GeneratedImageRow
 import cc.noharry.bothy.app.overlay.OverlayA2uiCard
 import cc.noharry.bothy.app.overlay.OverlayA2uiPanel
 import cc.noharry.bothy.app.overlay.iconFrom
+import cc.noharry.bothy.protocol.view.PickableReply
 
 /**
  * The finished reply's picks in the full-screen console, the same host-compiled A2UI surface as the overlay card in
@@ -81,7 +81,7 @@ internal fun ConsoleWidgets(pickable: PickableReply, onReply: (String) -> Unit) 
 private fun ConsoleWidgetColumn(pickable: PickableReply, onReply: (String) -> Unit) {
     Column(Modifier.widthIn(max = 720.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         pickable.cards.forEach { card ->
-            card.framedPicture?.let { GeneratedImageRow(OverlayPicture(it, card.title)) }
+            card.framedPicture?.let { GeneratedImageRow(GeneratedPicture(it, card.title)) }
             OverlayA2uiCard(card, carLook = false)
         }
         pickable.controls.takeIf { it.isNotEmpty() }?.let { controls ->

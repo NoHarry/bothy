@@ -4,6 +4,7 @@ import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.runtime.PromptPrefix
 import cc.noharry.agent.appserver.runtime.append
+import cc.noharry.agent.appserver.runtime.isProgressLine
 import cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
@@ -179,8 +180,8 @@ private fun String.hasAllTodosCompletedPayload(): Boolean =
     }.getOrDefault(false)
 
 private fun String.speakableFinalOrNull(): String? {
-    // A TTS-marked line is progress speech, not a final report; with nothing else, let the model finish.
-    val normalized = lines().filterNot { it.trimStart().startsWith("TTS:", ignoreCase = true) }
+    // A progress line is speech as the run goes, not a final report; with nothing else, let the model finish.
+    val normalized = lines().filterNot { it.isProgressLine() }
         .joinToString(" ").trim().replace(Regex("\\s+"), " ")
     if (normalized.isBlank()) return null
     if (normalized.isInternalFinishPlan() || normalized == "已根据可用工具完成请求。") return null

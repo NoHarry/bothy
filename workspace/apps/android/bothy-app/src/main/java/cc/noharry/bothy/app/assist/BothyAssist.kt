@@ -13,10 +13,10 @@ import android.service.voice.VoiceInteractionSessionService
 import android.speech.RecognitionService
 import android.speech.SpeechRecognizer
 import android.util.Log
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.overlay.OverlayControl
 import cc.noharry.bothy.app.phoneassist.PhoneAssistant
+import cc.noharry.bothy.protocol.WakeOrigin
 
 /**
  * Bothy as the system's digital assistant (owner 2026-11-05, after Eta: 按键唤醒说话): chosen in the system settings

@@ -8,6 +8,7 @@ import cc.noharry.agent.appserver.evidence.AppDiagnostics
 import cc.noharry.agent.appserver.model.ProviderAdapter
 import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.ServerFeatures
 import cc.noharry.agent.appserver.skills.RuntimeSkill
 import cc.noharry.agent.appserver.skills.SubagentKind
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
@@ -100,6 +101,13 @@ interface RunAddOns {
      */
     fun answerProblems(request: String, answer: String): AnswerProblems = AnswerProblems.NONE
 
+    /**
+     * The words of [line], one line of a reply, when it is progress the host's voice speaks as the run goes (its skill
+     * has the model mark such lines), else null. Screens, the transcript and other agents get a reply without its
+     * progress lines, or only their words when it has nothing else, and progress alone is no final answer.
+     */
+    fun progressWords(line: String): String? = null
+
     /** How each mounted tool provider is wrapped in a run with [sessionContext]; [simulated] for the fixture model. */
     fun toolWrapper(context: Context, sessionContext: String, simulated: Boolean): (ToolProvider) -> ToolProvider = { it }
 
@@ -140,6 +148,14 @@ class BuiltInFeatures(
     val cards: Boolean = false,
     val startOnBoot: Boolean = false,
 ) {
+    /** Those a client can see, as the handshake names them ([ServerFeatures]). */
+    internal fun offered(): Set<String> = buildSet {
+        if (plans) add(ServerFeatures.PLANS)
+        if (androidUse) add(ServerFeatures.ANDROID_USE)
+        if (deviceMedia) add(ServerFeatures.DEVICE_MEDIA)
+        if (cards) add(ServerFeatures.CARDS)
+    }
+
     companion object {
         val NONE = BuiltInFeatures()
     }

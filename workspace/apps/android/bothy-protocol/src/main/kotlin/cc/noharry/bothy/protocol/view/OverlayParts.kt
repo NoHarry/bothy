@@ -1,15 +1,22 @@
-package cc.noharry.agent.appserver.protocol.view
-import cc.noharry.agent.appserver.protocol.RunActivity
-import cc.noharry.agent.appserver.protocol.RunOutcome
+package cc.noharry.bothy.protocol.view
+
+import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
+import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.TranscriptRole
+import cc.noharry.agent.appserver.protocol.client.ServerState
+import cc.noharry.agent.appserver.protocol.view.CardLayout
+import cc.noharry.agent.appserver.protocol.view.Control
+import cc.noharry.agent.appserver.protocol.view.DisplayReply
+import cc.noharry.agent.appserver.protocol.view.GENERATED_IMAGES_DIR
+import cc.noharry.agent.appserver.protocol.view.IMAGE_GENERATE_TOOL
+import cc.noharry.agent.appserver.protocol.view.Offer
+import cc.noharry.agent.appserver.protocol.view.WidgetCard
+import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.ToolCallStatus
-import cc.noharry.agent.appserver.protocol.ConversationItem
-import cc.noharry.agent.appserver.protocol.client.ServerState
-import kotlinx.serialization.Serializable
 
 /**
  * Demo-oriented floating panel projection.
@@ -34,10 +41,6 @@ data class OverlayToolLine(
     val argumentsJson: String?,
     val resultJson: String?,
 )
-
-/** [reference] is null while the picture is still being drawn; [prompt] is what was asked for. */
-@Serializable
-data class OverlayPicture(val reference: String?, val prompt: String)
 
 /** Card width follows what it must show, so content fits without scrolling. Widths are in the stage's dp. */
 enum class OverlaySize(val landscapeWidthDp: Int, val screenShare: Float = MAP_KEEPING_SHARE) {
@@ -83,14 +86,14 @@ const val OVERLAY_GRID_MIN_CHOICES = 4
  * after a failure (the reply explains it). The reference is matched in the result text so a wrapped or escaped
  * result still yields it.
  */
-fun List<ConversationItem>.overlayPicture(): OverlayPicture? =
+fun List<ConversationItem>.overlayPicture(): GeneratedPicture? =
     asReversed().firstNotNullOfOrNull { item -> (item as? ConversationItem.ToolCallItem)?.takeIf { it.isImageGenerateCall() } }
         ?.generatedPicture()
 
 fun ConversationItem.ToolCallItem.isImageGenerateCall(): Boolean = shortToolName(toolName) == IMAGE_GENERATE_TOOL
 
 /** The picture of one image tool call, for the overlay and the console alike; null for other tools. */
-fun ConversationItem.ToolCallItem.generatedPicture(): OverlayPicture? {
+fun ConversationItem.ToolCallItem.generatedPicture(): GeneratedPicture? {
     if (!isImageGenerateCall()) return null
     // Before the raw transcript arrives the console holds a placeholder, not JSON; the prompt is then unknown.
     // The raw transcript stores arguments as `arguments={...}`.
@@ -99,9 +102,9 @@ fun ConversationItem.ToolCallItem.generatedPicture(): OverlayPicture? {
         Json.parseToJsonElement(arguments).jsonObject["prompt"]?.jsonPrimitive?.contentOrNull
     }.getOrNull().orEmpty()
     return when (status) {
-        ToolCallStatus.RUNNING -> OverlayPicture(null, prompt)
+        ToolCallStatus.RUNNING -> GeneratedPicture(null, prompt)
         ToolCallStatus.DONE ->
-            resultJson?.let { PICTURE_REFERENCE.find(it)?.groupValues?.get(1) }?.let { OverlayPicture(it, prompt) }
+            resultJson?.let { PICTURE_REFERENCE.find(it)?.groupValues?.get(1) }?.let { GeneratedPicture(it, prompt) }
         ToolCallStatus.FAILED, ToolCallStatus.UNKNOWN -> null
     }
 }
@@ -161,21 +164,6 @@ private fun List<ConversationItem>.finishedReplyChoices(offer: Offer?): Pickable
     return appPickableReply(reply.id, reply.content.overlayHudMultiline(Int.MAX_VALUE).displayReplyText(), offer)
 }
 
-private fun ServerState.overlayPhase(): OverlayPhase =
-    when {
-        isRunning -> OverlayPhase.LIVE
-        // How the last run ended wins over what the run said last (an intermediate event may have said it failed).
-        lastRun != null -> when (lastRun.outcome) {
-            RunOutcome.FAILED -> OverlayPhase.FAIL
-            RunOutcome.STOPPED -> OverlayPhase.STOP
-            // A failed replay is the run evidence check's verdict, for the bench and the console: the person got an answer.
-            RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.REPLAY_FAILED -> OverlayPhase.DONE
-        }
-        activity == RunActivity.STOPPED -> OverlayPhase.STOP
-        activity == RunActivity.FAILED -> OverlayPhase.FAIL
-        else -> OverlayPhase.IDLE
-    }
-
 /** Items belonging to the latest user turn (after the last TurnHeader). */
 fun List<ConversationItem>.currentTurnItems(): List<ConversationItem> {
     val turnStart = indexOfLast { it is ConversationItem.TurnHeader }
@@ -226,13 +214,10 @@ fun String.overlayHudMultiline(maxChars: Int): String {
 
 private val SKILL_SECTION_LABELS = setOf("说", "看", "说：", "看：", "说:", "看:")
 
-// Anywhere in a line, as the announcer finds it: streamed rounds run together ("…temperature.TTS: 先查…").
-val TTS_PROGRESS_PREFIX = Regex("""(?i)(?<![A-Za-z0-9_])TTS:\s*""")
-
-/** The step while 显示思考过程 is off; the card shows it in its own language ([stepPhrase]). */
+/** The step while 显示思考过程 is off; the card shows it in its own language (the app's stepPhrase). */
 const val HIDDEN_THINKING_STEP = "正在处理"
 
-/** The idle card's text in the projection; the card shows it in its own language ([overlayShownText]). */
+/** The idle card's text in the projection; the card shows it in its own language (the app's overlayShownText). */
 const val WAITING_FOR_RUN_TEXT = "Waiting for a run — send a prompt to start the demo"
 
 const val HUD_MAX_PLAN_ROWS = 8

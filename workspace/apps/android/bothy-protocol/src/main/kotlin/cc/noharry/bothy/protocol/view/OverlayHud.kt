@@ -1,6 +1,7 @@
 package cc.noharry.bothy.protocol.view
 
 import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.RunActivity
 import cc.noharry.agent.appserver.protocol.RunOutcome
 import cc.noharry.agent.appserver.protocol.TokenUsageState
@@ -10,30 +11,10 @@ import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.Control
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
-import cc.noharry.agent.appserver.protocol.view.HIDDEN_THINKING_STEP
-import cc.noharry.agent.appserver.protocol.view.HUD_MAX_PLAN_ROWS
-import cc.noharry.agent.appserver.protocol.view.HUD_MAX_TOOL_LINES
-import cc.noharry.agent.appserver.protocol.view.OVERLAY_GRID_MIN_CHOICES
-import cc.noharry.agent.appserver.protocol.view.OverlayBoardRow
-import cc.noharry.agent.appserver.protocol.view.OverlayBoardSection
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.protocol.view.OverlayPlanStatus
-import cc.noharry.agent.appserver.protocol.view.OverlaySize
-import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
-import cc.noharry.agent.appserver.protocol.view.PARTLY_DONE_HEADLINE
-import cc.noharry.agent.appserver.protocol.view.TTS_PROGRESS_PREFIX
-import cc.noharry.agent.appserver.protocol.view.WAITING_FOR_RUN_TEXT
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.currentTurnItems
 import cc.noharry.agent.appserver.protocol.view.formatWorkedDuration
 import cc.noharry.agent.appserver.protocol.view.headerWords
 import cc.noharry.agent.appserver.protocol.view.label
-import cc.noharry.agent.appserver.protocol.view.overlayHudLine
-import cc.noharry.agent.appserver.protocol.view.overlayHudMultiline
-import cc.noharry.agent.appserver.protocol.view.overlayPicture
-import cc.noharry.agent.appserver.protocol.view.pickableReply
-import cc.noharry.agent.appserver.protocol.view.toOverlayPlanStatus
 
 data class OverlayHud(
     val phase: OverlayPhase,
@@ -66,7 +47,7 @@ data class OverlayHud(
     /** Values the reply offers to set within a range, confirmed together. */
     val controls: List<Control> = emptyList(),
     /** A picture this turn's image tool is drawing or drew; it leads the card. */
-    val picture: OverlayPicture? = null,
+    val picture: GeneratedPicture? = null,
 ) {
     val progressFraction: Float?
         get() = if (progressTotal > 0) progressDone.toFloat() / progressTotal.toFloat() else null
@@ -165,7 +146,7 @@ fun ServerState.overlayHud(nowEpochMillis: Long = System.currentTimeMillis(), sh
         controls = pickable?.controls.orEmpty(),
         // Cards own the stage: the first one's single photo, or none when their pictures sit in their rows (a trip drawn
         // this turn).
-        picture = pickable?.cards.orEmpty().firstNotNullOfOrNull { card -> card.framedPicture?.let { OverlayPicture(it, card.title) } }
+        picture = pickable?.cards.orEmpty().firstNotNullOfOrNull { card -> card.framedPicture?.let { GeneratedPicture(it, card.title) } }
             ?: turnItems.overlayPicture().takeIf { pickable?.cards.isNullOrEmpty() },
     )
 }
@@ -195,7 +176,7 @@ fun ServerState.overlayBoardSections(): List<OverlayBoardSection> {
     }
 }
 
-private fun ServerState.overlayPhase(): OverlayPhase {
+internal fun ServerState.overlayPhase(): OverlayPhase {
     val last = lastRun
     return when {
         isRunning -> OverlayPhase.LIVE

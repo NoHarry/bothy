@@ -15,13 +15,13 @@ import cc.noharry.agent.appserver.protocol.view.Offer
 import cc.noharry.agent.appserver.protocol.view.OfferOption
 import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.appPickableReply
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
 import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
 import cc.noharry.agent.appserver.runtime.PreviousExchange
 import cc.noharry.agent.appserver.runtime.appModelInput
 import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.bothy.protocol.view.appPickableReply
 import cc.noharry.bothy.protocol.view.overlayHud
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

@@ -1,4 +1,6 @@
-package cc.noharry.agent.appserver.protocol.view
+package cc.noharry.bothy.protocol.view
+
+import cc.noharry.agent.appserver.protocol.view.CardItem
 
 /**
  * How a leg of a trip goes (owner 2026-10-17: 长途飞机的，高铁的，短途自驾的都要试下), with the time it needs around

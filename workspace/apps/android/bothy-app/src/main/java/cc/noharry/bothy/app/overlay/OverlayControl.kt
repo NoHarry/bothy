@@ -10,11 +10,11 @@ import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.OverlayCommand
 import cc.noharry.agent.appserver.protocol.PlanNoticeEntry
 import cc.noharry.agent.appserver.protocol.PresentResult
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.bothy.app.console.ConsoleVisibility
 import cc.noharry.bothy.app.console.FrontEnd
 import cc.noharry.bothy.app.phoneassist.PhoneAssistant
 import cc.noharry.bothy.app.phoneassist.PhoneAssistantService
+import cc.noharry.bothy.protocol.WakeOrigin
 
 /**
  * Opens the assistant's card or folds it back for an A2A caller, and opens it when any A2A task arrives, so

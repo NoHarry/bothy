@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import cc.noharry.agent.appserver.protocol.Finding
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.agent.appserver.server.Presenter
@@ -19,7 +18,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.sync.Mutex
 
-/** What woke 小博: [ENGLISH_WORD] is OK Bothy, answered in English; [ADB] is the debug broadcast's `wake`. */
+/**
+ * What woke 小博: [ENGLISH_WORD] is OK Bothy, answered in English; [ADB] is the debug broadcast's `wake`. The names are
+ * the overlay's [cc.noharry.bothy.protocol.WakeOrigin]s, as a wake handed to it says how it came.
+ */
 internal enum class WakeSource { WORD, ENGLISH_WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
 /** The wake word's state for Settings → 语音: whether it is listening, else why not (empty until first checked). */
@@ -200,7 +202,7 @@ internal object WakeWord {
         // Lets go of the microphone; the voice session takes it as soon as the recording is closed.
         stopListener()
         val source = if (phrase == BOTHY_WAKE_PHRASE) WakeSource.ENGLISH_WORD else WakeSource.WORD
-        Presenter.wake(WakeOrigin.valueOf(source.name)) { taken ->
+        Presenter.wake(source.name) { taken ->
             if (!taken) wakeWithoutOverlay(context, source)
             // Listening resumes at once when the wake did not start a session.
             refresh()

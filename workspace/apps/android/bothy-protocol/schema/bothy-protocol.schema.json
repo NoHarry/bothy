@@ -1149,7 +1149,7 @@
       },
       "presentation/ensureRunning": {
         "params": {
-          "$ref": "#/$defs/EnsureRunningParams"
+          "$ref": "#/$defs/Empty"
         },
         "result": {
           "$ref": "#/$defs/PresentResult"
@@ -1174,14 +1174,6 @@
       "presentation/wake": {
         "params": {
           "$ref": "#/$defs/PresentWakeParams"
-        },
-        "result": {
-          "$ref": "#/$defs/TakenResult"
-        }
-      },
-      "presentation/previewMascot": {
-        "params": {
-          "$ref": "#/$defs/MascotParams"
         },
         "result": {
           "$ref": "#/$defs/TakenResult"
@@ -1217,6 +1209,14 @@
         },
         "result": {
           "$ref": "#/$defs/Empty"
+        }
+      },
+      "presentation/previewMascot": {
+        "params": {
+          "$ref": "#/$defs/MascotParams"
+        },
+        "result": {
+          "$ref": "#/$defs/TakenResult"
         }
       }
     },
@@ -3799,14 +3799,6 @@
         "enabled"
       ]
     },
-    "EnsureRunningParams": {
-      "type": "object",
-      "properties": {
-        "forSurface": {
-          "type": "boolean"
-        }
-      }
-    },
     "EventLogDurability": {
       "type": "string",
       "enum": [
@@ -4003,6 +3995,27 @@
         "height",
         "bytes",
         "elapsedMillis"
+      ]
+    },
+    "GeneratedPicture": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
       ]
     },
     "HandOverNoticeView": {
@@ -5202,27 +5215,6 @@
         "hide"
       ]
     },
-    "OverlayPicture": {
-      "type": "object",
-      "properties": {
-        "reference": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "prompt": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "prompt"
-      ]
-    },
     "PageReadParams": {
       "type": "object",
       "properties": {
@@ -5787,7 +5779,7 @@
       "type": "object",
       "properties": {
         "origin": {
-          "$ref": "#/$defs/WakeOrigin"
+          "type": "string"
         }
       },
       "required": [
@@ -6435,6 +6427,13 @@
         },
         "version": {
           "type": "string"
+        },
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
         }
       },
       "required": [
@@ -7209,7 +7208,7 @@
         "pictures": {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/OverlayPicture"
+            "$ref": "#/$defs/GeneratedPicture"
           }
         }
       }

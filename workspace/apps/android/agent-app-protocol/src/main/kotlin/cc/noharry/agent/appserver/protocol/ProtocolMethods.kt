@@ -117,7 +117,6 @@ object AppServerMethods {
         serverRequest(PresentationRequests.START),
         serverRequest(PresentationRequests.CARD),
         serverRequest(PresentationRequests.WAKE),
-        serverRequest(PresentationRequests.PREVIEW_MASCOT),
         serverRequest(PresentationRequests.ANDROID_USE_BEGIN),
         serverRequest(PresentationRequests.ANDROID_USE_POINT),
         serverRequest(PresentationRequests.ANDROID_USE_DRAG),

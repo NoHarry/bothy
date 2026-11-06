@@ -2,9 +2,7 @@ package cc.noharry.agent.appserver.server
 
 import cc.noharry.agent.appserver.protocol.DragParams
 import cc.noharry.agent.appserver.protocol.Empty
-import cc.noharry.agent.appserver.protocol.EnsureRunningParams
 import cc.noharry.agent.appserver.protocol.Finding
-import cc.noharry.agent.appserver.protocol.MascotParams
 import cc.noharry.agent.appserver.protocol.OverlayCommand
 import cc.noharry.agent.appserver.protocol.PlanNoticeEntry
 import cc.noharry.agent.appserver.protocol.PlanRanParams
@@ -16,7 +14,6 @@ import cc.noharry.agent.appserver.protocol.PresentWakeParams
 import cc.noharry.agent.appserver.protocol.PresentationNotifications
 import cc.noharry.agent.appserver.protocol.PresentationRequests
 import cc.noharry.agent.appserver.protocol.PresentationState
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
 import cc.noharry.agent.appserver.protocol.jsonrpc.NotificationMethod
 import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
@@ -84,8 +81,8 @@ object Presenter {
     fun ready(): Boolean = link?.state?.ready == true
 
     /** Brings the assistant up (card closed) when it should rest on this screen; [done] gets why not, null when up. */
-    fun ensureRunning(forSurface: Boolean = false, done: (String?) -> Unit = {}) {
-        main.launch { done(present(PresentationRequests.ENSURE_RUNNING, EnsureRunningParams(forSurface))) }
+    fun ensureRunning(done: (String?) -> Unit = {}) {
+        main.launch { done(present(PresentationRequests.ENSURE_RUNNING, Empty)) }
     }
 
     /** Starts the assistant, with its card [open]; [done] gets why not, null when started. */
@@ -96,14 +93,17 @@ object Presenter {
     /** Opens or folds the card: null when done (or held for later), else why it could not be. */
     suspend fun card(command: OverlayCommand): String? = present(PresentationRequests.CARD, PresentCardParams(command))
 
-    /** Hands a wake to the assistant on screen; [taken] is false when none is up to take it. */
-    fun wake(origin: WakeOrigin, taken: (Boolean) -> Unit) {
+    /**
+     * Hands a wake to the assistant on screen, with how it came ([origin], in the host's own words); [taken] is false
+     * when none is up to take it.
+     */
+    fun wake(origin: String, taken: (Boolean) -> Unit) {
         main.launch { taken(link?.ask(PresentationRequests.WAKE, PresentWakeParams(origin))?.taken == true) }
     }
 
-    /** Debug: plays the named motion on the assistant on screen; [played] is false when none is up or the name is unknown. */
-    fun previewMascot(name: String, played: (Boolean) -> Unit) {
-        main.launch { played(link?.ask(PresentationRequests.PREVIEW_MASCOT, MascotParams(name))?.taken == true) }
+    /** A request of the host's own to the assistant on screen; [answered] gets null when none is up or none answers. */
+    fun <P, R> ask(method: RequestMethod<P, R>, params: P, answered: (R?) -> Unit) {
+        main.launch { answered(link?.ask(method, params)) }
     }
 
     fun planDue(entry: PlanNoticeEntry) {

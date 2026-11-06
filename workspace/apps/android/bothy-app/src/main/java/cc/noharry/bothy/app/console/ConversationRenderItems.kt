@@ -3,14 +3,14 @@ import android.content.res.Resources
 import android.util.Log
 import cc.noharry.agent.appserver.protocol.ArtifactPreview
 import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.protocol.view.ShownPage
-import cc.noharry.agent.appserver.protocol.view.generatedPicture
 import cc.noharry.agent.appserver.protocol.view.shownPage
 import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.protocol.view.generatedPicture
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -77,7 +77,7 @@ internal sealed interface ConversationRenderItem {
     /** A picture from the image tool, right after its tool row; the reference is null while it is drawn. */
     data class GeneratedImage(
         val toolItemId: Long,
-        val picture: OverlayPicture,
+        val picture: GeneratedPicture,
     ) : ConversationRenderItem {
         override val key: String = "generated-image-$toolItemId"
     }

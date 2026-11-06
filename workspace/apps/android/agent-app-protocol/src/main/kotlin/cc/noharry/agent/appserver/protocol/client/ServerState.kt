@@ -17,6 +17,7 @@ import cc.noharry.agent.appserver.protocol.DEFAULT_MAX_ACTIVE_SESSIONS
 import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.agent.appserver.protocol.DelegationsSection
 import cc.noharry.agent.appserver.protocol.DemoSection
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.McpProviderState
 import cc.noharry.agent.appserver.protocol.McpSection
 import cc.noharry.agent.appserver.protocol.ModelSection
@@ -54,7 +55,6 @@ import cc.noharry.agent.appserver.protocol.jsonrpc.paramsOf
 import cc.noharry.agent.appserver.protocol.SubagentsSection
 import cc.noharry.agent.appserver.protocol.SubagentLane
 import cc.noharry.agent.appserver.protocol.OffersSection
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.protocol.view.Offer
 
 /**
@@ -111,7 +111,7 @@ data class ServerState(
     val delegations: List<DelegationView> = emptyList(),
     /** The latest offer per session and the pictures drawn for A2A tasks ([OffersSection]). */
     val offers: Map<String, Offer> = emptyMap(),
-    val offerPictures: Map<String, OverlayPicture> = emptyMap(),
+    val offerPictures: Map<String, GeneratedPicture> = emptyMap(),
     /** Subagents by parent session, and their reports on the way ([SubagentsSection]). */
     val subagents: Map<String, List<SubagentLane>> = emptyMap(),
     val subagentDeliveries: Map<String, Long> = emptyMap(),

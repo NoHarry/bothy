@@ -5,7 +5,6 @@ import cc.noharry.agent.appserver.a2a.reduce
 import cc.noharry.agent.appserver.protocol.RuntimeDemoState
 import cc.noharry.agent.appserver.protocol.RuntimeFileChange
 import cc.noharry.agent.appserver.protocol.RuntimeTokenUsage
-import cc.noharry.agent.appserver.protocol.view.displayReplyText
 import cc.noharry.agent.kernel.api.AgentEvent
 
 internal fun RuntimeDemoState.reduce(event: AgentEvent): RuntimeDemoState =
@@ -44,7 +43,7 @@ internal fun RuntimeDemoState.reduce(event: AgentEvent): RuntimeDemoState =
             runId = event.result.runId,
             finalStatus = event.result.status.name,
             status = event.result.status.name,
-            assistantPreview = event.result.response.displayReplyText().ifBlank { assistantPreview },
+            assistantPreview = event.result.response.shownReply().ifBlank { assistantPreview },
             errorCode = event.result.errorCode.orEmpty(),
         )
         is AgentEvent.Finished -> copy(runId = event.runId, status = "Finished")

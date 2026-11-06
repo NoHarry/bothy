@@ -40,6 +40,7 @@ import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcRequest
 import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 import cc.noharry.agent.appserver.protocol.jsonrpc.paramsOf
 import cc.noharry.agent.appserver.protocol.jsonrpc.resultOf
+import cc.noharry.agent.appserver.runtime.AppHost
 import kotlinx.serialization.json.JsonElement
 
 /** What the settings screens ask the server; every call comes on the hub's main dispatcher. */
@@ -188,7 +189,8 @@ class ServerRoutes(
     private fun capabilities() {
         val settings = hub.settings
         on(CapabilityRequests.SET_BASIC_TOOL) { done { settings.setBasicTool(it.name, it.enabled) } }
-        on(CapabilityRequests.SET_ANDROID_USE) { done { settings.setAndroidUse(it.on) } }
+        // A feature the host leaves off has no requests: a client asking gets "method not found".
+        if (AppHost.builtIns.androidUse) on(CapabilityRequests.SET_ANDROID_USE) { done { settings.setAndroidUse(it.on) } }
         on(CapabilityRequests.SET_SKILL) { done { settings.setSkill(it.id, it.enabled) } }
         on(CapabilityRequests.SKILL_TEXT) { TextResult(settings.skillText(it.id)) }
         on(CapabilityRequests.CHECK_SKILL) { settings.checkSkill(it.text, it.editing) }
@@ -300,9 +302,11 @@ class ServerRoutes(
         on(FeatureRequests.A2A_CLIENT_ANSWER) { done { settings.answerAgent(it.questionId, it.text, it.source) } }
         on(FeatureRequests.A2A_CLIENT_CANCEL) { done { settings.cancelAgentTask() } }
         on(FeatureRequests.A2A_CLIENT_NEW_CONVERSATION) { done { settings.newAgentConversation() } }
-        on(FeatureRequests.PLAN_SET_ENABLED) { done { settings.setPlanEnabled(it.id, it.enabled) } }
-        on(FeatureRequests.PLAN_DELETE) { done { settings.deletePlan(it.id) } }
-        on(FeatureRequests.PLAN_CREATE) { SaveResult(settings.createPlan(it)) }
+        if (AppHost.builtIns.plans) {
+            on(FeatureRequests.PLAN_SET_ENABLED) { done { settings.setPlanEnabled(it.id, it.enabled) } }
+            on(FeatureRequests.PLAN_DELETE) { done { settings.deletePlan(it.id) } }
+            on(FeatureRequests.PLAN_CREATE) { SaveResult(settings.createPlan(it)) }
+        }
         on(FeatureRequests.MCP_TOOLS_CHANGED) { done { settings.toolsChanged(it.ids) } }
         on(FeatureRequests.APP_IN_FRONT) { done { settings.appInFront(it.on) } }
     }

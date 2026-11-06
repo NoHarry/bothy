@@ -44,7 +44,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.agent.appserver.protocol.Empty
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
@@ -55,6 +54,7 @@ import cc.noharry.bothy.protocol.VoiceRequests
 import cc.noharry.bothy.protocol.VoiceStatus
 import cc.noharry.bothy.protocol.VoiceView
 import cc.noharry.bothy.protocol.VoiceWakeParams
+import cc.noharry.bothy.protocol.WakeOrigin
 import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

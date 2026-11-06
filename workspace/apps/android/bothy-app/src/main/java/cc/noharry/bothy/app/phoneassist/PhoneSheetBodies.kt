@@ -43,9 +43,6 @@ import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.RunOutcome
 import cc.noharry.agent.appserver.protocol.client.ServerState
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.currentTurnItems
-import cc.noharry.agent.appserver.protocol.view.pickableReply
 import cc.noharry.agent.appserver.protocol.view.shownPage
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
@@ -65,6 +62,9 @@ import cc.noharry.bothy.app.phone.isPhoneStep
 import cc.noharry.bothy.app.phone.onAccent
 import cc.noharry.bothy.app.phone.phoneStepTitle
 import cc.noharry.bothy.protocol.view.OverlayHud
+import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.currentTurnItems
+import cc.noharry.bothy.protocol.view.pickableReply
 import cc.noharry.bothy.protocol.voice
 
 /** An approval the run waits for, with the call that asked for it when the turn holds it. */

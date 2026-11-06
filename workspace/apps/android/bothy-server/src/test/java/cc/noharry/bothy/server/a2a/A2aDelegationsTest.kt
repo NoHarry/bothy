@@ -26,9 +26,11 @@ import cc.noharry.agent.appserver.a2a.reportPictureUrl
 import cc.noharry.agent.appserver.a2a.turnLabel
 import cc.noharry.agent.appserver.evidence.requiresBusinessAction
 import cc.noharry.agent.appserver.plans.matches
+import cc.noharry.agent.appserver.protocol.DELEGATION_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.Persona
@@ -89,8 +91,8 @@ class A2aDelegationsTest {
             report.model.lines(),
         )
         assertTrue(report.display.isDelegationReport())
-        assertEquals("委托回报", turnLabel(report.display))
-        assertEquals("You", turnLabel("帮我导航回家"))
+        assertEquals(DELEGATION_TURN_LABEL, turnLabel(report.display))
+        assertEquals(USER_TURN_LABEL, turnLabel("帮我导航回家"))
     }
 
     @Test

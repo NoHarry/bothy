@@ -65,8 +65,9 @@ import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.PickableReply
-import cc.noharry.agent.appserver.protocol.view.TTS_PROGRESS_PREFIX
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
+import cc.noharry.bothy.protocol.view.PickableReply
+import cc.noharry.bothy.protocol.view.TTS_PROGRESS_PREFIX
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -139,7 +140,7 @@ private fun AskedRow(header: ConversationItem.TurnHeader, actions: ConsoleAction
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         val widest = maxWidth * BUBBLE_SHARE
         Column(horizontalAlignment = Alignment.End) {
-            if (header.label != USER_LABEL) Text(turnHeaderLabel(header.label), style = PhoneType.small, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+            if (header.label != USER_TURN_LABEL) Text(turnHeaderLabel(header.label), style = PhoneType.small, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
             Surface(
                 color = colors.userBubble,
                 shape = RoundedCornerShape(topStart = BUBBLE_RADIUS, topEnd = BUBBLE_TUCK, bottomEnd = BUBBLE_RADIUS, bottomStart = BUBBLE_RADIUS),
@@ -488,8 +489,6 @@ private val StepKind.phoneTitle: Int
         StepKind.OTHER -> R.string.phone_step_kind_other
     }
 
-/** How a user's own turn is stored ([cc.noharry.bothy.app.a2a.turnLabel]). */
-private const val USER_LABEL = "You"
 private val BUBBLE_RADIUS = 16.dp
 private val BUBBLE_TUCK = 4.dp
 private val BUBBLE_LINE_HEIGHT = 22.sp

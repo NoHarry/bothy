@@ -245,6 +245,7 @@ cc.noharry.agent.appserver.runtime.RunAddOns.contextLines | fun contextLines(fac
 cc.noharry.agent.appserver.runtime.RunAddOns.describeTool | fun describeTool(tool: ToolDescriptor): ToolDescriptor
 cc.noharry.agent.appserver.runtime.RunAddOns.deviceServers | fun deviceServers(context: Context): Set<String>
 cc.noharry.agent.appserver.runtime.RunAddOns.exampleToolsAllowed | fun exampleToolsAllowed(): Boolean
+cc.noharry.agent.appserver.runtime.RunAddOns.progressWords | fun progressWords(line: String): String?
 cc.noharry.agent.appserver.runtime.RunAddOns.requiresAction | fun requiresAction(request: String): Boolean
 cc.noharry.agent.appserver.runtime.RunAddOns.runHooks | fun runHooks(facts: RunFacts): List<RuntimeHook>
 cc.noharry.agent.appserver.runtime.RunAddOns.subagentKinds | fun subagentKinds(): List<SubagentKind>
@@ -338,15 +339,15 @@ cc.noharry.agent.appserver.server.PresentationLink.present | suspend fun present
 cc.noharry.agent.appserver.server.PresentationLink.reported | fun reported(next: PresentationState)
 cc.noharry.agent.appserver.server.PresentationLink.state | var state
 cc.noharry.agent.appserver.server.Presenter | object Presenter
+cc.noharry.agent.appserver.server.Presenter.ask | fun <P, R> ask(method: RequestMethod<P, R>, params: P, answered: (R?) -> Unit)
 cc.noharry.agent.appserver.server.Presenter.card | suspend fun card(command: OverlayCommand): String?
-cc.noharry.agent.appserver.server.Presenter.ensureRunning | fun ensureRunning(forSurface: Boolean = false, done: (String?) -> Unit = {})
+cc.noharry.agent.appserver.server.Presenter.ensureRunning | fun ensureRunning(done: (String?) -> Unit = {})
 cc.noharry.agent.appserver.server.Presenter.inFront | fun inFront(): Boolean
 cc.noharry.agent.appserver.server.Presenter.planDue | fun planDue(entry: PlanNoticeEntry)
-cc.noharry.agent.appserver.server.Presenter.previewMascot | fun previewMascot(name: String, played: (Boolean) -> Unit)
 cc.noharry.agent.appserver.server.Presenter.reading | fun reading(): Boolean
 cc.noharry.agent.appserver.server.Presenter.ready | fun ready(): Boolean
 cc.noharry.agent.appserver.server.Presenter.start | fun start(open: Boolean, done: (String?) -> Unit = {})
-cc.noharry.agent.appserver.server.Presenter.wake | fun wake(origin: WakeOrigin, taken: (Boolean) -> Unit)
+cc.noharry.agent.appserver.server.Presenter.wake | fun wake(origin: String, taken: (Boolean) -> Unit)
 cc.noharry.agent.appserver.server.PublishedState | interface PublishedState
 cc.noharry.agent.appserver.server.PublishedState.broadcast | fun broadcast(notification: JsonRpcNotification)
 cc.noharry.agent.appserver.server.PublishedState.current | val current: ServerState

@@ -99,18 +99,9 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cc.noharry.agent.appserver.protocol.DelegationView
-import cc.noharry.agent.appserver.protocol.view.CARDS_PER_ROW
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
-import cc.noharry.agent.appserver.protocol.view.HIDDEN_THINKING_STEP
-import cc.noharry.agent.appserver.protocol.view.OVERLAY_GRID_MIN_CHOICES
-import cc.noharry.agent.appserver.protocol.view.OverlayBoardRow
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.protocol.view.OverlayPlanStatus
-import cc.noharry.agent.appserver.protocol.view.OverlaySize
-import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.overlayCardRows
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.A2uiChoice
 import cc.noharry.bothy.app.a2ui.titleAndDetail
@@ -120,7 +111,16 @@ import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.app.console.ui.icon
 import cc.noharry.bothy.app.console.ui.prettyToolPayload
 import cc.noharry.bothy.app.image.rememberPicture
+import cc.noharry.bothy.protocol.view.CARDS_PER_ROW
+import cc.noharry.bothy.protocol.view.HIDDEN_THINKING_STEP
+import cc.noharry.bothy.protocol.view.OVERLAY_GRID_MIN_CHOICES
+import cc.noharry.bothy.protocol.view.OverlayBoardRow
 import cc.noharry.bothy.protocol.view.OverlayHud
+import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.OverlayPlanStatus
+import cc.noharry.bothy.protocol.view.OverlaySize
+import cc.noharry.bothy.protocol.view.OverlayToolLine
+import cc.noharry.bothy.protocol.view.overlayCardRows
 
 /** Window-side state the stage cannot derive from the HUD. */
 internal data class OverlayUi(
@@ -397,7 +397,7 @@ private fun Cards(cards: List<WidgetCard>) {
  * right. While drawing, light drifts across the empty frame; the finished picture develops into it.
  */
 @Composable
-private fun Picture(picture: OverlayPicture, caption: String, side: Dp, onToggle: () -> Unit) {
+private fun Picture(picture: GeneratedPicture, caption: String, side: Dp, onToggle: () -> Unit) {
     val expanded = side != PICTURE_SIZE
     // One Row in both states keeps the frame at the same call site, so its zoom remembers the previous side.
     Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -411,7 +411,7 @@ private fun Picture(picture: OverlayPicture, caption: String, side: Dp, onToggle
  * anchored at its top-left corner where both sizes start.
  */
 @Composable
-private fun PictureFrame(picture: OverlayPicture, side: Dp, onToggle: (() -> Unit)?) {
+private fun PictureFrame(picture: GeneratedPicture, side: Dp, onToggle: (() -> Unit)?) {
     val last = remember { SideMemo(side) }
     val toggleLabel = stringResource(R.string.overlay_toggle_picture)
     val zoom = remember(side) { Animatable(last.side / side) }
@@ -446,7 +446,7 @@ private fun OverlayUi.expandedPictureSide(): Dp {
 
 /** Beside the frame: "正在作画" while drawing, then the assistant's words, or the prompt when there are none. */
 @Composable
-private fun PictureWords(picture: OverlayPicture, caption: String, modifier: Modifier) {
+private fun PictureWords(picture: GeneratedPicture, caption: String, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (picture.reference == null) {
             Shimmer(stringResource(R.string.overlay_step_drawing), 22.sp)

@@ -38,9 +38,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.DELEGATION_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.PickableReply
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
@@ -49,6 +50,7 @@ import cc.noharry.bothy.app.console.ui.Disclosure
 import cc.noharry.bothy.app.console.ui.Markdown
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.console.ui.prettyToolPayload
+import cc.noharry.bothy.protocol.view.PickableReply
 import kotlinx.coroutines.delay
 
 @Composable
@@ -227,11 +229,11 @@ internal fun thinkingDisplayLine(
     return resources.getString(R.string.console_thinking_line, head)
 }
 
-/** The label a turn was stored with ([cc.noharry.bothy.app.a2a.turnLabel]), in the screen's language. */
+/** The label a turn opened with, in the screen's language. */
 @Composable
 internal fun turnHeaderLabel(label: String): String = when (label) {
-    "You" -> stringResource(R.string.console_turn_you)
-    "委托回报" -> stringResource(R.string.console_turn_delegation_report)
+    USER_TURN_LABEL -> stringResource(R.string.console_turn_you)
+    DELEGATION_TURN_LABEL -> stringResource(R.string.console_turn_delegation_report)
     else -> label
 }
 

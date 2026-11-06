@@ -7,6 +7,7 @@ import cc.noharry.agent.appserver.model.withFirstEventTimeout
 import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ModelWords
 import cc.noharry.agent.appserver.runtime.Persona
+import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH
 import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
@@ -17,6 +18,7 @@ import cc.noharry.agent.kernel.api.model.ModelMessage
 import cc.noharry.agent.kernel.api.model.ModelRequest
 import cc.noharry.agent.kernel.api.model.ModelTool
 import cc.noharry.bothy.server.server.BothyPersona
+import cc.noharry.bothy.server.tools.BothyRuns
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -339,10 +341,16 @@ class ModelClientTest {
             return AppModelClient(delegate).complete(postBusinessRequest(system = ALL_TODO_COMPLETED_SYSTEM, tools = tools))
                 .toList().filterIsInstance<ModelEvent.ToolCall>().filter { it.name == "finish" }
         }
-        assertTrue(finishes("TTS: 路线已按广州塔为终点、白云机场为途经点算好，导航已经在进行了。").isEmpty())
-        val finish = finishes("TTS: 导航开始了。\n已完成：全程剩余约65公里，到白云机场约22公里。").single()
-        assertTrue(finish.argumentsJson.contains("全程剩余约65公里"))
-        assertFalse(finish.argumentsJson.contains("TTS:"))
+        // Bothy's voice marks its progress lines TTS:.
+        AppHost.install(runs = BothyRuns)
+        try {
+            assertTrue(finishes("TTS: 路线已按广州塔为终点、白云机场为途经点算好，导航已经在进行了。").isEmpty())
+            val finish = finishes("TTS: 导航开始了。\n已完成：全程剩余约65公里，到白云机场约22公里。").single()
+            assertTrue(finish.argumentsJson.contains("全程剩余约65公里"))
+            assertFalse(finish.argumentsJson.contains("TTS:"))
+        } finally {
+            AppHost.install(runs = RunAddOns.NONE)
+        }
     }
 
     @Test

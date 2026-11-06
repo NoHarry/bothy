@@ -4,9 +4,9 @@ package cc.noharry.agent.appserver.a2a
 import cc.noharry.agent.a2a.server.A2aOutput
 import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
-import cc.noharry.agent.appserver.protocol.view.displayReplyText
 import cc.noharry.agent.appserver.runtime.followUpQuestion
 import cc.noharry.agent.appserver.runtime.modelText
+import cc.noharry.agent.appserver.runtime.shownReply
 import cc.noharry.agent.kernel.api.AgentEvent
 import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
 import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
@@ -30,7 +30,7 @@ fun a2aRuntimeOutput(event: AgentEvent): A2aOutput? = when (event) {
     is AgentEvent.RetryAttempted -> A2aOutput.Status(modelText("正在重试，第 ${event.attempt} 次", "Retrying, attempt ${event.attempt}"), "retry")
     is AgentEvent.CompactionApplied -> A2aOutput.Status(modelText("上下文已压缩", "Context compacted"), "compaction")
     is AgentEvent.BudgetWarning -> A2aOutput.Status(modelText("执行预算即将用完", "The run's budget is nearly spent"), "budget-warning")
-    is AgentEvent.ResultAvailable -> A2aOutput.Result(event.result.response.displayReplyText(), a2aTerminalState(event.result))
+    is AgentEvent.ResultAvailable -> A2aOutput.Result(event.result.response.shownReply(), a2aTerminalState(event.result))
     else -> null
 }
 
@@ -49,7 +49,7 @@ internal fun a2aTerminalState(result: RuntimeResult): A2aOutput.State = when {
 
 /** The spoken part asks a question, or the reply lists picks. */
 internal fun String.asksDriver(): Boolean {
-    val shown = displayReplyText()
+    val shown = shownReply()
     val spoken = shown.substringBefore(PARAGRAPH_BREAK)
     return spoken.contains('？') || spoken.contains('?') || shown.displayChoiceReply().choices.isNotEmpty()
 }

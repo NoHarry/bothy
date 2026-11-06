@@ -14,6 +14,7 @@ import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.agent.appserver.protocol.EventLogHealthStatus
 import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.McpProviderState
 import cc.noharry.agent.appserver.protocol.McpServer
 import cc.noharry.agent.appserver.protocol.McpServerKind
@@ -69,7 +70,6 @@ import cc.noharry.agent.appserver.protocol.view.ChoiceOffer
 import cc.noharry.agent.appserver.protocol.view.ChoiceOption
 import cc.noharry.agent.appserver.protocol.view.Offer
 import cc.noharry.agent.appserver.protocol.view.OfferOption
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.agent.appserver.protocol.view.SliderOffer
 import cc.noharry.agent.appserver.protocol.view.SwitchOffer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
@@ -210,7 +210,7 @@ class StateSnapshotTest {
     /** What the reply surfaces show beside the text: offers, an A2A task's picture, the voice level, subagents. */
     private fun ServerState.withSurfaces() = withSpeechLevel(0.4f).copy(
         offers = mapOf("s1" to offer()),
-        offerPictures = mapOf("task-7" to OverlayPicture("generated-images/YTJh/img-a.jpg", "猫")),
+        offerPictures = mapOf("task-7" to GeneratedPicture("generated-images/YTJh/img-a.jpg", "猫")),
         subagents = mapOf("s1" to listOf(SubagentLane("sub-1", "查油价", SubagentRunState.RUNNING, 1, 2, 0, 3, latest = "web_search"))),
         subagentDeliveries = mapOf("s1/sub-1" to REPORT_QUEUED),
     )

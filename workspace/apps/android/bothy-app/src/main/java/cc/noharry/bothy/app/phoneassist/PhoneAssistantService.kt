@@ -24,9 +24,7 @@ import cc.noharry.agent.appserver.protocol.SettingsRequests
 import cc.noharry.agent.appserver.protocol.TextParams
 import cc.noharry.agent.appserver.protocol.TurnInterruptParams
 import cc.noharry.agent.appserver.protocol.TurnStartParams
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.agent.appserver.protocol.client.ServerState
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.AppLanguages
 import cc.noharry.bothy.app.console.ConsoleActivity
@@ -41,6 +39,8 @@ import cc.noharry.bothy.app.overlay.followSubagents
 import cc.noharry.bothy.app.overlay.overlayAnnounces
 import cc.noharry.bothy.app.overlay.startOverlayForeground
 import cc.noharry.bothy.protocol.VoiceRequests
+import cc.noharry.bothy.protocol.WakeOrigin
+import cc.noharry.bothy.protocol.view.OverlayPhase
 import cc.noharry.bothy.protocol.view.overlayHud
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

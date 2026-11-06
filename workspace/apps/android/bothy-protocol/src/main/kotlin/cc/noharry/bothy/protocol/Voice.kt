@@ -5,7 +5,6 @@ import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FlagParams
 import cc.noharry.agent.appserver.protocol.SaveResult
 import cc.noharry.agent.appserver.protocol.TextParams
-import cc.noharry.agent.appserver.protocol.WakeOrigin
 import cc.noharry.agent.appserver.protocol.jsonrpc.NotificationMethod
 import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 import cc.noharry.agent.appserver.protocol.text
@@ -135,6 +134,10 @@ data class RealtimeExchangeView(val heard: String, val reply: String = "")
 /** The voice session and the wake word ([ExtensionSection] [BothyExtensions.VOICE]). */
 @Serializable
 data class VoiceSection(val voice: VoiceView = VoiceView())
+
+/** How a wake came: the wake words, a long press or tap on the assistant, adb, or a head unit's own surface. */
+@Serializable
+enum class WakeOrigin { WORD, ENGLISH_WORD, LONG_PRESS, TAP, ADB, SURFACE }
 
 /** A wake to run; with [onlyIfCanListen] nothing happens when listening is impossible, and the answer says why. */
 @Serializable

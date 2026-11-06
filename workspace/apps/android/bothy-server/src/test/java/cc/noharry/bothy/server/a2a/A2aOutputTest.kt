@@ -4,11 +4,14 @@ package cc.noharry.bothy.server.a2a
 import cc.noharry.agent.a2a.server.A2aOutput
 import cc.noharry.agent.appserver.a2a.a2aExecutionOutput
 import cc.noharry.agent.appserver.a2a.a2aRuntimeOutput
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.ExecutionEvents
 import cc.noharry.agent.appserver.runtime.ExecutionToolHook
+import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.kernel.api.*
 import cc.noharry.agent.kernel.api.reliability.*
+import cc.noharry.bothy.server.tools.BothyRuns
 import cc.noharry.bothy.server.voice.tts.TtsAnnouncer
 import cc.noharry.bothy.server.voice.tts.TtsConfig
 import cc.noharry.bothy.server.voice.tts.toolStarted
@@ -91,7 +94,13 @@ class A2aOutputTest {
         val event = result(RuntimeCompletionOutcome.SUCCEEDED, response)
         announcer.observe(RuntimeRunScope("r", "s"), event, TtsConfig()) { true }
         assertEquals(listOf("深圳北站有4个停车场，推荐东广场北区那个，离进站口最近，就去那儿吗？"), speech)
-        val display = (a2aRuntimeOutput(event) as A2aOutput.Result).text
+        // Bothy's voice marks its progress lines; another agent gets the reply without them.
+        AppHost.install(runs = BothyRuns)
+        val display = try {
+            (a2aRuntimeOutput(event) as A2aOutput.Result).text
+        } finally {
+            AppHost.install(runs = RunAddOns.NONE)
+        }
         assertEquals(response.substringAfter("\n\n"), display)
         announcer.stop()
     }

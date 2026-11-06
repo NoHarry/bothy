@@ -33,10 +33,6 @@ enum class OverlayCommand {
     HIDE,
 }
 
-/** Bring the assistant up with its card closed; [forSurface] when a head unit's own surface needs it running, hidden. */
-@Serializable
-data class EnsureRunningParams(val forSurface: Boolean = false)
-
 @Serializable
 data class PresentStartParams(val open: Boolean)
 
@@ -50,16 +46,13 @@ data class PresentCardParams(val command: OverlayCommand)
 @Serializable
 data class PresentResult(val refusal: String? = null, val noResting: Boolean = false)
 
+/** [origin]: how the wake came, in the host's own words (the wake word, a tap on the assistant). */
 @Serializable
-data class PresentWakeParams(val origin: WakeOrigin)
+data class PresentWakeParams(val origin: String)
 
 /** Whether the assistant took it: false when none is up (a wake is then heard without it). */
 @Serializable
 data class TakenResult(val taken: Boolean)
-
-/** Debug: one of the mascot's motions by name. */
-@Serializable
-data class MascotParams(val name: String)
 
 /** [planId]'s controls are done: [outcome] replaces what they were doing while its entry is up. */
 @Serializable
@@ -75,13 +68,13 @@ data class DragParams(val fromX: Int, val fromY: Int, val toX: Int, val toY: Int
 
 /** Requests the server sends the presenting client. */
 object PresentationRequests {
-    val ENSURE_RUNNING = RequestMethod("presentation/ensureRunning", EnsureRunningParams.serializer(), PresentResult.serializer())
+    /** Bring the assistant up with its card closed. */
+    val ENSURE_RUNNING = RequestMethod("presentation/ensureRunning", Empty.serializer(), PresentResult.serializer())
     val START = RequestMethod("presentation/start", PresentStartParams.serializer(), PresentResult.serializer())
     val CARD = RequestMethod("presentation/card", PresentCardParams.serializer(), PresentResult.serializer())
     val WAKE = RequestMethod("presentation/wake", PresentWakeParams.serializer(), TakenResult.serializer())
-    val PREVIEW_MASCOT = RequestMethod("presentation/previewMascot", MascotParams.serializer(), TakenResult.serializer())
 
-    /** Folds the card, lights the screen edges and makes the mascot the pointer; answered when ready. */
+    /** Folds the card, lights the screen edges and shows the pointer; answered when ready. */
     val ANDROID_USE_BEGIN = RequestMethod("androidUse/begin", Empty.serializer(), Empty.serializer())
     val ANDROID_USE_POINT = RequestMethod("androidUse/point", PointParams.serializer(), Empty.serializer())
     val ANDROID_USE_DRAG = RequestMethod("androidUse/drag", DragParams.serializer(), Empty.serializer())

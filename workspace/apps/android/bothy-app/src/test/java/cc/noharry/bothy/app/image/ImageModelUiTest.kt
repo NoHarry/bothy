@@ -1,9 +1,9 @@
 package cc.noharry.bothy.app.image
 import cc.noharry.agent.appserver.protocol.ConversationItem
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.view.GENERATED_IMAGES_DIR
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
 import cc.noharry.bothy.app.console.ConversationRenderItem
 import cc.noharry.bothy.app.console.toRenderItems
 import org.junit.Assert.assertEquals
@@ -23,7 +23,7 @@ class ImageModelUiTest {
         )
         val rendered = items.toRenderItems()
         assertTrue(rendered[1] is ConversationRenderItem.BusinessToolGroup)
-        assertEquals(ConversationRenderItem.GeneratedImage(2, OverlayPicture(reference, "雪山湖泊")), rendered[2])
+        assertEquals(ConversationRenderItem.GeneratedImage(2, GeneratedPicture(reference, "雪山湖泊")), rendered[2])
         assertEquals(1, rendered.count { it is ConversationRenderItem.GeneratedImage })
     }
 

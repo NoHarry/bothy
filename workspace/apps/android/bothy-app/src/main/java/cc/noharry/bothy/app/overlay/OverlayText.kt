@@ -3,10 +3,10 @@ package cc.noharry.bothy.app.overlay
 import android.content.res.Resources
 import androidx.annotation.StringRes
 import cc.noharry.agent.appserver.protocol.DelegationStage
-import cc.noharry.agent.appserver.protocol.view.PARTLY_DONE_HEADLINE
-import cc.noharry.agent.appserver.protocol.view.WAITING_FOR_RUN_TEXT
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.runSummaryText
+import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
+import cc.noharry.bothy.protocol.view.WAITING_FOR_RUN_TEXT
 
 /**
  * A HUD text as the card shows it. The projection keeps its fixed English words (a headline such as "Completed", the

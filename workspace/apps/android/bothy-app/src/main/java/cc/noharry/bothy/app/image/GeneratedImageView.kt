@@ -43,7 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.view.SAVED_PICTURE
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleColors
@@ -59,7 +59,7 @@ import kotlinx.coroutines.withContext
  * prompt beneath once known, a pulsing line while drawing, and a note when the file has been cleared.
  */
 @Composable
-internal fun GeneratedImageRow(picture: OverlayPicture) {
+internal fun GeneratedImageRow(picture: GeneratedPicture) {
     val colors = ConsoleColors
     val context = LocalContext.current
     Column(

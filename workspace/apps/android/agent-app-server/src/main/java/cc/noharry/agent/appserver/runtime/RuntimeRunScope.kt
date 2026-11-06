@@ -18,7 +18,6 @@ import cc.noharry.agent.appserver.model.ProviderProfile
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
 import cc.noharry.agent.appserver.protocol.ContextPanelState
 import cc.noharry.agent.appserver.protocol.McpProviderState
-import cc.noharry.agent.appserver.protocol.view.displayReplyText
 import cc.noharry.agent.appserver.session.SessionCoordinator
 import cc.noharry.agent.appserver.session.SessionTurnRecorder
 import cc.noharry.agent.appserver.session.TranscriptStore
@@ -206,9 +205,9 @@ internal fun handleScopedAgentEvent(
         // Issue banner only when tools failed; successful result body is the Assistant message.
         val issues = transcript.toolIssuesForCurrentTurn()
         if (issues.hasIssues) {
-            transcript.appendRuntimeResult(event.result.status.name, event.result.response.displayReplyText())
+            transcript.appendRuntimeResult(event.result.status.name, event.result.response.shownReply())
         }
-        transcript.appendFinalResponse(event.result.response.displayReplyText())
+        transcript.appendFinalResponse(event.result.response.shownReply())
         notifyChanged()
         return
     }

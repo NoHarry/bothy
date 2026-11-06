@@ -128,7 +128,7 @@ object AppServer {
             settings = runtime,
             main = Dispatchers.Main.immediate,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-            serverInfo = ServerInfo(config.name, app.versionName()),
+            serverInfo = ServerInfo(config.name, app.versionName(), config.builtIns.offered()),
             modules = coreModules(app) + features.flatMap { it.routes(app) },
             // The state's sources start with the first client that takes state, not with the app's presentation.
             startSources = { StateSources(app, created, features).start() },

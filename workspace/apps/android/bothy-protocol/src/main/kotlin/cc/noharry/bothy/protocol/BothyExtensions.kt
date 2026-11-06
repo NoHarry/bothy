@@ -1,7 +1,6 @@
 package cc.noharry.bothy.protocol
 
 import cc.noharry.agent.appserver.protocol.SaveResult
-import cc.noharry.agent.appserver.protocol.SpeechSection
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.client.extension
 import cc.noharry.agent.appserver.protocol.client.withExtension
@@ -26,6 +25,10 @@ object BothyExtensions {
         TOOL_SEARCH to ToolSearchSection.serializer(),
     )
 }
+
+/** The reply's loudness at the speaker while it streams (0..1), sampled as it plays; null when nothing plays. */
+@Serializable
+data class SpeechSection(val level: Float? = null)
 
 /** Jev's tool search ([JevSettings]) as Bothy's own section. */
 @Serializable

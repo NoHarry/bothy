@@ -1,7 +1,5 @@
 package cc.noharry.bothy.protocol.view
 
-import cc.noharry.agent.appserver.protocol.view.PROGRESS_SENTENCE_ENDINGS
-
 /**
  * The progress lines in this text as they are spoken: from each `TTS:` marker, anywhere in a line, to the line end, the
  * first sentence end or the next marker; an unfinished last one runs to the end. The card shows only these when
@@ -44,3 +42,18 @@ private fun String.indexOfFirstAfter(start: Int, predicate: (Char) -> Boolean): 
 }
 
 val TTS_PROGRESS_MARKER = Regex("""(?i)(?<![A-Za-z0-9_])TTS:""")
+
+/** The on-screen reply: marked progress lines were already spoken and are not part of it. */
+fun String.displayReplyText(): String {
+    val kept = lines().filterNot { it.isTtsMarkedLine() }.joinToString("\n").replace(Regex("\n{3,}"), "\n\n").trim()
+    return kept.ifBlank { lines().joinToString("\n") { it.replace(TTS_LINE_PREFIX, "") }.trim() }
+}
+
+fun String.isTtsMarkedLine(): Boolean = TTS_LINE_PREFIX.containsMatchIn(this)
+
+val PROGRESS_SENTENCE_ENDINGS = setOf('。', '！', '？', '.', '!', '?')
+
+val TTS_LINE_PREFIX = Regex("""^\s*TTS:\s*""", RegexOption.IGNORE_CASE)
+
+// Anywhere in a line, as the announcer finds it: streamed rounds run together ("…temperature.TTS: 先查…").
+val TTS_PROGRESS_PREFIX = Regex("""(?i)(?<![A-Za-z0-9_])TTS:\s*""")

@@ -137,10 +137,10 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
   - 名字（握手时的 `serverInfo.name`）；
   - 人设（`Persona`）：助手叫什么，系统提示词开头那句“你是谁、在哪个 App 里”；不给就是通用的“助手”。提示词和工具说明里模型读到的关于自己的话一律写“你”，不写名字；
   - 插件（`AppServerFeature`）：进程启动时起什么（`install`）、答哪些请求（`routes`）、往状态里发布什么（`publish`，多是 `ExtensionSection`）、App 进出前台和悬浮窗来去时做什么，每样都可以不要；
-  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、系统提示里的规则、工具调用的闸门、远端工具的说明、工具包装、自带的工具、skill 和子 agent 类型，哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们；卡片显示前的检查和补充、回复怎么收尾（`CardHooks`）；回放检查里哪些请求必须调用服务、回答还有什么问题。通用层默认都不加：Bothy 的下单确认、网上核实、天气活动走联网搜索、长回答画页面、行程卡片的时间检查和配图、车机请求的回放检查都在 `BothyRuns` 里）；
+  - 接到运行时上的口子：`VoicePort`（播报和语音会话，没有就静音照跑）、`HostModels`（宿主自己跑的模型，比如本机模型）、`RunAddOns`（每次运行加的上下文、系统提示里的规则、工具调用的闸门、远端工具的说明、工具包装、自带的工具、skill 和子 agent 类型，哪些工具服务算设备：没开「允许子 agent 操作设备」时子 agent 只能查询它们；卡片显示前的检查和补充、回复怎么收尾（`CardHooks`）；回放检查里哪些请求必须调用服务、回答还有什么问题；回复里哪几行是语音边做边说的进度（`progressWords`），屏幕、会话记录和别的 agent 拿到的回复不带这些行，只有进度的回复也不算最终回答。通用层默认都不加：Bothy 的下单确认、网上核实、天气活动走联网搜索、长回答画页面、行程卡片的时间检查和配图、车机请求的回放检查、`TTS:` 进度行都在 `BothyRuns` 里）；
   - 模型预置（`ProviderPresets`）：构建时带的模型服务，以及配置文件里宿主自己的段（`sections`，段名对键前缀，比如 Bothy 的 `tts` 读成 `MIMO_TTS_*`；核心不认识任何具体的语音服务）；
   - 位置（`HostPlaces`）：工具说给模型的话里要提到的界面位置，记忆在哪看和改（`memoryPage`）、生成的图片显示在哪（`picturesShownOn`）；不给就不提。
-  - 自带功能（`BuiltInFeatures`）：计划（工具、定时和盯状态的计划、闹钟）、操作屏幕（开关打开时服务端自己把无障碍服务列上）、设备媒体、卡片和选项工具、开机和更新后自启（计划要它把闹钟重新设上）。默认都关：一个只带服务端的 App 不会开机自启，也不会去动无障碍设置。Bothy 全开，并在自己的 manifest 里把 `BootReceiver` 打开，带来这个开关的那次更新也照样自启。
+  - 自带功能（`BuiltInFeatures`）：计划（工具、定时和盯状态的计划、闹钟）、操作屏幕（开关打开时服务端自己把无障碍服务列上）、设备媒体、卡片和选项工具、开机和更新后自启（计划要它把闹钟重新设上）。默认都关：一个只带服务端的 App 不会开机自启，也不会去动无障碍设置。关着的功能没有自己的请求（问了回“方法不存在”），计划关着时计划的分区是空的、计划本也不读；握手时 `serverInfo.features` 列出开着的（`plans`、`androidUse`、`deviceMedia`、`cards`），客户端可以据此只给这些出界面。Bothy 全开，并在自己的 manifest 里把 `BootReceiver` 打开，带来这个开关的那次更新也照样自启。
   - 模型服务适配（`providerAdapters`，`ProviderAdapter`）：某家模型服务聊天之外的东西——联网查找（搜索和抓页的 API，联网搜索和抓页兜底都走它）、运行里发它自己的历史更新（DeepSeek 的 system 更新和 `tool_addition`）、它自己的请求（余额、中转检测）、它的预设配置共用一把 key。默认没有：一个 DeepSeek 配置在通用宿主里只有聊天。DeepSeek 的这些都在服务端的 `deepseek` 包里（`DeepSeekAdapter`），协议在 `protocol.deepseek`；Bothy 装它。DeepSeek 的用量字段、价格和上下文窗口仍按模型名认，和 Claude、GPT 一样。
   - 额外信任根（`extraTrustRoots`）：系统根证书之外，服务端所有 HTTPS 还信任的根（PEM，宿主的 raw 资源）；默认不加。Bothy 给的是部分车机系统证书库里缺的那几张。服务端设 A2A 配置和生图模型的两个调试广播只在 debug 包里。
   - A2A（`A2aHost`）：本机的 A2A 端点（`127.0.0.1:8766/a2a`）开不开，别的客户端交来的请求里宿主自己的命令（`intercept`），别的客户端的任务开始时宿主做什么（`inboundStarted`），交给别的 agent 的任务把来源写成什么（`contextSource`）；不给就不开端点、什么都不弹，来源写 `device`。Bothy 开端点，外部任务一来就弹出卡片，认 `carOverlay=show|hide`、`carOverlayOnly=true`，来源写 `car`（中转那边已配对的 Bot 认这个名字）。
@@ -152,7 +152,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
 - `ServerHub`：发布状态（`StatePublisher` 算出条目和分区的变化）、管连接、广播通知；`ServerConnection` 一条连接一个，负责握手、审批请求的收发。
 - 请求表：核心的会话、轮次、模型、连接在 `ServerRoutes`；其余每个功能区一个 `RouteModule`，自己登记它答的方法。通用的几个（`ImageModelRoutes`、`MemoryRoutes`、`ModelSettingsRoutes`……）在 `coreModules`，插件的由插件的 `routes` 给出；新功能区加一个模块，不改核心。
 - `StateSources` 订阅运行时和通用功能区的流（会话、计划、记忆、用量、子 agent……）合成 `ServerState`，再让每个插件往里发布自己的分区。
-- 悬浮窗也是普通客户端：`bothy-app` 的 `HostConnection` 在进程启动时连上，声明 `capabilities.presentation = true`、`state = false`。服务端通过它发请求 `presentation/ensureRunning|start|card|wake|previewMascot` 和 `androidUse/begin|point|drag|hide`（指针到位、截图前藏好才回），发通知 `presentation/planDue|planRan`、`androidUse/reveal`；它用 `presentation/state` 通知报悬浮窗是否就绪、用户读到什么时候、控制台是否在前台，服务端缓存着同步查（`Presenter`）。没有这样的客户端时，这些请求一律答“不在屏幕上”，服务端照常运行。
+- 悬浮窗也是普通客户端：`bothy-app` 的 `HostConnection` 在进程启动时连上，声明 `capabilities.presentation = true`、`state = false`。服务端通过它发请求 `presentation/ensureRunning|start|card|wake`（唤醒的来源是宿主自己的词，Bothy 是 `WakeOrigin`）和 `androidUse/begin|point|drag|hide`（指针到位、截图前藏好才回），发通知 `presentation/planDue|planRan`、`androidUse/reveal`；它用 `presentation/state` 通知报悬浮窗是否就绪、用户读到什么时候、控制台是否在前台，服务端缓存着同步查（`Presenter`）。宿主自己的请求用 `Presenter.ask` 发，比如 Bothy 调试吉祥物动作的 `presentation/previewMascot`（`BothyPresentationRequests`）。没有这样的客户端时，这些请求一律答“不在屏幕上”，服务端照常运行。
 
 ## 传输
 
@@ -164,7 +164,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
 
 - `agent-app-protocol` 的 `ServerClient`：发请求、等响应（挂起函数），处理审批请求；把快照和通知归并成 `ServerState`（`StateFlow`）。
 - `bothy-app` 里：`FrontEndClient`（控制台和手机，握手后才发请求）、`OverlayConnection`（悬浮窗的状态）、`HostConnection`（悬浮窗的呈现和 App 的通知，不要状态）、`AppClient`（广播接收器等一次性调用）；Compose 里用 `LocalServer` 拿当前状态和发请求。
-- 两边共用的纯函数（a2ui 卡片和选项、提问卡片、播报文字、计划触发条件的文字、HTML 预览、轨迹的时间线、搜索、时长和检查器的标签页、分页……）在 `agent-app-protocol` 的 `view` 包，Bothy 悬浮卡片的投影在 `bothy-protocol` 的 `view` 包，服务端和界面算出来的一样。
+- 两边共用的纯函数（a2ui 卡片和选项、提问卡片、计划触发条件的文字、HTML 预览、轨迹的时间线、搜索、时长和检查器的标签页、分页……）在 `agent-app-protocol` 的 `view` 包；Bothy 悬浮卡片的投影（阶段、尺寸、可点的回复、计划行、A2A 客户端模式的卡片）、行程的出行方式和播报的进度行（`TTS:`）在 `bothy-protocol` 的 `view` 包，服务端和界面算出来的一样。
 
 ## 做法上的约束
 

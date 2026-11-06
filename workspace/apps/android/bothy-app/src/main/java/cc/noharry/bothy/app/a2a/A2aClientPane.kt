@@ -38,11 +38,8 @@ import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
 import cc.noharry.agent.appserver.protocol.A2aTaskStatus
 import cc.noharry.agent.appserver.protocol.QuestionAnswerMode
-import cc.noharry.agent.appserver.protocol.view.PickableReply
-import cc.noharry.agent.appserver.protocol.view.endpointLabel
 import cc.noharry.agent.appserver.protocol.view.formatWorkedDuration
 import cc.noharry.agent.appserver.protocol.view.line
-import cc.noharry.agent.appserver.protocol.view.pickableDisplay
 import cc.noharry.agent.appserver.protocol.view.wireLabel
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
@@ -54,6 +51,9 @@ import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.switchColors
 import cc.noharry.bothy.app.console.ui.Markdown
 import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.protocol.view.PickableReply
+import cc.noharry.bothy.protocol.view.endpointLabel
+import cc.noharry.bothy.protocol.view.pickableDisplay
 
 /** Client-mode actions; all of them go to the server's client mode, never the local runtime. */
 internal data class A2aClientActions(

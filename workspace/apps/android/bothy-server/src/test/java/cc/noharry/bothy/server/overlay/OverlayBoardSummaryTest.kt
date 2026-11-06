@@ -4,6 +4,7 @@ import cc.noharry.agent.appserver.protocol.ConfirmationMode
 import cc.noharry.agent.appserver.protocol.ContextPanelState
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.CurrentRequest
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.LessonEntry
 import cc.noharry.agent.appserver.protocol.ProviderEditState
 import cc.noharry.agent.appserver.protocol.RunActivity
@@ -20,22 +21,21 @@ import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
-import cc.noharry.agent.appserver.protocol.view.OverlayBoardSection
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.protocol.view.OverlayPlanStatus
-import cc.noharry.agent.appserver.protocol.view.OverlaySize
-import cc.noharry.agent.appserver.protocol.view.PARTLY_DONE_HEADLINE
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.protocol.view.overlayCardRows
-import cc.noharry.agent.appserver.protocol.view.overlayHudMultiline
-import cc.noharry.agent.appserver.protocol.view.overlayPicture
 import cc.noharry.agent.appserver.runtime.parseRunSummary
 import cc.noharry.agent.appserver.runtime.runActivity
 import cc.noharry.agent.appserver.session.UiState
+import cc.noharry.bothy.protocol.view.OverlayBoardSection
 import cc.noharry.bothy.protocol.view.OverlayHud
+import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.OverlayPlanStatus
+import cc.noharry.bothy.protocol.view.OverlaySize
+import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.overlayBoardSections
+import cc.noharry.bothy.protocol.view.overlayCardRows
 import cc.noharry.bothy.protocol.view.overlayHud
+import cc.noharry.bothy.protocol.view.overlayHudMultiline
+import cc.noharry.bothy.protocol.view.overlayPicture
 import cc.noharry.bothy.protocol.view.overlaySize
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -374,7 +374,7 @@ class OverlayBoardSummaryTest {
     fun imageToolCallLeadsTheCardWhileDrawingAndOnceDrawn() {
         val reference = "generated-images/ZGVidWctY29uc29sZS1zZXNzaW9u/img-mv0rmhd9-jtne.jpg"
         val drawing = listOf(turnHeader(10), imageCall(ToolCallStatus.RUNNING, result = null))
-        assertEquals(OverlayPicture(null, "雪山湖泊"), drawing.overlayPicture())
+        assertEquals(GeneratedPicture(null, "雪山湖泊"), drawing.overlayPicture())
         // The console may hold the result as escaped JSON inside a preview string.
         val escaped = """{\"ok\":true,\"image\":{\"reference\":\"$reference\",\"width\":1024}}"""
         assertEquals(reference, listOf(imageCall(ToolCallStatus.DONE, escaped)).overlayPicture()?.reference)

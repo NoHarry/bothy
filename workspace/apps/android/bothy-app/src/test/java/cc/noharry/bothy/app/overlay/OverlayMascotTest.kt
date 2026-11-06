@@ -1,9 +1,9 @@
 package cc.noharry.bothy.app.overlay
+import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
-import cc.noharry.agent.appserver.protocol.view.OverlayPhase
-import cc.noharry.agent.appserver.protocol.view.OverlayPicture
-import cc.noharry.agent.appserver.protocol.view.OverlayToolLine
 import cc.noharry.bothy.protocol.view.OverlayHud
+import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.OverlayToolLine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -35,8 +35,8 @@ class OverlayMascotTest {
 
     @Test
     fun drawsOnlyWhileThePictureIsStillComing() {
-        val drawing = hud(OverlayPhase.LIVE, picture = OverlayPicture(null, "一只猫"))
-        val drawn = hud(OverlayPhase.LIVE, picture = OverlayPicture("generated-images/s/a.png", "一只猫"))
+        val drawing = hud(OverlayPhase.LIVE, picture = GeneratedPicture(null, "一只猫"))
+        val drawn = hud(OverlayPhase.LIVE, picture = GeneratedPicture("generated-images/s/a.png", "一只猫"))
 
         assertEquals(MascotAction.DRAWING, drawing.mascotAction(ui))
         assertEquals(MascotAction.THINKING, drawn.mascotAction(ui))
@@ -124,7 +124,7 @@ class OverlayMascotTest {
         phase: OverlayPhase,
         headline: String = "",
         choices: List<DisplayChoice> = emptyList(),
-        picture: OverlayPicture? = null,
+        picture: GeneratedPicture? = null,
         tools: List<OverlayToolLine> = emptyList(),
     ) = OverlayHud(
         phase = phase,

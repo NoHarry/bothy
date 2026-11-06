@@ -5,8 +5,8 @@ import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
-import cc.noharry.agent.appserver.protocol.view.A2aHudTexts
 import cc.noharry.bothy.app.R
+import cc.noharry.bothy.protocol.view.A2aHudTexts
 
 /**
  * Flat single-line projection used by the overlay window, which only shows a compact

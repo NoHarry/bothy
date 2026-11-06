@@ -132,6 +132,12 @@ val ConversationItem.foldedByDefault: Boolean
 
 private val FOLDED_ROLES = setOf(TranscriptRole.THINKING, TranscriptRole.STATUS, TranscriptRole.RUNTIME)
 
+/** [ConversationItem.TurnHeader.label] of a turn the person opened; a client words it in its own language. */
+const val USER_TURN_LABEL = "You"
+
+/** [ConversationItem.TurnHeader.label] of a turn an agent's report opened (a task delegated to it came back). */
+const val DELEGATION_TURN_LABEL = "Delegation report"
+
 /** A thread with its items. */
 @Serializable
 data class ThreadSnapshot(

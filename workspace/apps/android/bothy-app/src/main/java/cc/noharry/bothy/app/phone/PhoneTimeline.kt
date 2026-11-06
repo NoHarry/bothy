@@ -16,14 +16,14 @@ import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.client.ServerState
-import cc.noharry.agent.appserver.protocol.view.TTS_PROGRESS_PREFIX
-import cc.noharry.agent.appserver.protocol.view.generatedPicture
-import cc.noharry.agent.appserver.protocol.view.pickableReply
 import cc.noharry.agent.appserver.protocol.view.shownPage
 import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConversationRenderItem
 import cc.noharry.bothy.app.console.uniqueKeys
+import cc.noharry.bothy.protocol.view.TTS_PROGRESS_PREFIX
+import cc.noharry.bothy.protocol.view.generatedPicture
+import cc.noharry.bothy.protocol.view.pickableReply
 
 /** A row of the phone's conversation. */
 internal sealed interface PhoneRow {

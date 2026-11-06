@@ -58,6 +58,14 @@ class BothyRunsTest {
     }
 
     @Test
+    fun theLinesItsVoiceSpeaksAsTheRunGoesAreProgress() {
+        assertEquals("先查一下天气。", BothyRuns.progressWords("  TTS: 先查一下天气。"))
+        assertEquals("导航开始了。", BothyRuns.progressWords("\u3000tts:导航开始了。"))
+        assertEquals(null, BothyRuns.progressWords("明天晴，最高 25 度。"))
+        assertEquals(null, RunAddOns.NONE.progressWords("TTS: 先查一下天气。"))
+    }
+
+    @Test
     fun bothyOffersEveryFeatureOfTheServersOwn() {
         assertTrue(BothyBuiltIns.run { plans && androidUse && deviceMedia && cards && startOnBoot })
         assertTrue(bothyConfig().builtIns === BothyBuiltIns)

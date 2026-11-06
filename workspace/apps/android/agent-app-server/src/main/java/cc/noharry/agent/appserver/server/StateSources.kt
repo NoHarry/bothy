@@ -17,6 +17,7 @@ import cc.noharry.agent.appserver.plans.PlanWatcher
 import cc.noharry.agent.appserver.protocol.ContextUsage
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.appserver.runtime.RuntimeSession
 import cc.noharry.agent.appserver.session.SessionSettings
 import cc.noharry.agent.appserver.skills.AppSubagents
@@ -48,9 +49,12 @@ internal class StateSources(
         RuntimeSession.attach(app) { state -> runtime = state; publish() }
         A2aClientConsole.attach(app) { state -> extras = extras.copy(a2aClient = state); publish() }
         follow(InboundFocus.external) { this }
-        follow(PlanRunner.plans) { copy(plans = it) }
-        follow(PlanRunner.history) { copy(planHistory = it) }
-        follow(PlanWatcher.states) { copy(planFeeds = it) }
+        // Without plans their sections stay empty and the book is not read.
+        if (AppHost.builtIns.plans) {
+            follow(PlanRunner.plans) { copy(plans = it) }
+            follow(PlanRunner.history) { copy(planHistory = it) }
+            follow(PlanWatcher.states) { copy(planFeeds = it) }
+        }
         follow(A2aDelegations.views) { copy(delegations = it) }
         follow(SessionSettings.policy) { withPreferences(app) }
         follow(AppSubagents.settings) { withPreferences(app) }
@@ -64,7 +68,7 @@ internal class StateSources(
         follow(AppSubagents.board) { copy(subagents = it.lanes()) }
         follow(AppSubagents.deliveries) { copy(subagentDeliveries = it) }
         watchContextWindows()
-        CoroutineScope(Dispatchers.IO).launch { PlanRunner.book(app) }
+        if (AppHost.builtIns.plans) CoroutineScope(Dispatchers.IO).launch { PlanRunner.book(app) }
         features.forEach { it.publish(app, this) }
     }
 

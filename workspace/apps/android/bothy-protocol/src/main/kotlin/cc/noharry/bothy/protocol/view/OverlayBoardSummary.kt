@@ -1,4 +1,4 @@
-package cc.noharry.agent.appserver.protocol.view
+package cc.noharry.bothy.protocol.view
 
 data class OverlayBoardRow(
     val text: String,

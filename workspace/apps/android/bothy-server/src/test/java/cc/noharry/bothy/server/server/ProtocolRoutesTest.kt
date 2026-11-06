@@ -6,6 +6,7 @@ import cc.noharry.agent.appserver.deepseek.DeepSeekAdapter
 import cc.noharry.agent.appserver.protocol.MethodKind
 import cc.noharry.agent.appserver.protocol.ServerInfo
 import cc.noharry.agent.appserver.runtime.AppHost
+import cc.noharry.agent.appserver.runtime.BuiltInFeatures
 import cc.noharry.agent.appserver.server.CONNECTION_METHODS
 import cc.noharry.agent.appserver.server.ServerHub
 import cc.noharry.agent.appserver.server.kind
@@ -25,12 +26,12 @@ class ProtocolRoutesTest {
     @Test
     fun theServerAnswersEveryClientRequestOfTheProtocolAndNoOther() {
         val app = ApplicationProvider.getApplicationContext<Context>()
-        // Bothy's server has the DeepSeek adapter, whose requests are part of the protocol it answers.
-        AppHost.install(providerAdapters = listOf(DeepSeekAdapter))
+        // Bothy's server has the DeepSeek adapter and every built-in feature, whose requests are part of its protocol.
+        AppHost.install(builtIns = BothyBuiltIns, providerAdapters = listOf(DeepSeekAdapter))
         val hub = try {
             ServerHub(unused(), unused(), Dispatchers.Unconfined, CoroutineScope(Job()), ServerInfo("test"), serverModules(app))
         } finally {
-            AppHost.install(providerAdapters = emptyList())
+            AppHost.install(builtIns = BuiltInFeatures.NONE, providerAdapters = emptyList())
         }
 
         val answered = hub.routes.methodNames + CONNECTION_METHODS
