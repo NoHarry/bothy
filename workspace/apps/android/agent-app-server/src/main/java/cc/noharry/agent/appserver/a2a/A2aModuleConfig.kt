@@ -407,7 +407,7 @@ private fun JsonObject.requiredArray(name: String) = requireNotNull(get(name)) {
 
 private const val A2A_PROFILE_ASSET = "a2a-client-profiles.json"
 private const val NO_PROFILES = """{"profiles":[]}"""
-private const val A2A_PREFS_NAME = "debug_a2a_client"
+private const val A2A_PREFS_NAME = "app_server_a2a_client"
 private const val A2A_ENABLED_PROFILES = "enabled_profile_ids"
 private const val A2A_SELECTED_PROFILE = "selected_profile_id"
 private const val A2A_USER_PROFILES = "user_profiles_json"

@@ -41,7 +41,7 @@ class RuntimeFeatureConfigTest {
         AppHost.install(runs = BothyRuns)
         context = ApplicationProvider.getApplicationContext()
         context.getSharedPreferences("debug_jev_config", Context.MODE_PRIVATE).edit().clear().commit()
-        context.getSharedPreferences("debug_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
         File(context.noBackupFilesDir, "jev-api-key").delete()
         markEmbeddedSeedsDone(context)
     }
@@ -98,12 +98,12 @@ class RuntimeFeatureConfigTest {
 
     @Test
     fun delegationSkillWaitsForAnEnabledA2aProfile() {
-        context.getSharedPreferences("debug_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
         assertFalse(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("personal-agent-delegation"))
-        context.getSharedPreferences("debug_a2a_client", Context.MODE_PRIVATE).edit()
+        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit()
             .putStringSet("enabled_profile_ids", setOf("user-grok-bot")).commit()
         assertTrue(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("Active runtime skill: personal-agent-delegation"))
-        context.getSharedPreferences("debug_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test
@@ -114,7 +114,7 @@ class RuntimeFeatureConfigTest {
 
     @Test
     fun obsoleteScenarioSkillPreferenceCannotLoadOldInstructions() = runBlocking {
-        context.getSharedPreferences("debug_runtime_skills", Context.MODE_PRIVATE).edit()
+        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit()
             .putBoolean("retired-trip-planning", true).commit()
         assertEquals(DEFAULT_ENABLED_SKILLS, loadRuntimeSkills(context).filter { it.enabled }.map { it.id })
         val workspace = workspaceVfs(context, File(context.cacheDir, "skills-obsolete"))

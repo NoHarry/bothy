@@ -42,7 +42,7 @@ class CustomSkillsTest {
     fun clean() {
         AppHost.install(runs = BothyRuns)
         context = ApplicationProvider.getApplicationContext()
-        context.getSharedPreferences("debug_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
         File(context.filesDir, "custom-skills").deleteRecursively()
     }
 

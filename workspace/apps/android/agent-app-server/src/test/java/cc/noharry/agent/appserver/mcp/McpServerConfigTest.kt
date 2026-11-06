@@ -68,7 +68,7 @@ class McpServerConfigTest {
             mapOf("X-Api-Key" to "k1", "X-Team" to "car", "Authorization" to "Bearer secret-1"),
             McpSecrets.requestHeaders(context, id),
         )
-        val prefs = context.getSharedPreferences("debug_mcp_servers", Context.MODE_PRIVATE).all.values.joinToString()
+        val prefs = context.getSharedPreferences("app_server_mcp_servers", Context.MODE_PRIVATE).all.values.joinToString()
         assertFalse("the token never lands in settings", prefs.contains("secret-1") || prefs.contains("k1"))
 
         saveMcpServerDraft(context, McpServerDraft(id, "Weather 2", McpServerKind.HTTP, url = "https://weather.test/v2"))

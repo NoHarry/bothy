@@ -43,7 +43,7 @@ fun basicToolPrompt(tools: List<BasicTool>): String {
 
 private const val EXEC_TOOL_NAME = "exec_js"
 
-private const val BASIC_TOOL_PREFS = "debug_basic_tools"
+private const val BASIC_TOOL_PREFS = "app_server_basic_tools"
 private val BASIC_TOOLS = listOf(
     BasicTool("exec_js", R.string.runtime_tool_exec_js, enabled = false),
     BasicTool("search_tools", R.string.runtime_tool_search_tools),

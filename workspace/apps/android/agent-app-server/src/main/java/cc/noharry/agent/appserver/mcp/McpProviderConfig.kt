@@ -94,4 +94,4 @@ private val MCP_PROVIDER_DEFINITIONS = listOf(
     ),
 )
 
-internal const val MCP_PREFS_NAME = "debug_mcp_provider_config"
+internal const val MCP_PREFS_NAME = "app_server_mcp_provider_config"

@@ -58,7 +58,7 @@ class ImageModelTest {
         val loaded = loadImageModelConfig(context)
         assertTrue(loaded.ready)
         assertEquals("https://api.example.com/v1", loaded.baseUrl)
-        val prefs = context.getSharedPreferences("debug_image_model", Context.MODE_PRIVATE).all.values.joinToString()
+        val prefs = context.getSharedPreferences("app_server_image_model", Context.MODE_PRIVATE).all.values.joinToString()
         assertFalse(prefs.contains("sk-test-key"))
         assertNull(saveImageModelConfig(context, loaded.copy(enabled = false), clearKey = true))
         assertFalse(loadImageModelConfig(context).hasApiKey)
@@ -98,7 +98,7 @@ class ImageModelTest {
     fun anApkWithoutTheValuesSeedsNothingAndLeavesNoMark() {
         seedEmbeddedImageModel(context) { mapOf("IMAGE_MODEL_NAME" to "img-2") }
         assertEquals("", loadImageModelKey(context))
-        val prefs = context.getSharedPreferences("debug_image_model", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("app_server_image_model", Context.MODE_PRIVATE)
         assertFalse(prefs.contains("embedded_seeded"))
     }
 

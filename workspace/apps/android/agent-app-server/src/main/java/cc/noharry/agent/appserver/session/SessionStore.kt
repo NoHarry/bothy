@@ -210,7 +210,7 @@ internal fun SessionTurn.isFirstPartyReusableHistory(): Boolean {
 }
 
 internal fun sessionStore(context: Context): SessionStore =
-    SessionStore(File(appWorkspaceRoot(context), DEBUG_SESSIONS_DIR))
+    SessionStore(File(appWorkspaceRoot(context), SESSIONS_DIR))
 
 internal fun newSessionId(): String = "debug-session-${System.currentTimeMillis()}"
 
@@ -275,9 +275,10 @@ private fun String.oneLine(): String =
 
 private fun now(): Long = System.currentTimeMillis()
 
-private const val DEBUG_SESSIONS_DIR = "debug-sessions"
+/** The workspace's directory of the sessions' records, which the model reads as `/sessions` ([SESSION_QUERY_INDEX_PATH]). */
+internal const val SESSIONS_DIR = "sessions"
 private const val META_FILE = "meta.json"
-private const val TURNS_FILE = "turns.jsonl"
+internal const val TURNS_FILE = "turns.jsonl"
 private const val OFFER_POLICY =
     "offerPolicy=a bare reply may accept only an offer in the turn marked offers=current; offers in superseded turns " +
         "and olderConversationSummary were replaced by later turns and need a new explicit request"

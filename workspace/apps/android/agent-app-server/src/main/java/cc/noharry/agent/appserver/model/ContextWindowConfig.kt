@@ -36,7 +36,7 @@ internal fun modelIdentityKey(profile: ProviderEditState): String {
         .joinToString("") { "%02x".format(it) }
 }
 
-internal const val CONTEXT_WINDOW_PREFS = "debug_context_windows"
+internal const val CONTEXT_WINDOW_PREFS = "app_server_context_windows"
 private const val DEFAULT_CONTEXT_TOKENS = 128_000L
 private const val DEEPSEEK_CONTEXT_TOKENS = 1_000_000L
 private val OWNER_CONFIRMED_DEEPSEEK_MODELS = setOf("deepseek-flash", "deepseek-v4.1-flash")

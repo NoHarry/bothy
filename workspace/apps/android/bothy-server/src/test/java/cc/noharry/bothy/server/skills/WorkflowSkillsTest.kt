@@ -40,7 +40,7 @@ class WorkflowSkillsTest {
     private lateinit var context: Context
     @Before fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        context.getSharedPreferences("debug_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test fun aTripIsPlannedWithTheTravelSkillButADayPlanOrARouteIsNot() {

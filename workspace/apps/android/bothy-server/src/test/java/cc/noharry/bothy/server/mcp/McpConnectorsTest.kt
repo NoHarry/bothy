@@ -89,7 +89,7 @@ class McpConnectorsTest {
         assertEquals("高德地图", server.label)
         assertEquals("https://mcp.amap.com/mcp", server.url)
         assertEquals(mapOf("key" to "amap-secret-key"), McpSecrets.requestQuery(context, "amap"))
-        val prefs = context.getSharedPreferences("debug_mcp_servers", Context.MODE_PRIVATE).all.values.joinToString()
+        val prefs = context.getSharedPreferences("app_server_mcp_servers", Context.MODE_PRIVATE).all.values.joinToString()
         assertFalse("the key never lands in settings", prefs.contains("amap-secret-key"))
         assertEquals(ConnectorStatus.Connected(verified = true), controller.status(amap))
         assertTrue(controller.events(amap).single().endsWith("已连接，可以用 2 个功能。"))

@@ -431,7 +431,7 @@ class A2aModuleConfigTest {
     }
 
     private companion object {
-        const val PREFS_NAME = "debug_a2a_client"
+        const val PREFS_NAME = "app_server_a2a_client"
         const val ENABLED_PROFILE_IDS_KEY = "enabled_profile_ids"
         const val LEGACY_SELECTED_PROFILE_KEY = "selected_profile_id"
         const val USER_PROFILES_KEY = "user_profiles_json"

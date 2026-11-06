@@ -232,7 +232,7 @@ internal val FIXED_PROVIDER_IDS = setOf(
     DEBUG_MCP_PROVIDER_DEVICE_MEDIA,
 )
 
-private const val MCP_SERVER_PREFS = "debug_mcp_servers"
+private const val MCP_SERVER_PREFS = "app_server_mcp_servers"
 private const val KEY_SERVERS = "servers"
 private const val SECRETS_DIR = "mcp-secrets"
 private const val AUTHORIZATION = "Authorization"

@@ -174,7 +174,7 @@ object A2aClientConsole {
     }
 
     private const val TAG = "DebugA2aClient"
-    private const val PREFS_NAME = "debug_a2a_client"
+    private const val PREFS_NAME = "app_server_a2a_client"
     private const val KEY_ENABLED = "enabled"
     private const val KEY_SPEAK_EXTERNAL = "speak_external"
     private const val REMOTE_ID = "sample-a2a-client"

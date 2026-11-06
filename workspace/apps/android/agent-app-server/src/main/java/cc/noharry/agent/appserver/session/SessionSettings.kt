@@ -31,7 +31,7 @@ object SessionSettings {
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    private const val PREFS = "debug_sessions"
+    private const val PREFS = "app_server_sessions"
     private const val KEY_EVERY_WAKE = "new_session_every_wake"
     private const val KEY_IDLE_MINUTES = "new_session_idle_minutes"
     private const val KEY_MAX_SESSIONS = "max_sessions"

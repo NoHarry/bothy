@@ -330,7 +330,7 @@ private fun JsonObject.text(key: String): String = runCatching { this[key]?.json
 
 private val API_SUFFIXES = listOf("/v1", "/anthropic")
 private val JSON_TYPE = "application/json".toMediaType()
-private const val PROBE_PREFS = "debug_deepseek_probe"
+private const val PROBE_PREFS = "app_server_deepseek_probe"
 private const val PROBE_QUERY = "DeepSeek"
 private const val PROBE_TOOL = "connection_check"
 private const val PROBE_DEFERRED_TOOL = "connection_check_deferred"

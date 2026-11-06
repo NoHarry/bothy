@@ -6,7 +6,7 @@ import android.content.Context
  * stays out of a test that is not about seeding.
  */
 internal fun markEmbeddedSeedsDone(context: Context) {
-    listOf("debug_jev_config", "debug_voice", "debug_image_model").forEach { prefs ->
+    listOf("debug_jev_config", "debug_voice", "app_server_image_model").forEach { prefs ->
         context.getSharedPreferences(prefs, Context.MODE_PRIVATE).edit().putBoolean("embedded_seeded", true).commit()
     }
 }

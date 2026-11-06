@@ -113,7 +113,7 @@ suspend fun fetchImageModels(context: Context, baseUrl: String): Result<List<Str
     runCatching { ModelCatalogClient(BenchHttpTransport(context.applicationContext)).fetch(ModelProvider.OPENAI, key, baseUrl) }
 }
 
-private const val IMAGE_MODEL_PREFS = "debug_image_model"
+private const val IMAGE_MODEL_PREFS = "app_server_image_model"
 private const val IMAGE_MODEL_KEY_FILE = "image-model-api-key"
 private const val KEY_SEEDED = "embedded_seeded"
 private const val EMBEDDED_ENABLED = "IMAGE_MODEL_ENABLED"

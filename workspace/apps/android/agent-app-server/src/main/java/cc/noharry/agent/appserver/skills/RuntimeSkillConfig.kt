@@ -118,7 +118,7 @@ fun preloadedSkillBodies(context: Context, skills: List<RuntimeSkill>, input: St
     }
 }
 
-private const val SKILL_PREFS = "debug_runtime_skills"
+private const val SKILL_PREFS = "app_server_runtime_skills"
 
 /** The ids of [this] that go in the system prompt ([RuntimeSkill.systemPrompt]). */
 @InternalAppServerApi

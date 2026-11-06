@@ -101,6 +101,8 @@ object AppServer {
     val features: List<AppServerFeature> get() = config.features
 
     fun install(app: Application, config: AppServerConfig) {
+        // Before anything reads them.
+        StoredNames.migrate(app)
         this.config = config
         RuntimeVoice.install(config.voice)
         AppHost.install(

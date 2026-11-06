@@ -63,7 +63,7 @@ class RuntimeStartupFailureTest {
 
     @Test fun realConstructionFailureDoesNotCrashOrConsumeAdmissionAndNextRunCompletes() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        listOf("debug_runtime_skills", "debug_basic_tools").forEach {
+        listOf("app_server_runtime_skills", "app_server_basic_tools").forEach {
             context.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().commit()
         }
         loadRuntimeSkills(context).forEach { saveRuntimeSkill(context, it.id, true) }

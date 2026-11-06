@@ -55,7 +55,7 @@ class RuntimePromptTest {
 
     @Before fun setup() {
         context = ApplicationProvider.getApplicationContext()
-        listOf("debug_runtime_skills", "debug_basic_tools").forEach {
+        listOf("app_server_runtime_skills", "app_server_basic_tools").forEach {
             context.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().commit()
         }
     }

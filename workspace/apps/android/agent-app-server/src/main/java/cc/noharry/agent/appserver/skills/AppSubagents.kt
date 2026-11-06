@@ -584,7 +584,7 @@ private val ACTION_WORDS = setOf(
     "change", "add", "remove", "replace", "reorder", "navigate", "toggle", "turn", "lock", "unlock", "launch", "delete",
     "update", "write", "action", "begin", "cancel", "call", "order", "pay", "submit", "book", "move", "press", "tap",
 )
-private const val SUBAGENT_PREFS = "debug_subagents"
+private const val SUBAGENT_PREFS = "app_server_subagents"
 private const val KEY_SEARCH_API = "search_api"
 private const val KEY_DEVICE_CONTROL = "allow_device_control"
 private const val KEY_MODEL = "model"

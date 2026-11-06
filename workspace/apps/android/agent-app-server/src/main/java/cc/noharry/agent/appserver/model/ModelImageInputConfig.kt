@@ -16,5 +16,5 @@ internal fun saveModelImageInput(context: Context, profile: ProviderEditState, e
     }.apply()
 }
 
-internal const val MODEL_IMAGE_INPUT_PREFS = "debug_model_image_input"
+internal const val MODEL_IMAGE_INPUT_PREFS = "app_server_model_image_input"
 private const val DEFAULT_MODEL_IMAGE_INPUT = true

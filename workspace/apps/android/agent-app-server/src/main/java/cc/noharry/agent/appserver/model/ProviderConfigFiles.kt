@@ -265,7 +265,7 @@ internal const val CONFIG_FILE_NAME = "model-provider-profiles.json"
 private const val LEGACY_CONFIG_FILE_NAME = "model-provider-profiles.properties"
 private const val JSON_OBJECT_PREFIX = "{"
 @InternalAppServerApi
-const val PREFS_NAME = "debug_provider_config"
+const val PREFS_NAME = "app_server_provider_config"
 internal const val PREF_SELECTED_PROFILE_ID = "selected_profile_id"
 internal const val PREF_MANUAL_PROFILE_ENABLED = "manual_profile_enabled"
 private const val PROFILE_PREF_PREFIX = "profile."

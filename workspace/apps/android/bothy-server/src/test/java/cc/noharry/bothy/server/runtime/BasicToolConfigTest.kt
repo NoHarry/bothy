@@ -32,8 +32,8 @@ class BasicToolConfigTest {
     fun resetPreferences() {
         AppHost.install(runs = BothyRuns)
         context = ApplicationProvider.getApplicationContext()
-        context.getSharedPreferences("debug_basic_tools", Context.MODE_PRIVATE).edit().clear().commit()
-        context.getSharedPreferences("debug_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_basic_tools", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
     @Test
@@ -64,7 +64,7 @@ class BasicToolConfigTest {
     @Test
     fun finishCannotBeDisabledEvenWithStalePreferences() {
         assertThrows(IllegalArgumentException::class.java) { saveBasicTool(context, "finish", false) }
-        context.getSharedPreferences("debug_basic_tools", Context.MODE_PRIVATE).edit().putBoolean("finish", false).commit()
+        context.getSharedPreferences("app_server_basic_tools", Context.MODE_PRIVATE).edit().putBoolean("finish", false).commit()
         assertTrue(loadBasicTools(context).single { it.name == "finish" }.enabled)
         assertThrows(IllegalStateException::class.java) { saveBasicTool(context, "missing", false) }
     }

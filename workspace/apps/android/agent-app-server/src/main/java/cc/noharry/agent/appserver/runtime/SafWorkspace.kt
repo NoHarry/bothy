@@ -47,5 +47,5 @@ internal fun safPickerUnavailableMessage(detail: String = ""): String =
 
 internal const val SAF_WORKSPACE_SOURCE = "saf://selected-tree"
 
-private const val SAF_PREFS = "debug_saf_workspace"
+private const val SAF_PREFS = "app_server_saf_workspace"
 private const val KEY_URI = "tree_uri"

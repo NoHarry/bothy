@@ -123,7 +123,7 @@ private fun rawCommandName(toolName: String): String =
 private fun String.compactQueryText(): String =
     replace("\n", " ").replace(Regex("""\s+"""), " ").trim().take(SESSION_QUERY_TEXT_CHARS)
 
-internal const val SESSION_QUERY_ROOT = "/debug-sessions"
+internal const val SESSION_QUERY_ROOT = "/$SESSIONS_DIR"
 private const val SESSION_QUERY_INDEX_FILE = "index.json"
 private const val SESSION_QUERY_SUMMARY_FILE = "summary.json"
 /** Where the model reads the index of the past sessions it may look into. */

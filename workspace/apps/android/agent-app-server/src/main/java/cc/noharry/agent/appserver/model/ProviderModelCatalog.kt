@@ -36,4 +36,4 @@ private fun providerModelsKey(profile: ProviderEditState): String {
     return "${profile.profileId.preferenceKey()}:$digest"
 }
 
-private const val PROVIDER_MODELS_PREFS = "debug_provider_models"
+private const val PROVIDER_MODELS_PREFS = "app_server_provider_models"

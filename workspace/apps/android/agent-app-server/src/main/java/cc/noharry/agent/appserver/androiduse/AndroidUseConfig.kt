@@ -98,5 +98,5 @@ private const val STARTUP_CHECK_MS = 8_000L
 private const val REBIND_GAP_MS = 1_000L
 private const val CONNECT_WAIT_MS = 5_000L
 private const val CONNECT_POLL_MS = 200L
-private const val ANDROID_USE_PREFS = "debug_android_use"
+private const val ANDROID_USE_PREFS = "app_server_android_use"
 private const val ANDROID_USE_ENABLED = "enabled"

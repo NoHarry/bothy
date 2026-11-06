@@ -138,7 +138,7 @@ val DEFAULT_SUBAGENT_TOOLS = setOf(
 private val SUBAGENT_KINDS: List<SubagentKind> get() = AppHost.runs.subagentKinds()
 
 internal const val AGENT_SECTION_PREFIX = "agent:"
-private const val SUBAGENT_KIND_PREFS = "debug_subagent_types"
+private const val SUBAGENT_KIND_PREFS = "app_server_subagent_types"
 private const val KEY_TOOLS = ".tools"
 private const val KEY_MAX_LOOKUPS = ".max_lookups"
 internal const val MIN_LOOKUPS = MIN_SUBAGENT_LOOKUPS

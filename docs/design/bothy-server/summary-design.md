@@ -148,6 +148,7 @@ Bothy 有一个全局的“当前会话”，语音和悬浮窗都认它：`thre
 - `agent-app-server` 只公开宿主用得上的东西，清单在 `agent-app-server/api/agent-app-server.api`，validate 比对；其余是 `internal`。跑在 Bothy 的 assets 和插件上的那些核心逻辑测试还留在 `bothy-server`，它们要用的名字标 `@InternalAppServerApi`（需要 opt-in，只有 `bothy-server` 的单测打开）；搬去内核仓时这些测试跟着核心走，标记就可以换成 `internal`。
 - 别的 App（手机上的独立 agent、别的场景的快速接入）用同一个 `AppServer`，配自己的插件，或者一个都不配；`agent-app-sample` 就是一个都不配的最小例子（一个界面，模拟模型，通用人设）。
 - 运行的场景（`AppServerConfig.scene`）默认 `app`：运行时按场景存学到的经验、筛选写了 `scenes` 的 skill、放工作区上下文。Bothy 沿用一直以来的 `debug-console`，设备上学到的经验和语音 skill 的场景都在它下面。
+- 通用层存的东西用自己的名字：偏好设置是 `app_server_*`（不和宿主自己的撞名），会话记录在工作区的 `sessions` 目录（模型读的是 `/sessions/index.json`）。早先的版本放在调试台的名字下（`debug_*`、`debug-sessions`），`AppServer.install` 一开始搬：偏好设置把新文件里没有的项复制过去，落盘后清空并删掉旧文件；会话目录没有 `sessions` 就整个改名，有就逐个移进去（旧的 `index.json` 丢掉，打开会话库时会重写）；两边都有的同名会话，旧的没有对话就删掉，有对话就连同剩下的一次挪到 `debug-sessions-unmerged`，记一行日志，以后不再看。每次启动都查，旧名下没东西就什么也不做；设备装回过旧版本、旧名下又写了东西，也照这样并进来，不覆盖新名下已有的。工作区根目录 `runtime-debug-workspace`（`workspace.json` 的挂载源，运行时的存储按它认）、运行证据和事件日志的目录沿用原名。
 - 卡片和选项工具的服务名是 `app_ui`（模型看到 `mcp__app_ui__show_card`）。宿主自带的示例工具（`assets/mcp/tools.json`）是什么由宿主说：Bothy 的是演示车机，在它的 `deviceServers` 里；通用层不把它们当设备。服务端自己的工具（卡片、计划、操作屏幕）和委托给别的 agent 的工具以外，`isServiceTool` 都认作服务的工具。
 - 通用层自己带运行时工作区的布局（`runtime-workspace/workspace.json`、工作区的 `AGENTS.md`）和计划自动执行的安全策略（`automation-policy.json`）；宿主没带的 assets（预置的 A2A 配置、skill、子 agent、模型预置）一律当作没有，不报错。
 - 状态来源（`StateSources`，接上运行时、MCP、A2A 等）在第一个要状态的客户端连上时才启动；不要状态的客户端（`capabilities.state = false`）连上不会启动任何东西。

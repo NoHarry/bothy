@@ -21,7 +21,7 @@ class ContextWindowConfigTest {
 
     @Test fun windowOverridePersistsPerProfileModelAndEndpoint() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        context.getSharedPreferences("debug_context_windows", Context.MODE_PRIVATE).edit().clear().commit()
+        context.getSharedPreferences("app_server_context_windows", Context.MODE_PRIVATE).edit().clear().commit()
         val profile = ProviderEditState("custom", "", "https://example.test", profileId = "test")
         assertEquals(128_000L, loadContextWindow(context, profile))
         saveContextWindow(context, profile, 475_000)

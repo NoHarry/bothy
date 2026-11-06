@@ -26,7 +26,7 @@ class RuntimeDataCleanupTest {
         val base = basePath.toFile()
         try {
             val workspace = java.io.File(base, DEBUG_WORKSPACE_DIR).also { it.mkdirs() }
-            java.io.File(workspace, "debug-sessions/s1/meta.json").also {
+            java.io.File(workspace, "sessions/s1/meta.json").also {
                 it.parentFile?.mkdirs()
                 it.writeText("{}")
             }

@@ -65,6 +65,6 @@ object FetchFallback {
 internal fun appWebFetchFallback(context: Context, config: ProviderConfig, profile: ProviderProfile): WebLookup? =
     if (FetchFallback.enabled(context)) config.webLookup(context, profile) else null
 
-private const val SEARCH_PREFS = "debug_search_backend"
-private const val FETCH_FALLBACK_PREFS = "debug_fetch_fallback"
+private const val SEARCH_PREFS = "app_server_search_backend"
+private const val FETCH_FALLBACK_PREFS = "app_server_fetch_fallback"
 private const val KEY_ENABLED = "enabled"

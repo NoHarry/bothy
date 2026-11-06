@@ -329,7 +329,7 @@ fun decodeMemories(text: String): List<UserMemory> {
 private const val MAX_SAID_CHARS = 200
 private const val ID_HEX_CHARS = 8
 private const val MEMORY_FILE = "user-memory/memories.json"
-private const val MEMORY_PREFS = "debug_user_memory"
+private const val MEMORY_PREFS = "app_server_user_memory"
 private const val KEY_MEMORY_ENABLED = "enabled"
 private const val TAG = "DebugUserMemory"
 private val SECRET_WORDS = listOf("密码", "验证码", "口令", "支付码", "PIN码", "pin码", "CVV", "cvv")
