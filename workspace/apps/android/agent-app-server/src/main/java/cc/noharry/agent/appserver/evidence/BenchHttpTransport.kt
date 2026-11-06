@@ -1,10 +1,10 @@
 package cc.noharry.agent.appserver.evidence
 import android.content.Context
+import cc.noharry.agent.appserver.runtime.AppHost
 import cc.noharry.agent.transport.HttpEvent
 import cc.noharry.agent.transport.HttpRequest
 import cc.noharry.agent.transport.HttpResponse
 import cc.noharry.agent.transport.HttpTransport
-import cc.noharry.agent.appserver.R
 import java.io.IOException
 import java.io.InputStream
 import java.security.KeyStore
@@ -32,14 +32,13 @@ import okhttp3.Response
 import okio.Buffer
 
 /**
- * Bench HTTP transport that trusts an extra CA bundle bundled with the app.
+ * HTTP transport that trusts the host's extra roots ([AppHost.extraTrustRoots]) beside the system's.
  *
- * Some bench devices ship a trimmed system CA store that omits the roots backing the live
- * provider endpoint (for example DigiCert Global Root G2 / TrustAsia). When the system network
- * security config does not fully apply on such a ROM, OkHttp's default trust manager rejects the
- * TLS handshake. This transport builds an OkHttpClient whose TrustManager trusts both the system
- * roots and the [raw CA bundle][RAW_CA_RESOURCE], so the debug console can reach the live provider
- * on those benches without modifying the agent-runtime transport. Chains are verified in full (PKIX).
+ * Some devices ship a trimmed system CA store that omits the roots backing a live provider endpoint (for example
+ * DigiCert Global Root G2 / TrustAsia). When the system network security config does not fully apply on such a ROM,
+ * OkHttp's default trust manager rejects the TLS handshake. This transport's TrustManager trusts both the system roots
+ * and the host's, so such a device reaches the provider without changing the agent-runtime transport. Chains are
+ * verified in full (PKIX).
  */
 class BenchHttpTransport(
     context: Context,
@@ -128,8 +127,8 @@ class BenchHttpTransport(
 }
 
 /**
- * An OkHttp builder trusting the system roots plus the bundled bench CA bundle; also what WebSockets connect with.
- * Builders share one client's connection pool and dispatcher, and the trust is built once per process.
+ * An OkHttp builder trusting the system roots plus the host's ([AppHost.extraTrustRoots]); also what WebSockets connect
+ * with. Builders share one client's connection pool and dispatcher, and the trust is built once per process.
  */
 fun benchTrustedClient(context: Context): OkHttpClient.Builder = benchBaseClient(context).newBuilder()
 
@@ -144,18 +143,20 @@ private fun benchBaseClient(context: Context): OkHttpClient = baseClient ?: sync
 }
 
 /**
- * The platform's own path validation (PKIX), over a key store holding the system roots and the bundled bench CA
- * bundle. Some bench ROMs trim the system store and do not honour network_security_config for an in-app bundle, so
- * the roots are loaded here; every chain is still verified link by link up to one of them.
+ * The platform's own path validation (PKIX), over a key store holding the system roots and the host's extra ones. Some
+ * head units' ROMs trim the system store and do not honour network_security_config for an in-app bundle, so the roots
+ * are loaded here; every chain is still verified link by link up to one of them.
  */
 private fun trustManagerWithExtraCas(context: Context): X509TrustManager {
     val roots = KeyStore.getInstance(KeyStore.getDefaultType()).apply { load(null, null) }
     val system = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(null as KeyStore?) }
     system.trustManagers.filterIsInstance<X509TrustManager>().firstOrNull()?.acceptedIssuers.orEmpty()
         .forEachIndexed { index, root -> roots.setCertificateEntry("system-$index", root) }
-    context.resources.openRawResource(R.raw.deepseek_cas).use { input: InputStream ->
-        CertificateFactory.getInstance("X.509").generateCertificates(input).filterIsInstance<X509Certificate>()
-            .forEachIndexed { index, root -> roots.setCertificateEntry("bench-$index", root) }
+    AppHost.extraTrustRoots?.let { pem ->
+        context.resources.openRawResource(pem).use { input: InputStream ->
+            CertificateFactory.getInstance("X.509").generateCertificates(input).filterIsInstance<X509Certificate>()
+                .forEachIndexed { index, root -> roots.setCertificateEntry("host-$index", root) }
+        }
     }
     val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm()).apply { init(roots) }
     return factory.trustManagers.filterIsInstance<X509TrustManager>().first()

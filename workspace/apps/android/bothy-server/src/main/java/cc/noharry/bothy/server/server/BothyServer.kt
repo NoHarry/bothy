@@ -13,6 +13,7 @@ import cc.noharry.agent.appserver.server.AppServerFeature
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.coreModules
 import cc.noharry.bothy.server.BuildConfig
+import cc.noharry.bothy.server.R
 import cc.noharry.bothy.server.a2a.BothyA2a
 import cc.noharry.bothy.server.model.BothyModels
 import cc.noharry.bothy.server.tools.BothyRuns
@@ -49,6 +50,8 @@ internal fun bothyConfig() = AppServerConfig(
     runs = BothyRuns,
     a2a = BothyA2a,
     builtIns = BothyBuiltIns,
+    // Head units whose trimmed system store lacks the roots DeepSeek's and other services' chains end in.
+    extraTrustRoots = R.raw.deepseek_cas,
 )
 
 /** Everything the server offers of its own: plans, operating the screen, device media, cards, and starting after boot. */

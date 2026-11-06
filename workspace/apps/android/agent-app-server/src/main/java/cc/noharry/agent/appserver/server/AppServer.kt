@@ -2,6 +2,7 @@ package cc.noharry.agent.appserver.server
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.RawRes
 import cc.noharry.agent.appserver.BuildConfig
 import cc.noharry.agent.appserver.a2a.A2aHost
 import cc.noharry.agent.appserver.pages.PageRoutes
@@ -62,7 +63,9 @@ interface PublishedState {
 /**
  * What a host app gives its server: its name, its features, who the assistant is, the model services its build carries,
  * where its screens show what tools leave, what it plugs into the runtime, what it does with other A2A clients' tasks,
- * and which of the server's own features it turns on ([BuiltInFeatures]; none by default).
+ * which of the server's own features it turns on ([BuiltInFeatures]; none by default), and [extraTrustRoots]: a raw
+ * resource of PEM certificates trusted beside the system's for every HTTPS call the server makes (devices whose system
+ * store lacks a root a service needs); none by default.
  */
 class AppServerConfig(
     val name: String,
@@ -75,6 +78,7 @@ class AppServerConfig(
     val runs: RunAddOns = RunAddOns.NONE,
     val a2a: A2aHost = A2aHost.NONE,
     val builtIns: BuiltInFeatures = BuiltInFeatures.NONE,
+    @RawRes val extraTrustRoots: Int? = null,
 )
 
 /**
@@ -93,7 +97,7 @@ object AppServer {
     fun install(app: Application, config: AppServerConfig) {
         this.config = config
         RuntimeVoice.install(config.voice)
-        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns)
+        AppHost.install(config.models, config.runs, config.persona, config.presets, config.places, config.a2a, config.builtIns, config.extraTrustRoots)
         installServer(app, config.features)
     }
 

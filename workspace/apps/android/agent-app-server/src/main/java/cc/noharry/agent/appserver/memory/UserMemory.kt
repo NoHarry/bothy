@@ -255,7 +255,7 @@ private fun memoryFullReason(memoryPage: String?): String = modelText(
 internal fun sensitiveTextError(text: String): String? = sensitiveRefusal(text)?.reason
 
 private fun sensitiveRefusal(text: String): MemoryWrite.Refused? = when {
-    SECRET_WORDS.any { it in text } ->
+    SECRET_WORDS.any { it in text } || SECRET_WORDS_EN.containsMatchIn(text) ->
         MemoryWrite.Refused(modelText("不记密码、验证码这类信息", "Passwords, codes and the like are not kept"), MemoryRefusal.Secret)
     LONG_NUMBER.containsMatchIn(text) ->
         MemoryWrite.Refused(modelText("不记身份证号、银行卡号这类长号码", "ID, card and other long numbers are not kept"), MemoryRefusal.LongNumber)
@@ -332,7 +332,15 @@ private const val MEMORY_FILE = "user-memory/memories.json"
 private const val MEMORY_PREFS = "debug_user_memory"
 private const val KEY_MEMORY_ENABLED = "enabled"
 private const val TAG = "DebugUserMemory"
-private val SECRET_WORDS = listOf("密码", "验证码", "口令", "支付码", "CVV", "cvv")
+private val SECRET_WORDS = listOf("密码", "验证码", "口令", "支付码", "PIN码", "pin码", "CVV", "cvv")
+/**
+ * The same in English, with no letter either side (Chinese may stand right next to one: 「银行OTP是908172」): a PIN in
+ * capitals or followed by what it is (「我的pin是1234」, "pin 4321", "my pin is 4321"), so "enamel pins" and "Pin the card" are kept.
+ */
+private val SECRET_WORDS_EN = Regex(
+    """(?<![A-Za-z])(?:(?i:passwords?|passcodes?|passphrases?|pin ?(?:codes?|numbers?)|verification codes?|security codes?|""" +
+        """one[- ]time (?:codes?|passwords?)|otp|cvc|cvv)|PINs?|(?i:pin)(?=\s*(?:is\s|是|码|号|[:：=]|\d)))(?![A-Za-z])""",
+)
 /** 15 digits or more, however they are grouped: 「6222 0202 …」「6222-0202-…」「6222/0202/…」. */
 private val LONG_NUMBER = Regex("""\d(?:[\s\-/.·_]{0,3}\d){14,}""")
 

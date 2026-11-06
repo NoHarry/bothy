@@ -42,6 +42,20 @@ class HostPlacesWordingTest {
     }
 
     @Test
+    fun secretsAreNotKeptInEnglishEither() {
+        val secrets = listOf(
+            "My bank PIN is 4321", "the wifi password is hunter2", "Verification code 908172", "card CVV 123", "pin 4321",
+            "PIN码是4321", "我的pin是1234", "银行OTP是908172", "one time code 5521", "my pin is 4321",
+        )
+        for (secret in secrets) {
+            assertEquals(secret, MemoryRefusal.Secret, (book.remember(MemoryCategory.OTHER, secret, MemorySource.SAID) as MemoryWrite.Refused).why)
+        }
+        for (kept in listOf("I like spinach and pinball", "She collects enamel pins", "Pin the map card to the top")) {
+            assertTrue(kept, book.remember(MemoryCategory.MEDIA, kept, MemorySource.SAID) is MemoryWrite.Saved)
+        }
+    }
+
+    @Test
     fun theHostsPlacesAreNamed() = runBlocking {
         AppHost.install(places = places)
         val tool = UserMemoryToolProvider(places) { change -> change(book) }

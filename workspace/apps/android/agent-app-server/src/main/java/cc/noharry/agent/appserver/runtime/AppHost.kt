@@ -258,6 +258,11 @@ object AppHost {
     var builtIns: BuiltInFeatures = BuiltInFeatures.NONE
         private set
 
+    /** The host's extra trusted roots, a raw resource of PEM certificates; null for the system's alone. */
+    @Volatile
+    var extraTrustRoots: Int? = null
+        private set
+
     fun install(
         models: HostModels = this.models,
         runs: RunAddOns = this.runs,
@@ -266,8 +271,10 @@ object AppHost {
         places: HostPlaces = this.places,
         a2a: A2aHost = this.a2a,
         builtIns: BuiltInFeatures = this.builtIns,
+        extraTrustRoots: Int? = this.extraTrustRoots,
     ) {
         this.builtIns = builtIns
+        this.extraTrustRoots = extraTrustRoots
         this.models = models
         this.runs = runs
         this.persona = persona

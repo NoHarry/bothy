@@ -26,8 +26,8 @@ import cc.noharry.agent.appserver.usage.UsageStore
 internal fun installServer(app: Application, features: List<AppServerFeature>) {
     SessionSettings.init(app)
     features.forEach { it.install(app) }
-    // The trust store (system roots plus the bundled ones older devices lack) is loaded once, here off the main
-    // thread, before the first wake or request needs it.
+    // The trust store (system roots plus the host's extra ones, which some devices lack) is loaded once, here off the
+    // main thread, before the first wake or request needs it.
     Thread({ runCatching { benchTrustedClient(app) } }, "bench-trust").start()
     UsageStore.init(app)
     UserMemoryStore.init(app)

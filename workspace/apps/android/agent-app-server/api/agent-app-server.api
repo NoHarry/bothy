@@ -312,7 +312,7 @@ cc.noharry.agent.appserver.server.AppServer.connect | fun connect(context: Conte
 cc.noharry.agent.appserver.server.AppServer.features | val features: List<AppServerFeature> get()
 cc.noharry.agent.appserver.server.AppServer.install | fun install(app: Application, config: AppServerConfig)
 cc.noharry.agent.appserver.server.AppServer.wakeUp | fun wakeUp(context: Context)
-cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, )
+cc.noharry.agent.appserver.server.AppServerConfig | class AppServerConfig( val name: String, val features: List<AppServerFeature> = emptyList(), val persona: Persona = Persona.GENERIC, val presets: ProviderPresets = ProviderPresets.NONE, val places: HostPlaces = HostPlaces.NONE, val voice: VoicePort = VoicePort.NONE, val models: HostModels = HostModels.NONE, val runs: RunAddOns = RunAddOns.NONE, val a2a: A2aHost = A2aHost.NONE, val builtIns: BuiltInFeatures = BuiltInFeatures.NONE, @RawRes val extraTrustRoots: Int? = null, )
 cc.noharry.agent.appserver.server.AppServerFeature | interface AppServerFeature
 cc.noharry.agent.appserver.server.AppServerFeature.appInFront | fun appInFront(app: Context, inFront: Boolean)
 cc.noharry.agent.appserver.server.AppServerFeature.install | fun install(app: Application)

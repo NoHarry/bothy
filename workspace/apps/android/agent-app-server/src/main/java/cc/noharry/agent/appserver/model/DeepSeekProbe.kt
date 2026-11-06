@@ -144,7 +144,7 @@ internal fun deepSeekProbeFingerprint(endpoint: ProviderEndpoint, baseUrl: Strin
     return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray()).joinToString("") { "%02x".format(it) }
 }
 
-/** The bench trust (bundled CA roots) the device needs for some relays, with timeouts for a search. */
+/** The trust some devices need for some relays (the host's extra roots), with timeouts for a search. */
 internal fun deepSeekRelayClient(context: Context): OkHttpClient =
     benchTrustedClient(context).connectTimeout(10, TimeUnit.SECONDS).readTimeout(30, TimeUnit.SECONDS).callTimeout(40, TimeUnit.SECONDS).build()
 
