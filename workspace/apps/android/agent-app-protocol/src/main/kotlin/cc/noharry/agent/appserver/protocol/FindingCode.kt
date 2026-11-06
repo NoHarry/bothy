@@ -55,6 +55,19 @@ enum class FindingCode : FindingKind {
 
     PLANS_PROBLEM_REFUSED,
 
+    // A2A: why a task handed to an agent ended with no report of the agent's own
+    /** The person stopped following it. */
+    A2A_STOPPED,
+
+    /** Not followed again after the app restarted: the agent's settings (its name) are gone. */
+    A2A_LOST_SETTINGS,
+
+    /** No result after so many minutes, so following stopped. */
+    A2A_TIMED_OUT,
+
+    /** Its progress could not be read so many times in a row (the last reason). */
+    A2A_UNREADABLE,
+
     // Requests
     HTTP_STATUS,
 

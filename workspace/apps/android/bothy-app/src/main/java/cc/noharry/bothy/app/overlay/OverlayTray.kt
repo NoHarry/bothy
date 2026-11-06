@@ -29,6 +29,7 @@ import cc.noharry.agent.appserver.protocol.DelegationView
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
+import cc.noharry.bothy.app.words
 
 /**
  * The card's way back to results (owner 2026-10-12): after a wake or tap on a read result, 上次 opens it; after a new
@@ -134,9 +135,12 @@ private fun Resources.trayHeader(view: DelegationView, nowMillis: Long): String 
     }
 }
 
-/** What a tray line says under its header: the agent's latest words, else what was asked. */
+/**
+ * What a tray line says under its header: the agent's latest words, else what was asked; once it reports, its words,
+ * why there are none, or that it came with none.
+ */
 private fun Resources.trayDetail(view: DelegationView): String = when (view.stage) {
-    DelegationStage.REPORTING -> view.outcome?.substringAfter('：')?.ifBlank { null } ?: view.request
+    DelegationStage.REPORTING -> view.said.ifBlank { null } ?: view.ended?.let { words(it) } ?: getString(R.string.a2a_no_note)
     DelegationStage.STALLED -> view.statusText.ifBlank { getString(R.string.overlay_delegation_not_started) }
     else -> view.statusText.takeIf { it.isNotBlank() && view.stage == DelegationStage.WORKING }
         ?: getString(R.string.overlay_quoted_request, view.request)

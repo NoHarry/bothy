@@ -2,8 +2,10 @@ package cc.noharry.bothy.app.phoneassist
 
 import android.content.Context
 import android.graphics.PixelFormat
+import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -48,9 +50,10 @@ import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.frontend.LocalServer
-import cc.noharry.bothy.app.overlay.OverlayConnection
 import cc.noharry.bothy.app.overlay.OverlayComposeOwner
+import cc.noharry.bothy.app.overlay.OverlayConnection
 import cc.noharry.bothy.app.overlay.overlayWindowType
+import cc.noharry.bothy.app.page.LocalPageEditing
 import cc.noharry.bothy.app.phone.PhoneTheme
 import cc.noharry.bothy.protocol.view.OverlayHud
 import kotlin.math.roundToInt
@@ -88,31 +91,35 @@ internal class PhoneSheetActions(
     val allowSession: (String) -> Unit,
     val openApp: () -> Unit,
     val copy: (String) -> Unit,
+    /** A field of a drawn page in the answer took the focus after a touch, or let it go: the sheet takes the keyboard then. */
+    val pageEditing: (Boolean) -> Unit,
 )
 
 /**
  * The sheet's window: the whole screen while the sheet is up, dimmed above it (a tap there folds the sheet), and
- * untouchable and gone once it has slid away. Focusable only while its input box is open, so the keyboard comes to it
- * then and stays with the app below otherwise.
+ * untouchable and gone once it has slid away. Focusable only while its input box is open or a drawn page's field in it
+ * has the focus, so the keyboard comes to it then and stays with the app below otherwise. Its lifecycle is on the
+ * window's root ([BackKeyFrame]), where the window's recomposer looks for it.
  */
 internal class PhoneSheet(context: Context, private val windowManager: WindowManager, model: PhoneSheetModel, actions: PhoneSheetActions) {
     private var up by mutableStateOf(false)
     private val owner = OverlayComposeOwner()
     private val view = ComposeView(context)
+    private val root = BackKeyFrame(context, view) { if (model.typing) actions.type(false) else actions.fold() }
     private val params = sheetWindowParams()
 
     init {
         view.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
         view.setContent { SheetRoot(up, model, actions, onGone = ::gone) }
-        owner.attachTo(view)
-        view.visibility = View.GONE
-        windowManager.addView(view, params)
+        owner.attachTo(root)
+        root.visibility = View.GONE
+        windowManager.addView(root, params)
     }
 
     val shown: Boolean get() = up
 
     fun show() {
-        view.visibility = View.VISIBLE
+        root.visibility = View.VISIBLE
         setFlag(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE, on = false)
         up = true
     }
@@ -124,24 +131,40 @@ internal class PhoneSheet(context: Context, private val windowManager: WindowMan
     }
 
     /** Gone at once, without the slide: 小博 is about to operate the screen, and a window over it would stop its taps. */
-    fun hideNow() = hide().also { view.visibility = View.GONE }
+    fun hideNow() = hide().also { root.visibility = View.GONE }
 
     fun focusable(focusable: Boolean) = setFlag(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, on = !focusable)
 
     private fun gone() {
-        if (!up) view.visibility = View.GONE
+        if (!up) root.visibility = View.GONE
     }
 
     private fun setFlag(flag: Int, on: Boolean) {
         val flags = if (on) params.flags or flag else params.flags and flag.inv()
         if (flags == params.flags) return
         params.flags = flags
-        runCatching { windowManager.updateViewLayout(view, params) }
+        runCatching { windowManager.updateViewLayout(root, params) }
     }
 
     fun destroy() {
-        runCatching { windowManager.removeView(view) }
+        runCatching { windowManager.removeView(root) }
         owner.destroy()
+    }
+}
+
+/**
+ * The sheet window's content: Back goes to [onBack] (an overlay has no activity to take it). The window has the keys
+ * only while it takes typing, its own box's or a drawn page's field's; otherwise Back stays with the app below.
+ */
+private class BackKeyFrame(context: Context, content: View, private val onBack: () -> Unit) : FrameLayout(context) {
+    init {
+        addView(content, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.KEYCODE_BACK) return super.dispatchKeyEvent(event)
+        if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) onBack()
+        return true
     }
 }
 
@@ -154,10 +177,10 @@ private fun sheetWindowParams() = WindowManager.LayoutParams(
     PixelFormat.TRANSLUCENT,
 ).apply { softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE }
 
-/** A drawn page in the answer reads itself through the connection ([LocalServer]). */
+/** A drawn page in the answer reads itself through the connection ([LocalServer]) and says when its field has the focus. */
 @Composable
 private fun SheetRoot(up: Boolean, model: PhoneSheetModel, actions: PhoneSheetActions, onGone: () -> Unit) {
-    CompositionLocalProvider(LocalServer provides OverlayConnection.access(model.state)) {
+    CompositionLocalProvider(LocalServer provides OverlayConnection.access(model.state), LocalPageEditing provides actions.pageEditing) {
         PhoneTheme { SheetFrame(up, model, actions, onGone) }
     }
 }

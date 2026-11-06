@@ -4,7 +4,9 @@ import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.protocol.view.SHOW_HTML_TOOL
+import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
 import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.kernel.api.ToolPrefetchRequest
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
@@ -65,7 +67,7 @@ class DrawnPagesTest {
     @Test
     fun theToolSavesThePageUnderTheRunsSessionAndAnswersWithItsReference() = runBlocking {
         val saved = mutableListOf<Pair<String, String>>()
-        val tool = PageToolProvider { session, html -> saved += session to html; "drawn-pages/s/page-1-abcd.html" }
+        val tool = PageToolProvider(onScreen = true) { session, html -> saved += session to html; "drawn-pages/s/page-1-abcd.html" }
         val arguments = buildJsonObject {
             put("title", "房贷计算")
             put("html", "<input id=a>")
@@ -79,5 +81,22 @@ class DrawnPagesTest {
         val refused = tool.callTool(SHOW_HTML_TOOL, buildJsonObject { put("title", "空") }.toString(), ToolCallContext("s", "r", "q"))
         assertFalse(Json.parseToJsonElement(refused.resultJson).jsonObject["ok"]!!.jsonPrimitive.boolean)
         assertEquals(1, saved.size)
+    }
+
+    @OptIn(ExperimentalAgentRuntimeApi::class)
+    @Test
+    fun aRunThatStartedWithTheConversationOffScreenDrawsNothing() = runBlocking {
+        val saved = mutableListOf<String>()
+        val tool = PageToolProvider(onScreen = false) { _, html -> saved += html; "drawn-pages/s/page.html" }
+        assertEquals(listOf(SHOW_HTML_TOOL), tool.listTools().map { it.name })
+        assertTrue(tool.localToolNames(ToolPrefetchRequest("画个对比", emptyList(), ToolCallContext("s", "r", "q"), 24)).isEmpty())
+        val arguments = buildJsonObject {
+            put("title", "对比")
+            put("html", "<p>x</p>")
+        }.toString()
+        val result = tool.callTool(SHOW_HTML_TOOL, arguments, ToolCallContext("s", "r", "q"))
+        assertFalse(result.success)
+        assertEquals("PAGE_NOT_ON_SCREEN", Json.parseToJsonElement(result.resultJson).jsonObject["code"]?.jsonPrimitive?.content)
+        assertTrue(saved.isEmpty())
     }
 }

@@ -6,4 +6,12 @@ package cc.noharry.agent.appserver.server
  */
 internal object AppScreen {
     @Volatile var inFront: Boolean = false
+        set(value) {
+            field = value
+            reports = true
+        }
+
+    /** Whether the app says when its screens come and go at all: a host that never does draws no pages. */
+    @Volatile var reports: Boolean = false
+        private set
 }

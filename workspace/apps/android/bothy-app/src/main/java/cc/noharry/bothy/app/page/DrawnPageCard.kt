@@ -12,6 +12,7 @@ import android.util.LruCache
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.inputmethod.InputMethodManager
 import android.webkit.JavascriptInterface
 import android.webkit.JsPromptResult
 import android.webkit.JsResult
@@ -207,10 +208,15 @@ private fun PageView(
     val height by rememberUpdatedState(onHeight)
     val broken by rememberUpdatedState(onBroken)
     val touch = LocalPageTouch.current
+    val editing by rememberUpdatedState(LocalPageEditing.current)
     AndroidView(
         modifier = modifier,
         factory = { context ->
-            pageWebView(context, PageBridge(onSend = { send(it) }, onHeight = { height(it) }), onBroken = { broken() }, onTouch = { touch?.value = it }).apply {
+            lateinit var page: PageWebView
+            val bridge = PageBridge(onSend = { send(it) }, onHeight = { height(it) }, onEditing = { page.editing(it) })
+            val onEditing: ((Boolean) -> Unit)? = if (editing == null) null else { on -> editing?.invoke(on) }
+            page = pageWebView(context, bridge, onBroken = { broken() }, onTouch = { touch?.value = it }, onEditing = onEditing)
+            page.apply {
                 // In the conversation the card is as tall as the page: nothing to scroll, no bars, no glow at the ends.
                 if (inline) {
                     isVerticalScrollBarEnabled = false
@@ -228,8 +234,38 @@ private fun PageView(
     )
 }
 
+/**
+ * A page's WebView. In a window that takes the keyboard only while a page's field has the focus ([onEditing], the
+ * phone's sheet), the window's focus comes after the tap has focused the field, too late for the keyboard to come: it
+ * is asked for then. Main thread.
+ */
+private class PageWebView(context: Context, private val onEditing: ((Boolean) -> Unit)?) : WebView(context) {
+    private var keyboardWanted = false
+
+    /** A field of the page took the focus after a touch, or let it go ([PageBridge.editing]). */
+    fun editing(on: Boolean) {
+        val tell = onEditing ?: return
+        keyboardWanted = on && !hasWindowFocus()
+        tell(on)
+    }
+
+    override fun onWindowFocusChanged(hasWindowFocus: Boolean) {
+        super.onWindowFocusChanged(hasWindowFocus)
+        if (!hasWindowFocus || !keyboardWanted) return
+        keyboardWanted = false
+        requestFocus()
+        context.getSystemService(InputMethodManager::class.java)?.showSoftInput(this, InputMethodManager.SHOW_IMPLICIT)
+    }
+}
+
 @SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
-private fun pageWebView(context: Context, bridge: PageBridge, onBroken: () -> Unit, onTouch: (Boolean) -> Unit): WebView = WebView(context).apply {
+private fun pageWebView(
+    context: Context,
+    bridge: PageBridge,
+    onBroken: () -> Unit,
+    onTouch: (Boolean) -> Unit,
+    onEditing: ((Boolean) -> Unit)?,
+): PageWebView = PageWebView(context, onEditing).apply {
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
     settings.allowFileAccess = false
@@ -256,6 +292,7 @@ private fun pageWebView(context: Context, bridge: PageBridge, onBroken: () -> Un
             MotionEvent.ACTION_DOWN -> {
                 down?.recycle()
                 down = MotionEvent.obtain(event)
+                bridge.pressed()
                 onTouch(true)
             }
             MotionEvent.ACTION_UP -> {
@@ -280,14 +317,34 @@ private fun pageOrigin(reference: String): String = "https://p${reference.hashCo
  * CSS pixels, given back in screen pixels: kept within bounds, a repeat ignored, and at most one waiting for the main
  * thread however often the page reports. Calls come on the WebView's bridge thread.
  */
-private class PageBridge(private val onSend: (String) -> Unit, private val onHeight: (Int) -> Unit) {
+private class PageBridge(
+    private val onSend: (String) -> Unit,
+    private val onHeight: (Int) -> Unit,
+    private val onEditing: (Boolean) -> Unit,
+) {
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var touchedAt = 0L
+    @Volatile private var pressedAt = 0L
     @Volatile private var sentAt = 0L
     @Volatile var density = 1f
 
     fun touched() {
         touchedAt = SystemClock.uptimeMillis()
+    }
+
+    /** A finger went down on the page. */
+    fun pressed() {
+        pressedAt = SystemClock.uptimeMillis()
+    }
+
+    /**
+     * A field that takes typing got the focus ([on]) or lost it. Taking it counts only right after a finger went down,
+     * so a page that focuses a field itself (autofocus) does not take the keyboard from the app below.
+     */
+    @JavascriptInterface
+    fun editing(on: Boolean) {
+        if (on && SystemClock.uptimeMillis() - pressedAt > TOUCH_WINDOW_MS) return
+        main.post { onEditing(on) }
     }
 
     @JavascriptInterface
@@ -353,6 +410,12 @@ private object EndUnresponsive : WebViewRenderProcessClient() {
  * drawer opens with one); null where nothing needs to know.
  */
 internal val LocalPageTouch = staticCompositionLocalOf<MutableState<Boolean>?> { null }
+
+/**
+ * Told when a field of a drawn page takes the focus after a touch, or lets it go: for a window that takes the keyboard
+ * only then (the phone's sheet); null where the window has it anyway.
+ */
+internal val LocalPageEditing = staticCompositionLocalOf<((Boolean) -> Unit)?> { null }
 
 /** The page's HTML: null while it is read, empty when the server no longer has it. Kept for the last few pages. */
 @Composable

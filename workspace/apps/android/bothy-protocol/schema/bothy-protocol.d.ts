@@ -560,6 +560,8 @@ export interface DelegationView {
   steps?: Array<DelegationStep>;
   updatedAtEpochMillis?: number;
   outcome?: string | null;
+  said?: string;
+  ended?: Finding | null;
 }
 
 export interface DoneResult {

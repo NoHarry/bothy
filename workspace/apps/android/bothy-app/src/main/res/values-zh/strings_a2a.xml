@@ -63,4 +63,10 @@
     <string name="a2a_hud_plan_empty">暂无播报（只播报 channel=speech）</string>
     <string name="a2a_hud_question">问：%1$s</string>
     <string name="a2a_hud_provider_no_tts">A2A · %1$s · TTS 未配置</string>
+    <!-- 交出去的任务没有对方自己的回报时，为什么（FindingCode.A2A_*） -->
+    <string name="a2a_stopped">已停止跟踪</string>
+    <string name="a2a_lost_settings">App 重启后没能接着跟踪（%1$s 的配置不在了）</string>
+    <string name="a2a_timed_out">过了 %1$s 分钟还没有结果，已停止跟踪</string>
+    <string name="a2a_unreadable">连续 %1$s 次查不到进度（%2$s）</string>
+    <string name="a2a_no_note">没有附带说明</string>
 </resources>

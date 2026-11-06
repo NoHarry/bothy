@@ -249,6 +249,8 @@ class PhoneAssistantService : Service() {
         },
         openApp = ::openApp,
         copy = ::copy,
+        // The sheet's own box keeps the keyboard when a page's field lets it go.
+        pageEditing = { editing -> if (editing || !model.typing) sheet.focusable(editing) },
     )
 
     private fun start(text: String) {

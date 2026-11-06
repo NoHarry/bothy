@@ -201,9 +201,10 @@ private fun ServerState.overlayPhase(): OverlayPhase {
         isRunning -> OverlayPhase.LIVE
         // How the last run ended wins over what the run said last (an intermediate event may have said it failed).
         last != null -> when (last.outcome) {
-            RunOutcome.FAILED, RunOutcome.REPLAY_FAILED -> OverlayPhase.FAIL
+            RunOutcome.FAILED -> OverlayPhase.FAIL
             RunOutcome.STOPPED -> OverlayPhase.STOP
-            RunOutcome.COMPLETED, RunOutcome.PARTIAL -> OverlayPhase.DONE
+            // A failed replay is the run evidence check's verdict, for the bench and the console: the person got an answer.
+            RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.REPLAY_FAILED -> OverlayPhase.DONE
         }
         activity == RunActivity.STOPPED -> OverlayPhase.STOP
         activity == RunActivity.FAILED -> OverlayPhase.FAIL

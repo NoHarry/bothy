@@ -19,17 +19,21 @@ internal fun sessionRunnerOutcome(
     replayFailed: Boolean,
     /** The run stopped to ask the user (the kernel's `ask`): the question is its reply, as the transcript keeps it. */
     askedUser: Boolean = false,
-): RunOutcome = when {
-    replayFailed -> RunOutcome.REPLAY_FAILED
-    runtimeResult != null &&
-        RuntimeCompletionSummary.firstPartyPass(runtimeResult.status, runtimeResult.completion) ->
-        RunOutcome.COMPLETED
-    // 2026-10-19: 「下单前确认一下…确认下单吗？」 was asked this way and the card said Failed (no result, so FAILED).
-    askedUser || runtimeResult?.status == RuntimeRunStatus.WAITING_USER_INPUT -> RunOutcome.COMPLETED
-    runtimeResult?.status == RuntimeRunStatus.COMPLETED && runtimeResult.completion.outcome == RuntimeCompletionOutcome.PARTIAL ->
-        RunOutcome.PARTIAL
-    runtimeResult?.status == RuntimeRunStatus.CANCELLED -> RunOutcome.STOPPED
-    else -> RunOutcome.FAILED
+): RunOutcome {
+    val ended = when {
+        runtimeResult != null &&
+            RuntimeCompletionSummary.firstPartyPass(runtimeResult.status, runtimeResult.completion) ->
+            RunOutcome.COMPLETED
+        // 2026-10-19: 「下单前确认一下…确认下单吗？」 was asked this way and the card said Failed (no result, so FAILED).
+        askedUser || runtimeResult?.status == RuntimeRunStatus.WAITING_USER_INPUT -> RunOutcome.COMPLETED
+        runtimeResult?.status == RuntimeRunStatus.COMPLETED && runtimeResult.completion.outcome == RuntimeCompletionOutcome.PARTIAL ->
+            RunOutcome.PARTIAL
+        runtimeResult?.status == RuntimeRunStatus.CANCELLED -> RunOutcome.STOPPED
+        else -> RunOutcome.FAILED
+    }
+    // A failed replay only marks a run that otherwise completed: a failed, partial or stopped run keeps saying so (the
+    // replay check fails every one of those anyway, and the screens show them as such).
+    return if (replayFailed && ended == RunOutcome.COMPLETED) RunOutcome.REPLAY_FAILED else ended
 }
 
 /** The end of a run as the runtime's logs and status line keep it ("Worked for 12s"); [parseRunSummary] reads it back. */

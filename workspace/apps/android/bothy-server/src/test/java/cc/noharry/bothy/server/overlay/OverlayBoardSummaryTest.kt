@@ -126,6 +126,9 @@ class OverlayBoardSummaryTest {
         assertEquals("1m 05s", hud.elapsedLabel)
         assertEquals("Completed", hud.headline)
         assertTrue(hud.resultText.contains("深圳北站"))
+        // The run evidence check failing is the console's to show: the person still got the answer.
+        val replayFailed = state.copy(lastRun = parseRunSummary("Worked for 1m 05s · replay failed"))
+        assertEquals(OverlayPhase.DONE, replayFailed.overlayHud().phase)
     }
 
     @Test

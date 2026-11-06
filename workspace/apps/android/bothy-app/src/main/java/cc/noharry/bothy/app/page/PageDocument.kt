@@ -112,7 +112,8 @@ private const val INLINE_STYLE = "html,body{overflow-y:hidden!important;overscro
 /**
  * First of anything on the page: peer connections go (their network traffic is outside the content policy and the
  * WebView's own network block), also in frames the page reaches into; then the bridge. `BothyHost` is the app's
- * ([PageBridge]); a page sees only `assistant.send`.
+ * ([PageBridge]); a page sees only `assistant.send`. The bridge also says when a field that takes typing gets or loses
+ * the focus, for a window that takes the keyboard only then.
  */
 private const val BRIDGE_SCRIPT =
     "(function(){var off=function(w){['RTCPeerConnection','webkitRTCPeerConnection','RTCDataChannel'].forEach(function(k){" +
@@ -121,6 +122,10 @@ private const val BRIDGE_SCRIPT =
         "if(cw&&cw.get)Object.defineProperty(HTMLIFrameElement.prototype,'contentWindow',{get:function(){" +
         "var w=cw.get.call(this);if(w)off(w);return w;},configurable:false});" +
         "var host=window.BothyHost;window.assistant={send:function(t){if(host)host.send(String(t));}};" +
+        "function typing(e){if(!e)return false;if(e.isContentEditable||e.tagName==='TEXTAREA')return true;" +
+        "return e.tagName==='INPUT'&&/^(text|search|email|number|tel|url|password)$/.test(e.type);}" +
+        "document.addEventListener('focusin',function(v){if(host&&typing(v.target))host.editing(true);});" +
+        "document.addEventListener('focusout',function(v){if(host&&typing(v.target))host.editing(false);});" +
         "function report(){var b=document.body;if(!b||!host)return;var s=getComputedStyle(b);" +
         "host.height(Math.ceil(Math.max(b.scrollHeight,b.getBoundingClientRect().height)+" +
         "(parseFloat(s.marginTop)||0)+(parseFloat(s.marginBottom)||0)));}" +

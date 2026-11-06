@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +52,7 @@ import cc.noharry.bothy.app.a2a.A2aClientPane
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.overlay.overlayLabel
+import cc.noharry.bothy.app.words
 
 /**
  * A2A on a phone, as the design draws it: the agents Bothy can hand tasks to and whether each can take one, then the
@@ -168,8 +170,10 @@ private fun ReportCard(report: DelegationView) {
                 Spacer(Modifier.width(8.dp))
                 StatusChip(stringResource(report.stage.overlayLabel()), if (failed) colors.danger else if (report.stage.settled) colors.accent else colors.activity)
             }
-            // The agent's words without the mark and name before them, which the header shows already.
-            report.outcome?.substringAfter('：')?.takeIf { it.isNotBlank() }?.let {
+            // The agent's own words, else why it ended without them; a report that came with none says so.
+            val resources = LocalResources.current
+            val noNote = stringResource(R.string.a2a_no_note)
+            (report.said.ifBlank { null } ?: report.ended?.let(resources::words) ?: noNote.takeIf { report.outcome != null })?.let {
                 Text(it, style = PhoneType.body, color = colors.inkSoft, modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.panel).padding(12.dp))
             }
         }

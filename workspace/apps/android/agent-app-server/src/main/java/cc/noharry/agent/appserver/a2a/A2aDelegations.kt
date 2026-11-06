@@ -12,8 +12,9 @@ import cc.noharry.agent.appserver.InternalAppServerApi
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
 import cc.noharry.agent.appserver.protocol.DelegationView
-import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import cc.noharry.agent.appserver.protocol.Finding
+import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.finding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -31,6 +32,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.longOrNull
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 /** A task handed to someone's own agent that answered "working": the device follows it until it settles. */
 @InternalAppServerApi
@@ -46,7 +49,13 @@ data class A2aDelegation(
 /** How following ended: the settled task, or why the device stopped following without one. */
 @OptIn(ExperimentalA2aClientApi::class)
 @InternalAppServerApi
-data class A2aFollowed(val task: A2aTask?, val problem: String? = null)
+data class A2aFollowed(
+    val task: A2aTask?,
+    /** Why there is no settled task, in the model's words. */
+    val problem: String? = null,
+    /** The same for the screens to word ([DelegationView.ended]). */
+    val why: Finding? = null,
+)
 
 /** A question the user has not answered yet; the delegation tool's description carries it to the next turn. */
 data class A2aPendingQuestion(
@@ -127,7 +136,9 @@ internal object A2aDelegations : A2aDelegationSink {
         jobs.remove(taskId)?.cancel()
         val follower = followers.remove(taskId)
         requests.remove(taskId)
-        update(taskId) { it.copy(stage = DelegationStage.CANCELLED, outcome = "已停止跟踪", updatedAtEpochMillis = System.currentTimeMillis()) }
+        update(taskId) {
+            it.copy(stage = DelegationStage.CANCELLED, outcome = "已停止跟踪", ended = finding(FindingCode.A2A_STOPPED), updatedAtEpochMillis = System.currentTimeMillis())
+        }
         if (follower != null) scope.launch { runCatching { follower.client.cancelTask(follower.remote, taskId) } }
     }
 
@@ -158,6 +169,8 @@ internal object A2aDelegations : A2aDelegationSink {
         update(delegation.taskId) { view ->
             view.copy(
                 stage = stage, outcome = report.display, statusText = parts?.text.orEmpty(), updatedAtEpochMillis = System.currentTimeMillis(),
+                said = parts?.text.orEmpty(),
+                ended = followed.why,
                 // The last progress report was before the final steps; a completed task finished them all.
                 steps = if (completed) view.steps.map { it.copy(status = "done") } else view.steps,
             )
@@ -245,7 +258,9 @@ internal object A2aDelegations : A2aDelegationSink {
             val client = profile?.let { runCatching { config.createClient(it.id) }.getOrNull() }
             if (profile == null || client == null) {
                 show(delegation, DelegationStage.LOST)
-                update(delegation.taskId) { it.copy(outcome = "App 重启后没能接着跟踪（${delegation.agentLabel} 的配置不在了）") }
+                update(delegation.taskId) {
+                    it.copy(outcome = "App 重启后没能接着跟踪（${delegation.agentLabel} 的配置不在了）", ended = finding(FindingCode.A2A_LOST_SETTINGS, delegation.agentLabel))
+                }
                 continue
             }
             Log.i(TAG, "delegation ${delegation.taskId} followed again after a restart")
@@ -295,7 +310,10 @@ suspend fun followDelegation(
     var failures = 0
     while (true) {
         val elapsed = now() - delegation.startedAtEpochMillis
-        if (elapsed >= FOLLOW_LIMIT_MS) return A2aFollowed(null, "过了 ${FOLLOW_LIMIT_MS / 60_000} 分钟还没有结果，这里已停止跟踪")
+        if (elapsed >= FOLLOW_LIMIT_MS) {
+            val minutes = FOLLOW_LIMIT_MS / 60_000
+            return A2aFollowed(null, "过了 $minutes 分钟还没有结果，这里已停止跟踪", finding(FindingCode.A2A_TIMED_OUT, minutes))
+        }
         pause(delegationPollMillis(elapsed))
         when (val result = getTask()) {
             is A2aResult.Success -> {
@@ -304,7 +322,11 @@ suspend fun followDelegation(
                 onPoll(result.value)
             }
             is A2aResult.Failure -> if (++failures >= MAX_POLL_FAILURES) {
-                return A2aFollowed(null, "连续 $MAX_POLL_FAILURES 次查不到进度（${result.error.reason}）")
+                return A2aFollowed(
+                    null,
+                    "连续 $MAX_POLL_FAILURES 次查不到进度（${result.error.reason}）",
+                    finding(FindingCode.A2A_UNREADABLE, MAX_POLL_FAILURES, result.error.reason),
+                )
             }
         }
     }

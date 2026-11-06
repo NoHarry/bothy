@@ -182,8 +182,12 @@ data class DelegationView(
     val statusText: String = "",
     val steps: List<DelegationStep> = emptyList(),
     val updatedAtEpochMillis: Long = startedAtEpochMillis,
-    /** The report's short line once settled. */
+    /** The report's short line once settled, as the transcript has it (in the model's words). */
     val outcome: String? = null,
+    /** The agent's own words in its report once settled, shown as they are; empty when it said nothing. */
+    val said: String = "",
+    /** Why it ended with no report of the agent's own (stopped here, lost after a restart, no answer in time). */
+    val ended: Finding? = null,
 )
 
 /** When a plan comes due. */

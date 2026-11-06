@@ -27,29 +27,38 @@ import kotlinx.serialization.json.put
  * `show_html`: the model draws a page in the conversation, as HTML with its own styles and script, where a card's fixed
  * parts (`show_card`, the `offer_*` controls) cannot show it: a comparison, a chart, a calculator, a checklist to tick.
  * The page is saved under the run's session ([save]) and the call returns its reference; the screen reads it from there
- * (`pages/read`) and runs it offline, in its own colours. Mounted only where a page can show ([pagesOffered]).
+ * (`pages/read`) and runs it offline, in its own colours. In every run with a service's model ([pagesOffered]), so a
+ * page tool a session took up in the app still answers out of it; offered from the first round only to a run that
+ * started with the conversation on screen ([onScreen]). One that did not is told not to draw, and a page it draws anyway
+ * is refused, as nobody would see it.
  */
 internal class PageToolProvider(
+    private val onScreen: Boolean,
     private val save: (sessionId: String, html: String) -> String,
 ) : McpClientProvider, ToolPrefetchProvider, ToolCatalogCacheIdentity {
-    constructor(context: Context) : this({ sessionId, html -> saveDrawnPage(context.applicationContext, sessionId, html) })
+    constructor(context: Context, onScreen: Boolean) :
+        this(onScreen, { sessionId, html -> saveDrawnPage(context.applicationContext, sessionId, html) })
 
     override val serverId: String = PAGE_TOOL_SERVER_ID
     override val displayName: String = "画界面"
-    override val catalogCacheIdentity: String = "app-server:$PAGE_TOOL_SERVER_ID:v1"
+    override val catalogCacheIdentity: String = "app-server:$PAGE_TOOL_SERVER_ID:v2"
     override val providerConcurrency: ProviderConcurrencyDeclaration = ProviderConcurrencyDeclaration.threadSafe()
     override val remotePrefetchEnabled: Boolean get() = false
 
     override suspend fun listTools(): List<ToolDescriptor> =
         listOf(ToolDescriptor(SHOW_HTML_TOOL, title = "画界面", description = SHOW_HTML_DESCRIPTION, inputSchemaJson = SHOW_HTML_SCHEMA))
 
-    /** Offered from the first round, as the cards are: whether to draw is decided before the answer is written. */
-    override fun localToolNames(request: ToolPrefetchRequest): List<String> = listOf(SHOW_HTML_TOOL)
+    /**
+     * Offered from the first round while the conversation is on screen, as the cards are: whether to draw is decided
+     * before the answer is written. Off screen nothing is offered (its description would be words for nothing).
+     */
+    override fun localToolNames(request: ToolPrefetchRequest): List<String> = if (onScreen) listOf(SHOW_HTML_TOOL) else emptyList()
 
     override suspend fun prefetchTools(request: ToolPrefetchRequest, trace: ToolPrefetchTrace): List<String> = emptyList()
 
     override suspend fun callTool(toolName: String, argumentsJson: String, context: ToolCallContext): ToolCallResult {
         if (toolName != SHOW_HTML_TOOL) return failure("UNKNOWN_TOOL", "Unknown tool: $toolName")
+        if (!onScreen) return failure("PAGE_NOT_ON_SCREEN", "The conversation is not on screen, so nobody would see the page.")
         val args = parseJsonObject(argumentsJson) ?: return failure("ARGUMENT_INVALID", "Arguments must be an object.")
         val title = args["title"]?.jsonPrimitive?.contentOrNull.orEmpty().trim()
         val html = args["html"]?.jsonPrimitive?.contentOrNull.orEmpty()
@@ -106,14 +115,16 @@ internal const val MAX_PAGE_CHARS = 200_000
 private const val PAGE_TOOL_SERVER_ID = "pages"
 private const val PAGE_FALLBACK = "没有显示；改正后再调用一次，或直接在 finish 里用文字回答。"
 private val SHOW_HTML_DESCRIPTION = """
-    画界面：用户正看着手机或平板上的对话页。下面这些直接画成页面放进对话，不要先问要不要画：回答会超过三四百字，
+    画界面：把内容画成页面，放进手机或平板上的对话页。运行上下文说用户正看着对话页时，下面这些直接画成页面，
+    不要先问要不要画：回答会超过三四百字，
     或有三个以上并列的要点、层次、步骤；比较和取舍；数字和图表；时间线、行程、计划；新闻简报、分析和报告；
     计算器、换算、能勾选的清单、小测验这类要动手试的。一两句能答的、闲聊和追问、要复制的纯文本（地址、命令、代码）、
     用户说用文字的，直接用文字。顺序：先用一句话说结论（马上就显示给用户），再调用本工具，finish 只补一两句，
     不要把页面内容再写一遍。title 写页面标题；html 写完整页面，样式和脚本都写在页面里。屏幕断网：不能引用外部脚本、
     样式、字体和图片，图形用内联 SVG 或 canvas 画。页面整个摊在对话里、自己不上下滚动：宽度跟着屏幕（手机约
     360–420px），不要写死宽度，表格列多就改成每项一张小卡片；高度随内容，不要用 vh，不要放固定高度、能上下滚动的区域；
-    尽量一两屏内放下，内容多就用标签页或折叠。宿主已备好样式，直接用类名、少写 CSS：b-stack（竖排留白）、
+    尽量一两屏内放下，内容多就用标签页或折叠。让人选择用按钮或单选框，不用 select 下拉框和 date、time 这类
+    弹系统选择框的输入框（页面也会显示在悬浮的面板里，那里弹不出来）。宿主已备好样式，直接用类名、少写 CSS：b-stack（竖排留白）、
     b-grid（自动分栏）、b-row（横排）、b-card（区块）、b-h（小节标题）、b-sub（次要说明）、
     b-stat（大数字：<div class="b-stat"><b>63%</b><span>说明</span></div>）、b-tag（标签，加 warn 或 bad 变色）、
     b-steps（ol 步骤）、b-timeline（ul 时间线）、b-bar（进度条：<div class="b-bar"><i style="width:60%"></i></div>）、

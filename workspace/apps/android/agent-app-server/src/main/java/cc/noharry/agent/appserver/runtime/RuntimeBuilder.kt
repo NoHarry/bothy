@@ -163,8 +163,9 @@ fun buildRuntime(
     // restart) still gets the recap and the previous exchange.
     // The time, the app in front and where delegations stand, all per run (the run context, never the cached system prompt).
     val drawPages = !subagentChild && pagesOffered(profile)
+    val pageOnScreen = AppScreen.inFront
     val clock = (listOf(clockLine(System.currentTimeMillis()), appForegroundLine(context)) + AppHost.runs.contextLines(context) +
-        a2aBridgeProviders.map(A2aBridgeProvider::runNote) + listOfNotNull(PAGES_RULE.takeIf { drawPages }))
+        a2aBridgeProviders.map(A2aBridgeProvider::runNote) + listOfNotNull(pagesRule(drawPages, pageOnScreen)))
         .filter(String::isNotBlank).joinToString("\n")
     val verifyAgent = !subagentChild && AppSubagents.offers(WEB_VERIFY_KIND) && basicTools.any { it.name == "spawn_agent" && it.enabled }
     val mainSearch = !subagentChild && (webSearch != null || profile.usesVisibleWebSearchTool())
@@ -210,7 +211,7 @@ fun buildRuntime(
     .applyMcpProviders(context, mcpProviders, wrapTools, workflows)
     .applyA2aBridgeProviders(a2aBridgeProviders, userInput)
     .applyAndroidUse(context, imageInput)
-    .applyPages(context, offered = drawPages)
+    .applyPages(context, offered = drawPages, onScreen = pageOnScreen)
     .applyPlans(context)
     .applyUserMemory(context)
     // Semantic VFS stays the workspace; the EventLog gets its own no-backup root so the
@@ -334,25 +335,36 @@ private fun AgentRuntimeBuilder.applyAndroidUse(context: Context, imageInput: Bo
 }
 
 /**
- * When to draw (owner 2026-11-05: 长段的东西生成式 UI 应该更积极): a rule of the run while pages are offered, since in
- * the tool's description alone the model kept a 978-character analysis as text and offered a drawing at its end.
+ * When to draw (owner 2026-11-05: 长段的东西生成式 UI 应该更积极): a rule of the run while the conversation is on
+ * screen, since in the tool's description alone the model kept a 978-character analysis as text and offered a drawing
+ * at its end. While it is not, the run is told not to draw (a session may have taken the tool up in the app), in words
+ * that do not name the tool.
  */
+private fun pagesRule(offered: Boolean, onScreen: Boolean): String? = when {
+    !offered -> null
+    onScreen -> PAGES_RULE
+    else -> PAGES_AWAY_RULE
+}
+
+private const val PAGES_AWAY_RULE = "用户现在没在看对话页（App 不在前台）：这次不画界面，用文字回答。"
+
 private const val PAGES_RULE =
     "用户正看着对话页，可以画界面（show_html）：回答会超过三四百字，或有三个以上并列的要点、层次、步骤，或是比较、" +
         "数字、时间线、行程、计划、简报、分析时，先用一句话说结论，再把内容画成页面，finish 只补一两句；不要长篇只用文字，" +
         "也不要问要不要画。一两句能答的、闲聊、要复制的纯文本照常用文字。"
 
-/** 画界面 ([PageToolProvider]), when [offered]. */
-private fun AgentRuntimeBuilder.applyPages(context: Context, offered: Boolean): AgentRuntimeBuilder = apply {
-    if (offered) toolProvider(PageToolProvider(context))
+/** 画界面 ([PageToolProvider]), when [offered]; it draws only when the run started [onScreen]. */
+private fun AgentRuntimeBuilder.applyPages(context: Context, offered: Boolean, onScreen: Boolean): AgentRuntimeBuilder = apply {
+    if (offered) toolProvider(PageToolProvider(context, onScreen))
 }
 
 /**
- * Whether a run may draw pages: only while the app's own screens are in front ([AppScreen]), the one place a page
- * shows (the overlay and a head unit's surface draw cards, not pages), and with a service's model, as the host's own
- * on-device models write no page that works.
+ * Whether a run has the page tool: in an app that says when its screens are in front ([AppScreen.reports]; one that
+ * never does has no conversation the server knows to draw in), with a service's model, as the host's own on-device
+ * models write no page that works. Whether it may draw is the run's: only while the app's own screens are in front, the
+ * one place a page shows (the overlay and a head unit's surface draw cards, not pages).
  */
-internal fun pagesOffered(profile: ProviderProfile): Boolean = AppScreen.inFront && !AppHost.models.owns(profile.id)
+internal fun pagesOffered(profile: ProviderProfile): Boolean = AppScreen.reports && !AppHost.models.owns(profile.id)
 
 /** 计划: the tool, and today's date with the plans going; registered before 记忆, so its facts always fit. */
 private fun AgentRuntimeBuilder.applyPlans(context: Context): AgentRuntimeBuilder = apply {

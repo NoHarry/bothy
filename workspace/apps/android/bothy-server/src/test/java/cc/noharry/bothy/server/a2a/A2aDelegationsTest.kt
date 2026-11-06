@@ -28,8 +28,9 @@ import cc.noharry.agent.appserver.evidence.requiresBusinessAction
 import cc.noharry.agent.appserver.plans.matches
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.agent.appserver.protocol.DelegationStep
+import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.bothy.server.voice.tts.closesReply
-import java.net.URI
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,6 +38,7 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.URI
 
 class A2aDelegationsTest {
     private val delegation = A2aDelegation("Grok Bot", "task-1", "给我自己发封测试邮件", startedAtEpochMillis = 0L)
@@ -120,6 +122,8 @@ class A2aDelegationsTest {
 
         assertNull(followed.task)
         assertEquals("连续 5 次查不到进度（connection_refused）", followed.problem)
+        // The screens get the same as a finding, to word in their language.
+        assertEquals(finding(FindingCode.A2A_UNREADABLE, 5, "connection_refused"), followed.why)
         assertEquals(MAX_POLL_FAILURES, clock.pauses.size)
     }
 
@@ -130,6 +134,7 @@ class A2aDelegationsTest {
         val followed = followDelegation(delegation, clock::now, clock::pause) { A2aResult.Success(task(A2aTask.Status.WORKING)) }
 
         assertTrue(followed.problem.orEmpty().contains("过了 30 分钟还没有结果"))
+        assertEquals(finding(FindingCode.A2A_TIMED_OUT, 30), followed.why)
         assertTrue(clock.millis >= FOLLOW_LIMIT_MS)
     }
 

@@ -3681,6 +3681,19 @@
               "type": "null"
             }
           ]
+        },
+        "said": {
+          "type": "string"
+        },
+        "ended": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [

@@ -93,6 +93,11 @@ class RunSummaryTest {
             sessionRunnerOutcome(result(RuntimeRunStatus.COMPLETED, RuntimeCompletionOutcome.SUCCEEDED), true),
         )
         assertEquals(RunOutcome.FAILED, sessionRunnerOutcome(null, false))
+        // The replay check fails every run that did not pass; such a run keeps its own ending.
+        assertEquals(RunOutcome.FAILED, sessionRunnerOutcome(null, true))
+        assertEquals(RunOutcome.FAILED, sessionRunnerOutcome(result(RuntimeRunStatus.FAILED, RuntimeCompletionOutcome.UNKNOWN), true))
+        assertEquals(RunOutcome.PARTIAL, sessionRunnerOutcome(result(RuntimeRunStatus.COMPLETED, RuntimeCompletionOutcome.PARTIAL), true))
+        assertEquals(RunOutcome.STOPPED, sessionRunnerOutcome(result(RuntimeRunStatus.CANCELLED, RuntimeCompletionOutcome.UNKNOWN), true))
         // A run that asked the user, whether its result is the waiting one, missing, or the cancel when it closed.
         assertEquals(
             RunOutcome.COMPLETED,

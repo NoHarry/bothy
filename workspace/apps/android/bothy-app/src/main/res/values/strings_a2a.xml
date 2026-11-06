@@ -64,4 +64,10 @@
     <string name="a2a_hud_plan_empty">No speech yet (only channel=speech is spoken)</string>
     <string name="a2a_hud_question">Q: %1$s</string>
     <string name="a2a_hud_provider_no_tts">A2A · %1$s · TTS not set up</string>
+    <!-- Why a handed task ended with no report of the agent's own (FindingCode.A2A_*) -->
+    <string name="a2a_stopped">Stopped following</string>
+    <string name="a2a_lost_settings">Not followed after the app restarted: %1$s\'s settings are gone</string>
+    <string name="a2a_timed_out">No result after %1$s minutes, so following stopped</string>
+    <string name="a2a_unreadable">Couldn\'t read its progress %1$s times in a row (%2$s)</string>
+    <string name="a2a_no_note">No note came with it</string>
 </resources>
