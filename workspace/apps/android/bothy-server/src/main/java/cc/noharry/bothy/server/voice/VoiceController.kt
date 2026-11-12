@@ -1,4 +1,5 @@
 package cc.noharry.bothy.server.voice
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -8,7 +9,6 @@ import android.os.SystemClock
 import cc.noharry.agent.appserver.FoundException
 import cc.noharry.agent.appserver.a2a.A2aClientConsole
 import cc.noharry.agent.appserver.finding
-import cc.noharry.agent.appserver.plans.watch
 import cc.noharry.agent.appserver.protocol.A2aClientItem
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
@@ -18,8 +18,6 @@ import cc.noharry.agent.appserver.protocol.ModelUsage
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
-import cc.noharry.agent.appserver.runtime.RuntimeSession
-import cc.noharry.agent.appserver.session.BACKEND_LIVE
 import cc.noharry.agent.appserver.session.SessionSettings
 import cc.noharry.agent.appserver.session.UiState
 import cc.noharry.agent.appserver.usage.UsageStore
@@ -70,6 +68,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import cc.noharry.bothy.server.server.ServerLink
 
 /**
  * How a voice session began: the console's mic button listens until tapped again; a wake ends itself when idle. A
@@ -227,7 +226,7 @@ internal object VoiceController {
         closedAt = SystemClock.elapsedRealtime()
         if (wakeSession) endWoken()
         TtsActivity.interrupt()
-        RuntimeSession.silenceRunning()
+        ServerLink.speech.silence()
         VoiceLog.i(TAG, "voice closed by the card's X")
     }
 
@@ -313,7 +312,7 @@ internal object VoiceController {
 
     /** Before the session seeds the previous exchange: a wake after a long quiet starts with a clean conversation. */
     private fun startFreshAfterQuiet(appContext: Context) {
-        if (RuntimeSession.freshSessionForWake(appContext)) {
+        if (ServerLink.turns.newConversationIfQuiet()) {
             val policy = SessionSettings.policy.value
             VoiceLog.i(TAG, if (policy.everyWake) "wake: new session (every wake)" else "wake after ${policy.idleMinutes} min without a turn: new session")
         }
@@ -475,11 +474,11 @@ internal object VoiceController {
     fun interruptForWake(context: Context): Boolean {
         val app = context.applicationContext
         val client = A2aClientConsole.isEnabled(app) && A2aClientConsole.state.running
-        val run = RuntimeSession.isRunning
+        val run = ServerLink.turns.running
         val speaking = TtsActivity.active.value && !WakeAck.speaking
         val hearing = listening && state.value.liveText.isNotBlank()
         if (client) A2aClientConsole.cancel(app)
-        if (run) RuntimeSession.stopRun()
+        if (run) ServerLink.turns.stop()
         SmallTalkCompanion.cancel()
         TtsActivity.interrupt()
         val stopped = listOfNotNull("client task".takeIf { client }, "run".takeIf { run }, "speech".takeIf { speaking }, "turn".takeIf { hearing })
@@ -507,9 +506,9 @@ internal object VoiceController {
         }
         val forClient = A2aClientConsole.isEnabled(context)
         var seeded = false
-        detachRuntime = RuntimeSession.attach(context) { ui ->
+        detachRuntime = ServerLink.turns.watch { ui ->
             // The exchange before this session, so a follow-up to it reads as one ("哪家最好吃？" after a list).
-            if (!seeded && !forClient) ui.lastExchange().forEach { (user, text) -> if (user) active.recordUser(text) else active.recordAssistant(text) }
+            if (!seeded && !forClient) ui.lastLocalExchange().forEach { (user, text) -> if (user) active.recordUser(text) else active.recordAssistant(text) }
             seeded = true
             if (runtimeRunning && !ui.isRunning) ui.lastAssistantText()?.let(active::recordAssistant)
             lastShownReply = ui.lastAssistantText()
@@ -611,7 +610,7 @@ internal object VoiceController {
             val spoken = ack != null && if (A2aClientConsole.isEnabled(context)) {
                 A2aClientConsole.announceFirst(context, ack)
             } else {
-                RuntimeSession.announceFirst(context, ack)
+                ServerLink.speech.announceFirst(ack)
             }
             ack?.let(VoiceFeedback::acknowledged)
             VoiceLog.i(TAG, "append acknowledged: ${ack ?: "-"} spoken=$spoken")
@@ -634,12 +633,12 @@ internal object VoiceController {
         val context = appContext
         // 端到端 watches no run of its own: who is working now comes from the run and the client themselves.
         val clientWorking = if (realtime != null) context != null && A2aClientConsole.isEnabled(context) && A2aClientConsole.state.running else clientRunning
-        val runWorking = if (realtime != null) RuntimeSession.isRunning else runtimeRunning
+        val runWorking = if (realtime != null) ServerLink.turns.running else runtimeRunning
         VoiceLog.i(TAG, "woken session dismissed by voice; stopping ${if (clientWorking) "client task" else if (runWorking) "run" else "nothing"}")
         SmallTalkCompanion.cancel()
         when {
             context != null && clientWorking -> A2aClientConsole.cancel(context)
-            runWorking -> RuntimeSession.stopRun()
+            runWorking -> ServerLink.turns.stop()
         }
         TtsActivity.interrupt()
         endWoken()
@@ -691,9 +690,9 @@ internal fun submitVoiceText(context: Context, handOver: VoiceHandOver, ack: Str
             else -> A2aClientConsole.send(context, text, A2aInputSource.ASR)
         }
     } else if (handOver.mode == VoiceHandOverMode.REPLACE) {
-        RuntimeSession.submitTextReplacingRun(context, text, BACKEND_LIVE)
+        ServerLink.turns.replace(text)
     } else {
-        RuntimeSession.postSpokenInput(context, text, voiceAppendInput(text, ack)) {
+        ServerLink.speech.heard(text, voiceAppendInput(text, ack)) {
             if (handOver.mode == VoiceHandOverMode.APPEND) VoiceFeedback.appendBecameNewTurn(text)
         }
     }
@@ -712,10 +711,10 @@ internal fun voiceAppendInput(text: String, ack: String? = null): String =
             "（例如「好，空调也一起打开」），再继续当前任务，并把这条一起完成。"
     }
 
-/** The last turn's request and its last reply in the selected session, oldest first; true marks the user's. */
-private fun UiState.lastExchange(): List<Pair<Boolean, String>> {
-    val header = items.indexOfLast { it is ConversationItem.TurnHeader }.takeIf { it >= 0 } ?: return emptyList()
-    val request = (items[header] as ConversationItem.TurnHeader).fullText
+/** The latest logical turn's request plus user additions, then its last reply; true marks the user's words. */
+internal fun UiState.lastLocalExchange(): List<Pair<Boolean, String>> {
+    val header = items.indexOfLast { it.isTurnStart }.takeIf { it >= 0 } ?: return emptyList()
+    val request = items.drop(header).filterIsInstance<ConversationItem.TurnHeader>().joinToString("\n") { it.fullText }
     val reply = items.drop(header + 1).filterIsInstance<ConversationItem.MessageItem>()
         .lastOrNull { it.role == TranscriptRole.ASSISTANT }?.content
     return listOfNotNull(true to request, reply?.let { false to it })

@@ -1,5 +1,6 @@
 package cc.noharry.bothy.protocol.view
 
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
@@ -77,6 +78,9 @@ const val CARDS_PER_ROW = 2
 
 /** A finished run that left parts unconfirmed: 部分完成, not 没有完成. */
 const val PARTLY_DONE_HEADLINE = "Partly done"
+
+/** A finished run that answered it could not do what was asked (blocked) and asks nothing: 没有完成, said as an answer. */
+const val NOT_DONE_HEADLINE = "Not done"
 
 /** From this many picks the wide card lays them out in two columns (2×2 already saves a full tile row). */
 const val OVERLAY_GRID_MIN_CHOICES = 4
@@ -158,15 +162,14 @@ private fun List<ConversationItem>.finishedReplyChoices(offer: Offer?): Pickable
         item is ConversationItem.MessageItem &&
             item.role == TranscriptRole.ASSISTANT &&
             item.content.isNotBlank() &&
-            !item.content.trimStart().startsWith("TTS:", ignoreCase = true) &&
             !item.content.contains("MODEL_FINISHED_WITHOUT_RUNTIME_FINISH")
     } as? ConversationItem.MessageItem ?: return null
-    return appPickableReply(reply.id, reply.content.overlayHudMultiline(Int.MAX_VALUE).displayReplyText(), offer)
+    return appPickableReply(reply.id, reply.content.overlayHudMultiline(Int.MAX_VALUE).trim(), offer)
 }
 
-/** Items belonging to the latest user turn (after the last TurnHeader). */
+/** Items belonging to the latest logical turn, including same-turn user steering. */
 fun List<ConversationItem>.currentTurnItems(): List<ConversationItem> {
-    val turnStart = indexOfLast { it is ConversationItem.TurnHeader }
+    val turnStart = indexOfLast { it.isTurnStart }
     return if (turnStart >= 0) drop(turnStart + 1) else this
 }
 

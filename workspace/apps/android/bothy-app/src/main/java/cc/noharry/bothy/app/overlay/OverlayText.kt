@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import cc.noharry.agent.appserver.protocol.DelegationStage
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.runSummaryText
+import cc.noharry.bothy.protocol.view.NOT_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.WAITING_FOR_RUN_TEXT
 
@@ -21,6 +22,7 @@ internal fun Resources.overlayShownText(text: String): String = when (text) {
     "Stopped" -> getString(R.string.overlay_headline_stopped)
     "Agent ready" -> getString(R.string.overlay_headline_ready)
     PARTLY_DONE_HEADLINE -> getString(R.string.overlay_status_partly_done)
+    NOT_DONE_HEADLINE -> getString(R.string.overlay_status_not_done)
     else -> runSummaryText(text)
 }
 
@@ -35,6 +37,7 @@ internal fun DelegationStage.overlayLabel(): Int = when (this) {
     DelegationStage.DONE -> R.string.overlay_stage_done
     DelegationStage.ASKING -> R.string.overlay_stage_asking
     DelegationStage.FAILED -> R.string.overlay_stage_failed
+    DelegationStage.REJECTED -> R.string.overlay_stage_not_done
     DelegationStage.CANCELLED -> R.string.overlay_stage_cancelled
     DelegationStage.LOST -> R.string.overlay_stage_lost
 }

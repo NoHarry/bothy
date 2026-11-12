@@ -3,9 +3,10 @@ plugins {
 }
 
 /*
- * Bothy's server: the app server (:agent-app-server) with Bothy's features (voice, the on-device model, checks, the
- * Playground, its own settings), reached by front ends only through the protocol (:bothy-protocol). Its build carries
- * what the runtime needs from local.properties: the chat services' presets and the keys embedded in a development build.
+ * Bothy's server: the runtime's app server (cc.noharry:agent-app-server) with Bothy's features (voice, the on-device
+ * model, checks, the Playground, its own settings), reached by front ends only through the protocol (:bothy-protocol).
+ * Its build carries what the runtime needs from local.properties: the chat services' presets and the keys embedded in a
+ * development build.
  */
 val PROVIDER_PROFILE_CONFIG_PATH = "src/main/assets/model-provider-profiles.json"
 val LOCAL_PROPERTIES_FILE_NAME = "local.properties"
@@ -80,6 +81,9 @@ require(providerPresets in setOf("all", "none")) { "$PROVIDER_PRESETS_PROPERTY m
 // choice of 陪聊), while 陪聊's other services, voice, MiMo and image model values stay.
 val DEMO_PACKAGE_PROPERTY = "bothyDemoPackage"
 val demoPackage = providers.gradleProperty(DEMO_PACKAGE_PROPERTY).orNull == "true"
+// -PbothyTrustedPluginPublishers=<hex>,<hex>: the plugin package publishers this build vouches for (public keys, hex of
+// their DER encoding, as tools/agent-plugin prints them); their packages install with one confirmation. None by default.
+val trustedPluginPublishers = providers.gradleProperty("bothyTrustedPluginPublishers").orNull.orEmpty()
 val withoutProviderPresets = providerPresets == "none" || demoPackage
 val providerConfigText = if (withoutProviderPresets) "" else loadProviderConfigText(projectDir)
 val embedLocalKeyScope = providers.gradleProperty(EMBED_LOCAL_KEYS_PROPERTY).orNull ?: "all"
@@ -113,6 +117,7 @@ android {
         val providerConfigSource = providerConfigSource(providerConfigText, providerLocalOverridesText)
         buildConfigField("String", "PROVIDER_ENV_SOURCE", providerConfigSource.toBuildConfigString())
         buildConfigField("boolean", "DEMO_PACKAGE", demoPackage.toString())
+        buildConfigField("String", "TRUSTED_PLUGIN_PUBLISHERS", trustedPluginPublishers.toBuildConfigString())
         buildConfigField("String", "ENV_MODEL_PROVIDER_CONFIG", providerConfigText.toBuildConfigString())
         buildConfigField("String", "ENV_MODEL_PROVIDER_LOCAL_OVERRIDES", providerLocalOverridesText.toBuildConfigString())
         buildConfigField("String", "ENV_AGENT_RUNTIME_MODEL_PROVIDER", "".toBuildConfigString())
@@ -150,8 +155,15 @@ android {
     }
 }
 
-// Tests of the app server's own logic that run on Bothy's assets and plugins reach names the server keeps public only for
-// them (InternalAppServerApi); Bothy's main code never does.
+// Bothy's tests put the server into a state through its one test entry point (AppServerTesting) and run Bothy's plugins
+// on its plugin host, which the server keeps public only for other modules' tests (InternalAppServerApi); Bothy's main
+// code never opts in.
+// Bothy's features are plugins of the app server and build on what it keeps for plugins.
+// The app server is experimental, and its entry points ask for an opt-in.
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
+    compilerOptions.optIn.add("cc.noharry.agent.appserver.protocol.ExperimentalAppServerApi")
+    compilerOptions.optIn.add("cc.noharry.agent.appserver.AppServerPluginApi")
+}
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().matching { "UnitTest" in it.name }.configureEach {
     compilerOptions.optIn.add("cc.noharry.agent.appserver.InternalAppServerApi")
 }
@@ -166,19 +178,26 @@ listOf("Debug", "Release").forEach { variant ->
 
 dependencies {
     // The runtime's workspace and event log use java.nio.file, which Android has from API 26 (minSdk here is 24).
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     implementation(platform("cc.noharry:agent-bom:${providers.gradleProperty("agentRuntimeVersion").get()}"))
     implementation("cc.noharry:agent-runtime-android")
     api(project(":bothy-protocol"))
-    implementation(project(":agent-app-server"))
     implementation(project(":bothy-voice"))
     implementation(project(":bothy-llm"))
+    // The app server at the runtime's version (agent-bom) with its model services (agent-app-models), operating the
+    // screen (agent-android-use) and the device's tools (agent-device-capabilities), whose plugins the server loads from
+    // those modules' manifests, and the plugins Bothy lists, built here from plugins/.
+    val plugins = listOf(
+        "agent-app-cards", "agent-app-pages", "agent-app-memory", "agent-app-images", "agent-app-plans", "agent-app-a2a",
+    )
     listOf("debugImplementation", "releaseImplementation").forEach { scope ->
+        add(scope, "cc.noharry:agent-app-server")
+        add(scope, "cc.noharry:agent-app-models")
+        plugins.forEach { add(scope, project(":$it")) }
         add(scope, "cc.noharry:agent-exec-js")
         add(scope, "cc.noharry:agent-device-capabilities")
         add(scope, "cc.noharry:agent-android-use")
         add(scope, "cc.noharry:agent-a2a")
-        add(scope, "cc.noharry:agent-a2a-client-official")
     }
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")

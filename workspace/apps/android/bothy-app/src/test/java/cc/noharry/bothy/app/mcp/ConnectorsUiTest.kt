@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.mcp
+import android.app.Application
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -7,7 +8,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28], qualifiers = "zh")
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
 class ConnectorsUiTest {
     @Test
     fun thePairingLinkBecomesAQrCodeWithFinderPatterns() {

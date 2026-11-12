@@ -88,7 +88,7 @@ internal fun trajectoryLayoutPolicy(policy: ConsoleLayoutPolicy): TrajectoryLayo
 /**
  * Read-only run trajectory for the selected session.
  *
- * Consumes an immutable [TrajectorySnapshot]; it never holds an [cc.noharry.agent.kernel.api.AgentRuntime]
+ * Consumes an immutable [TrajectorySnapshot]; it never holds an [cc.noharry.agent.AgentRuntime]
  * or reads the EventLog directly, and switching to it has no Runtime side effect.
  */
 @Composable

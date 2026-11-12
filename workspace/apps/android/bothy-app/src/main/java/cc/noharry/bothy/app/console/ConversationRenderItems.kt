@@ -1,4 +1,5 @@
 package cc.noharry.bothy.app.console
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import android.content.res.Resources
 import android.util.Log
 import cc.noharry.agent.appserver.protocol.ArtifactPreview
@@ -171,10 +172,10 @@ internal fun List<ConversationItem>.toRenderItems(): List<ConversationRenderItem
             }
             item is ConversationItem.TurnHeader -> {
                 flushToolsAndRuntime()
-                if (turnCount > 0) {
+                if (item.isTurnStart && turnCount > 0) {
                     renderItems += ConversationRenderItem.TurnDivider(beforeTurnId = item.id)
                 }
-                turnCount += 1
+                if (item.isTurnStart) turnCount += 1
                 renderItems += ConversationRenderItem.Single(item)
             }
             else -> {

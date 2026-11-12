@@ -1,5 +1,4 @@
 package cc.noharry.bothy.server.overlay
-import cc.noharry.agent.appserver.a2ui.OfferStore
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
 import cc.noharry.agent.appserver.protocol.ContextPanelState
 import cc.noharry.agent.appserver.protocol.ConversationItem
@@ -8,6 +7,8 @@ import cc.noharry.agent.appserver.protocol.GeneratedPicture
 import cc.noharry.agent.appserver.protocol.LessonEntry
 import cc.noharry.agent.appserver.protocol.ProviderEditState
 import cc.noharry.agent.appserver.protocol.RunActivity
+import cc.noharry.agent.appserver.protocol.RunOutcome
+import cc.noharry.agent.appserver.protocol.RunResult
 import cc.noharry.agent.appserver.protocol.RuntimeDemoState
 import cc.noharry.agent.appserver.protocol.SessionBoardState
 import cc.noharry.agent.appserver.protocol.SessionSummary
@@ -21,15 +22,15 @@ import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.view.CardItem
 import cc.noharry.agent.appserver.protocol.view.CardLayout
 import cc.noharry.agent.appserver.protocol.view.DisplayChoice
+import cc.noharry.agent.appserver.protocol.view.Offer
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
-import cc.noharry.agent.appserver.runtime.parseRunSummary
-import cc.noharry.agent.appserver.runtime.runActivity
 import cc.noharry.agent.appserver.session.UiState
 import cc.noharry.bothy.protocol.view.OverlayBoardSection
 import cc.noharry.bothy.protocol.view.OverlayHud
 import cc.noharry.bothy.protocol.view.OverlayPhase
 import cc.noharry.bothy.protocol.view.OverlayPlanStatus
 import cc.noharry.bothy.protocol.view.OverlaySize
+import cc.noharry.bothy.protocol.view.NOT_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.overlayBoardSections
 import cc.noharry.bothy.protocol.view.overlayCardRows
@@ -127,16 +128,17 @@ class OverlayBoardSummaryTest {
         assertEquals("Completed", hud.headline)
         assertTrue(hud.resultText.contains("深圳北站"))
         // The run evidence check failing is the console's to show: the person still got the answer.
-        val replayFailed = state.copy(lastRun = parseRunSummary("Worked for 1m 05s · replay failed"))
+        val replayFailed = state.copy(lastRun = lastRun("Worked for 1m 05s · replay failed"))
         assertEquals(OverlayPhase.DONE, replayFailed.overlayHud().phase)
     }
 
     @Test
-    fun aStoppedRunKeepsItsThinkingHiddenWhenTheSwitchIsOff() {
+    fun aStoppedRunShowsWhatItSaidOrItsAnswer() {
         val thinking = ConversationItem.MessageItem(id = 4, role = TranscriptRole.ASSISTANT, content = "用户想订位，我先读一下他的通讯录。")
         val stopped = baseState(isRunning = false, lastRunSummary = "Stopped after 12s", status = "Stopped after 12s", items = listOf(thinking))
 
-        assertFalse(stopped.overlayHud(showThinking = false).resultText.contains("通讯录"))
+        // What it wrote before its tools was said aloud, so the card keeps it either way.
+        assertTrue(stopped.overlayHud(showThinking = false).resultText.contains("通讯录"))
         assertTrue(stopped.overlayHud(showThinking = true).resultText.contains("通讯录"))
 
         val answered = stopped.copy(items = listOf(thinking, thinking.copy(id = 5, content = "已订好晚上七点两位。", final = true)))
@@ -149,7 +151,16 @@ class OverlayBoardSummaryTest {
 
         assertEquals(OverlayPhase.DONE, partial.overlayHud().phase)
         assertEquals(PARTLY_DONE_HEADLINE, partial.overlayHud().headline)
-        assertEquals("Completed", partial.copy(lastRun = parseRunSummary("Worked for 1m 05s"), runtimeStatus = "Worked for 1m 05s").overlayHud().headline)
+        assertEquals("Completed", partial.copy(lastRun = lastRun("Worked for 1m 05s"), runtimeStatus = "Worked for 1m 05s").overlayHud().headline)
+    }
+
+    @Test
+    fun aBlockedAnswerIsDoneAndSaysItIsNotDone() {
+        // 「空调服务现在连不上，没法调温度。」 is an answer, not a failed run: done, headed 没有完成.
+        val blocked = baseState(isRunning = false, lastRunSummary = "Worked for 1m 05s · blocked", status = "Worked for 1m 05s · blocked")
+
+        assertEquals(OverlayPhase.DONE, blocked.overlayHud().phase)
+        assertEquals(NOT_DONE_HEADLINE, blocked.overlayHud().headline)
     }
 
     @Test
@@ -234,32 +245,18 @@ class OverlayBoardSummaryTest {
             ),
             items = listOf(
                 turnHeader(1),
-                ConversationItem.MessageItem(id = 2, role = TranscriptRole.ASSISTANT, content = "用户想订位，我先读一下他的通讯录。\nTTS: 好，帮你找餐厅。"),
+                ConversationItem.MessageItem(id = 2, role = TranscriptRole.ASSISTANT, content = "好，帮你找餐厅。"),
             ),
         )
         val shown = state.overlayHud()
         val hidden = state.overlayHud(showThinking = false)
 
         assertEquals("查用户手机号再订位", shown.currentStep)
-        assertTrue(shown.resultText.contains("通讯录"))
+        assertEquals("好，帮你找餐厅。", shown.resultText)
         assertEquals("正在处理", hidden.currentStep)
         assertEquals("好，帮你找餐厅。", hidden.resultText)
         assertTrue(hidden.planRows.isEmpty())
         assertTrue(hidden.thinkingHidden)
-
-        // Streamed rounds run together in one line (bench 2026-10-14): the spoken parts are cut as the announcer does.
-        val runTogether = state.copy(
-            items = listOf(
-                turnHeader(1),
-                ConversationItem.MessageItem(
-                    id = 2,
-                    role = TranscriptRole.ASSISTANT,
-                    content = "I'll check the weather and set the AC.TTS: 先查两地天气。TTS: 天气查好了，我再试一次空调。明天北京是晴天",
-                ),
-            ),
-        )
-        assertEquals("先查两地天气。\n天气查好了，我再试一次空调。", runTogether.overlayHud(showThinking = false).resultText)
-        assertFalse(runTogether.overlayHud().resultText.contains("TTS:"))
     }
 
     @Test
@@ -270,7 +267,7 @@ class OverlayBoardSummaryTest {
             isRunning = true,
             items = listOf(
                 turnHeader(1), previous, turnHeader(3),
-                ConversationItem.MessageItem(id = 4, role = TranscriptRole.ASSISTANT, content = "TTS: 好，帮你找停车场。"),
+                ConversationItem.MessageItem(id = 4, role = TranscriptRole.ASSISTANT, content = "好，帮你找停车场。"),
             ),
         ).overlayHud()
 
@@ -391,20 +388,20 @@ class OverlayBoardSummaryTest {
         val drawn = "generated-images/ZGVidWctY29uc29sZS1zZXNzaW9u/img-mv0rmhd9-jtne.jpg"
         val reply = ConversationItem.MessageItem(id = 12, role = TranscriptRole.ASSISTANT, content = "行程卡已经放到屏幕上了。")
         val items = listOf(turnHeader(10), imageCall(ToolCallStatus.DONE, """{"image":{"reference":"$drawn"}}"""), reply)
-        // The server publishes the offers; the card reads them from the state.
+        // The server publishes the offers (the cards plugin's latest per session); the card reads them from the state.
+        var offers = emptyMap<String, Offer>()
         fun hud() = baseState(isRunning = false, lastRunSummary = "Worked for 20s", status = "Worked for 20s", items = items)
-            .copy(offers = OfferStore.latestOffers.value).overlayHud()
-        try {
-            assertEquals(drawn, hud().picture?.reference)
-            val trip = WidgetCard("苏州一日游", null, null, null, emptyList(), listOf(CardItem(null, "拙政园", null, image = drawn)), image = drawn)
-            OfferStore.update("session-1", "turn", 0L) { it.copy(cards = listOf(trip)) }
-            // The stops carry the pictures; a big frame beside the reply would show one of them twice.
-            assertNull(hud().picture)
-            OfferStore.update("session-1", "turn", 0L) { it.copy(cards = listOf(trip.copy(items = emptyList(), value = "人均 90"))) }
-            assertEquals(drawn, hud().picture?.reference)
-        } finally {
-            OfferStore.clear()
+            .copy(offers = offers).overlayHud()
+        fun show(card: WidgetCard) {
+            offers = mapOf("session-1" to Offer("session-1", "turn", emptyList(), 0L, cards = listOf(card)))
         }
+        assertEquals(drawn, hud().picture?.reference)
+        val trip = WidgetCard("苏州一日游", null, null, null, emptyList(), listOf(CardItem(null, "拙政园", null, image = drawn)), image = drawn)
+        show(trip)
+        // The stops carry the pictures; a big frame beside the reply would show one of them twice.
+        assertNull(hud().picture)
+        show(trip.copy(items = emptyList(), value = "人均 90"))
+        assertEquals(drawn, hud().picture?.reference)
     }
 
     private fun imageCall(status: ToolCallStatus, result: String?) = ConversationItem.ToolCallItem(
@@ -551,8 +548,8 @@ class OverlayBoardSummaryTest {
         status: String = "Idle",
     ): UiState =
         UiState(
-            activity = if (isRunning) runActivity(status).first else RunActivity.IDLE,
-            activityTool = if (isRunning) runActivity(status).second else "",
+            activity = if (isRunning) activity(status).first else RunActivity.IDLE,
+            activityTool = if (isRunning) activity(status).second else "",
             runtimeStatus = status,
             providerLabel = "OpenAI",
             confirmationMode = ConfirmationMode.ASK_EVERY_TIME,
@@ -570,6 +567,35 @@ class OverlayBoardSummaryTest {
             currentRequest = currentRequest,
             artifactPreview = null,
             runStartedAtEpochMillis = runStartedAtEpochMillis,
-            lastRun = parseRunSummary(lastRunSummary),
+            lastRun = lastRun(lastRunSummary),
         )
+
+    /** What the server publishes while a run goes on, for the runtime's status lines these tests use (RunSummaryTest). */
+    private fun activity(status: String): Pair<RunActivity, String> = when {
+        status.startsWith("Tool running:") -> RunActivity.RUNNING_TOOL to status.substringAfter(":").trim()
+        status.startsWith("Failed") -> RunActivity.FAILED to ""
+        status.startsWith("Stopped") -> RunActivity.STOPPED to ""
+        else -> RunActivity.WORKING to ""
+    }
+
+    /** How the last run ended, as the server publishes it for the runtime's summaries these tests use (RunSummaryTest). */
+    private fun lastRun(summary: String?): RunResult? = summary?.let { LAST_RUNS.getValue(it) }
+
+    private companion object {
+        val LAST_RUNS = mapOf(
+            "Worked for 1m 05s" to RunResult(RunOutcome.COMPLETED, 65_000),
+            "Worked for 1m 05s · partial" to RunResult(RunOutcome.PARTIAL, 65_000),
+            "Worked for 1m 05s · blocked" to RunResult(RunOutcome.BLOCKED, 65_000),
+            "Worked for 1m 05s · replay failed" to RunResult(RunOutcome.REPLAY_FAILED, 65_000),
+            "Worked for 40s" to RunResult(RunOutcome.COMPLETED, 40_000),
+            "Worked for 25s" to RunResult(RunOutcome.COMPLETED, 25_000),
+            "Worked for 20s" to RunResult(RunOutcome.COMPLETED, 20_000),
+            "Worked for 18s" to RunResult(RunOutcome.COMPLETED, 18_000),
+            "Failed after 32s" to RunResult(RunOutcome.FAILED, 32_000),
+            "Failed after 18s" to RunResult(RunOutcome.FAILED, 18_000),
+            "Failed after 3s" to RunResult(RunOutcome.FAILED, 3_000),
+            "Stopped after 12s" to RunResult(RunOutcome.STOPPED, 12_000),
+            "Stopped after 5s" to RunResult(RunOutcome.STOPPED, 5_000),
+        )
+    }
 }

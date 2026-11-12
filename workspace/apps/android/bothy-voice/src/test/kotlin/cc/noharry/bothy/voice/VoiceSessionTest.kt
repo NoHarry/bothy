@@ -520,6 +520,98 @@ class VoiceSessionTest {
         assertEquals(VoiceSessionStatus.ERROR, session.state.value.status)
     }
 
+    @Test
+    fun theRepliesLastWordsWrittenOutJustAfterItEndedAreItsOwnInBothDuplexModes() = test.runTest {
+        listOf(true, false).forEach { fullDuplex ->
+            handed.clear()
+            var asked = 0
+            // The reply ends at 1.0 s; its last words come from the recognizer 0.3 s (0.8 s in half duplex, past the
+            // microphone's own tail) later, as on the tablet: 「…量现在是40%」.
+            val heardAt = if (fullDuplex) 13 else 18
+            val session = echoSession(ScriptedEngine(mapOf(heardAt to "量现在是40%")), fullDuplex, heardAt) { asked++ }
+            session.start()
+            session.setHostState(working = false, speaking = true, speech = "好的，音量现在是40%。")
+            advanceTimeBy(1_000)
+            session.setHostState(working = false, speaking = false)
+            advanceTimeBy(8_000)
+            runCurrent()
+
+            assertEquals("duplex=$fullDuplex", 0, asked)
+            assertTrue(handed.isEmpty())
+            assertEquals(VoiceEndReason.ECHO, session.state.value.segments.single().reason)
+            session.stop()
+        }
+    }
+
+    @Test
+    fun theLineBeforeTheOneNowPlayingIsStillTheAssistantsOwn() = test.runTest {
+        var asked = 0
+        var interrupted = 0
+        // The first line's last words come while the next queued line plays: no Jev call, no barge-in.
+        val session = echoSession(ScriptedEngine(mapOf(13 to "量现在是40%")), fullDuplex = true, heardAt = 13, onInterrupt = { interrupted++ }) { asked++ }
+        session.start()
+        session.setHostState(working = false, speaking = true, speech = "好的，音量现在是40%。")
+        advanceTimeBy(1_000)
+        session.setHostState(working = false, speaking = true, speech = "还要再调大一点吗？")
+        advanceTimeBy(8_000)
+        runCurrent()
+
+        assertEquals(0, asked)
+        assertEquals(0, interrupted)
+        assertTrue(handed.isEmpty())
+        assertEquals(VoiceEndReason.ECHO, session.state.value.segments.single().reason)
+        session.stop()
+    }
+
+    @Test
+    fun aDifferentSentenceRightAfterTheReplyIsTheSpeakers() = test.runTest {
+        var asked = 0
+        val session = echoSession(ScriptedEngine(mapOf(13 to "帮我把空调打开")), fullDuplex = true, heardAt = 13) { asked++ }
+        session.start()
+        session.setHostState(working = false, speaking = true, speech = "好的，音量现在是40%。")
+        advanceTimeBy(1_000)
+        session.setHostState(working = false, speaking = false)
+        advanceTimeBy(4_000)
+        runCurrent()
+
+        assertTrue(asked > 0)
+        assertEquals(listOf("帮我把空调打开"), handed)
+        session.stop()
+    }
+
+    @Test
+    fun theRepliesWordsPastTheTailAreTheSpeakers() = test.runTest {
+        // Said 1.5 s after the reply ended: past [OWN_SPEECH_TAIL_MILLIS], the speaker repeating it.
+        val session = echoSession(ScriptedEngine(mapOf(25 to "量现在是40%")), fullDuplex = true, heardAt = 25) {}
+        session.start()
+        session.setHostState(working = false, speaking = true, speech = "好的，音量现在是40%。")
+        advanceTimeBy(1_000)
+        session.setHostState(working = false, speaking = false)
+        advanceTimeBy(5_000)
+        runCurrent()
+
+        assertEquals(listOf("量现在是40%"), handed)
+        session.stop()
+    }
+
+    /** Words for the assistant, finished, voiced around the recognizer's frame [heardAt]. */
+    private fun echoSession(
+        engine: ScriptedEngine,
+        fullDuplex: Boolean,
+        heardAt: Int,
+        onInterrupt: () -> Unit = {},
+        onAsked: () -> Unit,
+    ) = VoiceSession(
+        engine = engine,
+        judge = { onAsked(); VoiceJudgment(0.95, 0.0, 0.9, latencyMillis = 1, takingFloor = 0.9) },
+        audio = { flow { repeat(FRAMES) { index -> delay(100); emit(frame(voiced = index in heardAt - 2..heardAt)) } } },
+        fullDuplex = fullDuplex,
+        onInterrupt = onInterrupt,
+        onAgentTurn = { handed += it.text },
+        clock = { dispatcher.scheduler.currentTime },
+        dispatchers = dispatchers,
+    )
+
     private fun session(engine: ScriptedEngine, addressed: Double, calledAtStart: Boolean = true, hold: Boolean = false) = VoiceSession(
         engine = engine,
         judge = { VoiceJudgment(turnComplete = 0.95, holdingFloor = 0.0, addressedToAgent = addressed, latencyMillis = 1) },

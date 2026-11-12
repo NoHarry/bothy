@@ -1,6 +1,5 @@
 package cc.noharry.bothy.server.voice.tts
 import android.media.AudioTrack
-import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.bothy.server.voice.SpeechFocus
 import cc.noharry.bothy.voice.MicActivity
 import java.util.IdentityHashMap
@@ -10,8 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Whether any speech is queued, being synthesized or playing, across every announcer and player in the process, and
- * what is being said. Half duplex stays deaf while this is true; full duplex compares what it hears against
- * [speech] to drop the reply's echo, and [interrupt] stops every announcer when someone cuts in.
+ * what is being said. Half duplex stays deaf while this is true; the listening session keeps the last lines of [speech]
+ * it was told and drops what it hears like them, while they play and just after ([cc.noharry.bothy.voice.OwnSpeech]),
+ * and [interrupt] stops every announcer when someone cuts in.
  */
 internal object TtsActivity {
     /** Each holder with how to stop it; players register without a stopper (their announcer stops them). */

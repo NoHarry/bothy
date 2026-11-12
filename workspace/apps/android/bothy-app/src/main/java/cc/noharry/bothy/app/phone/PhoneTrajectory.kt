@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.phone
 
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -254,8 +255,8 @@ internal fun keyValues(text: String?): List<Pair<String, String>>? = jsonObjectO
  */
 internal fun turnSteps(items: List<ConversationItem>, turn: Long?): List<ConversationItem> {
     val asked = turn?.let { id -> items.indexOfFirst { it.id == id } }?.takeIf { it >= 0 }
-    val start = asked ?: items.indexOfLast { it is ConversationItem.TurnHeader }.coerceAtLeast(0)
-    val next = items.drop(start + 1).indexOfFirst { it is ConversationItem.TurnHeader }
+    val start = asked ?: items.indexOfLast { it.isTurnStart }.coerceAtLeast(0)
+    val next = items.drop(start + 1).indexOfFirst { it.isTurnStart }
     val end = if (next < 0) items.size else start + 1 + next
     return items.subList(start, end).filter { it.isPhoneStep() }
 }

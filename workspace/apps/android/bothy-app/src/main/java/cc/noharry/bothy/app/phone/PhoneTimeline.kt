@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.phone
 
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,7 +22,6 @@ import cc.noharry.agent.appserver.protocol.view.toHtmlArtifactPreview
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConversationRenderItem
 import cc.noharry.bothy.app.console.uniqueKeys
-import cc.noharry.bothy.protocol.view.TTS_PROGRESS_PREFIX
 import cc.noharry.bothy.protocol.view.generatedPicture
 import cc.noharry.bothy.protocol.view.pickableReply
 
@@ -90,7 +90,7 @@ internal class PhoneLinks(val onTrajectory: (turn: Long) -> Unit, val onPlans: (
  */
 internal fun phoneRows(items: List<ConversationItem>, running: Boolean): List<PhoneRow> {
     val turns = mutableListOf<MutableList<ConversationItem>>()
-    items.forEach { item -> if (item is ConversationItem.TurnHeader || turns.isEmpty()) turns += mutableListOf(item) else turns.last() += item }
+    items.forEach { item -> if (item.isTurnStart || turns.isEmpty()) turns += mutableListOf(item) else turns.last() += item }
     return turns.flatMapIndexed { index, turn -> turnRows(turn, live = running && index == turns.lastIndex) }
 }
 
@@ -111,6 +111,7 @@ private fun turnRows(turn: List<ConversationItem>, live: Boolean): List<PhoneRow
     if (!live && !failed && reply != null) {
         val interim = body.filter { it.isInterim(reply) }.filterIsInstance<ConversationItem.MessageItem>()
         if (steps.isNotEmpty() || interim.isNotEmpty()) rows += PhoneRow.Folded(id, steps, interim)
+        body.filterIsInstance<ConversationItem.TurnHeader>().forEach { rows += PhoneRow.Asked(it) }
         rows += pages
         rows += PhoneRow.Shown(reply)
     } else {
@@ -119,6 +120,7 @@ private fun turnRows(turn: List<ConversationItem>, live: Boolean): List<PhoneRow
         rows += pages
         body.forEachIndexed { index, item ->
             when {
+                item is ConversationItem.TurnHeader -> rows += PhoneRow.Asked(item)
                 item is ConversationItem.ConfirmationItem -> {
                     val asking = body.subList(0, index).lastOrNull { it is ConversationItem.ToolCallItem } as? ConversationItem.ToolCallItem
                     rows += PhoneRow.Approval(item, asking)
@@ -127,8 +129,7 @@ private fun turnRows(turn: List<ConversationItem>, live: Boolean): List<PhoneRow
             }
         }
     }
-    // What a copy takes: the reply's words without the voice's marks, as the screen shows them.
-    val copied = reply?.content?.replace(TTS_PROGRESS_PREFIX, "")
+    val copied = reply?.content
     if (!live && (reply != null || failed)) rows += PhoneRow.Footnote(id, copied, body.count { it.isTool() }, failed)
     body.filterIsInstance<ConversationItem.ToolCallItem>().mapNotNull { it.madePlan() }.distinct().forEach { rows += PhoneRow.PlanMade(id, it) }
     body.filterIsInstance<ConversationItem.ToolCallItem>().forEach { tool ->

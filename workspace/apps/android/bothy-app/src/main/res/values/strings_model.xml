@@ -5,19 +5,32 @@
     <string name="model_add_service">Add service</string>
     <string name="model_saved_choose_model">Saved. Choose the model to use beside the message box.</string>
     <string name="model_service_name">Service name</string>
-    <string name="model_type">Type</string>
+    <string name="model_provider">Provider</string>
+    <string name="model_provider_choose">Choose a provider</string>
+    <string name="model_provider_custom">Custom</string>
+    <string name="model_provider_custom_saved">Custom (an address of no service the app knows)</string>
+    <string name="model_region">Region</string>
+    <string name="model_region_cn">China</string>
+    <string name="model_region_global">International</string>
+    <string name="model_region_us">US</string>
+    <string name="model_type">Protocol</string>
+    <string name="model_protocol_openai">OpenAI-compatible</string>
     <string name="model_endpoint">Endpoint</string>
     <string name="model_delete_service">Delete service</string>
-    <!-- DeepSeek balance -->
+    <!-- Under the key field: where the chosen service makes keys, for the region chosen. -->
+    <string name="model_key_page">Create an API key at %1$s.</string>
+    <string name="model_key_page_by_region">Create an API key at %1$s. Each region has its own site, and a key works only in the region it was made in.</string>
+    <!-- A service's balance -->
     <string name="model_api_key_saved">Saved; leave blank to keep it</string>
-    <string name="model_deepseek_balance_hint">An official DeepSeek key can check its balance</string>
+    <string name="model_service_balance_hint">A %1$s key can check its balance</string>
     <string name="model_balance_checking">Checking…</string>
     <string name="model_balance_check">Check balance</string>
     <!-- DeepSeek check of a relay -->
-    <string name="model_deepseek_features">DeepSeek official features</string>
-    <string name="model_deepseek_probe_intro">When a relay has DeepSeek\'s official API behind it, what passes the check (balance, Search/Fetch, native deferred tools) goes through this service\'s address and key (the check runs one search, ¥0.005)</string>
-    <string name="model_deepseek_probe_stale">The address, endpoint or key changed since the last check; check again</string>
-    <string name="model_deepseek_probe_current">Checked with the address and key filled in; changes take effect once saved</string>
+    <string name="model_relay_features">%1$s official features</string>
+    <string name="model_saved_key_elsewhere">This address is not where the saved key goes: type the key to check it</string>
+    <string name="model_relay_probe_intro">When a relay has %1$s\'s official API behind it, what passes the check (balance, Search/Fetch, native deferred tools) goes through this service\'s address and key (the check runs one paid search)</string>
+    <string name="model_relay_probe_stale">The address, endpoint or key changed since the last check; check again</string>
+    <string name="model_relay_probe_current">Checked with the address and key filled in; changes take effect once saved</string>
     <string name="model_probe_checking">Checking…</string>
     <string name="model_probe_check">Check</string>
     <string name="model_probe_balance">Balance API</string>
@@ -48,6 +61,10 @@
     <string name="model_context_default">Default %1$s</string>
     <string name="model_context_default_compacts">Default %1$s · compacts at 80%%</string>
     <string name="model_context_invalid">Enter a positive whole number, or a number with K / M</string>
+    <string name="model_output_limit">Output limit (tokens)</string>
+    <string name="model_output_default">Default %1$s</string>
+    <string name="model_output_service_default">The service\'s default</string>
+    <string name="model_output_up_to">%1$s · at most %2$s</string>
     <string name="model_image_input_description">%1$s image input</string>
     <string name="model_text_and_images">Text + images</string>
     <string name="model_text_only">Text only</string>
@@ -80,11 +97,13 @@
     <string name="model_balance_failed">Couldn\'t check: %1$s</string>
     <string name="model_balance_insufficient">Insufficient balance, unavailable for now</string>
     <string name="model_balance_key_rejected">The API key is invalid or disabled</string>
+    <string name="model_key_type_again">The saved API key is sent only to its own service\'s address; type the key to use it at %1$s</string>
     <string name="model_balance_separator">"; "</string>
     <string name="model_choose_model_first">Choose a model beside the message box; you can fetch or add models in Settings first.</string>
     <string name="model_deepseek_available">Available</string>
     <string name="model_http_error">HTTP %1$s: %2$s</string>
     <string name="model_missing_api_key">Missing API key for %1$s. Set it in Config or provide one of:\n%2$s</string>
+    <string name="model_missing_base_url">%1$s has no base URL. Set the address of its service in Settings.</string>
     <string name="model_on_device_missing">On-device model %1$s isn\'t downloaded: Settings → Models and services → On-device model → %1$s → Download (about %2$s GB).</string>
     <string name="model_probe_dropped">The model answered as usual; the relay dropped %1$s</string>
     <string name="model_probe_no_model">No model chosen, can\'t check</string>

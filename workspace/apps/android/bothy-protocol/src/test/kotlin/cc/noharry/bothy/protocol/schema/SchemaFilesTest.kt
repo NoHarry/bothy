@@ -1,5 +1,6 @@
 package cc.noharry.bothy.protocol.schema
 
+import cc.noharry.agent.appserver.protocol.AppServerMethods
 import cc.noharry.bothy.protocol.BothyExtensions
 import cc.noharry.bothy.protocol.ProtocolMethods
 import java.io.File
@@ -18,13 +19,14 @@ class SchemaFilesTest {
 
     @Test
     fun registryListsEveryMethodTheProtocolDefines() {
-        // The app server's methods and Bothy's own.
-        val defined = listOf(File("../agent-app-protocol/src/main/kotlin"), File("src/main/kotlin"))
-            .flatMap { it.walkTopDown().filter { file -> file.extension == "kt" }.toList() }
+        // The app server's methods (its registry, which the runtime's repository checks against its sources; the model
+        // services' among them) and Bothy's own (from these sources).
+        val bothys = File("src/main/kotlin").walkTopDown().filter { file -> file.extension == "kt" }
             .flatMap { file -> METHOD.findAll(file.readText()).map { it.groupValues[1] } }
-            .toSortedSet()
+        val defined = (AppServerMethods.all.map { it.name } + bothys).toSortedSet()
         val registered = ProtocolMethods.all.map { it.name }
 
+        assertTrue("the model services' requests", "services/balance" in registered && "services/check" in registered)
         assertEquals("each method once in ProtocolMethods", registered.size, registered.toSet().size)
         assertEquals("ProtocolMethods lists every RequestMethod and NotificationMethod", defined.toList(), registered.sorted())
     }

@@ -5,8 +5,13 @@ import cc.noharry.agent.appserver.protocol.client.ServerState
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
 import cc.noharry.agent.appserver.protocol.jsonrpc.RequestMethod
 
+/** What sends a screen's requests to the server: a front end's connection ([FrontEndClient]), or a test's stand-in. */
+internal interface ServerSender {
+    fun <P, R> send(method: RequestMethod<P, R>, params: P, onRefused: (JsonRpcException) -> Unit = {}, onAnswer: (R) -> Unit = {})
+}
+
 /** The server as a screen's composables reach it: the [state] to draw, and [send] to ask it for something. */
-internal class ServerAccess(val state: ServerState, private val client: FrontEndClient?) {
+internal class ServerAccess(val state: ServerState, private val client: ServerSender?) {
     fun <P, R> send(method: RequestMethod<P, R>, params: P, onRefused: (JsonRpcException) -> Unit = {}, onAnswer: (R) -> Unit = {}) {
         client?.send(method, params, onRefused, onAnswer)
     }

@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.overlay
+import cc.noharry.agent.appserver.protocol.USER_STEERING_LABEL
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
 
 import cc.noharry.agent.appserver.protocol.ConfirmationStatus
 import cc.noharry.agent.appserver.protocol.ConversationItem
@@ -51,7 +53,7 @@ internal fun ConversationItem.toOverlayEntry(): OverlayEntry =
     when (this) {
         is ConversationItem.TurnHeader -> OverlayEntry(
             id = id,
-            title = label,
+            title = if (label == USER_STEERING_LABEL) USER_TURN_LABEL else label,
             body = preview.overlayCollapsedLine(),
             isError = false,
         )

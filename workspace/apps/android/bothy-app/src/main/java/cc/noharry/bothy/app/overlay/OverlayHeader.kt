@@ -36,6 +36,7 @@ import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.status
 import cc.noharry.bothy.protocol.view.OverlayHud
 import cc.noharry.bothy.protocol.view.OverlayPhase
+import cc.noharry.bothy.protocol.view.NOT_DONE_HEADLINE
 import cc.noharry.bothy.protocol.view.PARTLY_DONE_HEADLINE
 
 @Composable
@@ -114,6 +115,7 @@ private fun OverlayHud.statusLine(ui: OverlayUi): Int = when {
     phase == OverlayPhase.LIVE -> R.string.overlay_step_working
     phase == OverlayPhase.DONE && headline == "等待你的回复" -> R.string.overlay_status_waiting_reply
     phase == OverlayPhase.DONE && headline == PARTLY_DONE_HEADLINE -> R.string.overlay_status_partly_done
+    phase == OverlayPhase.DONE && headline == NOT_DONE_HEADLINE -> R.string.overlay_status_not_done
     phase == OverlayPhase.DONE -> R.string.overlay_status_done
     phase == OverlayPhase.FAIL -> R.string.overlay_status_not_done
     phase == OverlayPhase.STOP -> R.string.overlay_status_stopped

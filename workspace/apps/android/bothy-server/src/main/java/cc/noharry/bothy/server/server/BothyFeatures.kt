@@ -6,9 +6,9 @@ import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.FeatureRequests
 import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcNotification
 import cc.noharry.agent.appserver.protocol.jsonrpc.ProtocolJson
-import cc.noharry.agent.appserver.server.AppServerFeature
+import cc.noharry.agent.appserver.server.AppServerPlugin
+import cc.noharry.agent.appserver.server.PluginContext
 import cc.noharry.agent.appserver.server.PreferencesSource
-import cc.noharry.agent.appserver.server.Presenter
 import cc.noharry.agent.appserver.server.PublishedState
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.RouteTable
@@ -51,18 +51,27 @@ import kotlinx.coroutines.launch
  * the speaker's level, Jev's tool search, the strip's dismissals, and the microphone service and the resting assistant
  * when the app comes to the front.
  */
-internal object VoiceFeature : AppServerFeature {
-    override fun install(app: Application) {
+internal object VoiceFeature : AppServerPlugin {
+    override val id: String = "voice"
+
+    // 小博 is a voice assistant: its microphone, wake word and speech are wired through the whole app.
+    override val required: Boolean = true
+
+    override fun apply(ctx: PluginContext) {
+        val app = ctx.app
+        // Bothy's code reaches the conversation, speech and the assistant on screen through this plugin's context.
+        ServerLink.attach(ctx)
         SpeechFocus.attach(app)
         SystemTts.attach(app)
         BothyVoice.start(app)
         AsrTextServerManager.start(app)
+        voiceRoutes(app).forEach(ctx::routes)
+        ctx.publish { publish(app, this) }
+        ctx.onAppInFront { appInFront(app, it) }
+        ctx.onPresenterReady { ready -> if (ready) WakeWord.presenterReady(app) else WakeWord.refresh() }
     }
 
-    override fun routes(app: Context): List<RouteModule> =
-        listOf(VoiceSettingsRoutes(app), VoiceControlRoutes(app), RealtimeRoutes(app), CompanionRoutes(app), ToolSearchRoutes(app))
-
-    override fun publish(app: Context, state: PublishedState) {
+    private fun publish(app: Context, state: PublishedState) {
         listOf(VoiceController.state, VoiceController.active, VoiceController.notice, TtsActivity.active, WakeWord.enabled, WakeWord.status,
             VoiceFeedback.notice, wakeNoticeShown, RealtimeShown.exchange).forEach { flow -> state.follow(flow) { withVoice(voiceView(app)) } }
         state.update { withToolSearch(loadJevConfig(app).view()) }
@@ -74,15 +83,12 @@ internal object VoiceFeature : AppServerFeature {
     }
 
     /** In front: the wake word's microphone service may start, and with 语音唤醒 on 小博 comes up with the app. */
-    override fun appInFront(app: Context, inFront: Boolean) {
+    private fun appInFront(app: Context, inFront: Boolean) {
         if (!inFront) return
         VoiceForegroundService.sync(app)
         // A phone has no resting 小博, so nothing comes up there (the presentation decides).
-        if (loadVoiceConfig(app).overlayWake) Presenter.ensureRunning()
+        if (loadVoiceConfig(app).overlayWake) ServerLink.assistant.ensureRunning()
     }
-
-    /** The assistant on screen came up (a wake heard while it started is handed over) or went (wakes go on without it). */
-    override fun presenterReady(app: Context, ready: Boolean) = if (ready) WakeWord.presenterReady(app) else WakeWord.refresh()
 
     private val main = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -119,35 +125,58 @@ internal object VoiceFeature : AppServerFeature {
 }
 
 /** The on-device model ([OnDeviceModel]): its downloads and inference server, its requests and its section. */
-internal object OnDeviceFeature : AppServerFeature {
-    override fun install(app: Application) = OnDeviceModel.init(app)
+internal object OnDeviceFeature : AppServerPlugin {
+    override val id: String = "on-device-model"
 
-    override fun routes(app: Context): List<RouteModule> = listOf(OnDeviceRoutes())
+    // BothyModels hands the server this model's profile and client whether or not anything is downloaded.
+    override val required: Boolean = true
 
-    override fun publish(app: Context, state: PublishedState) {
-        listOf(OnDeviceModel.downloads, OnDeviceModel.fileChanges, OnDeviceModel.server.state).forEach { flow ->
-            state.follow(flow) { withOnDevice(onDeviceView(app)) }
+    override fun apply(ctx: PluginContext) {
+        val app = ctx.app
+        OnDeviceModel.init(app)
+        onDeviceRoutes().forEach(ctx::routes)
+        ctx.publish {
+            listOf(OnDeviceModel.downloads, OnDeviceModel.fileChanges, OnDeviceModel.server.state).forEach { flow ->
+                follow(flow) { withOnDevice(onDeviceView(app)) }
+            }
         }
     }
 }
 
 /** Settings → 检查: the checks and their latest results. */
-internal object ChecksFeature : AppServerFeature {
-    override fun routes(app: Context): List<RouteModule> = listOf(ChecksRoutes(app))
+internal object ChecksFeature : AppServerPlugin {
+    override val id: String = "checks"
 
-    override fun publish(app: Context, state: PublishedState) = state.follow(HealthCheckRuns.state) { withChecks(it.view()) }
+    override fun apply(ctx: PluginContext) {
+        checkRoutes(ctx.app).forEach(ctx::routes)
+        ctx.publish { follow(HealthCheckRuns.state) { withChecks(it.view()) } }
+    }
 }
 
 /** The Bothy Playground beside the app: its mode, reported by the Playground. */
-internal object PlaygroundFeature : AppServerFeature {
-    override fun install(app: Application) = PlaygroundMode.init(app)
+internal object PlaygroundFeature : AppServerPlugin {
+    override val id: String = "playground"
 
-    override fun routes(app: Context): List<RouteModule> = listOf(PlaygroundRoutes(app))
+    // BothyRuns reads the Playground's mode for every run.
+    override val required: Boolean = true
+
+    override fun apply(ctx: PluginContext) {
+        PlaygroundMode.init(ctx.app)
+        playgroundRoutes(ctx.app).forEach(ctx::routes)
+    }
 }
 
 /** The rest of Bothy's own settings: first run (豆包's key, the permissions) and 连接应用. */
-internal object BothySettingsFeature : AppServerFeature {
-    override fun routes(app: Context): List<RouteModule> = listOf(OnboardingRoutes(app), ConnectorRoutes(app))
+internal object BothySettingsFeature : AppServerPlugin {
+    override val id: String = "bothy-settings"
+
+    override val required: Boolean = true
+
+    override fun apply(ctx: PluginContext) {
+        settingsRoutes(ctx.app).forEach(ctx::routes)
+        // Bothy starts after a reboot or an update, plans on or off: its wake word listens again without the app opened.
+        ctx.startOnBoot()
+    }
 }
 
 /** `playground/setReal`: the Playground navigates for real, so the demo car's tools go away. */
@@ -159,3 +188,18 @@ internal class PlaygroundRoutes(private val app: Context) : RouteModule {
         }
     }
 }
+
+private fun voiceRoutes(app: Context): List<RouteModule> =
+    listOf(VoiceSettingsRoutes(app), VoiceControlRoutes(app), RealtimeRoutes(app), CompanionRoutes(app), ToolSearchRoutes(app))
+
+private fun onDeviceRoutes(): List<RouteModule> = listOf(OnDeviceRoutes())
+
+private fun checkRoutes(app: Context): List<RouteModule> = listOf(ChecksRoutes(app))
+
+private fun playgroundRoutes(app: Context): List<RouteModule> = listOf(PlaygroundRoutes(app))
+
+private fun settingsRoutes(app: Context): List<RouteModule> = listOf(OnboardingRoutes(app), ConnectorRoutes(app))
+
+/** The requests Bothy's own plugins answer, as each adds them when it starts. */
+internal fun bothyRoutes(app: Context): List<RouteModule> =
+    voiceRoutes(app) + onDeviceRoutes() + checkRoutes(app) + playgroundRoutes(app) + settingsRoutes(app)

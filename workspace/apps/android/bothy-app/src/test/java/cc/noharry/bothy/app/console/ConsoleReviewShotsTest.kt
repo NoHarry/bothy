@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.console
 
+import android.app.Application
 import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -30,7 +31,7 @@ import java.io.File
 /** Bitmaps for the review: the tablet user bubble, and the window-sized layout breakpoint. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [28], qualifiers = "w1280dp-h800dp-land")
+@Config(sdk = [28], qualifiers = "w1280dp-h800dp-land", application = Application::class)
 class ConsoleReviewShotsTest {
     @get:Rule
     val compose = createComposeRule()

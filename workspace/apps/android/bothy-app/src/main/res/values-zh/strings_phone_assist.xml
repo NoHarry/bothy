@@ -13,6 +13,7 @@
     <string name="phone_assist_running">进行中</string>
     <string name="phone_assist_done">做好了</string>
     <string name="phone_assist_partly">做了一部分</string>
+    <string name="phone_assist_not_done">没办成</string>
     <string name="phone_assist_failed">没做成</string>
     <string name="phone_assist_stopped">已停止</string>
     <string name="phone_assist_took_seconds">用时 %1$d 秒</string>
@@ -22,7 +23,7 @@
     <string name="phone_assist_open_app">在 App 里看</string>
     <string name="phone_assist_talk">继续说</string>
     <string name="phone_assist_pending">待批准</string>
-    <string name="phone_assist_allow_session">这次对话都允许</string>
+    <string name="phone_assist_allow_session">以后都允许</string>
     <string name="phone_assist_stop">停止</string>
     <string name="phone_assist_live_channel">小博正在做的事</string>
     <string name="phone_assist_live_chip">小博</string>

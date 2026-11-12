@@ -7,7 +7,7 @@ import android.os.Looper
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.text
-import cc.noharry.agent.appserver.server.Presenter
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.bothy.protocol.BothyFindingCode
 import cc.noharry.bothy.voice.LeasedAudioSource
 import cc.noharry.bothy.voice.NearSpeechGate
@@ -125,7 +125,7 @@ internal object WakeWord {
         // Switched in Settings, so the app is in front and the microphone service may start (or stops).
         VoiceForegroundService.sync(context)
         // The wake word is heard through the overlay; switching it on brings the overlay up.
-        if (enabled) Presenter.ensureRunning()
+        if (enabled) ServerLink.assistant.ensureRunning()
         refresh()
         return true
     }
@@ -202,7 +202,7 @@ internal object WakeWord {
         // Lets go of the microphone; the voice session takes it as soon as the recording is closed.
         stopListener()
         val source = if (phrase == BOTHY_WAKE_PHRASE) WakeSource.ENGLISH_WORD else WakeSource.WORD
-        Presenter.wake(source.name) { taken ->
+        ServerLink.assistant.wake(source.name) { taken ->
             if (!taken) wakeWithoutOverlay(context, source)
             // Listening resumes at once when the wake did not start a session.
             refresh()
@@ -215,12 +215,12 @@ internal object WakeWord {
      * session runs without it (the answer and the replies are still heard).
      */
     private fun wakeWithoutOverlay(context: Context, source: WakeSource) {
-        if (Presenter.inFront()) {
+        if (ServerLink.assistant.inFront) {
             startWokenVoice(context, source)
             return
         }
         pendingWake = source
-        Presenter.start(open = false) { refused ->
+        ServerLink.assistant.start(open = false) { refused ->
             if (refused != null) VoiceLog.w(TAG, "wake without the overlay: $refused")
             main.postDelayed({
                 if (pendingWake == source) {

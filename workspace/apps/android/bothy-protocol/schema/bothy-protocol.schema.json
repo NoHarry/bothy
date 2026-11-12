@@ -581,6 +581,14 @@
           "$ref": "#/$defs/Empty"
         }
       },
+      "a2a/server/token": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/TextResult"
+        }
+      },
       "workspace/select": {
         "params": {
           "$ref": "#/$defs/UriParams"
@@ -685,28 +693,76 @@
           "$ref": "#/$defs/PriceSyncResult"
         }
       },
-      "deepseek/balance": {
+      "services/list": {
         "params": {
-          "$ref": "#/$defs/DeepSeekBalanceParams"
+          "$ref": "#/$defs/Empty"
         },
         "result": {
-          "$ref": "#/$defs/DeepSeekBalanceResult"
+          "$ref": "#/$defs/ServiceListResult"
         }
       },
-      "deepseek/probe": {
+      "services/balance": {
         "params": {
-          "$ref": "#/$defs/ProviderConnection"
+          "$ref": "#/$defs/ServiceBalanceParams"
         },
         "result": {
-          "$ref": "#/$defs/DeepSeekProbeView"
+          "$ref": "#/$defs/ServiceBalanceResult"
         }
       },
-      "deepseek/check": {
+      "services/checked": {
         "params": {
-          "$ref": "#/$defs/ProviderConnection"
+          "$ref": "#/$defs/ServiceCheckParams"
         },
         "result": {
-          "$ref": "#/$defs/DeepSeekProbeView"
+          "$ref": "#/$defs/ServiceCheckView"
+        }
+      },
+      "services/check": {
+        "params": {
+          "$ref": "#/$defs/ServiceCheckParams"
+        },
+        "result": {
+          "$ref": "#/$defs/ServiceCheckView"
+        }
+      },
+      "plugins/list": {
+        "params": {
+          "$ref": "#/$defs/Empty"
+        },
+        "result": {
+          "$ref": "#/$defs/PluginListResult"
+        }
+      },
+      "plugins/set": {
+        "params": {
+          "$ref": "#/$defs/PluginSetParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PluginListResult"
+        }
+      },
+      "plugins/install": {
+        "params": {
+          "$ref": "#/$defs/PluginInstallParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PluginInstallResult"
+        }
+      },
+      "plugins/confirm": {
+        "params": {
+          "$ref": "#/$defs/PluginConfirmParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PluginListResult"
+        }
+      },
+      "plugins/remove": {
+        "params": {
+          "$ref": "#/$defs/PluginRemoveParams"
+        },
+        "result": {
+          "$ref": "#/$defs/PluginListResult"
         }
       },
       "jev/setToolSearch": {
@@ -1221,6 +1277,11 @@
       }
     },
     "serverNotifications": {
+      "server/features": {
+        "params": {
+          "$ref": "#/$defs/ServerFeaturesParams"
+        }
+      },
       "thread/list/changed": {
         "params": {
           "$ref": "#/$defs/ThreadListChanged"
@@ -1964,6 +2025,7 @@
         "COMPLETED",
         "CANCELLED",
         "FAILED",
+        "REJECTED",
         "UNKNOWN"
       ]
     },
@@ -2024,6 +2086,9 @@
               "type": "null"
             }
           ]
+        },
+        "alwaysAsk": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3321,6 +3386,9 @@
               "type": "null"
             }
           ]
+        },
+        "alwaysAsk": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3471,8 +3539,11 @@
     "DataClearParams": {
       "type": "object",
       "properties": {
-        "alsoMemories": {
-          "type": "boolean"
+        "also": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -3487,128 +3558,6 @@
         "cleared"
       ]
     },
-    "DeepSeekBalanceParams": {
-      "type": "object",
-      "properties": {
-        "apiKey": {
-          "type": "string"
-        },
-        "connection": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ProviderConnection"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      }
-    },
-    "DeepSeekBalanceResult": {
-      "type": "object",
-      "properties": {
-        "balance": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/BalanceView"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "failure": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Finding"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      }
-    },
-    "DeepSeekCheckView": {
-      "type": "object",
-      "properties": {
-        "passed": {
-          "type": "boolean"
-        },
-        "note": {
-          "$ref": "#/$defs/Finding"
-        },
-        "url": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      },
-      "required": [
-        "passed",
-        "note"
-      ]
-    },
-    "DeepSeekProbeView": {
-      "type": "object",
-      "properties": {
-        "checked": {
-          "type": "boolean"
-        },
-        "current": {
-          "type": "boolean"
-        },
-        "hasKey": {
-          "type": "boolean"
-        },
-        "balance": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DeepSeekCheckView"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "tools": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DeepSeekCheckView"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "passthrough": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/DeepSeekCheckView"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        }
-      }
-    },
     "DelegationStage": {
       "type": "string",
       "enum": [
@@ -3620,6 +3569,7 @@
         "DONE",
         "ASKING",
         "FAILED",
+        "REJECTED",
         "CANCELLED",
         "LOST"
       ]
@@ -4048,6 +3998,14 @@
         "handOver",
         "text",
         "atEpochMillis"
+      ]
+    },
+    "HostReach": {
+      "type": "string",
+      "enum": [
+        "internet",
+        "device",
+        "local-network"
       ]
     },
     "IdParams": {
@@ -4794,6 +4752,77 @@
         "phase"
       ]
     },
+    "ModelFacts": {
+      "type": "object",
+      "properties": {
+        "contextWindow": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxOutputTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "imageInput": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toolCalls": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasoning": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasoningEfforts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestOutputTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
     "ModelListResult": {
       "type": "object",
       "properties": {
@@ -4852,6 +4881,39 @@
         },
         "manual": {
           "type": "boolean"
+        },
+        "currency": {
+          "type": "string"
+        },
+        "asOf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "region": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effectiveFrom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -5013,6 +5075,19 @@
         },
         "imageInput": {
           "type": "boolean"
+        },
+        "facts": {
+          "$ref": "#/$defs/ModelFacts"
+        },
+        "outputOverride": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -5213,6 +5288,339 @@
       "enum": [
         "show",
         "hide"
+      ]
+    },
+    "PackageChange": {
+      "type": "object",
+      "properties": {
+        "fromVersion": {
+          "type": "string"
+        },
+        "network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageHost"
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageSecret"
+          }
+        },
+        "mcpServers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageMcpServer"
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageSkill"
+          }
+        },
+        "hostTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageTool"
+          }
+        }
+      },
+      "required": [
+        "fromVersion"
+      ]
+    },
+    "PackageContents": {
+      "type": "object",
+      "properties": {
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageSkill"
+          }
+        },
+        "mcpServers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageMcpServer"
+          }
+        },
+        "ruleLines": {
+          "type": "integer"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageTool"
+          }
+        }
+      }
+    },
+    "PackageHost": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "type": "string"
+        },
+        "reach": {
+          "$ref": "#/$defs/HostReach"
+        }
+      },
+      "required": [
+        "host",
+        "reach"
+      ]
+    },
+    "PackageMcpServer": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "host": {
+          "type": "string"
+        },
+        "reach": {
+          "$ref": "#/$defs/HostReach"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "host",
+        "reach"
+      ]
+    },
+    "PackagePermissions": {
+      "type": "object",
+      "properties": {
+        "network": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageHost"
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PackageSecret"
+          }
+        },
+        "hostTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PackageProblem": {
+      "type": "string",
+      "enum": [
+        "NOT_A_PACKAGE",
+        "TOO_LARGE",
+        "TOO_MANY_FILES",
+        "BAD_PATH",
+        "DUPLICATE_FILE",
+        "FILE_TYPE",
+        "NOT_UTF8",
+        "CARRIES_CODE",
+        "CARRIES_SCRIPTS",
+        "NO_MANIFEST",
+        "BAD_MANIFEST",
+        "UNKNOWN_FORMAT",
+        "BAD_ID",
+        "BAD_VERSION",
+        "NEEDS_NEWER_SERVER",
+        "BAD_SIGNATURE_FILE",
+        "DIGEST_MISMATCH",
+        "BAD_SIGNATURE",
+        "UNSIGNED_NOT_ALLOWED",
+        "PUBLISHER_KEY_CHANGED",
+        "OLDER_VERSION",
+        "ID_TAKEN",
+        "BAD_SKILL",
+        "BAD_RULES",
+        "BAD_MCP_SERVER",
+        "HOST_NOT_PERMITTED",
+        "UNKNOWN_SECRET",
+        "BAD_TOOL",
+        "TOOL_SERVER_TAKEN",
+        "SCRIPTS_UNAVAILABLE",
+        "BAD_SOURCE",
+        "DOWNLOAD_FAILED",
+        "INSTALL_EXPIRED",
+        "NEEDS_ACKNOWLEDGEMENT",
+        "MISSING_SECRET",
+        "BAD_SECRET",
+        "START_FAILED",
+        "NEEDS_MISSING",
+        "NOT_A_PACKAGE_PLUGIN",
+        "STORAGE_FAILED"
+      ]
+    },
+    "PackagePublisher": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fingerprint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "trusted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "PackageRefusal": {
+      "type": "object",
+      "properties": {
+        "problem": {
+          "$ref": "#/$defs/PackageProblem"
+        },
+        "detail": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "problem"
+      ]
+    },
+    "PackageSecret": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "set": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "label"
+      ]
+    },
+    "PackageSkill": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "preload": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "PackageTool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "asks": {
+          "type": "boolean"
+        },
+        "timeoutSeconds": {
+          "type": "integer"
+        },
+        "effectiveTimeoutSeconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "PackageView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "publisher": {
+          "$ref": "#/$defs/PackagePublisher"
+        },
+        "unsigned": {
+          "type": "boolean"
+        },
+        "damaged": {
+          "type": "boolean"
+        },
+        "damage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageRefusal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "permissions": {
+          "$ref": "#/$defs/PackagePermissions"
+        },
+        "contents": {
+          "$ref": "#/$defs/PackageContents"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "publisher"
       ]
     },
     "PageReadParams": {
@@ -5681,6 +6089,192 @@
         "text"
       ]
     },
+    "PluginConfirmParams": {
+      "type": "object",
+      "properties": {
+        "installId": {
+          "type": "string"
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "acknowledgeUntrusted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "installId"
+      ]
+    },
+    "PluginInstallParams": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "PluginInstallResult": {
+      "type": "object",
+      "properties": {
+        "installId": {
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/PackageView"
+        },
+        "needsAcknowledgement": {
+          "type": "boolean"
+        },
+        "update": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageChange"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresInSeconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "installId",
+        "package",
+        "needsAcknowledgement",
+        "expiresInSeconds"
+      ]
+    },
+    "PluginListResult": {
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PluginView"
+          }
+        }
+      },
+      "required": [
+        "plugins"
+      ]
+    },
+    "PluginRemoveParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "PluginSetParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "enabled"
+      ]
+    },
+    "PluginSource": {
+      "type": "string",
+      "enum": [
+        "built-in",
+        "package"
+      ]
+    },
+    "PluginView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/PluginSource"
+        },
+        "package": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "problem": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PackageRefusal"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "enabled",
+        "running"
+      ]
+    },
     "PointParams": {
       "type": "object",
       "properties": {
@@ -5973,6 +6567,9 @@
         },
         "hasApiKey": {
           "type": "boolean"
+        },
+        "service": {
+          "type": "string"
         }
       }
     },
@@ -6202,6 +6799,7 @@
       "enum": [
         "completed",
         "partial",
+        "blocked",
         "replayFailed",
         "failed",
         "stopped"
@@ -6419,6 +7017,21 @@
         "UNCERTAIN"
       ]
     },
+    "ServerFeaturesParams": {
+      "type": "object",
+      "properties": {
+        "features": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "features"
+      ]
+    },
     "ServerInfo": {
       "type": "object",
       "properties": {
@@ -6462,6 +7075,229 @@
           }
         }
       }
+    },
+    "ServiceBalanceParams": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "string"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "connection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProviderConnection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "service"
+      ]
+    },
+    "ServiceBalanceResult": {
+      "type": "object",
+      "properties": {
+        "balance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BalanceView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Finding"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ServiceCheckParams": {
+      "type": "object",
+      "properties": {
+        "service": {
+          "type": "string"
+        },
+        "connection": {
+          "$ref": "#/$defs/ProviderConnection"
+        }
+      },
+      "required": [
+        "service",
+        "connection"
+      ]
+    },
+    "ServiceCheckPart": {
+      "type": "object",
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "note": {
+          "$ref": "#/$defs/Finding"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "passed",
+        "note"
+      ]
+    },
+    "ServiceCheckView": {
+      "type": "object",
+      "properties": {
+        "checked": {
+          "type": "boolean"
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "hasKey": {
+          "type": "boolean"
+        },
+        "balance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceCheckPart"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lookup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceCheckPart"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "nativeUpdates": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceCheckPart"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "savedKeyRefused": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ServiceEndpointView": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "$ref": "#/$defs/ProviderEndpoint"
+        },
+        "baseUrl": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "baseUrl"
+      ]
+    },
+    "ServiceListResult": {
+      "type": "object",
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceView"
+          }
+        }
+      }
+    },
+    "ServiceView": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ServiceEndpointView"
+          }
+        },
+        "keyHint": {
+          "type": "string"
+        },
+        "models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "balance": {
+          "type": "boolean"
+        },
+        "relayCheck": {
+          "type": "boolean"
+        },
+        "defaultModel": {
+          "type": "string"
+        },
+        "listsModels": {
+          "type": "boolean"
+        },
+        "keyPages": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ]
     },
     "SessionBoardState": {
       "type": "object",

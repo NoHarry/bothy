@@ -1,8 +1,8 @@
 package cc.noharry.bothy.server.evidence
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.deepseek.DeepSeekCheck
-import cc.noharry.agent.appserver.deepseek.DeepSeekProbe
+import cc.noharry.agent.appserver.models.deepseek.DeepSeekCheck
+import cc.noharry.agent.appserver.models.deepseek.DeepSeekProbe
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding

@@ -6,8 +6,9 @@ import android.util.Log
 import cc.noharry.agent.appserver.plans.PLAN_LOG_TAG
 import cc.noharry.agent.appserver.protocol.PlanKind
 import cc.noharry.agent.appserver.protocol.PlanNoticeEntry
-import cc.noharry.agent.appserver.server.Presenter
+import cc.noharry.agent.appserver.protocol.PresentationNotifications
 import cc.noharry.bothy.server.R
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.bothy.server.voice.PLAN_CHIME_PEAK
 import cc.noharry.bothy.server.voice.SoftNote
 import cc.noharry.bothy.server.voice.SoftTimbre
@@ -39,7 +40,7 @@ class PlanNoticeReceiver : BroadcastReceiver() {
             val entry = title?.let { sample.copy(title = it) } ?: sample
             main.post {
                 VoiceFeedback.planDue(tried)
-                Presenter.planDue(entry)
+                ServerLink.assistant.tell(PresentationNotifications.PLAN_DUE, entry)
             }
         } else {
             main.post { VoiceFeedback.planDue(tried) }

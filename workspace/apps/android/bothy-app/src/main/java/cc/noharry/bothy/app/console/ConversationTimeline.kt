@@ -42,6 +42,7 @@ import cc.noharry.agent.appserver.protocol.DELEGATION_TURN_LABEL
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
+import cc.noharry.agent.appserver.protocol.USER_STEERING_LABEL
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.console.ui.ApproveDenyRow
@@ -232,7 +233,7 @@ internal fun thinkingDisplayLine(
 /** The label a turn opened with, in the screen's language. */
 @Composable
 internal fun turnHeaderLabel(label: String): String = when (label) {
-    USER_TURN_LABEL -> stringResource(R.string.console_turn_you)
+    USER_TURN_LABEL, USER_STEERING_LABEL -> stringResource(R.string.console_turn_you)
     DELEGATION_TURN_LABEL -> stringResource(R.string.console_turn_delegation_report)
     else -> label
 }
@@ -382,7 +383,7 @@ private fun ConfirmationContent(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = stringResource(R.string.console_confirmation_mode, stringResource(item.mode.labelRes())),
+            text = stringResource(R.string.console_confirmation_mode, stringResource(approvalWayRes(item))),
             style = ConsoleType.meta,
             color = colors.muted,
             maxLines = 1,
@@ -413,15 +414,13 @@ private fun ToolDetails(
             val elapsedLabel = stringResource(R.string.console_tool_elapsed)
             toolElapsedLabel(item)?.let { ToolMetaChip(elapsedLabel, it) }
         }
-        if (item.toolCallId.isNotBlank()) {
-            Text(
-                text = item.toolCallId,
-                style = ConsoleType.meta,
-                color = colors.tertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
+        Text(
+            text = stringResource(R.string.console_tool_number, item.id),
+            style = ConsoleType.meta,
+            color = colors.tertiary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         if (args == null && result == null) {
             Text(
                 if (item.status == ToolCallStatus.RUNNING) {

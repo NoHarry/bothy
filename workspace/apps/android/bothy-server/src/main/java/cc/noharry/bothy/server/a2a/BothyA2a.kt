@@ -3,7 +3,7 @@ package cc.noharry.bothy.server.a2a
 import cc.noharry.agent.a2a.server.A2aOutput
 import cc.noharry.agent.appserver.a2a.A2aHost
 import cc.noharry.agent.appserver.protocol.OverlayCommand
-import cc.noharry.agent.appserver.server.Presenter
+import cc.noharry.bothy.server.server.ServerLink
 
 /**
  * Bothy's side of A2A ([A2aHost]). The local endpoint runs, so a PC debug tool or another app on the device can hand
@@ -13,7 +13,7 @@ import cc.noharry.agent.appserver.server.Presenter
  * relay's paired bots know it. [card] opens or folds the card: null when done, else why not.
  */
 internal class BothyA2aHost(
-    private val card: suspend (OverlayCommand) -> String? = { Presenter.card(it) },
+    private val card: suspend (OverlayCommand) -> String? = { ServerLink.assistant.card(it) },
 ) : A2aHost {
     override val localServer: Boolean get() = true
 

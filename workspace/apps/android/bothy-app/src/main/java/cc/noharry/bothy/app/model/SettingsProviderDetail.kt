@@ -1,6 +1,7 @@
 package cc.noharry.bothy.app.model
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,32 +34,24 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekBalanceParams
-import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekCheckView
-import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekProbeView
+import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.ModelSettingsParams
 import cc.noharry.agent.appserver.protocol.ModelSettingsRequests
-import cc.noharry.agent.appserver.protocol.deepseek.DeepSeekRequests
 import cc.noharry.agent.appserver.protocol.ModelSettingsSaveParams
 import cc.noharry.agent.appserver.protocol.ProviderEditState
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
-import cc.noharry.agent.appserver.protocol.deepseek.isDeepSeekUrl
-import cc.noharry.agent.appserver.protocol.parseContextWindow
+import cc.noharry.agent.appserver.protocol.ServiceView
+import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
 import cc.noharry.bothy.app.R
-import cc.noharry.bothy.app.balanceWords
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
-import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.console.outlinedTextFieldColors
 import cc.noharry.bothy.app.console.switchColors
-import cc.noharry.bothy.app.console.ui.PopupMenu
-import cc.noharry.bothy.app.console.ui.PopupMenuItem
-import cc.noharry.bothy.app.console.ui.PopupSectionLabel
-import cc.noharry.bothy.app.console.ui.SelectorChip
 import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.app.finding
 import cc.noharry.bothy.app.words
 import java.text.NumberFormat
 import java.util.Locale
@@ -74,14 +67,11 @@ internal fun ProviderDetail(
 ) {
     val resources = LocalResources.current
     val server = LocalServer.current
+    val services = rememberServices()
     val form = remember(initial.id) { ProviderFormState(initial) }
     LaunchedEffect(initial.id, initial.modelOptions) { form.syncModelOptions(initial) }
-    LaunchedEffect(form, form.modelOptions) {
-        val missing = form.modelsToLoad()
-        if (missing.isNotEmpty()) {
-            server.send(ModelSettingsRequests.MODELS_READ, ModelSettingsParams(initial.toEditor(), missing)) { form.applySettings(it.models) }
-        }
-    }
+    ServiceChoiceEffect(form, services, isNew)
+    ModelSettingsEffect(form, initial, isNew)
     var notice by remember(initial.id) { mutableStateOf("") }
     Column(modifier.fillMaxSize()) {
         Text(
@@ -90,19 +80,22 @@ internal fun ProviderDetail(
             color = ConsoleColors.text,
         )
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-            item { ProviderConnectionFields(form, isNew, initial.id) }
-            item {
-                HorizontalDivider(color = ConsoleColors.borderSubtle)
-                ProviderModelFields(form, actions)
+            item { ProviderConnectionFields(form, isNew, initial.id, services) }
+            // A new profile shows the rest once its provider is chosen.
+            if (form.service != null) {
+                item {
+                    HorizontalDivider(color = ConsoleColors.borderSubtle)
+                    ProviderModelFields(form, actions)
+                }
+                items(form.modelOptions, key = { it }) { model -> ProviderModelRow(form, model) }
             }
-            items(form.modelOptions, key = { it }) { model -> ProviderModelRow(form, model) }
         }
         if (notice.isNotBlank()) Text(notice, style = ConsoleType.meta, color = ConsoleColors.accent)
         HorizontalDivider(color = ConsoleColors.borderSubtle)
-        ProviderDetailActions(form.toDraft(initial), actions, isNew, form.canSave(isNew), onDone) {
+        ProviderDetailActions(form.toDraft(initial), actions, isNew, form.service != null && form.canSave(isNew), onDone) {
             form.addPendingModel()
             val draft = form.toDraft(initial)
-            saveProviderConnection(draft, actions, isNew) { id ->
+            saveProviderConnection(form, draft, actions, isNew, refused = { notice = resources.words(it) }) { id ->
                 val editor = draft.toEditor().copy(profileId = id)
                 server.send(ModelSettingsRequests.MODELS_SAVE, ModelSettingsSaveParams(editor, form.modelSettings()))
                 actions.saveProviderModels(editor, draft.modelOptions)
@@ -113,128 +106,91 @@ internal fun ProviderDetail(
     }
 }
 
-/** Saves the connection, then gives the profile's id (a new profile's once the server made it). */
-private fun saveProviderConnection(draft: ProviderDraft, actions: ConsoleActions, isNew: Boolean, saved: (String) -> Unit) {
-    if (isNew) return actions.saveNewProfile(draft.label.trim(), draft.provider, draft.endpoint, draft.apiKey, "", draft.baseUrl.trim(), saved)
-    actions.saveConfig(draft.provider, draft.apiKey, draft.model, draft.baseUrl.trim(), draft.endpoint)
-    saved(draft.id)
+/**
+ * Once the services are known: a new profile with none to choose from (the models plugin off) is Custom at once; a
+ * saved one takes the service the server found for it, whose endpoints its address follows.
+ */
+@Composable
+private fun ServiceChoiceEffect(form: ProviderFormState, services: List<ServiceView>?, isNew: Boolean) {
+    LaunchedEffect(form, services) {
+        when {
+            services == null -> Unit
+            !isNew -> form.knownAs(services.named(form.service))
+            services.isEmpty() && form.service == null -> form.chooseCustom()
+        }
+    }
 }
 
+/** Each listed model's settings, read once: a new profile's at the address filled in, a saved one's as saved. */
 @Composable
-private fun ProviderConnectionFields(form: ProviderFormState, isNew: Boolean, profileId: String) {
+private fun ModelSettingsEffect(form: ProviderFormState, initial: ProviderDraft, isNew: Boolean) {
+    val server = LocalServer.current
+    LaunchedEffect(form, form.modelOptions) {
+        val missing = form.modelsToLoad()
+        if (missing.isEmpty()) return@LaunchedEffect
+        val profile = if (isNew) form.toDraft(initial).toEditor() else initial.toEditor()
+        server.send(ModelSettingsRequests.MODELS_READ, ModelSettingsParams(profile, missing)) { form.applySettings(it.models) }
+    }
+}
+
+/**
+ * Saves the connection, then gives the profile's id (a new profile's once the server made it); or why the server refused
+ * it (a saved key kept for another host, which the person types again).
+ */
+private fun saveProviderConnection(
+    form: ProviderFormState,
+    draft: ProviderDraft,
+    actions: ConsoleActions,
+    isNew: Boolean,
+    refused: (Finding) -> Unit,
+    saved: (String) -> Unit,
+) {
+    if (isNew) return actions.saveNewProfile(form.createParams(), saved)
+    actions.saveConfig(draft.provider, draft.apiKey, draft.model, draft.baseUrl.trim(), draft.endpoint) { why -> if (why == null) saved(draft.id) else refused(why) }
+}
+
+/**
+ * The provider (a new profile's choice, or the service a saved one is on), then the connection: name, protocol,
+ * endpoint, base URL and key, with where to get a key and what the service answers beyond chat.
+ */
+@Composable
+private fun ProviderConnectionFields(form: ProviderFormState, isNew: Boolean, profileId: String, services: List<ServiceView>?) {
     Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
+        when {
+            !isNew -> ServiceLine(services, form)
+            !services.isNullOrEmpty() -> ServicePicker(services, form)
+        }
+        if (form.service == null) return@Column
         if (isNew) ConfigField(stringResource(R.string.model_service_name), form.label) { form.label = it }
-        ProviderKindSelector(form.provider, form::selectProvider)
-        EndpointSelector(form.provider, form.endpoint) { form.endpoint = it }
+        ProtocolFields(form)
         ConfigField("Base URL", form.baseUrl, onValueChange = form::updateBaseUrl)
+        val hint = services.orEmpty().named(form.service)?.let { LocalResources.current.keyHintText(it, form.region) }
         ConfigField(
             "API key", form.apiKey, secret = true, onValueChange = form::updateApiKey,
             placeholder = stringResource(R.string.model_api_key_saved).takeIf { form.hasSavedKey },
+            supporting = hint?.let { text -> @Composable { KeyHint(text) } },
         )
-        when {
-            form.baseUrl.isDeepSeekUrl() -> DeepSeekBalanceRow(
-                DeepSeekBalanceParams(apiKey = form.apiKey, connection = form.probeConnection(profileId).takeIf { form.hasSavedKey }),
-            )
-            !isNew -> DeepSeekProbeRow(form, profileId)
-        }
+        ServiceExtras(form, isNew, profileId, services.orEmpty())
     }
 }
 
-/**
- * An official DeepSeek key's balance, asked on tap with the key typed in the form, else the one saved for the profile;
- * or a relay's, at the balance path a check found ([DeepSeekProbeRow]), with the key the server has for the connection.
- */
+/** The wire protocol and its endpoint; on a service's own address, the address follows the endpoint chosen. */
 @Composable
-private fun DeepSeekBalanceRow(ask: DeepSeekBalanceParams) {
-    val server = LocalServer.current
-    val resources = LocalResources.current
-    var asking by remember { mutableStateOf(false) }
-    var shown by remember(ask) { mutableStateOf("") }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-        Text(
-            shown.ifBlank { stringResource(R.string.model_deepseek_balance_hint) },
-            style = ConsoleType.meta,
-            color = if (shown.isBlank()) ConsoleColors.muted else ConsoleColors.text,
-            modifier = Modifier.weight(1f),
-        )
-        OutlinedButton(enabled = !asking && (ask.connection != null || ask.apiKey.isNotBlank()), onClick = {
-            asking = true
-            server.send(
-                DeepSeekRequests.BALANCE,
-                ask,
-                onRefused = { shown = it.message.orEmpty(); asking = false },
-            ) { answer ->
-                shown = answer.balance?.let { resources.getString(R.string.model_balance, resources.balanceWords(it)) }
-                    ?: answer.failure?.let(resources::words).orEmpty()
-                asking = false
-            }
-        }) { Text(stringResource(if (asking) R.string.model_balance_checking else R.string.model_balance_check)) }
-    }
-}
-
-/**
- * A profile off api.deepseek.com that may have DeepSeek behind it (a bench relay, a gateway on an official key): 检测
- * checks the address and key in the form and, for this profile, unlocks what passed. The runtime goes by the saved
- * profile, so a check of unsaved values counts once they are saved; one made for other values shows as out of date.
- */
-@Composable
-private fun DeepSeekProbeRow(form: ProviderFormState, profileId: String) {
-    val server = LocalServer.current
-    var checking by remember { mutableStateOf(false) }
-    var probe by remember(profileId) { mutableStateOf<DeepSeekProbeView?>(null) }
-    val connection = form.probeConnection(profileId)
-    // The stored check, measured against the connection as now typed.
-    LaunchedEffect(connection) { server.send(DeepSeekRequests.PROBE, connection) { probe = it } }
-    val current = probe?.takeIf { it.current }
-    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.model_deepseek_features),
-                    style = ConsoleType.body,
-                    color = ConsoleColors.text,
-                )
-                Text(
-                    when {
-                        probe?.checked != true -> stringResource(R.string.model_deepseek_probe_intro)
-                        current == null -> stringResource(R.string.model_deepseek_probe_stale)
-                        else -> stringResource(R.string.model_deepseek_probe_current)
-                    },
-                    style = ConsoleType.meta,
-                    color = ConsoleColors.muted,
-                )
-            }
-            OutlinedButton(enabled = !checking && form.baseUrl.isNotBlank() && probe?.hasKey == true, onClick = {
-                checking = true
-                server.send(
-                    DeepSeekRequests.CHECK,
-                    connection,
-                    onRefused = { checking = false },
-                ) { probe = it; checking = false }
-            }) { Text(stringResource(if (checking) R.string.model_probe_checking else R.string.model_probe_check)) }
-        }
-        current?.let { result ->
-            result.balance?.let { ProbeLine(stringResource(R.string.model_probe_balance), it) }
-            result.tools?.let { ProbeLine(stringResource(R.string.model_probe_tools), it) }
-            result.passthrough?.let { ProbeLine(stringResource(R.string.model_probe_passthrough), it) }
-                ?: Text(
-                    stringResource(R.string.model_probe_passthrough_messages_only),
-                    style = ConsoleType.meta,
-                    color = ConsoleColors.muted,
-                )
-            result.balance?.url?.let { DeepSeekBalanceRow(DeepSeekBalanceParams(connection = connection, url = it)) }
-        }
-    }
-}
-
-@Composable
-private fun ProbeLine(name: String, check: DeepSeekCheckView) {
-    Text(
-        stringResource(
-            if (check.passed) R.string.model_probe_line_passed else R.string.model_probe_line_failed, name, words(check.note),
-        ),
-        style = ConsoleType.meta,
-        color = if (check.passed) ConsoleColors.success else ConsoleColors.danger,
+internal fun ProtocolFields(form: ProviderFormState) {
+    val openAi = stringResource(R.string.model_protocol_openai)
+    SettingsChoiceMenu(
+        label = stringResource(R.string.model_type),
+        selected = form.provider,
+        options = ModelProvider.entries,
+        optionLabel = { if (it == ModelProvider.OPENAI) openAi else it.label },
+        onSelected = form::selectProvider,
+    )
+    SettingsChoiceMenu(
+        label = stringResource(R.string.model_endpoint),
+        selected = form.endpoint,
+        options = ProviderEndpoint.options(form.provider),
+        optionLabel = { it.label },
+        onSelected = form::selectEndpoint,
     )
 }
 
@@ -254,19 +210,11 @@ private fun ProviderModelFields(form: ProviderFormState, actions: ConsoleActions
                 val connection = form.connectionIdentity()
                 actions.fetchModels(form.id, form.provider, form.endpoint, form.apiKey, form.model, form.baseUrl.trim()) { result ->
                     fetching = false
-                    if (connection == form.connectionIdentity()) {
-                        result.onSuccess { fetched ->
-                            val unselected = form.useFetchedModels(fetched)
-                            val count = form.modelOptions.size
-                            message = when {
-                                fetched.none { it.isNotBlank() } -> resources.getString(R.string.model_fetch_empty)
-                                unselected != null -> resources.getQuantityString(
-                                    R.plurals.model_fetched_unselected, count, count, unselected,
-                                )
-                                else -> resources.getQuantityString(R.plurals.model_fetched, count, count)
-                            }
-                        }.onFailure { message = resources.getString(R.string.model_fetch_failed) }
-                    } else message = resources.getString(R.string.model_fetch_connection_changed)
+                    message = if (connection == form.connectionIdentity()) {
+                        resources.fetchedWords(form, result)
+                    } else {
+                        resources.getString(R.string.model_fetch_connection_changed)
+                    }
                 }
             }) { Text(stringResource(if (fetching) R.string.model_fetching else R.string.model_fetch)) }
         }
@@ -286,34 +234,112 @@ private fun ProviderModelFields(form: ProviderFormState, actions: ConsoleActions
     }
 }
 
+/** The fetched list taken into [form], in words: how many, the selected model it dropped, or why none came. */
+private fun android.content.res.Resources.fetchedWords(form: ProviderFormState, result: Result<List<String>>): String =
+    result.fold(
+        onSuccess = { fetched ->
+            val unselected = form.useFetchedModels(fetched)
+            val count = form.modelOptions.size
+            when {
+                fetched.none { it.isNotBlank() } -> getString(R.string.model_fetch_empty)
+                unselected != null -> getQuantityString(R.plurals.model_fetched_unselected, count, count, unselected)
+                else -> getQuantityString(R.plurals.model_fetched, count, count)
+            }
+        },
+        onFailure = { failed -> (failed as? JsonRpcException)?.finding()?.let { this.words(it) } ?: getString(R.string.model_fetch_failed) },
+    )
+
+/**
+ * One model: its name and image input, then its context and output limits: on its line on a wide pane, side by side
+ * under it on a narrower one, one under the other on a phone.
+ */
 @Composable
 private fun ProviderModelRow(form: ProviderFormState, model: String) {
-    val text = form.windowInputs[model].orEmpty()
-    val valid = text.isBlank() || parseContextWindow(text) != null
-    val defaultWindow = form.defaultWindows[model]?.let(::formatTokens).orEmpty()
-    Column {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
-            Text(model, modifier = Modifier.weight(1f), style = ConsoleType.body, color = ConsoleColors.text)
-            OutlinedTextField(
-                value = text, onValueChange = { form.windowInputs[model] = it },
-                label = { Text(stringResource(R.string.model_context_limit)) },
-                placeholder = { Text(stringResource(R.string.model_context_default, defaultWindow)) },
-                supportingText = {
-                    Text(
-                        if (valid) {
-                            stringResource(R.string.model_context_default_compacts, defaultWindow)
-                        } else {
-                            stringResource(R.string.model_context_invalid)
-                        },
-                    )
-                },
-                modifier = Modifier.width(260.dp), singleLine = true, isError = !valid,
-                colors = outlinedTextFieldColors(),
-            )
-            ModelImageInputSwitch(form, model)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val width = maxWidth
+        Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceMd)) {
+                Text(model, modifier = Modifier.weight(1f), style = ConsoleType.body, color = ConsoleColors.text)
+                if (width >= MODEL_ROW_ONE_LINE) ModelLimitFields(form, model, fill = false)
+                ModelImageInputSwitch(form, model)
+            }
+            when {
+                width >= MODEL_ROW_ONE_LINE -> Unit
+                width >= MODEL_LIMITS_SIDE_BY_SIDE -> ModelLimitFields(form, model, fill = true)
+                else -> Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
+                    ContextLimitField(form, model, Modifier.fillMaxWidth())
+                    OutputLimitField(form, model, Modifier.fillMaxWidth())
+                }
+            }
+            HorizontalDivider(color = ConsoleColors.borderSubtle)
         }
-        HorizontalDivider(color = ConsoleColors.borderSubtle)
     }
+}
+
+/** The two limits in a row of their own, tops aligned whatever their notes' lengths; [fill] shares the row's width. */
+@Composable
+private fun ModelLimitFields(form: ProviderFormState, model: String, fill: Boolean) {
+    Row(if (fill) Modifier.fillMaxWidth() else Modifier, verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Dimens.spaceSm)) {
+        val each = if (fill) Modifier.weight(1f) else Modifier.width(LIMIT_FIELD_WIDTH)
+        ContextLimitField(form, model, each)
+        OutputLimitField(form, model, each)
+    }
+}
+
+@Composable
+private fun ContextLimitField(form: ProviderFormState, model: String, modifier: Modifier) {
+    val text = form.windowInputs[model].orEmpty()
+    val valid = typedTokens(text)
+    val defaultWindow = form.defaultWindows[model]?.let(::formatTokens).orEmpty()
+    TokenField(
+        text, { form.windowInputs[model] = it }, stringResource(R.string.model_context_limit),
+        placeholder = stringResource(R.string.model_context_default, defaultWindow),
+        supporting = if (valid) stringResource(R.string.model_context_default_compacts, defaultWindow) else stringResource(R.string.model_context_invalid),
+        valid = valid, modifier = modifier,
+    )
+}
+
+/**
+ * 输出上限: the output tokens this model's requests ask for ([cc.noharry.agent.appserver.protocol.ModelSettingsView.outputOverride]);
+ * blank asks for what the service's data says, shown as the placeholder, and its documented ceiling when known.
+ */
+@Composable
+private fun OutputLimitField(form: ProviderFormState, model: String, modifier: Modifier) {
+    val text = form.outputInputs[model].orEmpty()
+    val valid = typedTokens(text)
+    val default = form.defaultOutputs[model]?.let(::formatTokens)
+    val max = form.maxOutputs[model]?.let(::formatTokens)
+    val placeholder = default?.let { stringResource(R.string.model_output_default, it) } ?: stringResource(R.string.model_output_service_default)
+    TokenField(
+        text, { form.outputInputs[model] = it }, stringResource(R.string.model_output_limit),
+        placeholder = placeholder,
+        supporting = when {
+            !valid -> stringResource(R.string.model_context_invalid)
+            max != null -> stringResource(R.string.model_output_up_to, placeholder, max)
+            else -> placeholder
+        },
+        valid = valid, modifier = modifier,
+    )
+}
+
+@Composable
+private fun TokenField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    supporting: String,
+    valid: Boolean,
+    modifier: Modifier,
+) {
+    OutlinedTextField(
+        value = value, onValueChange = onValueChange,
+        label = { Text(label) },
+        placeholder = { Text(placeholder) },
+        supportingText = { Text(supporting) },
+        modifier = modifier, singleLine = true, isError = !valid,
+        colors = outlinedTextFieldColors(),
+    )
 }
 
 /** 图片输入: on sends screenshots and pictures to this model; off (仅文本) folds them into text. */
@@ -333,72 +359,6 @@ private fun ModelImageInputSwitch(form: ProviderFormState, model: String) {
             style = ConsoleType.meta,
             color = ConsoleColors.muted,
         )
-    }
-}
-
-@Composable
-private fun ProviderKindSelector(selected: ModelProvider, onSelected: (ModelProvider) -> Unit) {
-    SettingsChoiceMenu(
-        label = stringResource(R.string.model_type),
-        selected = selected,
-        options = ModelProvider.entries,
-        optionLabel = { it.label },
-        onSelected = onSelected,
-    )
-}
-
-@Composable
-private fun EndpointSelector(
-    provider: ModelProvider,
-    selected: ProviderEndpoint,
-    onSelected: (ProviderEndpoint) -> Unit,
-) {
-    SettingsChoiceMenu(
-        label = stringResource(R.string.model_endpoint),
-        selected = selected,
-        options = ProviderEndpoint.options(provider),
-        optionLabel = { it.label },
-        onSelected = onSelected,
-    )
-}
-
-@Composable
-private fun <T> SettingsChoiceMenu(
-    label: String,
-    selected: T,
-    options: List<T>,
-    optionLabel: (T) -> String,
-    onSelected: (T) -> Unit,
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val colors = ConsoleColors
-    Column(verticalArrangement = Arrangement.spacedBy(Dimens.spaceXs)) {
-        Text(label, style = ConsoleType.meta, color = colors.muted)
-        Box(Modifier.fillMaxWidth()) {
-            SelectorChip(
-                label = optionLabel(selected),
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            PopupMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                minWidth = SETTINGS_MENU_MIN_WIDTH,
-                maxWidth = SETTINGS_MENU_MAX_WIDTH,
-            ) {
-                PopupSectionLabel(label)
-                options.forEach { option ->
-                    PopupMenuItem(
-                        label = optionLabel(option),
-                        selected = option == selected,
-                        onClick = {
-                            expanded = false
-                            onSelected(option)
-                        },
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -427,11 +387,12 @@ private fun ProviderDetailActions(
 }
 
 @Composable
-private fun ConfigField(
+internal fun ConfigField(
     label: String,
     value: String,
     secret: Boolean = false,
     placeholder: String? = null,
+    supporting: (@Composable () -> Unit)? = null,
     onValueChange: (String) -> Unit,
 ) {
     OutlinedTextField(
@@ -439,6 +400,7 @@ private fun ConfigField(
         onValueChange = onValueChange,
         label = { Text(label) },
         placeholder = placeholder?.let { { Text(it) } },
+        supportingText = supporting,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
@@ -458,6 +420,8 @@ internal data class ProviderDraft(
     val canDelete: Boolean,
     val modelOptions: List<String>,
     val hasSavedKey: Boolean = false,
+    /** The model service it is on ([ProviderFormState.service]): null for a new profile until its provider is chosen. */
+    val service: String? = null,
 ) {
     companion object {
         fun from(editor: ProviderEditState): ProviderDraft =
@@ -472,6 +436,7 @@ internal data class ProviderDraft(
                 canDelete = editor.profileOptions.firstOrNull { it.id == editor.profileId }?.canDelete == true,
                 modelOptions = editor.modelOptions,
                 hasSavedKey = editor.hasApiKey,
+                service = editor.service,
             )
 
         fun new(): ProviderDraft =
@@ -489,12 +454,16 @@ internal data class ProviderDraft(
     }
 }
 
-private val SETTINGS_MENU_MIN_WIDTH = 220.dp
-private val SETTINGS_MENU_MAX_WIDTH = 320.dp
-
 internal fun ProviderDraft.toEditor(): ProviderEditState = ProviderEditState(
     model = model.trim(), variant = "", baseUrl = baseUrl.trim(), profileId = id, provider = provider, endpoint = endpoint,
 )
 
 /** A token count as the usage page writes it: 128,000. */
-private fun formatTokens(tokens: Long): String = NumberFormat.getIntegerInstance(Locale.US).format(tokens)
+internal fun formatTokens(tokens: Long): String = NumberFormat.getIntegerInstance(Locale.US).format(tokens)
+
+/** Wide enough for a model's name, both limits and its image switch on one line. */
+private val MODEL_ROW_ONE_LINE = 760.dp
+
+/** Wide enough for the two limits side by side under the model's name. */
+private val MODEL_LIMITS_SIDE_BY_SIDE = 480.dp
+private val LIMIT_FIELD_WIDTH = 240.dp

@@ -1,4 +1,5 @@
 package cc.noharry.bothy.server.voice.realtime
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -10,7 +11,7 @@ import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.ModelUsage
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.view.label
-import cc.noharry.agent.appserver.runtime.RuntimeSession
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.agent.appserver.session.UiState
 import cc.noharry.agent.appserver.usage.UsageStore
 import cc.noharry.bothy.server.R
@@ -28,7 +29,6 @@ import cc.noharry.bothy.voice.VoiceSegment
 import cc.noharry.bothy.voice.VoiceSegmentLabel
 import cc.noharry.bothy.voice.VoiceSessionState
 import cc.noharry.bothy.voice.VoiceSessionStatus
-import cc.noharry.bothy.voice.looksLikeEcho
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -181,7 +181,7 @@ internal class RealtimeVoice(
         // conversation (each wake opens a new one, which otherwise starts from nothing), are read again on a reconnect.
         val memories = if (userMemoryEnabled(context)) UserMemoryStore.inUse(context) else null
         scope.launch {
-            val recent = runCatching { RuntimeSession.recentExchanges(context, REALTIME_CONTEXT_TURNS) }.getOrDefault(emptyList())
+            val recent = runCatching { ServerLink.turns.recentExchanges(REALTIME_CONTEXT_TURNS) }.getOrDefault(emptyList())
             if (recent.isNotEmpty()) VoiceLog.i(TAG, "told ${recent.size} earlier exchange(s) of this session")
             next.send(doubaoRealtimeSessionCreate(config, memories, recent))
         }
@@ -241,13 +241,11 @@ internal class RealtimeVoice(
 
     /** 小博's own words for late results, in order, waiting for the model to stop speaking ([tellLate]): text and how. */
     private val lateSpeeches = ConcurrentLinkedQueue<Pair<String, () -> Unit>>()
-    /** What 小博 says of late results now: words heard that match it are its own coming back. */
-    @Volatile private var xiaoboSaying = ""
+    /** 小博 saying late results, and what it said: words heard that match it, then or just after, are its own coming back. */
+    private val xiaobo = XiaoboSpeech(announcing = { ServerLink.speech.speaking })
     /** When the service last started hearing, and when a slice above -60 dBFS last went to it (elapsed-realtime ms). */
     @Volatile private var hearingSince = 0L
     @Volatile private var soundSentAt = 0L
-    /** Since when 小博 says a late result (elapsed-realtime ms; 0 when not): the model hears silence meanwhile. */
-    @Volatile private var xiaoboSpeaksSince = 0L
 
     /**
      * Something 小博 finished with no ask_xiaobo waiting (a reply past the wait, a subagent's report, a plan) while the
@@ -272,11 +270,9 @@ internal class RealtimeVoice(
     /** 小博 says the late results waiting, in order (its announcer queues them), once the model is quiet and owes nothing. */
     private fun sayLate() {
         if (lateSpeeches.isEmpty() || speaking || replyOwed()) return
-        if (xiaoboSpeaksSince == 0L) xiaoboSaying = ""
-        xiaoboSpeaksSince = SystemClock.elapsedRealtime()
         while (true) {
             val (text, speak) = lateSpeeches.poll() ?: break
-            xiaoboSaying += text
+            xiaobo.says(text)
             main.post(speak)
         }
     }
@@ -284,15 +280,15 @@ internal class RealtimeVoice(
     /**
      * Words heard while 小博 says a late result are the speaker cutting in (with [RealtimeConfig.bargeIn]): sound
      * reached the service while it heard them ([soundSentAt]; 「好规划。」 came at meter 0.00) and they are not 小博's own
-     * coming back ([looksLikeEcho]). Two letters at least: one is residue. Words with no start of their own are not.
+     * coming back ([XiaoboSpeech.echoes]). Two letters at least: one is residue. Words with no start of their own are not.
      */
     private fun cutsInOnXiaobo(words: String): Boolean =
         config.bargeIn && words.count(Char::isLetterOrDigit) >= 2 && hearingSince > 0L && soundSentAt > 0L &&
-            soundSentAt >= hearingSince - HEARING_LEAD_MILLIS && !looksLikeEcho(words, xiaoboSaying)
+            soundSentAt >= hearingSince - HEARING_LEAD_MILLIS && !xiaobo.echoes(words)
 
     /** The speaker cut in on 小博's late result: it stops, and the words are the model's to answer as any. */
     private fun bargeInOnXiaobo(words: String) {
-        xiaoboSpeaksSince = 0L
+        xiaobo.stopped()
         lateSpeeches.clear()
         heardOverXiaobo = false
         main.post { TtsActivity.interrupt() }
@@ -310,15 +306,9 @@ internal class RealtimeVoice(
 
     /**
      * Whether 小博 is saying a late result: from [sayLate] until its announcer, which starts within a few seconds, is
-     * done ([RuntimeSession.speaking]; not [TtsActivity], which the model's own speech holds too).
+     * done ([cc.noharry.agent.appserver.server.Speech.speaking]; not [TtsActivity], which the model's own speech holds too).
      */
-    private fun xiaoboSpeaks(): Boolean {
-        val since = xiaoboSpeaksSince
-        if (since == 0L) return false
-        if (RuntimeSession.speaking || SystemClock.elapsedRealtime() - since < LATE_SPEECH_START_MILLIS) return true
-        xiaoboSpeaksSince = 0L
-        return false
-    }
+    private fun xiaoboSpeaks(): Boolean = xiaobo.speaking()
 
     private fun handle(event: DoubaoRealtimeEvent) {
         if (closing) return
@@ -390,10 +380,14 @@ internal class RealtimeVoice(
     private fun heard(text: String) {
         val overXiaobo = xiaoboSpeaks()
         val cutsIn = overXiaobo && cutsInOnXiaobo(text)
+        val heardFrom = hearingSince.takeIf { it > 0L } ?: SystemClock.elapsedRealtime()
         hearingSince = 0L
         if (overXiaobo) {
             if (!cutsIn) return heardOverXiaobo(text)
             bargeInOnXiaobo(text)
+        } else if (xiaobo.echoes(text, heardFrom)) {
+            // 小博's last words, written out after it stopped: as heard over it.
+            return heardOverXiaobo(text)
         }
         heardOverXiaobo = false
         spokeThisResponse = false
@@ -439,7 +433,7 @@ internal class RealtimeVoice(
         if (words.isBlank()) return
         heard = ""
         val label = context.getString(R.string.realtime_label)
-        main.post { RuntimeSession.recordCompanionTurn(context, words, text, label, speak = false) }
+        main.post { ServerLink.turns.record(words, text, label, speak = false) }
     }
 
     private fun speak(pcm16: ByteArray) {
@@ -640,7 +634,9 @@ internal class RealtimeVoice(
                 val frame = gate.process(recorded)
                 // Half duplex hears silence while anything speaks; full duplex hears the speaker over 小博's late result
                 // too, and tells them from 小博's own words ([cutsInOnXiaobo]).
-                val deaf = !config.bargeIn && (TtsActivity.active.value || SystemClock.elapsedRealtime() - quietSince < ECHO_TAIL_MILLIS || xiaoboSpeaks())
+                // Asked with every frame, so the end of 小博's late result is noticed as it comes ([XiaoboSpeech]).
+                val overXiaobo = xiaoboSpeaks()
+                val deaf = !config.bargeIn && (TtsActivity.active.value || SystemClock.elapsedRealtime() - quietSince < ECHO_TAIL_MILLIS || overXiaobo)
                 val levels = ArrayList<Float>(frame.size / SLICE_SAMPLES + 1)
                 var start = 0
                 while (start < frame.size) {
@@ -688,7 +684,7 @@ internal class RealtimeVoice(
             val now = SystemClock.elapsedRealtime()
             // With 补播报, 小博 still working (past ask_xiaobo's wait) keeps the conversation open for its answer ([tellLate]).
             val busy = speaking || pendingTools > 0 || TtsActivity.active.value || mutableState.value.liveText.isNotBlank() ||
-                config.lateSpeech && (lateSpeeches.isNotEmpty() || xiaoboSpeaksSince != 0L || RuntimeSession.isRunning)
+                config.lateSpeech && (lateSpeeches.isNotEmpty() || xiaobo.since != 0L || ServerLink.turns.running)
             if (busy) lastActivity = now
             if (now - lastActivity >= REALTIME_IDLE_END_MILLIS) {
                 actions.trySend { end("idle for ${REALTIME_IDLE_END_MILLIS / 1000} s", failed = false) }
@@ -713,51 +709,45 @@ internal object RealtimeWaits {
     private val count = AtomicInteger()
     val waiting: Boolean get() = count.get() > 0
     /** A run's result that came while a call waited: its own reply, unless the wait ran out first. */
-    @Volatile private var held: String? = null
+    private val held = java.util.concurrent.ConcurrentHashMap<String, String>()
 
     fun begin() {
         count.incrementAndGet()
     }
 
     fun end() {
-        if (count.decrementAndGet() == 0) held = null
+        if (count.decrementAndGet() == 0) held.clear()
     }
 
     /** A result for the waiting call ([RunSpeech]): taken by it if its wait runs out before the reply reaches it. */
-    fun hold(reply: String) {
-        held = reply
+    fun hold(runId: String, reply: String) {
+        held[runId] = reply
     }
 
-    /**
-     * The result that came while the call waited, once: the run finished just as the wait ran out, and its result,
-     * no longer told to the conversation, would otherwise be lost behind 「请稍等」.
-     */
-    fun takeHeld(): String? = held.also { held = null }
+    /** All waiters for this run see its terminal reply; the last wait's end drops the process cache. */
+    fun replyFor(runId: String?): String? = runId?.let(held::get)
 }
 
 /** 小博 in the console's session: [request] goes in as a spoken turn (or joins the run in progress), its reply comes back. */
 internal fun localRealtimeAgent(context: Context) = RealtimeAgent { request, replyWithinMillis ->
     // Main, not Main.immediate: the wait resumes after the listeners have been told, not inside that loop.
     withContext(Dispatchers.Main) {
-        val reply = CompletableDeferred<String>()
-        val started = CompletableDeferred<Unit>()
-        var seen: UiState? = null
-        val detach = RuntimeSession.attach(context) { ui ->
-            seen = ui
-            if (ui.isRunning) started.complete(Unit) else if (started.isCompleted) reply.complete(ui.latestReply())
-        }
+        val waitingRun = RealtimeRunReply()
+        val reply = waitingRun.reply
+        val started = waitingRun.started
+        val detach = ServerLink.turns.watch(waitingRun::observe)
         RealtimeWaits.begin()
         try {
             // The card and transcript show 豆包's request; the model also reads the user's own words with it.
-            RuntimeSession.postSpokenInput(context, withoutUserWords(request), wireText = request, modelText = request)
+            ServerLink.speech.heard(withoutUserWords(request), forRun = request, modelText = request)
             when {
                 withTimeoutOrNull(AGENT_START_MILLIS) { started.await() } == null -> {
                     // 2026-10-16: a request timed out here with nothing else in the log; say what the console showed.
-                    seen?.let { VoiceLog.i(TAG, "ask_xiaobo not taken up: ${it.notTakenUp()}") }
+                    waitingRun.seen?.let { VoiceLog.i(TAG, "ask_xiaobo not taken up: ${it.notTakenUp()}") }
                     "小博没有接到这件事，请让用户稍后再说一次。"
                 }
                 // Past the wait the answer comes later, through tellLate; unless the run's result came just as it ended.
-                else -> withTimeoutOrNull(replyWithinMillis) { reply.await() } ?: RealtimeWaits.takeHeld()
+                else -> withTimeoutOrNull(replyWithinMillis) { reply.await() } ?: RealtimeWaits.replyFor(waitingRun.runId)
                     ?: if (loadRealtimeConfig(context).lateSpeech) REALTIME_STILL_WORKING else REALTIME_STILL_WORKING_SHOWN
             }
         } finally {
@@ -767,14 +757,35 @@ internal fun localRealtimeAgent(context: Context) = RealtimeAgent { request, rep
     }
 }
 
+/** The actual completion consumer, bound to the run that the realtime request joined. */
+internal class RealtimeRunReply {
+    val reply = CompletableDeferred<String>()
+    val started = CompletableDeferred<Unit>()
+    var runId: String? = null
+        private set
+    var seen: UiState? = null
+        private set
+
+    fun observe(ui: UiState) {
+        seen = ui
+        val visibleRun = ui.currentRequest?.requestId ?: ui.runtimeDemo.runId.takeIf { it.isNotBlank() }
+        if (ui.isRunning) {
+            if (runId == null) runId = visibleRun
+            if (runId == visibleRun && runId != null) started.complete(Unit)
+        } else if (started.isCompleted && runId == visibleRun) {
+            reply.complete(RealtimeWaits.replyFor(runId) ?: ui.latestLocalReply())
+        }
+    }
+}
+
 /** The console as an ask_xiaobo that never started saw it last: its session, status and the request it was on. */
 internal fun UiState.notTakenUp(): String =
     "session=$activeSessionId running=$isRunning status=${runtimeStatus.take(80)} summary=${lastRun?.label().orEmpty()} " +
         "request=${currentRequest?.text.orEmpty().take(40)}"
 
-/** The run's reply, else its summary or status: the last assistant message since the latest request. */
-private fun UiState.latestReply(): String {
-    val header = items.indexOfLast { it is ConversationItem.TurnHeader }
+/** The run's reply, else its summary or status: the last assistant message in the latest logical turn. */
+internal fun UiState.latestLocalReply(): String {
+    val header = items.indexOfLast { it.isTurnStart }
     val reply = items.drop(header + 1).filterIsInstance<ConversationItem.MessageItem>()
         .lastOrNull { it.role == TranscriptRole.ASSISTANT }?.content
     return reply?.takeIf(String::isNotBlank) ?: lastRun?.label() ?: runtimeStatus
@@ -860,8 +871,6 @@ private const val SPOKEN_CALL_REPLY_MILLIS = 20_000L
 private const val REALTIME_STILL_WORKING = "小博还在办，办好了会自己告诉用户。现在用一句话请用户稍等，不要说结果。"
 /** The same without 补播报: the result only shows on the screen (as before 2026-10-20). */
 private const val REALTIME_STILL_WORKING_SHOWN = "小博还在办，结果稍后会显示在屏幕上。现在用一句话告诉用户，不要说结果。"
-/** 小博's speech of a late result starts within this (its TTS request); the model hears silence until it ends. */
-private const val LATE_SPEECH_START_MILLIS = 4_000L
 /** The service starts hearing up to this after the sound that set it off. */
 private const val HEARING_LEAD_MILLIS = 1_500L
 /** A reply the model owes and has not finished within this is not coming; a late result waits no longer. */

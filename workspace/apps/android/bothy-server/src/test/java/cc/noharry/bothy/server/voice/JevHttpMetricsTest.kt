@@ -1,7 +1,7 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.voice
-import cc.noharry.agent.kernel.api.ToolPrefetchTrace
+import cc.noharry.agent.spi.ToolPrefetchTrace
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.runBlocking

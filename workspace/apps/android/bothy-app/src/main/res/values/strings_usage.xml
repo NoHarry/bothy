@@ -67,8 +67,8 @@
     <string name="usage_unpriced_hint">Sync or enter one under \"Model prices\"</string>
     <!-- Model prices -->
     <string name="usage_sync_and_rate">Sync and exchange rate</string>
-    <string name="usage_prices_note">Prices sync from models.dev in US dollars per million tokens and are converted to yuan at the exchange rate. DeepSeek uses its official prices: every flash model at deepseek-flash. Cache hits are charged at the cache price, or the input price when there is none. Prices entered by hand are kept when syncing.</string>
-    <string name="usage_model_prices_title">Model prices (USD per million tokens)</string>
+    <string name="usage_prices_note">Prices are per million tokens, in the currency shown beside each model. A model of a service the app knows (DeepSeek and the other common ones) is priced at that service\'s own list, in its currency (DeepSeek\'s in yuan; every flash model at deepseek-flash); where a service has a China list in yuan and an international one in US dollars, the one of the address the model ran at. Any other syncs from models.dev in US dollars. Costs are shown in yuan at the exchange rate. Cache hits are charged at the cache price, or the input price when there is none. A price entered by hand is in the currency chosen beside it, and is kept when syncing.</string>
+    <string name="usage_model_prices_title">Model prices (per million tokens)</string>
     <string name="usage_no_models_title">No models yet</string>
     <string name="usage_no_models_body">Models you use show up here and get their prices after a sync.</string>
     <string name="usage_rate_label">USD to CNY rate</string>
@@ -90,6 +90,7 @@
     <string name="usage_restore_synced">Use synced price</string>
     <string name="usage_source_manual">Entered by hand</string>
     <string name="usage_source_priced_as">%1$s (as %2$s)</string>
+    <string name="usage_source_service">%1$s\'s list of %2$s · %3$s</string>
     <!-- Context ring -->
     <string name="usage_context_ring_description">Context used: %1$s. Tap for details</string>
     <string name="usage_context_not_yet">not known yet</string>

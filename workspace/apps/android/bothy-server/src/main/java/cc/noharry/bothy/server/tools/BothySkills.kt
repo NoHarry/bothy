@@ -1,5 +1,7 @@
 package cc.noharry.bothy.server.tools
 
+import cc.noharry.agent.appserver.a2a.A2A_SKILL_SECTION
+import cc.noharry.agent.androiduse.appserver.ANDROID_USE_TOOL_SERVER
 import android.content.Context
 import cc.noharry.agent.appserver.skills.DEFAULT_SUBAGENT_TOOLS
 import cc.noharry.agent.appserver.skills.RuntimeSkill
@@ -32,13 +34,13 @@ internal fun bothySkills(context: Context): List<RuntimeSkill> = listOf(
     RuntimeSkill(
         "personal-agent-delegation", context.getString(R.string.skills_delegation),
         context.getString(R.string.skills_delegation_about),
-        "runtime-workspace/skills/personal-agent-delegation/SKILL.md", enabled = true, preload = true, requiresA2aDelegate = true,
+        "runtime-workspace/skills/personal-agent-delegation/SKILL.md", enabled = true, preload = true, requiresSection = A2A_SKILL_SECTION,
         mainAgentOnly = true,
     ),
     RuntimeSkill(
         "android-use", context.getString(R.string.skills_android_use),
         context.getString(R.string.skills_android_use_about),
-        "runtime-workspace/skills/android-use/SKILL.md", enabled = true, preload = true, requiresAndroidUse = true,
+        "runtime-workspace/skills/android-use/SKILL.md", enabled = true, preload = true, requiresToolServer = ANDROID_USE_TOOL_SERVER,
     ),
     // In the catalog, read when the model needs it: playground_open's own description covers the common asks; the
     // skill adds what to do when a system dialog keeps it from the front or the Playground is not installed.

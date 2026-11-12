@@ -1,7 +1,7 @@
 package cc.noharry.bothy.server.voice.realtime
 import android.content.Context
 import androidx.annotation.StringRes
-import cc.noharry.agent.appserver.evidence.benchTrustedClient
+import cc.noharry.agent.appserver.http.appServerHttpClient
 import cc.noharry.agent.appserver.memory.memoryProfileText
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.protocol.UserMemory
@@ -391,7 +391,7 @@ internal suspend fun probeDoubaoRealtime(
  * between turns), pings to keep it open.
  */
 internal fun doubaoRealtimeClient(context: Context): OkHttpClient = realtimeClient ?: synchronized(RealtimeConfig::class) {
-    realtimeClient ?: benchTrustedClient(context)
+    realtimeClient ?: appServerHttpClient(context)
         .connectTimeout(REALTIME_CONNECT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.SECONDS)
         .pingInterval(REALTIME_PING_SECONDS, TimeUnit.SECONDS)

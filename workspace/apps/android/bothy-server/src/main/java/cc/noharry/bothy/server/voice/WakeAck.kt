@@ -5,7 +5,7 @@ import android.media.AudioTrack
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import cc.noharry.agent.appserver.evidence.BenchHttpTransport
+import cc.noharry.agent.appserver.http.AppServerHttpTransport
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.bothy.protocol.TtsProvider
 import cc.noharry.bothy.server.voice.tts.MimoTtsVoice
@@ -123,9 +123,9 @@ internal object WakeAck {
         return true
     }
 
-    @Volatile private var http: BenchHttpTransport? = null
+    @Volatile private var http: AppServerHttpTransport? = null
 
-    private fun transport(app: Context): BenchHttpTransport = http ?: BenchHttpTransport(app).also { http = it }
+    private fun transport(app: Context): AppServerHttpTransport = http ?: AppServerHttpTransport(app).also { http = it }
 
     /** The lines for the 播报 settings now; [before] is kept when it is for the same voice and had them all. */
     private suspend fun load(app: Context, before: WakeAckSet?): WakeAckSet {

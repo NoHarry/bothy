@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.ModelUsage
 import cc.noharry.agent.appserver.protocol.PriceBook
+import cc.noharry.agent.appserver.protocol.ServiceView
 import cc.noharry.agent.appserver.protocol.UsageData
 import cc.noharry.agent.appserver.protocol.UsageDays
 import cc.noharry.agent.appserver.protocol.UsageRequests
@@ -59,6 +60,7 @@ import cc.noharry.bothy.app.console.ConsoleType
 import cc.noharry.bothy.app.console.Dimens
 import cc.noharry.bothy.app.console.color
 import cc.noharry.bothy.app.frontend.LocalServer
+import cc.noharry.bothy.app.model.rememberServices
 import java.time.LocalDate
 import java.util.Locale
 
@@ -76,6 +78,8 @@ internal fun UsagePane() {
     LaunchedEffect(server.state.usageRevision) { server.send(UsageRequests.READ, Empty) { data = it } }
     val usage = data.days
     val book = data.prices
+    // A price from a service's own list names the service by its label.
+    val services = rememberServices().orEmpty()
     var tab by rememberSaveable { mutableStateOf(UsageTab.STATS.name) }
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(Dimens.spaceMd),
@@ -92,8 +96,8 @@ internal fun UsagePane() {
             }
         }
         when (UsageTab.valueOf(tab)) {
-            UsageTab.STATS -> UsageStatsTab(usage, book)
-            UsageTab.PRICES -> UsagePricesTab(usage, book)
+            UsageTab.STATS -> UsageStatsTab(usage, book, services)
+            UsageTab.PRICES -> UsagePricesTab(usage, book, services)
         }
     }
 }
@@ -104,7 +108,7 @@ private enum class UsageTab(@StringRes val label: Int) {
 }
 
 @Composable
-private fun UsageStatsTab(usage: UsageDays, book: PriceBook) {
+private fun UsageStatsTab(usage: UsageDays, book: PriceBook, services: List<ServiceView>) {
     val today = LocalDate.now()
     val daily = remember(usage) { dailyTokens(usage) }
     var rangeName by rememberSaveable { mutableStateOf(UsageRange.WEEK.name) }
@@ -121,7 +125,7 @@ private fun UsageStatsTab(usage: UsageDays, book: PriceBook) {
         UsageSegmented(UsageRange.entries, range, { stringResource(it.label) }) { rangeName = it.name }
     }
     UsageTrendCard(usage, book, daily, today, range)
-    UsageModelsCard(usage, book, today.minusDays(range.days - 1L))
+    UsageModelsCard(usage, book, today.minusDays(range.days - 1L), services)
     Text(
         stringResource(R.string.usage_tokens_note),
         style = ConsoleType.bodySmall,
@@ -285,10 +289,10 @@ private fun UsageTrendCard(usage: UsageDays, book: PriceBook, daily: Map<LocalDa
 }
 
 @Composable
-private fun UsageModelsCard(usage: UsageDays, book: PriceBook, from: LocalDate) {
+private fun UsageModelsCard(usage: UsageDays, book: PriceBook, from: LocalDate, services: List<ServiceView>) {
     val locale = screenLocale()
     val models = modelTotals(usage, from).entries.sortedWith(
-        compareByDescending<Map.Entry<String, ModelUsage>> { (model, use) -> book.prices[model]?.let(use::costUsd) ?: 0.0 }
+        compareByDescending<Map.Entry<String, ModelUsage>> { (model, use) -> book.costUsd(model, use) ?: 0.0 }
             .thenByDescending { it.value.totalTokens },
     )
     UsageCard(stringResource(R.string.usage_model_usage)) {
@@ -312,8 +316,8 @@ private fun UsageModelsCard(usage: UsageDays, book: PriceBook, from: LocalDate) 
                     tokens(use.inputTokens, locale), tokens(use.cacheReadTokens, locale),
                 ),
                 tokens(use.outputTokens, locale),
-                price?.let { yuan(use.costUsd(it) * book.usdToCny) } ?: stringResource(R.string.usage_unpriced),
-                source = price?.let { priceSource(it) } ?: stringResource(R.string.usage_unpriced_hint),
+                book.costUsd(model, use)?.let { yuan(it * book.usdToCny) } ?: stringResource(R.string.usage_unpriced),
+                source = price?.let { priceSource(it, services) } ?: stringResource(R.string.usage_unpriced_hint),
                 unpriced = price == null,
             )
         }
@@ -411,7 +415,7 @@ internal fun WrappingRow(
 
 /** Yuan for [days] at the book's rate; models without a price add nothing. */
 internal fun cost(days: UsageDays, book: PriceBook): Double =
-    days.values.sumOf { models -> models.entries.sumOf { (model, usage) -> book.prices[model]?.let(usage::costUsd) ?: 0.0 } } * book.usdToCny
+    days.values.sumOf { models -> models.entries.sumOf { (model, usage) -> book.costUsd(model, usage) ?: 0.0 } } * book.usdToCny
 
 internal fun yuan(amount: Double): String = when {
     amount == 0.0 -> "¥0"

@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.logText
-import cc.noharry.agent.appserver.server.Presenter
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.bothy.server.voice.tts.TtsActivity
 
 /**
@@ -32,5 +32,5 @@ internal fun startWokenVoice(context: Context, source: WakeSource): Finding? {
 
 /** A wake the assistant on screen takes when it is up (it shows it on its card), else one heard without it. */
 internal fun wakeAnywhere(context: Context, source: WakeSource) {
-    Presenter.wake(source.name) { taken -> if (!taken) startWokenVoice(context.applicationContext, source) }
+    ServerLink.assistant.wake(source.name) { taken -> if (!taken) startWokenVoice(context.applicationContext, source) }
 }

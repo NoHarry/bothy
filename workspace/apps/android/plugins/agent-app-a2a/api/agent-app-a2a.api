@@ -1,0 +1,228 @@
+public final class cc/noharry/agent/appserver/a2a/A2aBridgeProvider : cc/noharry/agent/spi/ToolPrefetchProvider, cc/noharry/agent/spi/mcp/McpClientProvider {
+	public fun <init> (Lcc/noharry/agent/appserver/protocol/A2aProfile;Ljava/lang/String;Lcc/noharry/agent/appserver/a2a/A2aDelegationSink;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Lcc/noharry/agent/appserver/protocol/A2aProfile;Ljava/lang/String;Lcc/noharry/agent/appserver/a2a/A2aDelegationSink;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun callTool (Ljava/lang/String;Ljava/lang/String;Lcc/noharry/agent/spi/ToolCallContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun getDisplayName ()Ljava/lang/String;
+	public fun getPrefetchOnSearch ()Z
+	public fun getPrefetchTimeoutMillis ()J
+	public fun getProviderConcurrency ()Lcc/noharry/agent/spi/ProviderConcurrencyDeclaration;
+	public fun getProviderId ()Ljava/lang/String;
+	public fun getRemotePrefetchEnabled ()Z
+	public fun getServerId ()Ljava/lang/String;
+	public fun initialize (Lcc/noharry/agent/spi/ToolInitializeContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun listPrompts (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun listResources (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun listTools (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun localToolNames (Lcc/noharry/agent/spi/ToolPrefetchRequest;)Ljava/util/List;
+	public fun prefetchTools (Lcc/noharry/agent/spi/ToolPrefetchRequest;Lcc/noharry/agent/spi/ToolPrefetchTrace;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aClientConsole {
+	public static final field INSTANCE Lcc/noharry/agent/appserver/a2a/A2aClientConsole;
+	public final fun announceFirst (Landroid/content/Context;Ljava/lang/String;)Z
+	public final fun answer (Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/A2aInputSource;)V
+	public final fun attach (Landroid/content/Context;Lkotlin/jvm/functions/Function1;)Lkotlin/jvm/functions/Function0;
+	public final fun cancel (Landroid/content/Context;)V
+	public final fun getState ()Lcc/noharry/agent/appserver/protocol/A2aClientState;
+	public final fun isEnabled (Landroid/content/Context;)Z
+	public final fun replace (Landroid/content/Context;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/A2aInputSource;)V
+	public final fun send (Landroid/content/Context;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/A2aInputSource;)Z
+	public final fun setEnabled (Landroid/content/Context;Z)V
+	public final fun setSpeakExternal (Landroid/content/Context;Z)V
+	public final fun steer (Landroid/content/Context;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/A2aInputSource;Ljava/lang/String;)V
+	public static synthetic fun steer$default (Lcc/noharry/agent/appserver/a2a/A2aClientConsole;Landroid/content/Context;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/A2aInputSource;Ljava/lang/String;ILjava/lang/Object;)V
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aClientConsoleKt {
+	public static final field DEBUG_A2A_CLIENT_EXTRA Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aClientStateKt {
+	public static final fun describe (Lcc/noharry/agent/a2a/A2aClientError;)Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aDelegation {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()J
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;)Lcc/noharry/agent/appserver/a2a/A2aDelegation;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/A2aDelegation;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;ILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/A2aDelegation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAgentLabel ()Ljava/lang/String;
+	public final fun getInstruction ()Ljava/lang/String;
+	public final fun getProfileId ()Ljava/lang/String;
+	public final fun getStartedAtEpochMillis ()J
+	public final fun getTaskId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class cc/noharry/agent/appserver/a2a/A2aDelegationSink {
+	public fun inFlight (Ljava/lang/String;)Ljava/util/List;
+	public fun pendingQuestions (Ljava/lang/String;)Ljava/util/List;
+	public abstract fun track (Lcc/noharry/agent/appserver/a2a/A2aDelegation;Lcc/noharry/agent/a2a/A2aClient;Lcc/noharry/agent/a2a/RemoteAgentRef;)V
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aDelegationSink$DefaultImpls {
+	public static fun inFlight (Lcc/noharry/agent/appserver/a2a/A2aDelegationSink;Ljava/lang/String;)Ljava/util/List;
+	public static fun pendingQuestions (Lcc/noharry/agent/appserver/a2a/A2aDelegationSink;Ljava/lang/String;)Ljava/util/List;
+}
+
+public abstract interface class cc/noharry/agent/appserver/a2a/A2aHost {
+	public static final field Companion Lcc/noharry/agent/appserver/a2a/A2aHost$Companion;
+	public fun getContextSource ()Ljava/lang/String;
+	public fun getLocalServer ()Z
+	public fun getNicknames ()Ljava/util/List;
+	public fun getNicknamesMeaning ()Ljava/lang/String;
+	public fun inboundStarted (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun intercept (Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aHost$Companion {
+	public final fun getNONE ()Lcc/noharry/agent/appserver/a2a/A2aHost;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aHost$DefaultImpls {
+	public static fun getContextSource (Lcc/noharry/agent/appserver/a2a/A2aHost;)Ljava/lang/String;
+	public static fun getLocalServer (Lcc/noharry/agent/appserver/a2a/A2aHost;)Z
+	public static fun getNicknames (Lcc/noharry/agent/appserver/a2a/A2aHost;)Ljava/util/List;
+	public static fun getNicknamesMeaning (Lcc/noharry/agent/appserver/a2a/A2aHost;)Ljava/lang/String;
+	public static fun inboundStarted (Lcc/noharry/agent/appserver/a2a/A2aHost;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun intercept (Lcc/noharry/agent/appserver/a2a/A2aHost;Ljava/util/Map;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aModuleConfig {
+	public static final field Companion Lcc/noharry/agent/appserver/a2a/A2aModuleConfig$Companion;
+	public fun <init> (Lcc/noharry/agent/appserver/protocol/A2aModuleState;Ljava/util/Map;Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lcc/noharry/agent/appserver/protocol/A2aModuleState;Ljava/util/Map;Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Lcc/noharry/agent/appserver/protocol/A2aModuleState;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Lkotlin/jvm/functions/Function1;
+	public final fun copy (Lcc/noharry/agent/appserver/protocol/A2aModuleState;Ljava/util/Map;Lkotlin/jvm/functions/Function1;)Lcc/noharry/agent/appserver/a2a/A2aModuleConfig;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/A2aModuleConfig;Lcc/noharry/agent/appserver/protocol/A2aModuleState;Ljava/util/Map;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/A2aModuleConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAuth ()Lkotlin/jvm/functions/Function1;
+	public final fun getModule ()Lcc/noharry/agent/a2a/A2aClientModule;
+	public final fun getModules ()Ljava/util/Map;
+	public final fun getState ()Lcc/noharry/agent/appserver/protocol/A2aModuleState;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aModuleConfig$Companion {
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aModuleConfigKt {
+	public static final field DIRECT_MODULE_ID Ljava/lang/String;
+	public static final fun a2aAgentConnected (Landroid/content/Context;)Z
+	public static final fun loadA2aProfiles (Landroid/content/Context;)Ljava/util/List;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aPendingQuestion {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()J
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;J)Lcc/noharry/agent/appserver/a2a/A2aPendingQuestion;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/A2aPendingQuestion;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/A2aPendingQuestion;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAgentLabel ()Ljava/lang/String;
+	public final fun getAskedAtEpochMillis ()J
+	public final fun getQuestion ()Ljava/lang/String;
+	public final fun getTaskId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aPlugin : cc/noharry/agent/appserver/server/AppServerPlugin {
+	public fun <init> ()V
+	public fun <init> (Lcc/noharry/agent/appserver/a2a/A2aHost;)V
+	public synthetic fun <init> (Lcc/noharry/agent/appserver/a2a/A2aHost;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun apply (Lcc/noharry/agent/appserver/server/PluginContext;)V
+	public fun clearWhileOff (Landroid/app/Application;Lcc/noharry/agent/appserver/server/DataClearing;)Z
+	public fun getId ()Ljava/lang/String;
+	public fun getNeeds ()Ljava/util/Set;
+	public fun getRequired ()Z
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aPluginKt {
+	public static final field A2A_SKILL_SECTION Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aProfileBroadcastReceiver : android/content/BroadcastReceiver {
+	public fun <init> ()V
+	public fun onReceive (Landroid/content/Context;Landroid/content/Intent;)V
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aProfiles {
+	public static final field INSTANCE Lcc/noharry/agent/appserver/a2a/A2aProfiles;
+	public final fun delete (Landroid/content/Context;Ljava/lang/String;)V
+	public final fun getState ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun save (Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;Z)Ljava/lang/String;
+	public static synthetic fun save$default (Lcc/noharry/agent/appserver/a2a/A2aProfiles;Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
+	public final fun setEnabled (Landroid/content/Context;Ljava/lang/String;Z)V
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aReport {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lcc/noharry/agent/appserver/a2a/A2aReport;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/A2aReport;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/A2aReport;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDisplay ()Ljava/lang/String;
+	public final fun getModel ()Ljava/lang/String;
+	public final fun getTaskId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aReportParts {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun component4 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;)Lcc/noharry/agent/appserver/a2a/A2aReportParts;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/A2aReportParts;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/A2aReportParts;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCard ()Ljava/lang/String;
+	public final fun getDetails ()Ljava/lang/String;
+	public final fun getPictures ()Ljava/util/List;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aRoutesKt {
+	public static final fun a2aRoutes (Landroid/content/Context;Z)Lcc/noharry/agent/appserver/server/RouteModule;
+}
+
+public final class cc/noharry/agent/appserver/a2a/A2aTokens {
+	public static final field INSTANCE Lcc/noharry/agent/appserver/a2a/A2aTokens;
+	public final fun clear (Landroid/content/Context;Ljava/lang/String;)V
+	public final fun has (Landroid/content/Context;Ljava/lang/String;)Z
+	public final fun read (Landroid/content/Context;Ljava/lang/String;)Ljava/lang/String;
+	public final fun save (Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2a/RelayProgress {
+	public fun <init> (Lcc/noharry/agent/appserver/protocol/DelegationStage;Ljava/util/List;)V
+	public final fun component1 ()Lcc/noharry/agent/appserver/protocol/DelegationStage;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Lcc/noharry/agent/appserver/protocol/DelegationStage;Ljava/util/List;)Lcc/noharry/agent/appserver/a2a/RelayProgress;
+	public static synthetic fun copy$default (Lcc/noharry/agent/appserver/a2a/RelayProgress;Lcc/noharry/agent/appserver/protocol/DelegationStage;Ljava/util/List;ILjava/lang/Object;)Lcc/noharry/agent/appserver/a2a/RelayProgress;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStage ()Lcc/noharry/agent/appserver/protocol/DelegationStage;
+	public final fun getSteps ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

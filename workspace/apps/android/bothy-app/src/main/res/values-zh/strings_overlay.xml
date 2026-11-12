@@ -61,6 +61,7 @@
     <string name="overlay_stage_done">已完成</string>
     <string name="overlay_stage_asking">等你回答</string>
     <string name="overlay_stage_failed">没办成</string>
+    <string name="overlay_stage_not_done">没有完成</string>
     <string name="overlay_stage_cancelled">已取消</string>
     <string name="overlay_stage_lost">没跟上</string>
     <string name="overlay_elapsed_hours">%1$d 小时 %2$d 分</string>

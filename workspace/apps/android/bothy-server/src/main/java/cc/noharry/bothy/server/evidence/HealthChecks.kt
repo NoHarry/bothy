@@ -7,29 +7,27 @@ import android.os.SystemClock
 import android.provider.Settings
 import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.appserver.FoundException
-import cc.noharry.agent.appserver.androiduse.loadAndroidUseEnabled
-import cc.noharry.agent.appserver.androiduse.repairAndroidUse
-import cc.noharry.agent.appserver.evidence.BenchHttpTransport
+import cc.noharry.agent.androiduse.appserver.loadAndroidUseEnabled
+import cc.noharry.agent.androiduse.appserver.repairAndroidUse
+import cc.noharry.agent.appserver.http.AppServerHttpTransport
 import cc.noharry.agent.appserver.finding
 import cc.noharry.agent.appserver.image.code
 import cc.noharry.agent.appserver.image.fetchImageModels
 import cc.noharry.agent.appserver.image.loadImageModelConfig
-import cc.noharry.agent.appserver.model.DEFAULT_LOCAL_API_KEY
-import cc.noharry.agent.appserver.deepseek.DeepSeekProbe
-import cc.noharry.agent.appserver.deepseek.DeepSeekProbes
-import cc.noharry.agent.appserver.model.ModelCatalogClient
+import cc.noharry.agent.appserver.models.deepseek.DeepSeekProbe
+import cc.noharry.agent.appserver.models.deepseek.DeepSeekProbes
 import cc.noharry.agent.appserver.model.ProviderConfig
-import cc.noharry.agent.appserver.deepseek.fetchDeepSeekBalance
-import cc.noharry.agent.appserver.deepseek.isDeepSeek
-import cc.noharry.agent.appserver.model.isLocalBaseUrl
-import cc.noharry.agent.appserver.deepseek.view
+import cc.noharry.agent.appserver.models.deepseek.fetchDeepSeekBalance
+import cc.noharry.agent.appserver.models.deepseek.isDeepSeek
+import cc.noharry.agent.appserver.models.deepseek.view
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.FindingKind
 import cc.noharry.agent.appserver.protocol.ModelUsage
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.protocol.jsonrpc.ProtocolJson
+import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
 import cc.noharry.agent.appserver.protocol.finding
-import cc.noharry.agent.appserver.protocol.listing
 import cc.noharry.agent.appserver.protocol.parts
 import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.agent.appserver.usage.UsageStore
@@ -38,6 +36,8 @@ import cc.noharry.bothy.protocol.BothyFindingCode
 import cc.noharry.bothy.protocol.CheckGroup
 import cc.noharry.bothy.protocol.CheckId
 import cc.noharry.bothy.protocol.VoiceEngine
+import cc.noharry.bothy.server.server.BothyImages
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.bothy.server.companion.checkCompanion
 import cc.noharry.bothy.server.tools.checkToolCatalog
 import cc.noharry.bothy.server.voice.WakeWord
@@ -137,30 +137,6 @@ private fun warn(finding: Finding, fix: CheckFix? = null) = CheckResult(CheckSta
 private fun fail(finding: Finding, fix: CheckFix? = null) = CheckResult(CheckState.FAIL, finding, fix)
 private fun off(code: FindingKind, fix: CheckFix? = null) = CheckResult(CheckState.OFF, finding(code), fix)
 
-internal suspend fun checkChatModel(context: Context): CheckResult {
-    val config = ProviderConfig.load(context)
-    val profile = config.activeProfile
-    val name = parts(text(profile.displayLabel), text(profile.model))
-    if (!config.isReady(profile)) return fail(parts(name, config.missingFinding(profile)), CheckFix.MODELS)
-    val key = profile.apiKey.ifBlank { DEFAULT_LOCAL_API_KEY.takeIf { profile.baseUrl.isLocalBaseUrl() }.orEmpty() }
-    return runCatching { ModelCatalogClient(BenchHttpTransport(context)).fetch(profile.provider, key, profile.baseUrl) }.fold(
-        onSuccess = { ids -> chatModelListed(name, profile.model, ids) },
-        onFailure = { fail(parts(name, requestProblem(it)), CheckFix.MODELS) },
-    )
-}
-
-/**
- * The selected model against the service's list. Not listed reads as the selection being stale, with what is listed
- * (owner 2026-10-19 took 「列出的模型里没有 deepseek-v4-flash」 for the check having that model built in).
- */
-internal fun chatModelListed(name: Finding, model: String, ids: List<String>): CheckResult {
-    if (ids.isEmpty() || model in ids) return ok(Finding(BothyFindingCode.CHECKS_SERVICE_AVAILABLE, more = listOf(name)))
-    val shown = listing(ids.take(LISTED_MODELS).map(::text))
-    val listed = if (ids.size > LISTED_MODELS) Finding(BothyFindingCode.CHECKS_LISTED_MORE, more = listOf(shown, text(ids.size)))
-    else shown
-    return warn(Finding(BothyFindingCode.CHECKS_MODEL_NOT_LISTED, more = listOf(name, text(model), listed)), CheckFix.MODELS)
-}
-
 /**
  * What of DeepSeek's own API the current model gets (owner 2026-10-19: 检测里面也加上这个检测): on api.deepseek.com the
  * key's balance, the rest following from the host; behind a relay the model page's 检测, whose saved result unlocks what
@@ -210,6 +186,8 @@ internal fun DeepSeekProbe.checkResult(label: String): CheckResult {
 }
 
 private suspend fun checkImageModel(context: Context): CheckResult {
+    // Pictures are a plugin: while it is off there is no image model to check.
+    if (!ServerLink.pluginRunning(BothyImages.id)) return off(BothyFindingCode.CHECKS_OFF)
     val config = loadImageModelConfig(context)
     when {
         !config.enabled -> return off(BothyFindingCode.CHECKS_OFF, CheckFix.IMAGE_MODEL)
@@ -236,7 +214,7 @@ private suspend fun checkRecognition(context: Context): CheckResult {
     }
     val key = loadDashscopeKey(context)
     if (key.isEmpty()) return fail(finding(BothyFindingCode.CHECKS_ASR_NO_KEY), CheckFix.VOICE)
-    val status = BenchHttpTransport(context).execute(
+    val status = AppServerHttpTransport(context).execute(
         HttpRequest("GET", DASHSCOPE_MODELS_URL, mapOf("Authorization" to "Bearer $key")),
     ).statusCode
     return if (status in SUCCESS) ok(finding(BothyFindingCode.CHECKS_ASR_OK, config.dashscopeModel))
@@ -264,7 +242,7 @@ private suspend fun checkTts(context: Context): CheckResult {
     val tts = ProviderConfig.load(context).ttsConfig()
     if (!tts.enabled && tts.apiKey.isNotBlank()) return off(BothyFindingCode.CHECKS_TTS_OFF, CheckFix.VOICE)
     if (!tts.ready) return fail(ttsStatus(context, tts), CheckFix.VOICE)
-    return runCatching { ttsClient(BenchHttpTransport(context)).synthesize(tts, TTS_CHECK_TEXT) }.fold(
+    return runCatching { ttsClient(AppServerHttpTransport(context)).synthesize(tts, TTS_CHECK_TEXT) }.fold(
         onSuccess = { audio -> ok(Finding(BothyFindingCode.CHECKS_TTS_OK, more = listOf(tts.labelFinding(context), text(audio.bytes.size / 1024)))) },
         onFailure = { fail(parts(tts.labelFinding(context), it.finding()), CheckFix.VOICE) },
     )
@@ -335,13 +313,19 @@ private fun checkNotifications(context: Context): CheckResult = when {
     else -> warn(finding(BothyFindingCode.CHECKS_NOTIFICATIONS_DENIED), CheckFix.NOTIFICATIONS)
 }
 
-/** A failed request: its HTTP status when the message carries one, else the connection error; never the key. */
+/**
+ * A failed request: what the server found (a saved key it would not send to that address, say), else its HTTP status
+ * when the message carries one, else the connection error; never the key.
+ */
 internal fun requestProblem(error: Throwable): Finding {
     if (error is FoundException) return error.finding
-    val status = STATUS_IN_MESSAGE.find(error.message.orEmpty())?.groupValues?.get(1)?.toIntOrNull()
-    return status?.let(::statusProblem)
+    if (error is JsonRpcException) error.data?.let { data -> runCatching { ProtocolJson.decodeFromJsonElement(Finding.serializer(), data) }.getOrNull() }?.let { return it }
+    return error.httpStatus()?.let(::statusProblem)
         ?: finding(BothyFindingCode.CHECKS_CANNOT_CONNECT, error.message ?: error.javaClass.simpleName)
 }
+
+/** The HTTP status a failure's message names (`status=401`, `HTTP 401`); null when it names none. */
+internal fun Throwable.httpStatus(): Int? = STATUS_IN_MESSAGE.find(message.orEmpty())?.groupValues?.get(1)?.toIntOrNull()
 
 internal fun statusProblem(status: Int): Finding = when (status) {
     401, 403 -> finding(BothyFindingCode.CHECKS_HTTP_KEY, status)
@@ -353,7 +337,6 @@ internal fun statusProblem(status: Int): Finding = when (status) {
 
 private const val DASHSCOPE_MODELS_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1/models"
 private const val DEEPSEEK_MODEL_MARK = "deepseek"
-private const val LISTED_MODELS = 5
 private const val JEV_CHECK_TEXT = "你好小博，今天天气怎么样"
 private const val TTS_CHECK_TEXT = "检查"
 private const val CHECK_TIMEOUT_MS = 20_000L

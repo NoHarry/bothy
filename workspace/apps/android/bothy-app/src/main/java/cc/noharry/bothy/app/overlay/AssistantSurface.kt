@@ -24,7 +24,6 @@ import cc.noharry.bothy.protocol.VoiceView
 import cc.noharry.bothy.protocol.VoiceWakeParams
 import cc.noharry.bothy.protocol.WakeOrigin
 import cc.noharry.bothy.protocol.view.OverlayHud
-import cc.noharry.bothy.protocol.view.TTS_PROGRESS_PREFIX
 import cc.noharry.bothy.protocol.view.currentTurnItems
 import cc.noharry.bothy.protocol.voice
 import kotlinx.coroutines.CoroutineScope
@@ -214,7 +213,7 @@ internal fun ServerState.surfaceTimeline(showThinking: Boolean): List<String> =
             is ConversationItem.MessageItem -> item.content.trim().takeIf { it.isNotEmpty() && !item.final }?.let { text ->
                 when (item.role) {
                     TranscriptRole.THINKING -> if (showThinking) "think|${text.takeLast(MAX_THOUGHT)}" else null
-                    TranscriptRole.ASSISTANT -> "say|${text.replace(TTS_PROGRESS_PREFIX, "").trim().takeLast(MAX_THOUGHT)}"
+                    TranscriptRole.ASSISTANT -> "say|${text.takeLast(MAX_THOUGHT)}"
                     else -> null
                 }
             }

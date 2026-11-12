@@ -142,7 +142,7 @@ export interface A2aProfileDraft {
   token?: string;
 }
 
-export type A2aTaskStatus = "SUBMITTED" | "WORKING" | "INPUT_REQUIRED" | "COMPLETED" | "CANCELLED" | "FAILED" | "UNKNOWN";
+export type A2aTaskStatus = "SUBMITTED" | "WORKING" | "INPUT_REQUIRED" | "COMPLETED" | "CANCELLED" | "FAILED" | "REJECTED" | "UNKNOWN";
 
 export type AndroidUseState = "OFF" | "CONNECTED" | "WAITING" | "FAILED";
 
@@ -161,6 +161,7 @@ export interface ApprovalRequest {
   mode: ConfirmationMode;
   toolName?: string;
   argumentsJson?: string | null;
+  alwaysAsk?: boolean;
 }
 
 export interface ApprovalResolved {
@@ -469,6 +470,7 @@ export interface ConversationItemApproval {
   status?: ConfirmationStatus;
   createdAt: number;
   resolvedAt?: number | null;
+  alwaysAsk?: boolean;
 }
 
 export interface ConversationItemMessage {
@@ -509,40 +511,14 @@ export interface CurrentRequest {
 }
 
 export interface DataClearParams {
-  alsoMemories?: boolean;
+  also?: Array<string>;
 }
 
 export interface DataClearResult {
   cleared: boolean;
 }
 
-export interface DeepSeekBalanceParams {
-  apiKey?: string;
-  connection?: ProviderConnection | null;
-  url?: string | null;
-}
-
-export interface DeepSeekBalanceResult {
-  balance?: BalanceView | null;
-  failure?: Finding | null;
-}
-
-export interface DeepSeekCheckView {
-  passed: boolean;
-  note: Finding;
-  url?: string | null;
-}
-
-export interface DeepSeekProbeView {
-  checked?: boolean;
-  current?: boolean;
-  hasKey?: boolean;
-  balance?: DeepSeekCheckView | null;
-  tools?: DeepSeekCheckView | null;
-  passthrough?: DeepSeekCheckView | null;
-}
-
-export type DelegationStage = "DELIVERED" | "STALLED" | "STARTED" | "WORKING" | "REPORTING" | "DONE" | "ASKING" | "FAILED" | "CANCELLED" | "LOST";
+export type DelegationStage = "DELIVERED" | "STALLED" | "STARTED" | "WORKING" | "REPORTING" | "DONE" | "ASKING" | "FAILED" | "REJECTED" | "CANCELLED" | "LOST";
 
 export interface DelegationStep {
   title: string;
@@ -657,6 +633,8 @@ export interface HandOverNoticeView {
   fellBack?: boolean;
   ack?: string | null;
 }
+
+export type HostReach = "internet" | "device" | "local-network";
 
 export interface IdParams {
   id: string;
@@ -869,6 +847,16 @@ export interface ModelDownloadView {
   detail?: string;
 }
 
+export interface ModelFacts {
+  contextWindow?: number | null;
+  maxOutputTokens?: number | null;
+  imageInput?: boolean | null;
+  toolCalls?: boolean | null;
+  reasoning?: boolean | null;
+  reasoningEfforts?: Array<string>;
+  requestOutputTokens?: number | null;
+}
+
 export interface ModelListResult {
   models: Array<string>;
 }
@@ -881,6 +869,10 @@ export interface ModelPrice {
   source?: string;
   pricedAs?: string | null;
   manual?: boolean;
+  currency?: string;
+  asOf?: string | null;
+  region?: string | null;
+  effectiveFrom?: string | null;
 }
 
 export interface ModelPriceParams {
@@ -917,6 +909,8 @@ export interface ModelSettingsView {
   windowOverride?: number | null;
   defaultWindow?: number;
   imageInput?: boolean;
+  facts?: ModelFacts;
+  outputOverride?: number | null;
 }
 
 export interface ModelUsage {
@@ -977,6 +971,88 @@ export interface OnboardingView {
 }
 
 export type OverlayCommand = "show" | "hide";
+
+export interface PackageChange {
+  fromVersion: string;
+  network?: Array<PackageHost>;
+  secrets?: Array<PackageSecret>;
+  mcpServers?: Array<PackageMcpServer>;
+  skills?: Array<PackageSkill>;
+  hostTools?: Array<string>;
+  tools?: Array<PackageTool>;
+}
+
+export interface PackageContents {
+  skills?: Array<PackageSkill>;
+  mcpServers?: Array<PackageMcpServer>;
+  ruleLines?: number;
+  tools?: Array<PackageTool>;
+}
+
+export interface PackageHost {
+  host: string;
+  reach: HostReach;
+}
+
+export interface PackageMcpServer {
+  id: string;
+  label: string;
+  host: string;
+  reach: HostReach;
+}
+
+export interface PackagePermissions {
+  network?: Array<PackageHost>;
+  secrets?: Array<PackageSecret>;
+  hostTools?: Array<string>;
+}
+
+export type PackageProblem = "NOT_A_PACKAGE" | "TOO_LARGE" | "TOO_MANY_FILES" | "BAD_PATH" | "DUPLICATE_FILE" | "FILE_TYPE" | "NOT_UTF8" | "CARRIES_CODE" | "CARRIES_SCRIPTS" | "NO_MANIFEST" | "BAD_MANIFEST" | "UNKNOWN_FORMAT" | "BAD_ID" | "BAD_VERSION" | "NEEDS_NEWER_SERVER" | "BAD_SIGNATURE_FILE" | "DIGEST_MISMATCH" | "BAD_SIGNATURE" | "UNSIGNED_NOT_ALLOWED" | "PUBLISHER_KEY_CHANGED" | "OLDER_VERSION" | "ID_TAKEN" | "BAD_SKILL" | "BAD_RULES" | "BAD_MCP_SERVER" | "HOST_NOT_PERMITTED" | "UNKNOWN_SECRET" | "BAD_TOOL" | "TOOL_SERVER_TAKEN" | "SCRIPTS_UNAVAILABLE" | "BAD_SOURCE" | "DOWNLOAD_FAILED" | "INSTALL_EXPIRED" | "NEEDS_ACKNOWLEDGEMENT" | "MISSING_SECRET" | "BAD_SECRET" | "START_FAILED" | "NEEDS_MISSING" | "NOT_A_PACKAGE_PLUGIN" | "STORAGE_FAILED";
+
+export interface PackagePublisher {
+  name: string;
+  key?: string | null;
+  fingerprint?: string | null;
+  trusted?: boolean;
+}
+
+export interface PackageRefusal {
+  problem: PackageProblem;
+  detail?: string;
+}
+
+export interface PackageSecret {
+  name: string;
+  label: string;
+  set?: boolean;
+}
+
+export interface PackageSkill {
+  name: string;
+  preload?: boolean;
+}
+
+export interface PackageTool {
+  name: string;
+  description?: string;
+  readOnly?: boolean;
+  asks?: boolean;
+  timeoutSeconds?: number;
+  effectiveTimeoutSeconds?: number;
+}
+
+export interface PackageView {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  publisher: PackagePublisher;
+  unsigned?: boolean;
+  damaged?: boolean;
+  damage?: PackageRefusal | null;
+  permissions?: PackagePermissions;
+  contents?: PackageContents;
+}
 
 export interface PageReadParams {
   reference: string;
@@ -1086,6 +1162,52 @@ export interface PlanWatch {
   arguments?: Record<string, unknown>;
 }
 
+export interface PluginConfirmParams {
+  installId: string;
+  secrets?: Record<string, string>;
+  acknowledgeUntrusted?: boolean;
+}
+
+export interface PluginInstallParams {
+  url?: string | null;
+  file?: string | null;
+  data?: string | null;
+}
+
+export interface PluginInstallResult {
+  installId: string;
+  package: PackageView;
+  needsAcknowledgement: boolean;
+  update?: PackageChange | null;
+  expiresInSeconds: number;
+}
+
+export interface PluginListResult {
+  plugins: Array<PluginView>;
+}
+
+export interface PluginRemoveParams {
+  id: string;
+}
+
+export interface PluginSetParams {
+  id: string;
+  enabled: boolean;
+}
+
+export type PluginSource = "built-in" | "package";
+
+export interface PluginView {
+  id: string;
+  enabled: boolean;
+  running: boolean;
+  required?: boolean;
+  needs?: Array<string>;
+  source?: PluginSource;
+  package?: PackageView | null;
+  problem?: PackageRefusal | null;
+}
+
 export interface PointParams {
   x: number;
   y: number;
@@ -1174,6 +1296,7 @@ export interface ProviderEditState {
   variantOptions?: Array<string>;
   defaultVariant?: string | null;
   hasApiKey?: boolean;
+  service?: string;
 }
 
 export type ProviderEndpoint = "CHAT_COMPLETIONS" | "RESPONSES" | "MESSAGES";
@@ -1243,7 +1366,7 @@ export interface RealtimeView {
 
 export type RunActivity = "idle" | "starting" | "working" | "thinking" | "runningTool" | "waitingForApproval" | "blocked" | "failed" | "stopped";
 
-export type RunOutcome = "completed" | "partial" | "replayFailed" | "failed" | "stopped";
+export type RunOutcome = "completed" | "partial" | "blocked" | "replayFailed" | "failed" | "stopped";
 
 export interface RunResult {
   outcome: RunOutcome;
@@ -1305,6 +1428,10 @@ export type SegmentHandOver = "NEW_TURN" | "APPEND" | "REPLACE";
 
 export type SegmentLabel = "AGENT" | "SIDE" | "UNCERTAIN";
 
+export interface ServerFeaturesParams {
+  features: Array<string>;
+}
+
 export interface ServerInfo {
   name: string;
   version?: string;
@@ -1316,6 +1443,62 @@ export interface ServerSnapshot {
   activeThreadId?: string;
   thread?: ThreadSnapshot;
   sections?: Array<StateSection>;
+}
+
+export interface ServiceBalanceParams {
+  service: string;
+  apiKey?: string;
+  connection?: ProviderConnection | null;
+  url?: string | null;
+}
+
+export interface ServiceBalanceResult {
+  balance?: BalanceView | null;
+  failure?: Finding | null;
+}
+
+export interface ServiceCheckParams {
+  service: string;
+  connection: ProviderConnection;
+}
+
+export interface ServiceCheckPart {
+  passed: boolean;
+  note: Finding;
+  url?: string | null;
+}
+
+export interface ServiceCheckView {
+  checked?: boolean;
+  current?: boolean;
+  hasKey?: boolean;
+  balance?: ServiceCheckPart | null;
+  lookup?: ServiceCheckPart | null;
+  nativeUpdates?: ServiceCheckPart | null;
+  savedKeyRefused?: boolean;
+}
+
+export interface ServiceEndpointView {
+  endpoint: ProviderEndpoint;
+  baseUrl: string;
+  region?: string;
+}
+
+export interface ServiceListResult {
+  services?: Array<ServiceView>;
+}
+
+export interface ServiceView {
+  id: string;
+  label: string;
+  endpoints?: Array<ServiceEndpointView>;
+  keyHint?: string;
+  models?: Array<string>;
+  balance?: boolean;
+  relayCheck?: boolean;
+  defaultModel?: string;
+  listsModels?: boolean;
+  keyPages?: Record<string, string>;
 }
 
 export interface SessionBoardState {
@@ -2071,6 +2254,7 @@ export interface ClientRequests {
   "a2a/profile/setEnabled": { params: EnabledParams; result: Empty };
   "a2a/profile/save": { params: A2aProfileDraft; result: SaveResult };
   "a2a/profile/delete": { params: IdParams; result: Empty };
+  "a2a/server/token": { params: Empty; result: TextResult };
   "workspace/select": { params: UriParams; result: Empty };
   "workspace/clear": { params: Empty; result: Empty };
   "workspace/unavailable": { params: TextParams; result: Empty };
@@ -2084,9 +2268,15 @@ export interface ClientRequests {
   "usage/setPrice": { params: ModelPriceParams; result: Empty };
   "usage/setRate": { params: RateParams; result: Empty };
   "usage/syncPrices": { params: Empty; result: PriceSyncResult };
-  "deepseek/balance": { params: DeepSeekBalanceParams; result: DeepSeekBalanceResult };
-  "deepseek/probe": { params: ProviderConnection; result: DeepSeekProbeView };
-  "deepseek/check": { params: ProviderConnection; result: DeepSeekProbeView };
+  "services/list": { params: Empty; result: ServiceListResult };
+  "services/balance": { params: ServiceBalanceParams; result: ServiceBalanceResult };
+  "services/checked": { params: ServiceCheckParams; result: ServiceCheckView };
+  "services/check": { params: ServiceCheckParams; result: ServiceCheckView };
+  "plugins/list": { params: Empty; result: PluginListResult };
+  "plugins/set": { params: PluginSetParams; result: PluginListResult };
+  "plugins/install": { params: PluginInstallParams; result: PluginInstallResult };
+  "plugins/confirm": { params: PluginConfirmParams; result: PluginListResult };
+  "plugins/remove": { params: PluginRemoveParams; result: PluginListResult };
   "jev/setToolSearch": { params: JevSettings; result: SaveResult };
   "checks/run": { params: IdsParams; result: Empty };
   "companion/read": { params: Empty; result: CompanionView };
@@ -2160,6 +2350,7 @@ export interface ServerRequests {
 }
 
 export interface ServerNotifications {
+  "server/features": { params: ServerFeaturesParams };
   "thread/list/changed": { params: ThreadListChanged };
   "thread/selected": { params: ThreadSnapshot };
   "turn/started": { params: TurnStarted };

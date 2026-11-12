@@ -1,0 +1,15 @@
+public final class cc/noharry/agent/appserver/pages/PageRoutesKt {
+	public static final fun pageRoutes (Landroid/content/Context;)Lcc/noharry/agent/appserver/server/RouteModule;
+}
+
+public final class cc/noharry/agent/appserver/pages/PagesPlugin : cc/noharry/agent/appserver/server/AppServerPlugin {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun apply (Lcc/noharry/agent/appserver/server/PluginContext;)V
+	public fun clearWhileOff (Landroid/app/Application;Lcc/noharry/agent/appserver/server/DataClearing;)Z
+	public fun getId ()Ljava/lang/String;
+	public fun getNeeds ()Ljava/util/Set;
+	public fun getRequired ()Z
+}
+

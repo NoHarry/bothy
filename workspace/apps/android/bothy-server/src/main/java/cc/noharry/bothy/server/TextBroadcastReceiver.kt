@@ -4,21 +4,17 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import cc.noharry.agent.appserver.a2a.A2aClientConsole
-import cc.noharry.agent.appserver.a2a.describe
-import cc.noharry.agent.appserver.deepseek.DeepSeekProbes
-import cc.noharry.agent.appserver.deepseek.describe
+import cc.noharry.agent.appserver.models.deepseek.DeepSeekProbes
+import cc.noharry.agent.appserver.models.deepseek.describe
 import cc.noharry.agent.appserver.model.FetchFallback
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.SearchBackend
 import cc.noharry.agent.appserver.model.saveContextWindow
 import cc.noharry.agent.appserver.protocol.A2aInputSource
-import cc.noharry.agent.appserver.runtime.RuntimeSession
-import cc.noharry.agent.appserver.server.Presenter
-import cc.noharry.agent.appserver.session.DEBUG_A2A_CLIENT_EXTRA
-import cc.noharry.agent.appserver.session.DEBUG_BACKEND_EXTRA
-import cc.noharry.agent.appserver.session.DEBUG_ROUTE_EXTRA
-import cc.noharry.agent.appserver.session.DEBUG_STREAM_EXTRA
-import cc.noharry.agent.appserver.session.DEBUG_TEXT_EXTRA
+import cc.noharry.agent.appserver.protocol.DataClearParams
+import cc.noharry.agent.appserver.protocol.ModelSelectParams
+import cc.noharry.agent.appserver.protocol.SettingsRequests
+import cc.noharry.agent.appserver.a2a.DEBUG_A2A_CLIENT_EXTRA
 import cc.noharry.agent.appserver.skills.SubagentSettings
 import cc.noharry.agent.appserver.skills.loadSubagentKinds
 import cc.noharry.agent.appserver.skills.loadSubagentSettings
@@ -27,11 +23,15 @@ import cc.noharry.agent.appserver.skills.saveSubagentSettings
 import cc.noharry.bothy.protocol.BothyPresentationRequests
 import cc.noharry.bothy.protocol.MascotParams
 import cc.noharry.bothy.server.model.OnDeviceModel
+import cc.noharry.bothy.server.server.ServerLink
+import cc.noharry.bothy.server.server.debugLiveBackend
+import cc.noharry.bothy.server.server.debugStream
 import cc.noharry.bothy.server.model.isOnDevice
 import cc.noharry.bothy.server.voice.VoiceController
 import cc.noharry.bothy.server.voice.WakeSource
 import cc.noharry.bothy.server.voice.wakeAnywhere
 import java.io.File
+import kotlinx.coroutines.launch
 
 class TextBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -56,7 +56,8 @@ class TextBroadcastReceiver : BroadcastReceiver() {
             else A2aClientConsole.setSpeakExternal(context, speak)
         }
         intent.getStringExtra(DEBUG_MASCOT_ACT_EXTRA)?.let { name ->
-            Presenter.ask(BothyPresentationRequests.PREVIEW_MASCOT, MascotParams(name.trim())) { answer ->
+            ServerLink.main.launch {
+                val answer = ServerLink.assistant.ask(BothyPresentationRequests.PREVIEW_MASCOT, MascotParams(name.trim()))
                 if (answer?.taken != true) Log.w(TAG, "Ignored $DEBUG_MASCOT_ACT_EXTRA=$name; open the overlay and use an act or reaction name")
             }
         }
@@ -65,24 +66,31 @@ class TextBroadcastReceiver : BroadcastReceiver() {
     /** The demo scene's start: the model profile, cleared runtime data (nothing else then) or a new session. */
     private fun startScene(context: Context, intent: Intent): Boolean {
         // The model profile as Settings would pick it (`--es profile manual_local_…`), before the scene's turns.
+        // On the main thread, as onReceive is: the request is answered before the scene goes on.
         intent.getStringExtra(DEBUG_PROFILE_EXTRA)?.trim()?.takeIf { it.isNotEmpty() }?.let { id ->
-            RuntimeSession.selectProfile(context.applicationContext, id)
-            val active = ProviderConfig.load(context.applicationContext).activeProfile
-            Log.i(TAG, "Profile selected: ${active.id} (${active.displayLabel}) · ${active.model}")
+            ServerLink.main.launch {
+                ServerLink.request(SettingsRequests.MODEL_SELECT, ModelSelectParams(profileId = id))
+                val active = ProviderConfig.load(context.applicationContext).activeProfile
+                Log.i(TAG, "Profile selected: ${active.id} (${active.displayLabel}) · ${active.model}")
+            }
         }
         // A demo scene starts from nothing (owner 2026-10-19: 测试前先清空 runtime data，测冷启动), as the console's button
         // does: sessions, workspace, evidence and event logs go; memories, settings and keys stay.
         if (intent.getBooleanExtra(DEBUG_CLEAR_RUNTIME_DATA_EXTRA, false)) {
             // Held until done: a process woken only by this broadcast may be frozen once onReceive returns.
             val pending = goAsync()
-            RuntimeSession.clearRuntimeData(context.applicationContext) { ok ->
-                Log.i(TAG, "Runtime data cleared: ok=$ok")
-                pending.finish()
+            ServerLink.main.launch {
+                try {
+                    val ok = ServerLink.request(SettingsRequests.DATA_CLEAR, DataClearParams()).cleared
+                    Log.i(TAG, "Runtime data cleared: ok=$ok")
+                } finally {
+                    pending.finish()
+                }
             }
             return true
         }
         // A demo scene starts clean (owner 2026-10-19): the console's next text carries no earlier turns.
-        if (intent.getBooleanExtra(DEBUG_NEW_SESSION_EXTRA, false)) RuntimeSession.newSession(context.applicationContext)
+        if (intent.getBooleanExtra(DEBUG_NEW_SESSION_EXTRA, false)) ServerLink.turns.newConversation()
         return false
     }
 
@@ -95,7 +103,7 @@ class TextBroadcastReceiver : BroadcastReceiver() {
         intent.getStringExtra(DEBUG_REALTIME_SAY_EXTRA)?.takeIf(String::isNotBlank)?.let { text ->
             // As a late result is: 小博 says it while the model hears silence, and the model is told it.
             val app = context.applicationContext
-            if (!VoiceController.tellRealtime(text) { RuntimeSession.previewTts(app, text) {} }) {
+            if (!VoiceController.tellRealtime(text) { ServerLink.speech.preview(text) {} }) {
                 Log.w(TAG, "Ignored $DEBUG_REALTIME_SAY_EXTRA: no 端到端 conversation on air")
             }
         }
@@ -133,7 +141,7 @@ class TextBroadcastReceiver : BroadcastReceiver() {
         }
         val backend = intent.getStringExtra(DEBUG_BACKEND_EXTRA)
         val stream = intent.getStringExtra(DEBUG_STREAM_EXTRA)
-        RuntimeSession.submitText(context, text, backend, stream)
+        ServerLink.turns.start(text, live = debugLiveBackend(backend), stream = debugStream(stream))
     }
 
     /** Bench: a smaller window for the active model shows compaction sooner; 0 goes back to the model's own. */
@@ -310,3 +318,9 @@ internal fun parseA2aClientSwitch(value: String): Boolean? = when (value.trim().
 
 /** adb (DUMP): text into the open conversation, as if said or typed (`-e text ...`). */
 internal const val DEBUG_BROADCAST_ACTION = "cc.noharry.bothy.DEBUG_SEND_TEXT"
+
+/** The text broadcast's extras: the words, the backend and stream they run on, and where they go. */
+internal const val DEBUG_TEXT_EXTRA = "text"
+internal const val DEBUG_BACKEND_EXTRA = "backend"
+internal const val DEBUG_STREAM_EXTRA = "stream"
+internal const val DEBUG_ROUTE_EXTRA = "route"

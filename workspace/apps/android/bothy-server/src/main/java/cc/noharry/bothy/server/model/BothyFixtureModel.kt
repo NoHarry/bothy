@@ -1,14 +1,16 @@
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.server.model
 
 import cc.noharry.agent.appserver.session.SESSION_QUERY_INDEX_PATH
-import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.agent.kernel.api.model.ModelClient
-import cc.noharry.agent.kernel.api.model.ModelEvent
-import cc.noharry.agent.kernel.api.model.ModelMessage
-import cc.noharry.agent.kernel.api.model.ModelRequest
-import cc.noharry.agent.kernel.core.context.RUN_CONTEXT_HEADER
-import cc.noharry.agent.kernel.core.tools.DEFERRED_TOOLS_HEADER
+import cc.noharry.agent.spi.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.spi.ProviderConcurrencyDeclaration
+import cc.noharry.agent.spi.model.ModelClient
+import cc.noharry.agent.spi.model.ModelEvent
+import cc.noharry.agent.spi.model.ModelMessage
+import cc.noharry.agent.spi.model.ModelRequest
+import cc.noharry.agent.runtime.RuntimeInspection.RUN_CONTEXT_HEADER
+import cc.noharry.agent.runtime.RuntimeInspection.DEFERRED_TOOLS_HEADER
 import cc.noharry.bothy.server.server.BothyPersona
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

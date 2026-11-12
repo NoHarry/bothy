@@ -14,6 +14,7 @@
     <string name="phone_assist_running">Working</string>
     <string name="phone_assist_done">Done</string>
     <string name="phone_assist_partly">Partly done</string>
+    <string name="phone_assist_not_done">Couldn\'t do it</string>
     <string name="phone_assist_failed">Didn\'t work</string>
     <string name="phone_assist_stopped">Stopped</string>
     <string name="phone_assist_took_seconds">%1$d s</string>
@@ -23,7 +24,7 @@
     <string name="phone_assist_open_app">Open in app</string>
     <string name="phone_assist_talk">Talk</string>
     <string name="phone_assist_pending">Needs your OK</string>
-    <string name="phone_assist_allow_session">Allow for this conversation</string>
+    <string name="phone_assist_allow_session">Allow all from now on</string>
     <string name="phone_assist_stop">Stop</string>
     <string name="phone_assist_live_channel">What Bothy is doing</string>
     <string name="phone_assist_live_chip">Bothy</string>

@@ -4,8 +4,8 @@
 
 ## 仓库定位
 - 这是 **Bothy** —— [Android Agent Runtime](https://github.com/NoHarry/android-agent-runtime)（独立的 SDK 仓 `android-agent-runtime`）的平板优先演示 App，公开开源仓库（MIT）。
-- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：通用协议 `agent-app-protocol` 和 Bothy 在其上加的 `bothy-protocol`、通用服务端 `agent-app-server`（运行时、会话、模型、MCP、计划、A2A、记忆，不含任何 App 的功能）、Bothy 的服务端 `bothy-server`（通用服务端加上 Bothy 的插件：语音、本机模型、检查、Playground、自己的设置页）、只用通用层的最小示例 `agent-app-sample`、演示 App 的界面 `bothy-app`（控制台、手机、悬浮窗都是服务端的协议客户端）、第二个演示 App `bothy-playground`（虚拟座舱和小家的本机 MCP 服务），以及 `tools/agent-relay`、`tools/voice`。模块地图见 `workspace/apps/android/AGENTS.md`。
-- 运行时不在本仓：`agent-app-server` 和 `bothy-server` 通过 Maven 坐标 `cc.noharry:agent-*`（版本见 `gradle.properties` 的 `agentRuntimeVersion`）依赖它；SDK 仓 clone 在本仓旁边时，`settings.gradle.kts` 用 `includeBuild` 从源码构建。改运行时的代码去 SDK 仓改、在那里提交，本仓只放 App。`bothy-playground` 不依赖任何模块。
+- 业务源码统一放在 `workspace/` 下；Gradle workspace 位于 `workspace/apps/android/`：Bothy 在通用协议上加的 `bothy-protocol`、Bothy 的服务端 `bothy-server`（运行时仓的通用服务端加上 Bothy 的插件：语音、本机模型、检查、Playground、自己的设置页）、演示 App 的界面 `bothy-app`（控制台、手机、悬浮窗都是服务端的协议客户端）、语音 `bothy-voice`、本机模型 `bothy-llm`、第二个演示 App `bothy-playground`（虚拟座舱和小家的本机 MCP 服务），通用服务端的第一方插件 `plugins/`（卡片、DeepSeek、操作屏幕、设备工具、画页面、记忆、画图、计划、A2A，各是一个模块），以及 `tools/agent-relay`、`tools/bothy-protocol`、`tools/voice`。通用协议 `agent-app-protocol`、通用服务端 `agent-app-server`、示例 App 和 `tools/agent-plugin` 在运行时仓。模块地图见 `workspace/apps/android/AGENTS.md`。
+- 运行时不在本仓：`bothy-server`、`bothy-protocol` 和插件通过 Maven 坐标 `cc.noharry:agent-*`（版本见 `gradle.properties` 的 `agentRuntimeVersion`，通用服务端的 `agent-app-protocol`、`agent-app-server` 也在 `agent-bom` 里）依赖它；SDK 仓 clone 在本仓旁边时，`settings.gradle.kts` 用 `includeBuild` 从源码构建，`-PagentRuntimeRepo=<目录>` 改用本地 Maven 仓库里的构件。改运行时的代码去 SDK 仓改、在那里提交。通用服务端的第一方插件是本仓 `workspace/apps/android/plugins/` 下的源码模块（不发布，不依赖 Bothy，见 `CONSTRAINTS.md` L1）。`bothy-playground` 不依赖任何模块。
 - 本仓是 harness 目标项目；`harness.yaml` 是真实配置资产，模板来源见 `harness_framework.source`。
 - **这是公开仓库**：所有提交必须通过 `scripts/lint_public_hygiene.py` 门禁（身份、密钥模式、本地词表）。
 
@@ -43,7 +43,7 @@
 - 提交身份必须是 `NoHarry <noharry@users.noreply.github.com>`；仓库级 git config 已固定，不得用其他身份提交。
 - 业务代码只进 `workspace/`；不要在仓库根新建业务 `src/`、`tests/`。
 - 运行时的通用能力（MCP 客户端、工具、会话等）属于 SDK 仓；sample 里的示例代码、具体 MCP 服务、连接池、密钥、小博人设和中文文案留在本仓，不进 SDK。
-- 包名：演示 App 的代码在 `cc.noharry.agent.appserver.protocol` / `cc.noharry.bothy.protocol` / `cc.noharry.agent.appserver`（通用服务端和协议，稳定后搬到内核仓） / `cc.noharry.bothy.server` / `cc.noharry.bothy.app`（applicationId `cc.noharry.bothy`） / `cc.noharry.bothy.playground`；依赖只能 app → bothy-server → agent-app-server → agent-app-protocol（Bothy 那一侧另有 bothy-protocol → agent-app-protocol），界面不碰 SDK 和服务端（见 `CONSTRAINTS.md` L1）；SDK 的包是 `cc.noharry.agent.*`，SDK 里不出现 bothy；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
+- 包名：演示 App 的代码在 `cc.noharry.bothy.protocol` / `cc.noharry.bothy.server` / `cc.noharry.bothy.app`（applicationId `cc.noharry.bothy`） / `cc.noharry.bothy.playground`，通用服务端和协议（`cc.noharry.agent.appserver*`）在运行时仓，第一方插件沿用这些包名、放在本仓 `plugins/`；依赖只能 app → bothy-server → agent-app-server → agent-app-protocol（Bothy 那一侧另有 bothy-protocol → agent-app-protocol），界面不碰 SDK 和服务端（见 `CONSTRAINTS.md` L1）；SDK 的包是 `cc.noharry.agent.*`，SDK 里不出现 bothy；公开 API 在 0.x 阶段可以演进，但破坏性变更须在 release notes 声明。
 - 修改 skill 只能改 `.agent-harness/skills/src/` 和 registry，再运行 `python scripts/sync_skills.py --write`；投影目录不手工编辑。
 - `CLAUDE.md` 只能是导入 `AGENTS.md` 的薄 adapter。
 - durable memory 必须进入 `harness/memory/index.yaml`，含 Type、Scope、Status、Confidence、Evidence；trace/memory 内容一律使用中性表述，禁止内部上下文。
@@ -52,7 +52,7 @@
 
 ## 常用命令
 ```bash
-cd workspace/apps/android && ./gradlew :agent-app-protocol:test :bothy-protocol:test :agent-app-server:testDebugUnitTest :bothy-server:testDebugUnitTest :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-llm:testDebugUnitTest :bothy-playground:testDebugUnitTest
+cd workspace/apps/android && ./gradlew :bothy-protocol:test :bothy-server:testDebugUnitTest :bothy-app:testDebugUnitTest :bothy-voice:testDebugUnitTest :bothy-llm:testDebugUnitTest :bothy-playground:testDebugUnitTest
 cd workspace/apps/android && ./gradlew :bothy-app:assembleDebug :bothy-app:assembleRelease
 node --test workspace/apps/android/tools/agent-relay/relay.test.cjs
 python scripts/workspace_doctor.py --fix-safe --run-checks --write-trace

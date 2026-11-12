@@ -251,7 +251,8 @@ private fun A2aTerminalRow(item: A2aClientItem.Terminal, taskHasDisplay: Boolean
             fontWeight = FontWeight.SemiBold,
             color = when (item.state) {
                 A2aTaskStatus.FAILED -> colors.danger
-                A2aTaskStatus.CANCELLED, A2aTaskStatus.INPUT_REQUIRED -> colors.warning
+                // Rejected: the agent answered that it cannot proceed, not done rather than failed.
+                A2aTaskStatus.CANCELLED, A2aTaskStatus.INPUT_REQUIRED, A2aTaskStatus.REJECTED -> colors.warning
                 else -> colors.success
             },
         )

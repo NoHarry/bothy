@@ -61,6 +61,7 @@
     <string name="overlay_stage_done">Done</string>
     <string name="overlay_stage_asking">Waiting for your answer</string>
     <string name="overlay_stage_failed">Didn\'t get done</string>
+    <string name="overlay_stage_not_done">Not done</string>
     <string name="overlay_stage_cancelled">Cancelled</string>
     <string name="overlay_stage_lost">Lost track</string>
     <string name="overlay_elapsed_hours">%1$d h %2$d min</string>

@@ -8,8 +8,8 @@ import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.runtime.HostModels
-import cc.noharry.agent.kernel.api.model.ModelClient
-import cc.noharry.agent.kernel.api.model.ServerSideSearchCapability
+import cc.noharry.agent.spi.model.ModelClient
+import cc.noharry.agent.model.ServerSideSearchCapability
 import cc.noharry.agent.model.OpenAiModelClient
 import cc.noharry.agent.transport.OkHttpHttpTransport
 import cc.noharry.bothy.llm.localModel
@@ -21,16 +21,14 @@ import kotlin.math.roundToLong
 
 /**
  * Bothy's own models for the runtime ([HostModels]): the built-in on-device profile, served by [OnDeviceModel]'s
- * llama-server; the demo car's simulated model ([BothyFixtureModel]); and the voice's saved TTS settings, read with the
- * providers'.
+ * llama-server, and the voice's saved TTS settings, read with the providers'. The demo car's simulated model
+ * ([BothyFixtureModel]) is its config's simulated model.
  */
 internal object BothyModels : HostModels {
     override fun withProfiles(context: Context, profiles: List<ProviderProfile>): List<ProviderProfile> =
         profiles.withOnDeviceProfile(context.getString(R.string.model_on_device))
 
     override fun owns(profileId: String): Boolean = profileId == ON_DEVICE_PROFILE_ID
-
-    override fun simulated(): ModelClient = BothyFixtureModel()
 
     override fun isReady(profile: ProviderProfile): Boolean = OnDeviceModel.isDownloaded(OnDeviceModel.spec(profile.model))
 

@@ -1,0 +1,29 @@
+public final class cc/noharry/agent/appserver/memory/MemoryPlugin : cc/noharry/agent/appserver/server/AppServerPlugin {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun apply (Lcc/noharry/agent/appserver/server/PluginContext;)V
+	public fun clearWhileOff (Landroid/app/Application;Lcc/noharry/agent/appserver/server/DataClearing;)Z
+	public fun getId ()Ljava/lang/String;
+	public fun getNeeds ()Ljava/util/Set;
+	public fun getRequired ()Z
+}
+
+public final class cc/noharry/agent/appserver/memory/MemoryRoutesKt {
+	public static final fun memoryRoutes (Landroid/content/Context;)Lcc/noharry/agent/appserver/server/RouteModule;
+}
+
+public final class cc/noharry/agent/appserver/memory/UserMemoryKt {
+	public static final fun memoryProfileText (Ljava/util/List;)Ljava/lang/String;
+	public static final fun userMemoryEnabled (Landroid/content/Context;)Z
+}
+
+public final class cc/noharry/agent/appserver/memory/UserMemoryStore {
+	public static final field INSTANCE Lcc/noharry/agent/appserver/memory/UserMemoryStore;
+	public final fun clear (Landroid/content/Context;)Z
+	public final fun getEnabled ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getMemories ()Lkotlinx/coroutines/flow/StateFlow;
+	public final fun getRunning ()Z
+	public final fun inUse (Landroid/content/Context;)Ljava/util/List;
+}
+

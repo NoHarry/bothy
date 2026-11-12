@@ -1,17 +1,11 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.a2a
-import cc.noharry.agent.a2a.server.A2aOutput
-import cc.noharry.agent.appserver.a2a.a2aExecutionOutput
-import cc.noharry.agent.appserver.a2a.a2aRuntimeOutput
-import cc.noharry.agent.appserver.runtime.AppHost
-import cc.noharry.agent.appserver.runtime.ExecutionEvents
-import cc.noharry.agent.appserver.runtime.ExecutionToolHook
-import cc.noharry.agent.appserver.runtime.RunAddOns
+import cc.noharry.bothy.server.runtime.*
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
-import cc.noharry.agent.kernel.api.*
-import cc.noharry.agent.kernel.api.reliability.*
-import cc.noharry.bothy.server.tools.BothyRuns
+import cc.noharry.agent.spi.*
+import cc.noharry.agent.spi.reliability.*
+import cc.noharry.bothy.server.voice.BothyVoice
 import cc.noharry.bothy.server.voice.tts.TtsAnnouncer
 import cc.noharry.bothy.server.voice.tts.TtsConfig
 import cc.noharry.bothy.server.voice.tts.toolStarted
@@ -19,14 +13,27 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
 
+/**
+ * What Bothy's voice says of a run as text (the speech another agent's task receives, and the console shows), with no
+ * audio set up. What the task shows besides speech is the A2A plugin's (`A2aRuntimeOutputTest` in agent-app-a2a).
+ */
 class A2aOutputTest {
+    @Test fun bothysVoiceHandsItsSpeechOverAsTextWithoutAudio() = runBlocking {
+        // What an A2A run says comes from Bothy's voice (the server asks it for a text announcer), audio set up or not.
+        val texts = mutableListOf<Pair<String, Boolean>>()
+        val announcer = requireNotNull(BothyVoice.textAnnouncer(this) { text, final -> texts += text to final })
+        listOf(testSpokenNote("r", "正在核对目的地信息。"), toolStarted("r"), result(RuntimeCompletionOutcome.SUCCEEDED, "地点信息已查到。"))
+            .forEach { announcer.observe(RuntimeRunScope("r", "s"), it) { true } }
+        assertEquals(listOf("正在核对目的地信息。" to false, "地点信息已查到。" to true), texts)
+        announcer.stop()
+    }
+
     @Test fun speechTextWorksWithTtsDisabledAndNoAudioDependencies() = runBlocking {
         val texts = mutableListOf<Pair<String, Boolean>>()
         val announcer = TtsAnnouncer(this, textOutput = { text, final -> texts += text to final })
         val scope = RuntimeRunScope("r", "s")
         val events = listOf(
-            AgentEvent.TextDelta("r", "T"),
-            AgentEvent.TextDelta("r", "TS: 正在为你查询路线。"),
+            testSpokenNote("r", "正在为你查询路线。"),
             toolStarted("r"),
             result(RuntimeCompletionOutcome.SUCCEEDED, "路线查询完成。\n\n- 还有一些详情"),
         )
@@ -59,10 +66,10 @@ class A2aOutputTest {
     @Test fun speechDropsParenthesizedResultCodesButKeepsOrdinaryNotes() = runBlocking {
         // Responses recorded on device 5681350; the codes were read out before this fix.
         val cases = listOf(
-            "TTS: 已为你打开导航地图。\n\n地图已打开：打开导航地图主页的请求已受理（resultCode=10000），导航应用当前处于运行状态。" +
+            "地图已打开：打开导航地图主页的请求已受理（resultCode=10000），导航应用当前处于运行状态。" +
                 "当前没有进行中的导航流程。\n\n需要我帮你搜索地点或规划路线吗？" to
                 "地图已打开：打开导航地图主页的请求已受理，导航应用当前处于运行状态。当前没有进行中的导航流程。 需要我帮你搜索地点或规划路线吗？",
-            "TTS: 酷我音乐需要先登录，暂时无法点播。\n\n酷我（KUWO）点播未成功：两次尝试分别返回上游错误（20002，无结果）和未登录" +
+            "酷我（KUWO）点播未成功：两次尝试分别返回上游错误（20002，无结果）和未登录" +
                 "（need_login，20003），当前音源显示为 QQ音乐（type=1），也未能切到酷我。\n\n建议：先登录酷我音乐。" to
                 "酷我（KUWO）点播未成功：两次尝试分别返回上游错误和未登录，当前音源显示为 QQ音乐，也未能切到酷我。 建议：先登录酷我音乐。",
             "已打开多媒体（QQ音乐，com.example.media）。\n\n- 其余详情请看屏幕" to "已打开多媒体。",
@@ -79,53 +86,38 @@ class A2aOutputTest {
         }
         val progress = mutableListOf<String>()
         val announcer = TtsAnnouncer(this, textOutput = { text, final -> if (!final) progress += text })
-        announcer.observe(RuntimeRunScope("r", "s"), AgentEvent.TextDelta("r", "TTS: 音量已提交（status=ACCEPTED），正在读取读数。"),
+        announcer.observe(RuntimeRunScope("r", "s"), testSpokenNote("r", "音量已提交（status=ACCEPTED），正在读取读数。"),
             TtsConfig()) { true }
         announcer.observe(RuntimeRunScope("r", "s"), toolStarted("r"), TtsConfig()) { true }
         assertEquals(listOf("音量已提交，正在读取读数。"), progress)
         announcer.stop()
     }
 
-    @Test fun speakThenShowSpeaksTheLeadAndShowsTheCardWithoutProgressMarkers() = runBlocking {
-        val response = "TTS: 找到几个北站停车场了。\n\n深圳北站有4个停车场，推荐东广场北区那个，离进站口最近，就去那儿吗？\n\n" +
+    @Test fun speakThenShowSpeaksTheLeadAndShowsTheCard() = runBlocking {
+        val response = "深圳北站有4个停车场，推荐东广场北区那个，离进站口最近，就去那儿吗？\n\n" +
             "1. 东广场北区地下停车场（推荐，离进站口最近）\n2. 西广场地下停车场"
         val speech = mutableListOf<String>()
         val announcer = TtsAnnouncer(this, textOutput = { text, final -> if (final) speech += text })
         val event = result(RuntimeCompletionOutcome.SUCCEEDED, response)
         announcer.observe(RuntimeRunScope("r", "s"), event, TtsConfig()) { true }
         assertEquals(listOf("深圳北站有4个停车场，推荐东广场北区那个，离进站口最近，就去那儿吗？"), speech)
-        // Bothy's voice marks its progress lines; another agent gets the reply without them.
-        AppHost.install(runs = BothyRuns)
-        val display = try {
-            (a2aRuntimeOutput(event) as A2aOutput.Result).text
-        } finally {
-            AppHost.install(runs = RunAddOns.NONE)
-        }
-        assertEquals(response.substringAfter("\n\n"), display)
         announcer.stop()
     }
 
-    @Test fun progressWrittenInTheClosingRoundIsLeftToTheFinalReply() = runBlocking {
+    @Test fun aNoteIsSaidOnlyOnACallThatDoesRealWork() = runBlocking {
         // Device 5681350: "屏幕调亮了，音量也降了一点。" was spoken right before "亮度和音量都调好了…".
         val speech = mutableListOf<Pair<String, Boolean>>()
         val announcer = TtsAnnouncer(this, textOutput = { text, final -> speech += text to final })
         val scope = RuntimeRunScope("r", "s")
         listOf(
-            AgentEvent.TextDelta("r", "TTS: 我先调亮屏幕，再把音量降一点。\n"),
+            testSpokenNote("r", "我先调亮屏幕，再把音量降一点。\n"),
             toolStarted("r"),
-            AgentEvent.TextDelta("r", "TTS: 屏幕调亮了，音量也降了一点。\n"),
-            AgentEvent.NativeToolCallStarted("r", "finish", "{}"),
+            testSpokenNote("r", "屏幕调亮了，音量也降了一点。\n"),
+            testToolStarted("r", "finish", "{}"),
             result(RuntimeCompletionOutcome.SUCCEEDED, "亮度和音量都调好了。"),
         ).forEach { announcer.observe(scope, it, TtsConfig()) { true } }
         assertEquals(listOf("我先调亮屏幕，再把音量降一点。" to false, "亮度和音量都调好了。" to true), speech)
         announcer.stop()
-        // Hosted web search emits no NativeToolCallStarted; its activity still releases the line.
-        val searched = mutableListOf<String>()
-        val second = TtsAnnouncer(this, textOutput = { text, final -> if (!final) searched += text })
-        second.observe(scope, AgentEvent.TextDelta("r", "TTS: 我先上网查一下深圳北站的营业时间。\n"), TtsConfig()) { true }
-        second.observe(scope, AgentEvent.SearchActivity("r", "anthropic"), TtsConfig()) { true }
-        assertEquals(listOf("我先上网查一下深圳北站的营业时间。"), searched)
-        second.stop()
     }
 
     @Test fun rewordedRepeatProgressIsSpokenOnce() = runBlocking {
@@ -134,58 +126,24 @@ class A2aOutputTest {
         // One model round on device 5681350 emitted the first two lines back to back.
         listOf("我先看下当前音源，帮你找林俊杰的歌。", "我先看下当前用的音源，再帮你找林俊杰的歌。", "当前音源是QQ音乐，我搜一下林俊杰的歌。")
             .forEach {
-                announcer.observe(RuntimeRunScope("r", "s"), AgentEvent.TextDelta("r", "TTS: $it\n"), TtsConfig()) { true }
+                announcer.observe(RuntimeRunScope("r", "s"), testSpokenNote("r", "$it\n"), TtsConfig()) { true }
                 announcer.observe(RuntimeRunScope("r", "s"), toolStarted("r"), TtsConfig()) { true }
             }
         assertEquals(listOf("我先看下当前音源，帮你找林俊杰的歌。", "当前音源是QQ音乐，我搜一下林俊杰的歌。"), progress)
         announcer.stop()
     }
 
-    @Test fun unknownOrFailedBusinessOutcomeNeverBecomesCompletedOrSuccessSpeech() = runBlocking {
+    @Test fun unknownOrFailedBusinessOutcomeNeverBecomesSuccessSpeech() = runBlocking {
         val texts = mutableListOf<String>()
         val announcer = TtsAnnouncer(this, textOutput = { text, _ -> texts += text })
         listOf(RuntimeCompletionOutcome.UNKNOWN, RuntimeCompletionOutcome.FAILED).forEach { outcome ->
             val event = result(outcome, "不能当作成功")
             announcer.observe(RuntimeRunScope("r", "s"), event, TtsConfig()) { true }
-            assertEquals(A2aOutput.State.FAILED, (a2aRuntimeOutput(event) as A2aOutput.Result).state)
         }
         assertTrue(texts.isEmpty())
-        assertEquals(A2aOutput.State.COMPLETED, (a2aRuntimeOutput(result(RuntimeCompletionOutcome.SUCCEEDED, "好了")) as A2aOutput.Result).state)
     }
 
-    @Test fun aReplyThatAsksTheDriverWaitsForAnAnswerInsteadOfFailing() {
-        fun state(outcome: RuntimeCompletionOutcome, response: String) = (a2aRuntimeOutput(result(outcome, response)) as A2aOutput.Result).state
-
-        assertEquals(A2aOutput.State.INPUT_REQUIRED, state(RuntimeCompletionOutcome.PARTIAL, "想怎么调呢？说个数值，或者我给你拖个滑块。"))
-        assertEquals(A2aOutput.State.INPUT_REQUIRED, state(RuntimeCompletionOutcome.BLOCKED, "播放模式有三种。\n\n1. 顺序播放\n2. 单曲循环（推荐）"))
-        assertEquals(A2aOutput.State.FAILED, state(RuntimeCompletionOutcome.PARTIAL, "导航开了，空调没有响应。"))
-        assertEquals(A2aOutput.State.FAILED, state(RuntimeCompletionOutcome.FAILED, "要重试吗？"))
-    }
-
-    @Test fun typedToolStatusIncludesNestedCallsButNeverTheirPayload() = runBlocking {
-        val outputs = mutableListOf<A2aOutput>()
-        val subscription = ExecutionEvents.subscribe("r")
-        val hook = ExecutionToolHook()
-        val call = ToolUse("navigate", """{"token":"secret"}""", ToolSource.BACKEND, "c1")
-        val context = HookContext("s", "r", "request")
-        hook.onPreToolUse(call, context)
-        hook.onPostToolUse(call, ToolUseResult(ok = false, resultJson = "private-result"), context)
-        repeat(2) { a2aExecutionOutput(subscription.events.receive())?.let { outputs += it } }
-        subscription.close()
-        assertEquals(listOf("started", "failed"), outputs.map { (it as A2aOutput.Status).phase })
-        assertTrue(outputs.all { (it as A2aOutput.Status).toolCallId == "c1" })
-        assertFalse(outputs.toString().contains("secret"))
-        assertFalse(outputs.toString().contains("private-result"))
-    }
-
-    @Test fun thinkingArgumentsAndDetailedFailuresAreNotProjected() {
-        assertNull(a2aRuntimeOutput(AgentEvent.ThinkingDelta("r", "private thought")))
-        assertNull(a2aRuntimeOutput(AgentEvent.NativeToolCallStarted("r", "tool", "private args")))
-        assertNull(a2aRuntimeOutput(AgentEvent.Failed("r", "HTTP", "credential-bearing diagnostic", false)))
-        assertEquals("retry", (a2aRuntimeOutput(AgentEvent.RetryAttempted("r", 2, 10)) as A2aOutput.Status).phase)
-    }
-
-    private fun result(outcome: RuntimeCompletionOutcome, response: String) = AgentEvent.ResultAvailable(
+    private fun result(outcome: RuntimeCompletionOutcome, response: String) = testTurnCompleted(
         RuntimeResult("r", RuntimeRunStatus.COMPLETED, response, completion = RuntimeCompletionSummary(outcome)),
     )
 }

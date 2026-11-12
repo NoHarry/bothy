@@ -147,7 +147,7 @@ private fun Resources.trayDetail(view: DelegationView): String = when (view.stag
 }
 
 private fun DelegationStage.dot(): Color = when (this) {
-    DelegationStage.STALLED, DelegationStage.FAILED, DelegationStage.LOST -> Color(0xFFFFB454)
+    DelegationStage.STALLED, DelegationStage.FAILED, DelegationStage.REJECTED, DelegationStage.LOST -> Color(0xFFFFB454)
     DelegationStage.REPORTING, DelegationStage.DONE -> Color(0xFF5CE1A0)
     else -> OverlayPalette.glow
 }

@@ -9,6 +9,7 @@ import cc.noharry.agent.appserver.protocol.RunOutcome
 import cc.noharry.agent.appserver.protocol.RunResult
 import cc.noharry.agent.appserver.protocol.SubagentRunState
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
+import cc.noharry.agent.appserver.protocol.view.BLOCKED_SUMMARY
 import cc.noharry.agent.appserver.protocol.view.PARTIAL_SUMMARY
 import cc.noharry.bothy.app.R
 
@@ -27,6 +28,7 @@ internal fun Resources.runSummaryText(summary: String): String {
     }
     return when (suffix) {
         PARTIAL_SUMMARY -> getString(R.string.console_run_partial, main)
+        BLOCKED_SUMMARY -> getString(R.string.console_run_blocked, main)
         REPLAY_FAILED_SUFFIX -> getString(R.string.console_run_replay_failed, main)
         else -> main
     }
@@ -75,10 +77,11 @@ internal fun Resources.runResultText(result: RunResult): String {
     val main = when (result.outcome) {
         RunOutcome.FAILED -> getString(R.string.console_run_failed_after, elapsed)
         RunOutcome.STOPPED -> getString(R.string.console_run_stopped_after, elapsed)
-        RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.REPLAY_FAILED -> getString(R.string.console_run_worked_for, elapsed)
+        RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.BLOCKED, RunOutcome.REPLAY_FAILED -> getString(R.string.console_run_worked_for, elapsed)
     }
     return when (result.outcome) {
         RunOutcome.PARTIAL -> getString(R.string.console_run_partial, main)
+        RunOutcome.BLOCKED -> getString(R.string.console_run_blocked, main)
         RunOutcome.REPLAY_FAILED -> getString(R.string.console_run_replay_failed, main)
         else -> main
     }
@@ -113,7 +116,7 @@ internal fun Resources.shortElapsedText(millis: Long): String =
         getString(R.string.console_elapsed_seconds, millis / MILLIS_PER_SECOND.toDouble())
     }
 
-private val RUN_SUMMARY = Regex("""(Worked for|Failed after|Stopped after) (.+?)( · partial| · replay failed)?""")
+private val RUN_SUMMARY = Regex("""(Worked for|Failed after|Stopped after) (.+?)( · partial| · blocked| · replay failed)?""")
 private val DURATION_LABEL = Regex("""(?:(\d+)h )?(?:(\d+)m )?(\d+)s""")
 private const val REPLAY_FAILED_SUFFIX = " · replay failed"
 private const val MILLIS_PER_SECOND = 1000L

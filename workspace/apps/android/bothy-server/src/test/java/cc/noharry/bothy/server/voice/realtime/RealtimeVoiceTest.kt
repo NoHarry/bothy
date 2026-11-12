@@ -231,13 +231,13 @@ class RealtimeVoiceTest {
     @Test
     fun aResultThatComesAsTheWaitRunsOutAnswersTheCall() {
         RealtimeWaits.begin()
-        RealtimeWaits.hold("桂林三天排好了")
-        assertEquals("桂林三天排好了", RealtimeWaits.takeHeld())
-        assertEquals(null, RealtimeWaits.takeHeld())
-        RealtimeWaits.hold("没人取")
+        RealtimeWaits.hold("run", "桂林三天排好了")
+        assertEquals("桂林三天排好了", RealtimeWaits.replyFor("run"))
+        assertEquals("桂林三天排好了", RealtimeWaits.replyFor("run"))
+        RealtimeWaits.hold("run", "没人取")
         RealtimeWaits.end()
         assertFalse(RealtimeWaits.waiting)
-        assertEquals("the last wait's end clears it", null, RealtimeWaits.takeHeld())
+        assertEquals("the last wait's end clears it", null, RealtimeWaits.replyFor("run"))
     }
 
     private fun voice(

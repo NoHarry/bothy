@@ -1,13 +1,12 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.tools
 
-import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
-import cc.noharry.agent.kernel.api.HookContext
-import cc.noharry.agent.kernel.api.HookDecision
-import cc.noharry.agent.kernel.api.ToolDescriptor
-import cc.noharry.agent.kernel.api.ToolSource
-import cc.noharry.agent.kernel.api.ToolUse
+import cc.noharry.agent.spi.HookContext
+import cc.noharry.agent.spi.HookDecision
+import cc.noharry.agent.spi.ToolDescriptor
+import cc.noharry.agent.spi.ToolSource
+import cc.noharry.agent.spi.ToolUse
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -30,14 +29,14 @@ class ActionGateTest {
 
     @Test
     fun aQuestionOrAHoldIsNoYesAndOneYesIsOneOrder() {
-        val question = "$FOLLOW_UP_FRAME_HEADER\n… 一共 46 元，要下单吗？\nBind the reply below to this message only.\nUser reply: "
+        val question = "一共 46 元，要下单吗？"
         listOf("大杯是多少钱", "要几分钟", "对了换燕麦奶", "先留着就行", "不要").forEach { reply ->
-            assertTrue(reply, ActionGate(question + reply).decide(order) is HookDecision.Deny)
+            assertTrue(reply, ActionGate(reply, previousQuestion = question).decide(order) is HookDecision.Deny)
         }
-        assertTrue(ActionGate(question + "好的，下单吧").decide(order) is HookDecision.Allow)
+        assertTrue(ActionGate("好的，下单吧", previousQuestion = question).decide(order) is HookDecision.Allow)
         assertTrue(ActionGate("不要直接下单，先给我看看").decide(order) is HookDecision.Deny)
         assertTrue(ActionGate("不用现在付").decide("mcp__shop__payOrder") is HookDecision.Deny)
-        val once = ActionGate(question + "确认")
+        val once = ActionGate("确认", previousQuestion = question)
         assertTrue(once.decide(order) is HookDecision.Allow)
         assertTrue(once.decide(order) is HookDecision.Deny)
     }
@@ -50,14 +49,12 @@ class ActionGateTest {
         assertTrue(ask.decide("mcp__luckin__queryShopList") is HookDecision.Allow)
         assertTrue(ask.decide(window) is HookDecision.Allow)
 
-        val question = "$FOLLOW_UP_FRAME_HEADER\n… 两杯生椰拿铁一共 46 元。要现在付款，还是先按这个留着？\n" +
-            "Bind the reply below to this message only.\nUser reply: "
-        assertTrue(ActionGate(question + "付吧").decide(order) is HookDecision.Allow)
-        assertTrue(ActionGate(question + "先别付").decide(order) is HookDecision.Deny)
-        val howOften = "$FOLLOW_UP_FRAME_HEADER\n… 客厅窗户打开时帮你下单一杯生椰拿铁。以后每次都这样，还是只这一次？\n" +
-            "Bind the reply below to this message only.\nUser reply: "
-        assertTrue(ActionGate(howOften + "只要一次").decide(order) is HookDecision.Deny)
-        assertTrue(ActionGate(howOften + "这次直接下单吧").decide(order) is HookDecision.Allow)
+        val question = "两杯生椰拿铁一共 46 元。要现在付款，还是先按这个留着？"
+        assertTrue(ActionGate("付吧", previousQuestion = question).decide(order) is HookDecision.Allow)
+        assertTrue(ActionGate("先别付", previousQuestion = question).decide(order) is HookDecision.Deny)
+        val howOften = "客厅窗户打开时帮你下单一杯生椰拿铁。以后每次都这样，还是只这一次？"
+        assertTrue(ActionGate("只要一次", previousQuestion = howOften).decide(order) is HookDecision.Deny)
+        assertTrue(ActionGate("这次直接下单吧", previousQuestion = howOften).decide(order) is HookDecision.Allow)
         assertTrue(ActionGate("帮我点杯生椰拿铁，直接下单").decide(order) is HookDecision.Allow)
         val pick = "用户在屏幕上点了第1项（原话：1）。\n绑定的操作已由宿主按工具定义核对：调用 $order，参数 {}。"
         assertTrue(ActionGate(pick).decide(order) is HookDecision.Allow)

@@ -57,6 +57,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
+import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.DEFAULT_DEBUG_VARIANT_ID
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.ProviderEditState
@@ -649,6 +650,14 @@ internal fun ConfirmationMode.menuHint(): Int =
         ConfirmationMode.ALLOW_ALL_SESSION -> R.string.console_approval_allow_all_hint
         ConfirmationMode.DENY_ALL -> R.string.console_approval_deny_all_hint
     }
+
+/**
+ * How [item] is decided, for its card: the mode in force, or for a call that asks every time (a plugin's tool that acts),
+ * that this yes covers it alone: such a card offers nothing that remembers or allows all.
+ */
+@StringRes
+internal fun approvalWayRes(item: ConversationItem.ConfirmationItem): Int =
+    if (item.alwaysAsk) R.string.console_approval_every_time else item.mode.labelRes()
 
 /** The screen's name for a mode; the runtime's status and transcript lines keep [ConfirmationMode.label]. */
 @StringRes

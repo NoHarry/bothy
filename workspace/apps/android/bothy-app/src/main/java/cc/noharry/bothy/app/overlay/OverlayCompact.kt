@@ -1,4 +1,6 @@
 package cc.noharry.bothy.app.overlay
+import cc.noharry.agent.appserver.protocol.USER_STEERING_LABEL
+import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
 
 import android.content.res.Resources
 import cc.noharry.agent.appserver.protocol.ConfirmationStatus
@@ -20,7 +22,7 @@ internal data class CompactEntry(
 
 internal fun ConversationItem.toCompact(): CompactEntry =
     when (this) {
-        is ConversationItem.TurnHeader -> CompactEntry(label, preview, isError = false)
+        is ConversationItem.TurnHeader -> CompactEntry(if (label == USER_STEERING_LABEL) USER_TURN_LABEL else label, preview, isError = false)
         is ConversationItem.MessageItem -> CompactEntry(
             title = role.compactTitle(),
             body = content,

@@ -66,14 +66,15 @@ import cc.noharry.agent.appserver.protocol.Plan
 import cc.noharry.agent.appserver.protocol.ToolCallStatus
 import cc.noharry.agent.appserver.protocol.TranscriptRole
 import cc.noharry.agent.appserver.protocol.USER_TURN_LABEL
+import cc.noharry.agent.appserver.protocol.USER_STEERING_LABEL
 import cc.noharry.bothy.protocol.view.PickableReply
-import cc.noharry.bothy.protocol.view.TTS_PROGRESS_PREFIX
 import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.console.ConsoleActions
 import cc.noharry.bothy.app.console.ConsoleColors
 import cc.noharry.bothy.app.console.ConversationItemView
 import cc.noharry.bothy.app.console.ConversationRenderRow
 import cc.noharry.bothy.app.console.color
+import cc.noharry.bothy.app.console.approvalWayRes
 import cc.noharry.bothy.app.console.labelRes
 import cc.noharry.bothy.app.console.turnHeaderLabel
 import cc.noharry.bothy.app.console.ui.StatusDot
@@ -140,7 +141,7 @@ private fun AskedRow(header: ConversationItem.TurnHeader, actions: ConsoleAction
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         val widest = maxWidth * BUBBLE_SHARE
         Column(horizontalAlignment = Alignment.End) {
-            if (header.label != USER_TURN_LABEL) Text(turnHeaderLabel(header.label), style = PhoneType.small, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
+            if (header.label !in setOf(USER_TURN_LABEL, USER_STEERING_LABEL)) Text(turnHeaderLabel(header.label), style = PhoneType.small, color = colors.muted, modifier = Modifier.padding(bottom = 4.dp))
             Surface(
                 color = colors.userBubble,
                 shape = RoundedCornerShape(topStart = BUBBLE_RADIUS, topEnd = BUBBLE_TUCK, bottomEnd = BUBBLE_RADIUS, bottomStart = BUBBLE_RADIUS),
@@ -163,12 +164,8 @@ private fun AskedRow(header: ConversationItem.TurnHeader, actions: ConsoleAction
 @Composable
 private fun ShownRow(item: ConversationItem, actions: ConsoleActions, pickable: PickableReply?) {
     // The open picks are the newest reply's: drawn under it alone, or every answer would read as the newest.
-    ConsoleTypeOnPhone { ConversationItemView(item.withoutSpokenMarks(), actions, pickable = pickable?.takeIf { it.messageId == item.id }) }
+    ConsoleTypeOnPhone { ConversationItemView(item, actions, pickable = pickable?.takeIf { it.messageId == item.id }) }
 }
-
-/** What the run says as it goes is marked 「TTS:」 for the voice; the screen shows the words alone, as the overlay does. */
-internal fun ConversationItem.withoutSpokenMarks(): ConversationItem =
-    if (this is ConversationItem.MessageItem && role == TranscriptRole.ASSISTANT) copy(content = content.replace(TTS_PROGRESS_PREFIX, "")) else this
 
 /**
  * An approval waiting for the person: what the run wants to reach, the tool that asks and how approvals go, then deny
@@ -197,7 +194,7 @@ private fun ApprovalCard(row: PhoneRow.Approval, actions: ConsoleActions) {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.panel).padding(horizontal = 16.dp, vertical = 12.dp)) {
                 if (item.domain.isNotBlank()) DetailLine(stringResource(R.string.phone_approval_site), item.domain)
                 row.tool?.let { DetailLine(stringResource(R.string.phone_approval_tool), it.toolName) }
-                DetailLine(stringResource(R.string.console_approval), stringResource(item.mode.labelRes()))
+                DetailLine(stringResource(R.string.console_approval), stringResource(approvalWayRes(item)))
             }
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth()) {

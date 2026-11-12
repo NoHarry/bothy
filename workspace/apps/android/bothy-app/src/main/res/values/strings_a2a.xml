@@ -14,6 +14,13 @@
     </plurals>
     <string name="a2a_no_profiles">No A2A client profiles</string>
     <string name="a2a_token_set">token set</string>
+    <string name="a2a_server_title">Incoming A2A access token</string>
+    <string name="a2a_server_hint">Use Authorization: Bearer &lt;token&gt; when sending A2A requests to this device.</string>
+    <string name="a2a_server_show">Show token</string>
+    <string name="a2a_server_hide">Hide token</string>
+    <string name="a2a_server_copy">Copy token</string>
+    <string name="a2a_server_copied">Copied</string>
+    <string name="a2a_server_read_failed">Could not read the token. Try again.</string>
     <string name="a2a_status_loaded">Loaded</string>
     <string name="a2a_status_error">Error</string>
     <string name="a2a_status_enabled">Enabled</string>

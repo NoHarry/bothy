@@ -97,9 +97,14 @@ android {
     }
 }
 
+// The app server is experimental, and its protocol client asks for an opt-in.
+kotlin {
+    compilerOptions.optIn.add("cc.noharry.agent.appserver.protocol.ExperimentalAppServerApi")
+}
+
 dependencies {
     // The runtime's workspace and event log use java.nio.file, which Android has from API 26 (minSdk here is 24).
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     // The server runs in this process; front ends reach it only through the protocol.
     implementation(project(":bothy-server"))
     implementation(project(":bothy-protocol"))

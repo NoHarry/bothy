@@ -3,13 +3,12 @@ package cc.noharry.bothy.server.tools
 import cc.noharry.agent.appserver.a2ui.isBoundPick
 import cc.noharry.agent.appserver.a2ui.picksBoundCall
 import cc.noharry.agent.appserver.plans.isPlanRun
-import cc.noharry.agent.appserver.runtime.followUpParts
 import cc.noharry.agent.appserver.tools.isTransaction
-import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.agent.kernel.api.HookContext
-import cc.noharry.agent.kernel.api.HookDecision
-import cc.noharry.agent.kernel.api.RuntimeHook
-import cc.noharry.agent.kernel.api.ToolUse
+import cc.noharry.agent.spi.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.spi.HookContext
+import cc.noharry.agent.spi.HookDecision
+import cc.noharry.agent.spi.RuntimeHook
+import cc.noharry.agent.spi.ToolUse
 
 /**
  * Placing an order or paying ([isTransaction]) waits for the user (a request like 「…的时候帮我点一杯咖啡」 once placed an
@@ -23,6 +22,7 @@ import cc.noharry.agent.kernel.api.ToolUse
 internal class ActionGate(
     private val userInput: String,
     private val child: Boolean = false,
+    private val previousQuestion: String? = null,
 ) : RuntimeHook {
     @Volatile private var ordered = false
 
@@ -31,7 +31,7 @@ internal class ActionGate(
         if (child) return if (isTransaction(name)) HookDecision.Deny(reason = CHILD_REFUSED) else HookDecision.Allow()
         if (userInput.isPlanRun()) return HookDecision.Allow()
         if (isTransaction(name)) {
-            if (ordered || !confirmsTransaction(userInput, name)) return HookDecision.Deny(reason = TRANSACTION_REFUSED)
+            if (ordered || !confirmsTransaction(userInput, name, previousQuestion)) return HookDecision.Deny(reason = TRANSACTION_REFUSED)
             ordered = true
         }
         return HookDecision.Allow()
@@ -42,12 +42,12 @@ internal class ActionGate(
  * The user said yes to this order: a short reply under a quoted question about ordering or paying, an on-screen pick
  * whose bound call is [toolName], or a request that asks to order or pay outright.
  */
-internal fun confirmsTransaction(input: String, toolName: String): Boolean {
-    input.followUpParts()?.let { (quoted, reply) ->
-        // 「只要一次」 answers how often a rule runs, not whether to order now.
-        val howOften = HOW_OFTEN.containsMatchIn(reply) && !ORDER_WORD.containsMatchIn(reply)
-        return ORDER_TOPIC.containsMatchIn(quoted) && saysYes(reply) && !howOften
+internal fun confirmsTransaction(input: String, toolName: String, previousQuestion: String? = null): Boolean {
+    if (previousQuestion != null && ('?' in previousQuestion || '？' in previousQuestion)) {
+        val howOften = HOW_OFTEN.containsMatchIn(input) && !ORDER_WORD.containsMatchIn(input)
+        if (ORDER_TOPIC.containsMatchIn(previousQuestion) && saysYes(input) && !howOften) return true
     }
+
     if (input.isBoundPick()) return input.picksBoundCall(toolName)
     // 「不要直接下单」「不用现在付」 hold the words of an outright order and mean the opposite.
     return OUTRIGHT.containsMatchIn(input) && !HOLD_OFF.containsMatchIn(input)

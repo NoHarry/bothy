@@ -1,14 +1,15 @@
 package cc.noharry.bothy.server.server
 
 import android.content.Context
+import android.content.SharedPreferences
 import cc.noharry.agent.androiduse.AndroidUseAccessibility
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.protocol.Empty
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.SaveResult
 import cc.noharry.agent.appserver.protocol.text
-import cc.noharry.agent.appserver.runtime.RuntimeSession
-import cc.noharry.agent.appserver.server.Presenter
+import cc.noharry.agent.appserver.protocol.ProviderSaveParams
+import cc.noharry.agent.appserver.protocol.SettingsRequests
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.RouteTable
 import cc.noharry.agent.device.DeviceMediaMcpProvider
@@ -38,7 +39,7 @@ internal class OnboardingRoutes(private val app: Context) : RouteModule {
         }
         on(OnboardingRequests.SAVE_MODEL_KEY) { params ->
             val profile = withContext(Dispatchers.IO) { ProviderConfig.load(app).activeProfile }
-            RuntimeSession.saveProviderOverride(app, profile.provider, params.text.trim(), profile.model, profile.baseUrl, profile.endpoint)
+            ServerLink.request(SettingsRequests.PROVIDER_SAVE, ProviderSaveParams(profile.provider, params.text.trim(), profile.model, profile.baseUrl, profile.endpoint))
             val result = withContext(Dispatchers.IO) { checkChatModel(app) }
             val found = result.finding ?: text("")
             if (result.state == CheckState.OK) {
@@ -67,6 +68,7 @@ internal object Onboarding {
      */
     fun needed(context: Context): Boolean {
         val prefs = prefs(context)
+        if (prefs.getBoolean(RECHECK, false)) recheck(context, prefs)
         if (prefs.getBoolean(DONE, false)) return false
         if (prefs.getBoolean(STARTED, false)) return true
         val config = ProviderConfig.load(context)
@@ -76,12 +78,29 @@ internal object Onboarding {
     }
 
     /**
+     * The model settings of a setup finished in v0.3.0 moved to the server's names ([StoredNames]), before the server
+     * ran: the next [needed] checks once whether the model they left can still run.
+     */
+    fun recheckModel(context: Context) {
+        val prefs = prefs(context)
+        if (prefs.getBoolean(DONE, false)) prefs.edit().putBoolean(RECHECK, true).commit()
+    }
+
+    /** The setup stays done while the model can run; with no key that came over, it shows again. */
+    private fun recheck(context: Context, prefs: SharedPreferences) {
+        val config = ProviderConfig.load(context)
+        val editor = prefs.edit().remove(RECHECK)
+        if (!config.isReady(config.activeProfile)) editor.remove(DONE).putBoolean(STARTED, true)
+        editor.apply()
+    }
+
+    /**
      * 开始使用. Wake word stays off until the person turns it on in 设置 → 语音. A fresh install used to switch it on
      * here whenever the microphone was already granted.
      */
     fun finish(context: Context) {
         prefs(context).edit().putBoolean(DONE, true).apply()
-        Presenter.ensureRunning()
+        ServerLink.assistant.ensureRunning()
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -89,4 +108,5 @@ internal object Onboarding {
     private const val PREFS = "debug_onboarding"
     private const val DONE = "done"
     private const val STARTED = "started"
+    private const val RECHECK = "recheck_model"
 }

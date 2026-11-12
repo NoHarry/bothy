@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.phoneassist
 
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import android.content.Context
 import android.content.res.Resources
 import android.graphics.PixelFormat
@@ -78,7 +79,7 @@ internal fun phoneRunSignal(resources: Resources, state: ServerState, usingScree
         },
     )
     val title = if (calls.isEmpty()) phrase else resources.getString(R.string.overlay_capsule_step, phrase, calls.size)
-    val asked = state.items.lastOrNull { it is ConversationItem.TurnHeader } as? ConversationItem.TurnHeader
+    val asked = state.items.lastOrNull { it.isTurnStart } as? ConversationItem.TurnHeader
     return OverlayTaskSignal(OverlayTaskTone.WORKING, 0, 0, title, asked?.preview.orEmpty(), more = 0, key = "run|${calls.size}|$usingScreen")
 }
 

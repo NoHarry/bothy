@@ -1,12 +1,14 @@
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.server.voice.tts
-import cc.noharry.agent.appserver.model.parseProviderConfigText
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.appserver.runtime.SpokenRuns
-import cc.noharry.agent.kernel.api.AgentEvent
-import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.agent.kernel.api.reliability.RuntimeResult
-import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.ThreadEvent
+import cc.noharry.bothy.server.runtime.*
+import cc.noharry.agent.spi.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.spi.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.spi.reliability.RuntimeResult
+import cc.noharry.agent.spi.reliability.RuntimeRunStatus
 import cc.noharry.agent.transport.HttpEvent
 import cc.noharry.agent.transport.HttpRequest
 import cc.noharry.agent.transport.HttpResponse
@@ -90,44 +92,6 @@ class TtsTest {
     }
 
     @Test
-    fun parsesTtsJsonConfig() {
-        val values = parseProviderConfigText(
-            """
-                {
-                  "tts": {
-                    "enabled": true,
-                    "apiKey": "key",
-                    "base_url": "https://tts.example.com/v1",
-                    "model": "mimo-v2.5-tts",
-                    "voice": "Chloe",
-                    "format": "wav",
-                    "style": "calm",
-                    "optimize_text_preview": true,
-                    "stream": false
-                  }
-                }
-            """.trimIndent(),
-            BOTHY_CONFIG_SECTIONS,
-        )
-
-        val config = TtsConfig.from(values)
-
-        assertTrue(config.ready)
-        assertEquals("key", config.apiKey)
-        assertEquals("https://tts.example.com/v1", config.baseUrl)
-        assertEquals("calm", config.style)
-        assertTrue(config.optimizeTextPreview)
-        assertFalse(config.stream)
-    }
-
-    @Test
-    fun ttsJsonConfigNeedsTheHostSection() {
-        val values = parseProviderConfigText("""{"tts": {"enabled": true, "apiKey": "key"}}""", sections = emptyMap())
-
-        assertFalse(values.keys.any { it.startsWith(MIMO_TTS_KEY_PREFIX) })
-    }
-
-    @Test
     fun usesMimoProviderProfileKeyAsTtsFallback() {
         val config = TtsConfig.from(
             mapOf(MIMO_PROVIDER_PROFILE_API_KEY to "profile-key"),
@@ -180,26 +144,15 @@ class TtsTest {
     }
 
     @Test
-    fun announcerSpeaksMarkedIntermediateProgressOnly() = runBlocking {
+    fun announcerSpeaksTheFirstSentenceOfTheNoteOnACall() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val client = CapturingTtsClient()
-        val player = RecordingTtsPlayer()
-        val announcer = TtsAnnouncer(scope, client, player)
+        val announcer = TtsAnnouncer(scope, client, RecordingTtsPlayer())
 
         try {
-            announcer.observe(
-                RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "我先看一下能力。"),
-                STREAM_CONFIG,
-            ) { true }
-            announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
+            // One sentence is said; nothing is, until the call it was written on starts.
+            announcer.observe(RUN_SCOPE, testSpokenNote(RUN_ID, "我先规划路线。先看能力，再比较三条路线各要多久。"), STREAM_CONFIG) { true }
             assertFalse(client.started.isCompleted)
-
-            announcer.observe(
-                RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 我先规划路线。"),
-                STREAM_CONFIG,
-            ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
 
             assertEquals("我先规划路线。", withTimeout(1000) { client.started.await() })
@@ -213,31 +166,10 @@ class TtsTest {
         val client = CapturingTtsClient()
         val announcer = TtsAnnouncer(scope, client, RecordingTtsPlayer())
         try {
-            announcer.observe(RUN_SCOPE, AgentEvent.ResultAvailable(firstPartyCompleted("信息已查到。需要我继续查停车场吗？")), STREAM_CONFIG) { true }
+            announcer.observe(RUN_SCOPE, testTurnCompleted(firstPartyCompleted("信息已查到。需要我继续查停车场吗？")), STREAM_CONFIG) { true }
             assertEquals("信息已查到。需要我继续查停车场吗？", withTimeout(1000) { client.started.await() })
         } finally {
             announcer.stop()
-            scope.cancel()
-        }
-    }
-
-    @Test
-    fun announcerBuffersSplitIntermediateProgress() = runBlocking {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val client = CapturingTtsClient()
-        val player = RecordingTtsPlayer()
-        val announcer = TtsAnnouncer(scope, client, player)
-
-        try {
-            announcer.observe(RUN_SCOPE, AgentEvent.TextDelta(RUN_ID, "TTS: 我先"), STREAM_CONFIG) { true }
-            announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
-            assertFalse(client.started.isCompleted)
-
-            announcer.observe(RUN_SCOPE, AgentEvent.TextDelta(RUN_ID, "规划路线。"), STREAM_CONFIG) { true }
-            announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
-
-            assertEquals("我先规划路线。", withTimeout(1000) { client.started.await() })
-        } finally {
             scope.cancel()
         }
     }
@@ -250,7 +182,7 @@ class TtsTest {
         val announcer = TtsAnnouncer(scope, client, player)
 
         try {
-            announcer.observe(RUN_SCOPE, AgentEvent.TextDelta(RUN_ID, "TTS: 好的。"), STREAM_CONFIG) { true }
+            announcer.observe(RUN_SCOPE, testSpokenNote(RUN_ID, "好的。"), STREAM_CONFIG) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
 
             assertFalse(client.started.isCompleted)
@@ -267,7 +199,7 @@ class TtsTest {
         val announcer = TtsAnnouncer(scope, client, player)
 
         try {
-            announcer.observe(RUN_SCOPE, AgentEvent.TextDelta(RUN_ID, "TTS: 准备出发！"), STREAM_CONFIG) { true }
+            announcer.observe(RUN_SCOPE, testSpokenNote(RUN_ID, "准备出发！"), STREAM_CONFIG) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
 
             assertFalse(client.started.isCompleted)
@@ -286,7 +218,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(firstPartyCompleted("导航已开始。")),
+                testTurnCompleted(firstPartyCompleted("导航已开始。")),
                 STREAM_CONFIG,
             ) { true }
 
@@ -306,7 +238,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(
+                testTurnCompleted(
                     firstPartyCompleted(
                         "导航已开始。\n\n- 停车场、肯德基、厕所和音乐也都处理好了\n- 屏幕上可以查看完整结果",
                     ),
@@ -331,7 +263,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(
+                testTurnCompleted(
                     firstPartyCompleted("导航已开始。\n\n- 屏幕上可以查看完整结果"),
                 ),
                 STREAM_CONFIG,
@@ -353,7 +285,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 我先规划路线。"),
+                testSpokenNote(RUN_ID, "我先规划路线。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
@@ -361,7 +293,7 @@ class TtsTest {
 
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(firstPartyCompleted("导航已开始。")),
+                testTurnCompleted(firstPartyCompleted("导航已开始。")),
                 STREAM_CONFIG,
             ) { true }
             assertFalse(client.secondStarted.isCompleted)
@@ -386,7 +318,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 路线、停车和音乐都安排中。"),
+                testSpokenNote(RUN_ID, "路线、停车和音乐都安排中。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
@@ -394,7 +326,7 @@ class TtsTest {
 
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(firstPartyCompleted("导航、停车和音乐都已安排。")),
+                testTurnCompleted(firstPartyCompleted("导航、停车和音乐都已安排。")),
                 STREAM_CONFIG,
             ) { true }
             assertFalse(client.secondStarted.isCompleted)
@@ -418,7 +350,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 我先规划路线。"),
+                testSpokenNote(RUN_ID, "我先规划路线。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
@@ -426,13 +358,13 @@ class TtsTest {
 
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 我在查停车。"),
+                testSpokenNote(RUN_ID, "我在查停车。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(
+                testTurnCompleted(
                     firstPartyCompleted("导航和停车都已安排。"),
                 ),
                 STREAM_CONFIG,
@@ -458,19 +390,19 @@ class TtsTest {
 
         try {
             val lines = listOf(
-                "TTS: 我是小博，先规划不走高速去深圳北站。",
-                "TTS: 途经广州塔肯德基，正在算路线。",
-                "TTS: 路线好了，正在查停车和沿途厕所。",
-                "TTS: 开始导航，并播放周杰伦的歌。",
+                "我是小博，先规划不走高速去深圳北站。",
+                "途经广州塔肯德基，正在算路线。",
+                "路线好了，正在查停车和沿途厕所。",
+                "开始导航，并播放周杰伦的歌。",
             )
             lines.forEach { line ->
-                announcer.observe(RUN_SCOPE, AgentEvent.TextDelta(RUN_ID, line), STREAM_CONFIG) { true }
+                announcer.observe(RUN_SCOPE, testSpokenNote(RUN_ID, line), STREAM_CONFIG) { true }
                 announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
             }
             // Fifth distinct line must be ignored by the per-run progress cap.
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 额外第五句不应播报。"),
+                testSpokenNote(RUN_ID, "额外第五句不应播报。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
@@ -506,7 +438,7 @@ class TtsTest {
         try {
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 我先规划路线。"),
+                testSpokenNote(RUN_ID, "我先规划路线。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
@@ -514,7 +446,7 @@ class TtsTest {
 
             announcer.observe(
                 RUN_SCOPE,
-                AgentEvent.ResultAvailable(
+                testTurnCompleted(
                     firstPartyCompleted("导航、停车、肯德基、厕所和周杰伦音乐都已安排。"),
                 ),
                 STREAM_CONFIG,
@@ -533,31 +465,6 @@ class TtsTest {
     }
 
     @Test
-    fun announcerSplitsAdjacentTtsMarkersWithoutPunctuation() = runBlocking {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        val client = SequentialBlockingTtsClient(maxStarts = 2)
-        val player = RecordingTtsPlayer()
-        val announcer = TtsAnnouncer(scope, client, player)
-
-        try {
-            announcer.observe(
-                RUN_SCOPE,
-                AgentEvent.TextDelta(RUN_ID, "TTS: 再查查深圳北站附近的肯TTS: 找到世界之窗了。"),
-                STREAM_CONFIG,
-            ) { true }
-            announcer.observe(RUN_SCOPE, toolStarted(RUN_ID), STREAM_CONFIG) { true }
-
-            assertEquals("再查查深圳北站附近的肯", withTimeout(1000) { client.startedAt(0).await() })
-            client.releaseAt(0).complete(TtsAudioChunk(byteArrayOf(1), "pcm16"))
-            assertEquals("找到世界之窗了。", withTimeout(1000) { client.startedAt(1).await() })
-            client.releaseAt(1).complete(TtsAudioChunk(byteArrayOf(2), "pcm16"))
-            Unit
-        } finally {
-            scope.cancel()
-        }
-    }
-
-    @Test
     fun newRunDropsPreviousRunQueuedProgress() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val client = SequentialBlockingTtsClient(maxStarts = 2)
@@ -569,7 +476,7 @@ class TtsTest {
         try {
             announcer.observe(
                 runA,
-                AgentEvent.TextDelta("run-a", "TTS: 上一轮周杰伦音乐安排中。"),
+                testSpokenNote("run-a", "上一轮周杰伦音乐安排中。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(runA, toolStarted("run-a"), STREAM_CONFIG) { true }
@@ -578,7 +485,7 @@ class TtsTest {
             // Second progress of run A is queued while first still holds the player.
             announcer.observe(
                 runA,
-                AgentEvent.TextDelta("run-a", "TTS: 上一轮还在查厕所。"),
+                testSpokenNote("run-a", "上一轮还在查厕所。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(runA, toolStarted("run-a"), STREAM_CONFIG) { true }
@@ -586,7 +493,7 @@ class TtsTest {
             // New run must not speak the previous run's pending progress.
             announcer.observe(
                 runB,
-                AgentEvent.TextDelta("run-b", "TTS: 本轮只规划去深圳北站。"),
+                testSpokenNote("run-b", "本轮只规划去深圳北站。"),
                 STREAM_CONFIG,
             ) { true }
             announcer.observe(runB, toolStarted("run-b"), STREAM_CONFIG) { true }
@@ -616,7 +523,7 @@ class TtsTest {
             try {
                 announcer.observe(
                     RUN_SCOPE,
-                    AgentEvent.ResultAvailable(firstPartyCompleted("导航已开始。", outcome)),
+                    testTurnCompleted(firstPartyCompleted("导航已开始。", outcome)),
                     STREAM_CONFIG,
                 ) { true }
                 delay(150)
@@ -637,7 +544,7 @@ class TtsTest {
         try {
             val reply = "空调温度已经按22度给你设上了，不过接口只回了受理，你在中控上看一眼。"
             val result = firstPartyCompleted(reply, RuntimeCompletionOutcome.PARTIAL).copy(runId = spokenRun)
-            announcer.observe(RUN_SCOPE, AgentEvent.ResultAvailable(result), STREAM_CONFIG) { true }
+            announcer.observe(RUN_SCOPE, testTurnCompleted(result), STREAM_CONFIG) { true }
             val spoken = withTimeout(2_000) { client.started.await() }
             assertTrue(spoken, spoken.startsWith("空调温度已经按22度给你设上了"))
         } finally {
@@ -657,7 +564,7 @@ class TtsTest {
                 "不吵的老歌最合适，比如《晴天》这类，跟着哼两句也不分神。\n\n鼓励你一句：你今天已经比昨天多往前走了一段，慢一点不丢人，" +
                 "方向对了就不算白费，我陪着你。"
             val result = firstPartyCompleted(reply, RuntimeCompletionOutcome.PARTIAL).copy(runId = spokenRun)
-            announcer.observe(RUN_SCOPE, AgentEvent.ResultAvailable(result), STREAM_CONFIG) { true }
+            announcer.observe(RUN_SCOPE, testTurnCompleted(result), STREAM_CONFIG) { true }
             val spoken = withTimeout(2_000) { client.started.await() }
             assertTrue(spoken, spoken.contains("鼓励你一句"))
         } finally {
@@ -801,4 +708,4 @@ private fun String.frame(): ByteArray = "$this\n\n".toByteArray(Charsets.UTF_8)
 
 /** A real round speaks its progress once it goes on to a business tool. */
 internal fun toolStarted(runId: String) =
-    AgentEvent.NativeToolCallStarted(runId, "mcp__device__navigation_poi_search", "{}")
+    testToolStarted(runId, "mcp__device__navigation_poi_search", "{}")

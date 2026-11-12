@@ -33,7 +33,9 @@ import cc.noharry.agent.appserver.protocol.A2aProfileDraft
 import cc.noharry.agent.appserver.protocol.ConfirmationMode
 import cc.noharry.agent.appserver.protocol.ConversationItem
 import cc.noharry.agent.appserver.protocol.McpServerDraft
+import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.ModelProvider
+import cc.noharry.agent.appserver.protocol.ProviderCreateParams
 import cc.noharry.agent.appserver.protocol.ProviderEditState
 import cc.noharry.agent.appserver.protocol.ProviderEndpoint
 import cc.noharry.agent.appserver.protocol.SessionPolicy
@@ -311,9 +313,10 @@ internal data class ConsoleActions(
     val toggleStream: () -> Unit,
     val selectBackend: (Boolean) -> Unit,
     val reloadConfig: () -> Unit,
-    val saveConfig: (ModelProvider, String, String, String, ProviderEndpoint) -> Unit,
-    /** Saves a new profile (label, provider, endpoint, key, model, base URL), then gives its id. */
-    val saveNewProfile: (String, ModelProvider, ProviderEndpoint, String, String, String, (String) -> Unit) -> Unit,
+    /** Saves the current profile's connection (provider, key, model, base URL, endpoint), then gives why it was refused or null. */
+    val saveConfig: (ModelProvider, String, String, String, ProviderEndpoint, (Finding?) -> Unit) -> Unit,
+    /** Saves a new profile as filled in, then gives its id. */
+    val saveNewProfile: (ProviderCreateParams, (String) -> Unit) -> Unit,
     val deleteProfile: (String) -> Unit,
     val fetchModels: ProviderFetchAction,
     val saveProviderModels: (ProviderEditState, List<String>) -> Unit,

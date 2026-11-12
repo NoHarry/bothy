@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- The plans' alarm, merged only into a host that lists the plans plugin. Its name is the one alarms set before the
+         plugin was a module of its own name too. -->
+    <application>
+        <receiver
+            android:name="cc.noharry.agent.appserver.plans.PlanAlarmReceiver"
+            android:exported="false" />
+    </application>
+</manifest>

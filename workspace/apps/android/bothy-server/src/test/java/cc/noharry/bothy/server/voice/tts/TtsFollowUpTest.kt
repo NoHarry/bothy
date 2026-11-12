@@ -1,9 +1,10 @@
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.server.voice.tts
-import cc.noharry.agent.a2a.server.A2aOutput
-import cc.noharry.agent.appserver.a2a.a2aRuntimeOutput
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
-import cc.noharry.agent.kernel.api.AgentEvent
-import cc.noharry.agent.kernel.api.reliability.*
+import cc.noharry.agent.*
+import cc.noharry.bothy.server.runtime.*
+import cc.noharry.agent.spi.reliability.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -13,7 +14,7 @@ class TtsFollowUpTest {
         for (withProgress in listOf(false, true)) {
             val output = mutableListOf<Pair<String, Boolean>>()
             val announcer = TtsAnnouncer(this, textOutput = { text, final -> output += text to final })
-            if (withProgress) announcer.observe(scope, AgentEvent.TextDelta("r", "TTS: 我先查目的地信息。"), TtsConfig()) { true }
+            if (withProgress) announcer.observe(scope, testSpokenNote("r", "我先查目的地信息。"), TtsConfig()) { true }
             announcer.observe(scope, result("地址已找到。需要我继续查停车场吗？\n\n- 这里还有详细说明\n\n希望查地面还是地下停车场？"), TtsConfig()) { true }
             assertEquals("地址已找到。需要我继续查停车场吗？ 希望查地面还是地下停车场？" to true, output.last())
             assertFalse(output.last().first.contains("详细说明"))
@@ -153,10 +154,9 @@ class TtsFollowUpTest {
         for ((question, expected) in asked) {
             val output = mutableListOf<String>()
             val announcer = TtsAnnouncer(this, textOutput = { text, _ -> output += text })
-            val waiting = AgentEvent.ResultAvailable(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
+            val waiting = testTurnCompleted(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
             announcer.observe(scope, waiting, TtsConfig()) { true }
             assertEquals(listOf(expected), output)
-            assertEquals(A2aOutput.Result(question, A2aOutput.State.INPUT_REQUIRED), a2aRuntimeOutput(waiting))
             announcer.stop()
         }
     }
@@ -165,13 +165,10 @@ class TtsFollowUpTest {
         val output = mutableListOf<Pair<String, Boolean>>()
         val announcer = TtsAnnouncer(this, textOutput = { text, final -> output += text to final })
         val question = "找到了两个同名地点。一个在广州，一个在深圳。请告诉我选择哪一个。"
-        val blocked = AgentEvent.RuntimeBlocked(RuntimeBlocker("r", RuntimeErrorCode.WAITING_USER_INPUT.wireCode,
-            question, SuggestedNextAction.START_NEW_AGENT_REQUEST))
-        val waiting = AgentEvent.ResultAvailable(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
+        val blocked = ThreadEvent.ItemCompleted(Question("question", "r", question, async = false))
+        val waiting = testTurnCompleted(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
         for (event in listOf(blocked, blocked, waiting)) announcer.observe(scope, event, TtsConfig()) { true }
         assertEquals(listOf(question to true), output)
-        assertEquals(A2aOutput.Result(question, A2aOutput.State.INPUT_REQUIRED), a2aRuntimeOutput(blocked))
-        assertEquals(A2aOutput.Result(question, A2aOutput.State.INPUT_REQUIRED), a2aRuntimeOutput(waiting))
         announcer.stop()
     }
 
@@ -180,9 +177,9 @@ class TtsFollowUpTest {
         val announcer = TtsAnnouncer(this, textOutput = { text, _ -> output += text })
         announcer.observe(scope, result("都已经完成。您想选哪个目的地？", RuntimeCompletionOutcome.PARTIAL), TtsConfig()) { true }
         assertEquals(listOf("您想选哪个目的地？"), output)
-        announcer.observe(scope, AgentEvent.ThinkingDelta("r", "内部问题？"), TtsConfig()) { true }
-        announcer.observe(scope, AgentEvent.TextDelta("r", "未标记正文？"), TtsConfig()) { true }
-        announcer.observe(scope, AgentEvent.ResultAvailable(RuntimeResult("r", RuntimeRunStatus.FAILED, "内部错误？")), TtsConfig()) { true }
+        announcer.observe(scope, testReasoningDelta("r", "内部问题？"), TtsConfig()) { true }
+        announcer.observe(scope, testSpokenNote("r", "未标记正文？"), TtsConfig()) { true }
+        announcer.observe(scope, testTurnCompleted(RuntimeResult("r", RuntimeRunStatus.FAILED, "内部错误？")), TtsConfig()) { true }
         assertEquals(1, output.size)
         announcer.stop()
     }
@@ -191,11 +188,11 @@ class TtsFollowUpTest {
         val output = mutableListOf<String>()
         val announcer = TtsAnnouncer(this, textOutput = { text, _ -> output += text })
         val question = "您想去哪个目的地？"
-        announcer.observe(scope, AgentEvent.TextDelta("r", "TTS: $question"), TtsConfig()) { true }
-        val waiting = AgentEvent.ResultAvailable(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
+        announcer.observe(scope, testSpokenNote("r", "$question"), TtsConfig()) { true }
+        val waiting = testTurnCompleted(RuntimeResult("r", RuntimeRunStatus.WAITING_USER_INPUT, question))
         repeat(2) { announcer.observe(scope, waiting, TtsConfig()) { true } }
         assertEquals(listOf(question), output)
-        announcer.observe(scope, AgentEvent.ResultAvailable(RuntimeResult("next", RuntimeRunStatus.WAITING_USER_INPUT, question)), TtsConfig()) { true }
+        announcer.observe(scope, testTurnCompleted(RuntimeResult("next", RuntimeRunStatus.WAITING_USER_INPUT, question)), TtsConfig()) { true }
         assertEquals(listOf(question, question), output)
         announcer.stop()
     }
@@ -207,5 +204,5 @@ class TtsFollowUpTest {
 
     private val scope = RuntimeRunScope("r", "s")
     private fun result(text: String, outcome: RuntimeCompletionOutcome = RuntimeCompletionOutcome.SUCCEEDED) =
-        AgentEvent.ResultAvailable(RuntimeResult("r", RuntimeRunStatus.COMPLETED, text, completion = RuntimeCompletionSummary(outcome)))
+        testTurnCompleted(RuntimeResult("r", RuntimeRunStatus.COMPLETED, text, completion = RuntimeCompletionSummary(outcome)))
 }

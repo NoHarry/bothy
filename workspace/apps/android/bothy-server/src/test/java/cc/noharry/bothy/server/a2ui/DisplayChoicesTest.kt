@@ -3,7 +3,6 @@
 package cc.noharry.bothy.server.a2ui
 import cc.noharry.agent.a2a.A2aTask
 import cc.noharry.agent.a2a.ExperimentalA2aClientApi
-import cc.noharry.agent.appserver.a2a.append
 import cc.noharry.agent.appserver.protocol.A2aClientItem
 import cc.noharry.agent.appserver.protocol.A2aClientState
 import cc.noharry.agent.appserver.protocol.A2aInputSource
@@ -16,11 +15,10 @@ import cc.noharry.agent.appserver.protocol.view.OfferOption
 import cc.noharry.agent.appserver.protocol.view.ReplyWords
 import cc.noharry.agent.appserver.protocol.view.WidgetCard
 import cc.noharry.agent.appserver.protocol.view.displayChoiceReply
-import cc.noharry.agent.appserver.runtime.FOLLOW_UP_FRAME_HEADER
 import cc.noharry.agent.appserver.runtime.PreviousExchange
-import cc.noharry.agent.appserver.runtime.appModelInput
-import cc.noharry.agent.appserver.runtime.append
-import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
+import cc.noharry.agent.spi.reliability.RuntimeRunStatus
+import cc.noharry.bothy.protocol.view.NOT_DONE_HEADLINE
+import cc.noharry.bothy.protocol.view.OverlayPhase
 import cc.noharry.bothy.protocol.view.appPickableReply
 import cc.noharry.bothy.protocol.view.overlayHud
 import org.junit.Assert.assertEquals
@@ -112,14 +110,10 @@ class DisplayChoicesTest {
     }
 
     @Test
-    fun tappedOrdinalIsFramedAgainstTheReplyItAnswers() {
-        val previous = PreviousExchange("s", "t", "找厕所", "要加上哪个？\n1. 猎德大道公厕（推荐）\n2. 花城广场公厕",
-            RuntimeRunStatus.COMPLETED.name, "PARTIAL")
-
-        val input = appModelInput(DisplayChoice(2, "花城广场公厕", false).replyText(ReplyWords.CHINESE), previous)
-
-        assertTrue(input.startsWith(FOLLOW_UP_FRAME_HEADER))
-        assertTrue(input.endsWith("User reply: 第2个"))
+    fun tappedOrdinalIsSentAsTheCurrentAnswer() {
+        // The SDK binds this plain reply to its persisted question; the host does not inject a second history frame.
+        val input = DisplayChoice(2, "花城广场公厕", false).replyText(ReplyWords.CHINESE)
+        assertEquals("第2个", input)
     }
 
     @Test
@@ -132,6 +126,15 @@ class DisplayChoicesTest {
 
         assertEquals(emptyList<DisplayChoice>(), clientTurn(A2aTask.Status.CANCELLED, running = false).overlayHud(5_000).choices)
         assertEquals(emptyList<DisplayChoice>(), clientTurn(null, running = true).overlayHud(5_000).choices)
+    }
+
+    @Test
+    fun clientOverlaySaysARejectedTaskIsNotDoneRatherThanFailed() {
+        val hud = clientTurn(A2aTask.Status.REJECTED, running = false).overlayHud(nowEpochMillis = 5_000)
+
+        assertEquals(OverlayPhase.DONE, hud.phase)
+        assertEquals(NOT_DONE_HEADLINE, hud.headline)
+        assertEquals(OverlayPhase.FAIL, clientTurn(A2aTask.Status.FAILED, running = false).overlayHud(5_000).phase)
     }
 
     private fun clientTurn(terminal: A2aTask.Status?, running: Boolean): A2aClientState {
@@ -147,4 +150,8 @@ class DisplayChoicesTest {
         assertEquals(emptyList<DisplayChoice>(), reply.choices)
         assertEquals(text, reply.text)
     }
+
+    /** Client mode's state with [item] added under the next id, as the A2A plugin adds what its task shows. */
+    private fun A2aClientState.append(item: (Long) -> A2aClientItem): A2aClientState =
+        copy(items = items + item(nextItemId), nextItemId = nextItemId + 1)
 }

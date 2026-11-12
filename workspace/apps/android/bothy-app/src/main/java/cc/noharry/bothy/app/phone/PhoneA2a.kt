@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -151,13 +152,16 @@ private fun AgentCard(profile: A2aProfile, enabled: Boolean, error: String?) {
 private fun ReportCard(report: DelegationView) {
     val colors = ConsoleColors
     val failed = report.stage == DelegationStage.FAILED || report.stage == DelegationStage.LOST || report.stage == DelegationStage.CANCELLED
+    // The agent answered that it cannot proceed: not done, shown apart from a failure.
+    val notDone = report.stage == DelegationStage.REJECTED
     Surface(shape = RoundedCornerShape(CARD_RADIUS), color = colors.elevated, border = BorderStroke(1.dp, colors.border), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(32.dp).clip(CircleShape).background(if (failed) colors.danger.copy(alpha = FAILED_TINT) else colors.accentSoft), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(32.dp).clip(CircleShape).background(if (failed) colors.danger.copy(alpha = FAILED_TINT) else if (notDone) colors.warning.copy(alpha = FAILED_TINT) else colors.accentSoft), contentAlignment = Alignment.Center) {
                     when {
                         !report.stage.settled -> CircularProgressIndicator(color = colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(16.dp))
                         failed -> Icon(Icons.Filled.Close, contentDescription = null, tint = colors.danger, modifier = Modifier.size(16.dp))
+                        notDone -> Icon(Icons.Filled.Info, contentDescription = null, tint = colors.warning, modifier = Modifier.size(16.dp))
                         else -> Icon(Icons.Filled.Check, contentDescription = null, tint = colors.accent, modifier = Modifier.size(16.dp))
                     }
                 }
@@ -168,7 +172,7 @@ private fun ReportCard(report: DelegationView) {
                     Text(listOf(ago, report.statusText).filter { it.isNotBlank() }.joinToString(" · "), style = PhoneType.small, color = colors.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Spacer(Modifier.width(8.dp))
-                StatusChip(stringResource(report.stage.overlayLabel()), if (failed) colors.danger else if (report.stage.settled) colors.accent else colors.activity)
+                StatusChip(stringResource(report.stage.overlayLabel()), if (failed) colors.danger else if (notDone) colors.warning else if (report.stage.settled) colors.accent else colors.activity)
             }
             // The agent's own words, else why it ended without them; a report that came with none says so.
             val resources = LocalResources.current

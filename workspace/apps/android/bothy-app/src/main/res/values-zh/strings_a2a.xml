@@ -13,6 +13,13 @@
     </plurals>
     <string name="a2a_no_profiles">还没有 A2A 客户端配置</string>
     <string name="a2a_token_set">已设置令牌</string>
+    <string name="a2a_server_title">接收 A2A 请求的访问令牌</string>
+    <string name="a2a_server_hint">向此设备发送 A2A 请求时，在请求头中加入 Authorization: Bearer &lt;token&gt;。</string>
+    <string name="a2a_server_show">显示令牌</string>
+    <string name="a2a_server_hide">隐藏令牌</string>
+    <string name="a2a_server_copy">复制令牌</string>
+    <string name="a2a_server_copied">已复制</string>
+    <string name="a2a_server_read_failed">无法读取令牌，请重试。</string>
     <string name="a2a_status_loaded">已加载</string>
     <string name="a2a_status_error">出错</string>
     <string name="a2a_status_enabled">已启用</string>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A plan coming due: its name on the card and in the console's status line. -->
+    <string name="plans_label">Plan</string>
+</resources>

@@ -5,7 +5,7 @@ import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.runtime.RunAnnouncer
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.appserver.runtime.VoicePort
-import cc.noharry.agent.kernel.api.AgentEvent
+import cc.noharry.agent.ThreadEvent
 import cc.noharry.bothy.server.voice.tts.TtsActivity
 import cc.noharry.bothy.server.voice.tts.TtsAnnouncer
 import cc.noharry.bothy.server.voice.tts.TtsConfig
@@ -39,7 +39,7 @@ internal object BothyVoice : VoicePort {
     override fun textAnnouncer(scope: CoroutineScope, output: (text: String, final: Boolean) -> Unit): RunAnnouncer =
         TtsRunAnnouncer(TtsAnnouncer(scope, textOutput = output), followsSwitch = false, textOnly = true) { TtsConfig() }
 
-    override fun speak(event: AgentEvent, requestId: String, owns: () -> Boolean, say: () -> Unit) = RunSpeech.speak(event, requestId, owns, say)
+    override fun speak(event: ThreadEvent, requestId: String, owns: () -> Boolean, say: () -> Unit) = RunSpeech.speak(event, requestId, owns, say)
 
     override fun silence(requestId: String) = RunSpeech.silence(requestId)
 
@@ -53,7 +53,7 @@ internal object BothyVoice : VoicePort {
         io.launch { load(context) }
     }
 
-    override fun planDue() = VoiceFeedback.planDue(null)
+    override fun chime() = VoiceFeedback.planDue(null)
 
     override fun listenAfterReport(context: Context, since: Long) {
         if (!VoiceController.closedSince(since)) VoiceController.followUp(context.applicationContext)
@@ -75,7 +75,7 @@ private class TtsRunAnnouncer(
 ) : RunAnnouncer {
     override val busy: Boolean get() = tts.busy
 
-    override fun observe(runScope: RuntimeRunScope, event: AgentEvent, ownsUi: (RuntimeRunScope) -> Boolean) {
+    override fun observe(runScope: RuntimeRunScope, event: ThreadEvent, ownsUi: (RuntimeRunScope) -> Boolean) {
         val current = config()
         if (textOnly || current.enabled) tts.observe(runScope, event, current, ownsUi)
     }

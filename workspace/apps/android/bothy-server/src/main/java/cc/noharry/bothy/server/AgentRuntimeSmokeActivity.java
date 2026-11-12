@@ -3,8 +3,10 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 
-import cc.noharry.agent.kernel.api.AgentRequest;
-import cc.noharry.agent.kernel.api.AgentRuntime;
+import cc.noharry.agent.ThreadOptions;
+import cc.noharry.agent.ApprovalPolicy;
+import cc.noharry.agent.appserver.model.FixtureModelClient;
+import cc.noharry.agent.AgentRuntime;
 import cc.noharry.agent.runtime.AgentRuntimeBuilder;
 
 public final class AgentRuntimeSmokeActivity extends Activity {
@@ -14,14 +16,10 @@ public final class AgentRuntimeSmokeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        AgentRuntime runtime = AgentRuntimeBuilder.create().build();
-        AgentRequest request = new AgentRequest(
-                "sample-release-smoke",
-                "sample-session",
-                "hello",
-                "release-smoke"
-        );
-        lastRuntimeSmoke = SMOKE_PREFIX + request.getSessionId() + ":" + runtime.getClass().getName().length();
+        AgentRuntime runtime = AgentRuntimeBuilder.create().model(new FixtureModelClient()).build();
+        String threadId = runtime.resumeThread("sample-session", new ThreadOptions(null, null, null, null, null, ApprovalPolicy.ASK, java.util.Collections.emptySet())).getId();
+        lastRuntimeSmoke = SMOKE_PREFIX + threadId + ":" + runtime.getClass().getName().length();
+        runtime.close();
         View marker = new View(this);
         marker.setContentDescription(lastRuntimeSmoke);
         setContentView(marker);

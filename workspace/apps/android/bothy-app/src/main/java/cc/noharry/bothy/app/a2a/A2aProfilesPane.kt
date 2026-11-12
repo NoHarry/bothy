@@ -169,6 +169,10 @@ private fun A2aProfileListContent(
             shadowElevation = 0.dp,
         ) {
             LazyColumn {
+                item(key = "a2a-server-access") {
+                    A2aServerAccess(Modifier.padding(Dimens.spaceLg))
+                    HorizontalDivider(color = colors.borderSubtle)
+                }
                 if (state.profiles.isEmpty()) {
                     item(key = "a2a-empty") {
                         Text(

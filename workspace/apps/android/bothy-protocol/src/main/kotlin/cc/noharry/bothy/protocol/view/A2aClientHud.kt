@@ -66,7 +66,12 @@ fun A2aClientState.overlayHud(
     val choiceReply = pickable?.reply
     val headline = when (phase) {
         OverlayPhase.LIVE -> pendingQuestion?.let { "等待回答：${it.text}" } ?: status ?: "A2A 任务执行中"
-        OverlayPhase.DONE -> if (terminal?.state == A2aTaskStatus.INPUT_REQUIRED) "等待你的回复" else "Completed"
+        OverlayPhase.DONE -> when (terminal?.state) {
+            A2aTaskStatus.INPUT_REQUIRED -> "等待你的回复"
+            // The agent answered that it cannot proceed: not done, said as an answer rather than a failure.
+            A2aTaskStatus.REJECTED -> NOT_DONE_HEADLINE
+            else -> "Completed"
+        }
         OverlayPhase.FAIL -> "Failed"
         OverlayPhase.STOP -> "Stopped"
         OverlayPhase.IDLE -> "A2A 客户端就绪"

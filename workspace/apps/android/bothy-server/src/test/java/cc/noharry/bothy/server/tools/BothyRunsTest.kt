@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.tools
 
@@ -8,7 +8,8 @@ import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.plans.PLAN_TOOL
 import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.RunFacts
-import cc.noharry.agent.kernel.api.ToolDescriptor
+import cc.noharry.agent.appserver.server.PluginHost
+import cc.noharry.agent.spi.ToolDescriptor
 import cc.noharry.bothy.server.R
 import cc.noharry.bothy.server.cards.BothyCards
 import cc.noharry.bothy.server.model.BothyFixtureModel
@@ -37,16 +38,21 @@ class BothyRunsTest {
 
     @Test
     fun aLongAnswerIsDrawnOnlyWhileThePageCanShow() {
-        assertTrue(BothyRuns.contextLines(facts(pages = true)).contains(PAGES_RULE))
-        assertFalse(BothyRuns.contextLines(facts()).contains(PAGES_RULE))
-        assertTrue(RunAddOns.NONE.contextLines(facts(pages = true)).isEmpty())
+        // The rule comes with the pages plugin Bothy lists, which gives it only to a run the page can show in.
+        val host = PluginHost(context as Application, bothyConfig().plugins.filter { it.id == "pages" })
+        host.startAll()
+        val lines = host.additions.contextLines.single()
+        assertTrue(lines(facts(onScreen = true)).contains(PAGES_RULE))
+        assertFalse(lines(facts(onScreen = false)).contains(PAGES_RULE))
+        assertFalse(BothyRuns.contextLines(facts(onScreen = true)).contains(PAGES_RULE))
+        assertTrue(RunAddOns.NONE.contextLines(facts(onScreen = true)).isEmpty())
     }
 
     @Test
     fun theCarsRequestsMustActAndBothysCardsAndPlansCloseWithANextStep() {
-        assertTrue(BothyRuns.requiresAction("导航去广州塔"))
-        assertFalse(RunAddOns.NONE.requiresAction("导航去广州塔"))
-        assertEquals("", RunAddOns.NONE.cards(context).closing())
+        assertTrue(BothyReplayCheck.requiresAction("导航去广州塔"))
+        assertFalse(cc.noharry.agent.appserver.runtime.ReplayCheck.NONE.requiresAction("导航去广州塔"))
+        assertEquals("", cc.noharry.agent.appserver.a2ui.CardHooks.NONE.closing())
         assertTrue(BothyCards(context, cloudAssistant = false).closing().let { it.contains("提醒出发") && "云端助手" !in it })
         assertTrue(BothyCards(context, cloudAssistant = true).closing().contains("发给云端助手"))
         // The plan tool ends with when to offer a reminder rather than directions, as its description always did.
@@ -59,24 +65,34 @@ class BothyRunsTest {
     }
 
     @Test
-    fun theLinesItsVoiceSpeaksAsTheRunGoesAreProgress() {
-        assertEquals("先查一下天气。", BothyRuns.progressWords("  TTS: 先查一下天气。"))
-        assertEquals("导航开始了。", BothyRuns.progressWords("\u3000tts:导航开始了。"))
-        assertEquals(null, BothyRuns.progressWords("明天晴，最高 25 度。"))
-        assertEquals(null, RunAddOns.NONE.progressWords("TTS: 先查一下天气。"))
-    }
-
-    @Test
     fun bothyOffersEveryFeatureOfTheServersOwn() {
-        assertTrue(BothyBuiltIns.run { plans && androidUse && deviceMedia && cards && startOnBoot })
+        assertTrue(BothyBuiltIns.run { fileWriting && web && scripts && subagents })
+        // Drawn pages, plans, memory and pictures, built into the server before, are plugins Bothy lists; starting after
+        // boot is its settings plugin's wish.
+        val listed = listOf("cards", "pages", "plans", "memory", "images")
+        assertTrue(bothyConfig().plugins.map { it.id }.containsAll(listed))
+        // The model services (DeepSeek's extras among them), operating the screen and the device's tools come from the
+        // runtime's agent-app-models, agent-android-use and agent-device-capabilities, unlisted, under the ids their
+        // switches are kept by.
+        assertEquals(
+            listOf("android-use", "models", "device-tools"),
+            cc.noharry.agent.appserver.server.PluginDiscovery.find(context as Application, bothyConfig()).map { it.id },
+        )
+        // Its debug tools and its files on each run, as it always had them.
+        assertTrue(bothyConfig().diagnostics)
+        assertEquals(cc.noharry.bothy.server.BuildConfig.DEBUG, bothyConfig().debugSockets)
         assertTrue(bothyConfig().builtIns === BothyBuiltIns)
         // The roots some head units' trimmed stores lack.
         assertEquals(R.raw.deepseek_cas, bothyConfig().extraTrustRoots)
         // The scene its devices' lessons and its voice skill's scenes are under, and the demo car as its simulated model.
         assertEquals("debug-console", bothyConfig().scene)
-        assertTrue(bothyConfig().models.simulated() is BothyFixtureModel)
+        assertTrue(bothyConfig().simulatedModel?.invoke() is BothyFixtureModel)
+        // Each start allows everything, as it always did, and its own tools and skills are plain fields.
+        assertEquals(cc.noharry.agent.appserver.protocol.ConfirmationMode.ALLOW_ALL_SESSION, bothyConfig().approvals)
+        assertEquals(bothySkills(context).map { it.id }, bothyConfig().skills(context).map { it.id })
+        assertTrue(bothyConfig().replayCheck === BothyReplayCheck)
     }
 
-    private fun facts(types: Set<String> = emptySet(), pages: Boolean = false) =
-        RunFacts(context, userInput = "帮我找家咖啡店", child = false, webSearch = false, subagentTypes = types, drawsPages = pages)
+    private fun facts(types: Set<String> = emptySet(), onScreen: Boolean = false) =
+        RunFacts(context, userInput = "帮我找家咖啡店", child = false, webSearch = false, subagentTypes = types, appInFront = onScreen)
 }

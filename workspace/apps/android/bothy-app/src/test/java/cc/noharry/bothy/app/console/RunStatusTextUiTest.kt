@@ -22,15 +22,21 @@ class RunStatusTextUiTest {
     private val resources: Resources get() = ApplicationProvider.getApplicationContext<Application>().resources
 
     @Test
-    fun englishShowsTheSummaryAsTheRuntimeWroteIt() {
-        SUMMARIES.forEach { assertEquals(it, resources.runSummaryText(it)) }
+    fun englishNamesTheChecksBehindTheLegacySummaryValue() {
+        assertEquals(
+            listOf(
+                "Worked for 1m 05s · partial", "Failed after 12s", "Stopped after 1h 2m 3s", "Worked for 5s · event checks failed",
+                "Worked for 9s · not done",
+            ),
+            SUMMARIES.map { resources.runSummaryText(it) },
+        )
     }
 
     @Test
     @Config(qualifiers = "zh")
     fun chineseRewordsTheSummaryAndItsDuration() {
         assertEquals(
-            listOf("用时 1分05秒 · 部分完成", "12秒 后失败", "1小时2分3秒 后停止", "用时 5秒 · 回放失败"),
+            listOf("用时 1分05秒 · 部分完成", "12秒 后失败", "1小时2分3秒 后停止", "用时 5秒 · 事件检查失败", "用时 9秒 · 没有完成"),
             SUMMARIES.map { resources.runSummaryText(it) },
         )
         // Anything else is shown as it is.
@@ -42,7 +48,7 @@ class RunStatusTextUiTest {
     @Config(qualifiers = "zh")
     fun aRunResultReadsAsItsSummaryDoes() {
         assertEquals(
-            listOf("用时 1分05秒 · 部分完成", "12秒 后失败", "1小时2分3秒 后停止", "用时 5秒 · 回放失败"),
+            listOf("用时 1分05秒 · 部分完成", "12秒 后失败", "1小时2分3秒 后停止", "用时 5秒 · 事件检查失败", "用时 9秒 · 没有完成"),
             RESULTS.map { resources.runResultText(it) },
         )
         RESULTS.forEach { assertEquals(resources.runSummaryText(it.label()), resources.runResultText(it)) }
@@ -62,12 +68,14 @@ class RunStatusTextUiTest {
             RunResult(RunOutcome.FAILED, 12_000),
             RunResult(RunOutcome.STOPPED, 3_723_000),
             RunResult(RunOutcome.REPLAY_FAILED, 5_000),
+            RunResult(RunOutcome.BLOCKED, 9_000),
         )
         val SUMMARIES = listOf(
             "Worked for 1m 05s · partial",
             "Failed after 12s",
             "Stopped after 1h 2m 3s",
             "Worked for 5s · replay failed",
+            "Worked for 9s · blocked",
         )
     }
 }

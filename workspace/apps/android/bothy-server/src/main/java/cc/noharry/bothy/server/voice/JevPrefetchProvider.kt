@@ -1,11 +1,11 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.voice
-import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.agent.kernel.api.ToolPrefetchProvider
-import cc.noharry.agent.kernel.api.ToolPrefetchRequest
-import cc.noharry.agent.kernel.api.ToolPrefetchTrace
-import cc.noharry.agent.kernel.api.ToolProvider
+import cc.noharry.agent.spi.ProviderConcurrencyDeclaration
+import cc.noharry.agent.spi.ToolPrefetchProvider
+import cc.noharry.agent.spi.ToolPrefetchRequest
+import cc.noharry.agent.spi.ToolPrefetchTrace
+import cc.noharry.agent.spi.ToolProvider
 import cc.noharry.bothy.server.voice.tts.validationError
 import java.io.IOException
 import java.util.concurrent.TimeUnit

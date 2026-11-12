@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.model
 
@@ -7,20 +7,17 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.model.ProviderProfile
-import cc.noharry.agent.appserver.model.ProviderProfileOverride
-import cc.noharry.agent.appserver.model.defaultContextWindow
-import cc.noharry.agent.appserver.model.preferenceKey
-import cc.noharry.agent.appserver.model.withSavedProfiles
 import cc.noharry.agent.appserver.protocol.ModelProvider
-import cc.noharry.agent.appserver.runtime.AppHost
-import cc.noharry.agent.appserver.runtime.HostModels
-import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.agent.kernel.api.model.ModelClient
-import cc.noharry.agent.kernel.api.model.ModelClientException
-import cc.noharry.agent.kernel.api.model.ModelEvent
-import cc.noharry.agent.kernel.api.model.ModelMessage
-import cc.noharry.agent.kernel.api.model.ModelRequest
-import cc.noharry.agent.kernel.api.model.ModelTool
+import cc.noharry.agent.appserver.protocol.ProviderEndpoint
+import cc.noharry.agent.appserver.server.AppServerConfig
+import cc.noharry.agent.appserver.server.AppServerTesting
+import cc.noharry.agent.spi.ProviderConcurrencyDeclaration
+import cc.noharry.agent.spi.model.ModelClient
+import cc.noharry.agent.spi.model.ModelClientException
+import cc.noharry.agent.spi.model.ModelEvent
+import cc.noharry.agent.spi.model.ModelMessage
+import cc.noharry.agent.spi.model.ModelRequest
+import cc.noharry.agent.spi.model.ModelTool
 import cc.noharry.bothy.llm.LlamaDevice
 import cc.noharry.bothy.llm.LlamaServer
 import cc.noharry.bothy.llm.MINICPM5_2B
@@ -46,10 +43,10 @@ import org.robolectric.annotation.Config
 class OnDeviceModelTest {
     /** The on-device model is Bothy's own ([BothyModels]), installed as the app installs it at start. */
     @Before
-    fun bothysModels() = AppHost.install(models = BothyModels)
+    fun bothysModels() = AppServerTesting.install(AppServerConfig(name = "test", models = BothyModels))
 
     @After
-    fun noHostModels() = AppHost.install(models = HostModels.NONE)
+    fun noHostModels() = AppServerTesting.reset()
 
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val label: String get() = context.getString(R.string.model_on_device)
@@ -69,15 +66,14 @@ class OnDeviceModelTest {
 
     @Test
     fun aSavedOverrideOfTheOnDeviceProfileKeepsOnlyItsModel() {
-        // Choosing a model saves a whole override under `profile.on_device.*`, which comes back as a profile `on_device`.
-        val overrides = mapOf(
-            ON_DEVICE_PROFILE_ID.preferenceKey() to ProviderProfileOverride(
-                label = "old label", provider = ModelProvider.OPENAI, endpoint = "chat_completions", apiKey = "k",
-                model = QWEN3_4B_2507.id, baseUrl = "http://127.0.0.1/v1", serverSideSearch = "true",
-            ),
+        // Choosing a model saves a whole override under `profile.on_device.*`, which comes back as a profile `on_device`
+        // (the server's ProviderConfigTest has that part).
+        val saved = ProviderProfile(
+            ON_DEVICE_PROFILE_ID, "old label", ModelProvider.OPENAI, "k", QWEN3_4B_2507.id, "http://127.0.0.1/v1",
+            endpoint = ProviderEndpoint.CHAT_COMPLETIONS, serverSideSearch = true,
         )
 
-        val onDevice = emptyList<ProviderProfile>().withSavedProfiles(overrides).withOnDeviceProfile(label).single()
+        val onDevice = listOf(saved).withOnDeviceProfile(label).single()
 
         assertEquals(ON_DEVICE_PROFILE_ID, onDevice.id)
         assertEquals(QWEN3_4B_2507.id, onDevice.model)
@@ -105,8 +101,9 @@ class OnDeviceModelTest {
 
     @Test
     fun eachOnDeviceWindowIsItsServersWindow() {
+        // The server takes a host model's window from it (ContextWindowConfigTest).
         OnDeviceModel.models.forEach { spec ->
-            assertEquals(spec.contextTokens.toLong(), defaultContextWindow(spec.id))
+            assertEquals(spec.contextTokens.toLong(), BothyModels.contextTokens(spec.id))
         }
     }
 

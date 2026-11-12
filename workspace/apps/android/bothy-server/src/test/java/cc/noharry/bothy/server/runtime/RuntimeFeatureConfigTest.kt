@@ -1,15 +1,16 @@
 package cc.noharry.bothy.server.runtime
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.runtime.AppHost
-import cc.noharry.agent.appserver.runtime.RunAddOns
-import cc.noharry.agent.appserver.runtime.workspaceVfs
-import cc.noharry.agent.appserver.skills.loadRuntimeSkills
-import cc.noharry.agent.appserver.skills.preloadedSkillPrompt
-import cc.noharry.agent.appserver.skills.saveRuntimeSkill
-import cc.noharry.agent.vfs.VfsReadResult
+import cc.noharry.agent.appserver.a2a.A2aPlugin
+import cc.noharry.agent.appserver.a2a.A2aProfiles
+import cc.noharry.agent.appserver.a2a.DIRECT_MODULE_ID
+import cc.noharry.agent.appserver.a2a.loadA2aProfiles
+import cc.noharry.agent.appserver.server.AppServerTesting
+import cc.noharry.agent.appserver.server.PluginHost
 import cc.noharry.bothy.server.console.markEmbeddedSeedsDone
-import cc.noharry.bothy.server.tools.BothyRuns
+import cc.noharry.bothy.server.server.bothyConfig
+import cc.noharry.bothy.server.tools.bothySkills
 import cc.noharry.bothy.server.voice.JevConfig
 import cc.noharry.bothy.server.voice.JevMode
 import cc.noharry.bothy.server.voice.loadJevConfig
@@ -17,7 +18,6 @@ import cc.noharry.bothy.server.voice.loadJevKey
 import cc.noharry.bothy.server.voice.saveJevConfig
 import cc.noharry.bothy.server.voice.tts.validationError
 import java.io.File
-import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -26,19 +26,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/**
+ * Bothy's own settings beside its skills: Jev's connection and key, and which of Bothy's skills are on at first and
+ * when they come into a run. How skills are switched, kept and carried is the core's (`RuntimeSkillSwitchesTest` in
+ * agent-app-server).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class RuntimeFeatureConfigTest {
     @After
-    fun resetRuns() {
-        AppHost.install(runs = RunAddOns.NONE)
-    }
+    fun bareHost() = AppServerTesting.reset()
 
     private lateinit var context: Context
 
     @Before
     fun resetFixturePreferences() {
-        AppHost.install(runs = BothyRuns)
+        AppServerTesting.install(bothyConfig())
         context = ApplicationProvider.getApplicationContext()
         context.getSharedPreferences("debug_jev_config", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit().clear().commit()
@@ -49,10 +52,8 @@ class RuntimeFeatureConfigTest {
     @Test
     fun defaultsEnableVoiceAndWorkflowSkillsButKeepJevAndOrchestrationOff() {
         assertFalse(loadJevConfig(context).enabled)
-        assertEquals(DEFAULT_ENABLED_SKILLS, loadRuntimeSkills(context).filter { it.enabled }.map { it.id })
-        saveRuntimeSkill(context, "travel-planning", false)
-        assertFalse("a saved choice overrides the default", loadRuntimeSkills(context).single { it.id == "travel-planning" }.enabled)
-        assertTrue(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("Active runtime skill: debug_voice_progress"))
+        assertEquals(DEFAULT_ENABLED_SKILLS, bothySkills(context).filter { it.enabled }.map { it.id })
+        assertTrue(AppServerTesting.prompt(context, "").skills.any { it.first == "debug_voice_progress" })
     }
 
     @Test
@@ -81,44 +82,26 @@ class RuntimeFeatureConfigTest {
     }
 
     @Test
-    fun disabledSkillsAreAbsentFromVfsAndExistingRuntimeSnapshotStaysFixed() = runBlocking {
-        saveRuntimeSkill(context, "mcp-task-orchestration", true)
-        val snapshot = loadRuntimeSkills(context)
-        val active = workspaceVfs(context, File(context.cacheDir, "skills-active"), snapshot)
-        saveRuntimeSkill(context, "mcp-task-orchestration", false)
-        saveRuntimeSkill(context, "debug_voice_progress", false)
-        val disabled = workspaceVfs(context, File(context.cacheDir, "skills-disabled"))
-        val path = "/.agents/skills/mcp-task-orchestration/SKILL.md"
-        assertTrue(active.read(path, 0, 20_000) is VfsReadResult.Found)
-        assertFalse(disabled.read(path, 0, 20_000) is VfsReadResult.Found)
-        assertFalse(disabled.read("/.agents/skills/debug_voice_progress/SKILL.md", 0, 20_000) is VfsReadResult.Found)
-        assertTrue(preloadedSkillPrompt(context, snapshot).contains("通用 MCP 任务编排"))
-        assertEquals("", preloadedSkillPrompt(context, loadRuntimeSkills(context)))
-    }
-
-    @Test
     fun delegationSkillWaitsForAnEnabledA2aProfile() {
-        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
-        assertFalse(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("personal-agent-delegation"))
-        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit()
-            .putStringSet("enabled_profile_ids", setOf("user-grok-bot")).commit()
-        assertTrue(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("Active runtime skill: personal-agent-delegation"))
-        context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
+        // The A2A plugin running, as Bothy lists it, says when the person's own agent is connected.
+        val plugins = PluginHost(context as Application, listOf(A2aPlugin())).apply { startAll() }
+        AppServerTesting.running(plugins.additions)
+        try {
+            context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
+            assertFalse(AppServerTesting.prompt(context, "").skills.any { it.first == "personal-agent-delegation" })
+            A2aProfiles.save(context, "Grok Bot", DIRECT_MODULE_ID, "https://relay.example.com/a2a", allowLoopbackHttpForDebug = false)
+            A2aProfiles.setEnabled(context, loadA2aProfiles(context).single { it.label == "Grok Bot" }.id, true)
+            assertTrue(AppServerTesting.prompt(context, "").text.contains("Active runtime skill: personal-agent-delegation"))
+            context.getSharedPreferences("app_server_a2a_client", Context.MODE_PRIVATE).edit().clear().commit()
+        } finally {
+            plugins.setEnabled("a2a", false)
+        }
     }
 
     @Test
     fun androidUseSkillWaitsForTheTools() {
         // No accessibility service is bound under Robolectric, so the tools are not mounted and the skill stays out.
-        assertFalse(preloadedSkillPrompt(context, loadRuntimeSkills(context)).contains("Active runtime skill: android-use"))
-    }
-
-    @Test
-    fun obsoleteScenarioSkillPreferenceCannotLoadOldInstructions() = runBlocking {
-        context.getSharedPreferences("app_server_runtime_skills", Context.MODE_PRIVATE).edit()
-            .putBoolean("retired-trip-planning", true).commit()
-        assertEquals(DEFAULT_ENABLED_SKILLS, loadRuntimeSkills(context).filter { it.enabled }.map { it.id })
-        val workspace = workspaceVfs(context, File(context.cacheDir, "skills-obsolete"))
-        assertFalse(workspace.read("/.agents/skills/retired-trip-planning/SKILL.md", 0, 20_000) is VfsReadResult.Found)
+        assertFalse(AppServerTesting.prompt(context, "").skills.any { it.first == "android-use" })
     }
 
     @Test
@@ -150,15 +133,15 @@ class RuntimeFeatureConfigTest {
     }
 
     @Test
-    fun allFourCombinationsPersistIndependently() {
+    fun jevAndTheOrchestrationSkillGoTheirOwnWaysInAllFourCombinations() {
+        // The skill's switch as a snapshot of Bothy's skills; keeping a switch is the core's (RuntimeSkillSwitchesTest).
         for (jev in listOf(false, true)) for (skill in listOf(false, true)) {
             assertNull(saveJevConfig(context, JevConfig(enabled = jev), "fixture-key"))
-            saveRuntimeSkill(context, "mcp-task-orchestration", skill)
+            val skills = bothySkills(context).map { if (it.id == "mcp-task-orchestration") it.copy(enabled = skill) else it }
             assertEquals(jev, loadJevConfig(context).enabled)
-            val skills = loadRuntimeSkills(context)
-            assertEquals(skill, skills.single { it.id == "mcp-task-orchestration" }.enabled)
-            assertEquals(skill, preloadedSkillPrompt(context, skills).contains("Active runtime skill: mcp-task-orchestration"))
-            assertTrue(preloadedSkillPrompt(context, skills).contains("Active runtime skill: debug_voice_progress"))
+            val prompt = AppServerTesting.prompt(context, "", skills).text
+            assertEquals(skill, prompt.contains("Active runtime skill: mcp-task-orchestration"))
+            assertTrue(prompt.contains("Active runtime skill: debug_voice_progress"))
         }
     }
 }

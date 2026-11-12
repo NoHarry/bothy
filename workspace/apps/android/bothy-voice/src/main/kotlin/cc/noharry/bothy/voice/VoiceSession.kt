@@ -106,9 +106,9 @@ class VoiceDispatchers(
  * labelled [VoiceSegmentLabel.AGENT] go to [onAgentTurn] when [autoSubmit] is on.
  *
  * Half duplex (default): while the host reports the agent working or speaking, the recognizer gets silence and
- * nothing is judged. [fullDuplex] (echo cancellation on): listening goes on; Jev learns the assistant's state, words
- * matching what it is saying are dropped locally as echo, and words that Jev says take the floor call
- * [onInterrupt] once per turn so the host stops speaking.
+ * nothing is judged. [fullDuplex] (echo cancellation on): listening goes on; Jev learns the assistant's state, and words
+ * that Jev says take the floor call [onInterrupt] once per turn so the host stops speaking. Either way, words matching
+ * what the assistant is saying or has just said ([OwnSpeech]) are dropped locally as echo.
  */
 class VoiceSession(
     private val engine: StreamingAsrEngine,
@@ -156,11 +156,13 @@ class VoiceSession(
     val state: StateFlow<VoiceSessionState> = mutableState
 
     private val events = Channel<Event>(Channel.UNLIMITED)
+    /** What the assistant said lately: words like it, heard while it speaks or just after, are its own ([OwnSpeech]). */
+    private val ownSpeech = OwnSpeech()
     private val tracker = VoiceTurnTracker(thresholds).also { tracker ->
         tracker.wakePhrase = wakePhrase
-        // Not the assistant's own 「再见」 coming back while it speaks.
+        // Not the assistant's own 「再见」 coming back while it speaks or just after.
         tracker.dismissal = dismissal?.takeIf { onDismiss != null }
-            ?.let { dismisses -> { words -> dismisses(words) && !(hostSpeaking && looksLikeEcho(words, speech)) } }
+            ?.let { dismisses -> { words -> dismisses(words) && !ownSpeech.echoes(words, tracker.openedAtMillis ?: clock()) } }
     }
     private val mic = MicActivity()
     private val history = ArrayDeque<VoiceHistoryMessage>()
@@ -376,6 +378,7 @@ class VoiceSession(
         val busy = event.working || event.speaking
         if (busy) handedOverAt = null else if (hostWorking || hostSpeaking) quietAfter = now + BUSY_TAIL_MILLIS
         if (event.speaking && !hostSpeaking) interruptSent = false
+        if (event.speaking) ownSpeech.saying(event.speech, now) else ownSpeech.ended(now)
         hostWorking = event.working
         hostSpeaking = event.speaking
         speech = event.speech
@@ -402,8 +405,9 @@ class VoiceSession(
     }
 
     private fun askJev(snapshot: VoiceTurnSnapshot) {
-        // Residual echo of the reply is answered locally: no Jev call, no interruption.
-        if (hostSpeaking && looksLikeEcho(snapshot.transcript, speech)) {
+        // Residual echo of the reply, while it plays or written out just after it, is answered locally: no Jev call, no
+        // interruption, nothing handed over.
+        if (ownSpeech.echoes(snapshot.transcript, tracker.openedAtMillis ?: clock())) {
             events.trySend(Event.JudgeDone(snapshot.version, VoiceJudgment(0.0, 0.0, 0.0, echo = true)))
             return
         }

@@ -118,11 +118,6 @@
             android:name="cc.noharry.agent.appserver.BootReceiver"
             android:enabled="true"
             tools:replace="android:enabled" />
-        <!-- 小博 operates the screen (Android Use): its accessibility service is on. -->
-        <service
-            android:name="cc.noharry.agent.androiduse.AndroidUseAccessibilityService"
-            android:enabled="true"
-            tools:replace="android:enabled" />
         <!-- Notification access for it lets 小博 see and control what other apps play (Device Media); it reads no notification. -->
     </application>
 </manifest>

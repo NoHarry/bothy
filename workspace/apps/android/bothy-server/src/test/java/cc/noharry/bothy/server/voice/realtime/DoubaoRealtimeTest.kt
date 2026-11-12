@@ -1,7 +1,6 @@
 package cc.noharry.bothy.server.voice.realtime
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.bothy.protocol.CUSTOM_REALTIME_PERSONA
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

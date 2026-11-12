@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "about": "What a plan (计划) may run on its own when its trigger fires. Any tool of a loaded MCP server may be an action unless deny names it. A file at files/automation-policy.json (the app's private files, outside the agent's workspace) can only add rules. Patterns use * for any run of characters and match the catalog's tool names.",
+  "deny": [
+    {"tool": "*dial*", "why": "打电话", "why_en": "placing calls"},
+    {"tool": "*message_send*", "why": "发消息", "why_en": "sending messages"},
+    {"tool": "*sms*", "why": "发短信", "why_en": "sending texts"},
+    {"tool": "*pay*", "why": "支付", "why_en": "paying"},
+    {"tool": "*order*", "why": "下单", "why_en": "placing orders"},
+    {"tool": "*delete*", "why": "删除", "why_en": "deleting"},
+    {"tool": "*reset*", "why": "恢复设置", "why_en": "resetting settings"},
+    {"tool": "*account*", "why": "账号", "why_en": "accounts"}
+  ]
+}

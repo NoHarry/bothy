@@ -6,6 +6,8 @@ import androidx.compose.ui.platform.LocalResources
 import cc.noharry.agent.appserver.protocol.BalanceView
 import cc.noharry.agent.appserver.protocol.Finding
 import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.jsonrpc.JsonRpcException
+import cc.noharry.agent.appserver.protocol.jsonrpc.ProtocolJson
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,6 +35,10 @@ internal fun Resources.words(finding: Finding): String {
 
 @Composable
 internal fun words(finding: Finding): String = LocalResources.current.words(finding)
+
+/** The finding a refusal carries in its data (a saved key that would go to another host, say); null when it has none. */
+internal fun JsonRpcException.finding(): Finding? =
+    data?.let { runCatching { ProtocolJson.decodeFromJsonElement(Finding.serializer(), it) }.getOrNull() }
 
 /** 「¥110.00 (top-up 100.00, granted 10.00)」 per currency, and whether the key is out of credit. */
 internal fun Resources.balanceWords(balance: BalanceView): String {

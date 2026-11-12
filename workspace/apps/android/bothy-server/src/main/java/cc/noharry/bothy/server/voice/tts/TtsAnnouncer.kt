@@ -1,23 +1,20 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.voice.tts
+import cc.noharry.agent.appserver.runtime.BLOCKED_ANSWER_CODE
+import cc.noharry.agent.appserver.runtime.PARTIAL_ANSWER_CODE
 import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.MediaPlayer
-import cc.noharry.agent.appserver.evidence.BenchHttpTransport
+import cc.noharry.agent.appserver.http.AppServerHttpTransport
 import cc.noharry.agent.appserver.runtime.RuntimeRunScope
 import cc.noharry.agent.appserver.runtime.SpokenRuns
-import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.runtime.followUpQuestion
-import cc.noharry.agent.kernel.api.AgentEvent
-import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionOutcome
-import cc.noharry.agent.kernel.api.reliability.RuntimeCompletionSummary
-import cc.noharry.agent.kernel.api.reliability.RuntimeRunStatus
-import cc.noharry.bothy.protocol.view.TTS_PROGRESS_MARKER
-import cc.noharry.bothy.protocol.view.consumeProgressEnd
-import cc.noharry.bothy.protocol.view.isTtsMarkedLine
-import cc.noharry.bothy.protocol.view.progressMessageEnd
+import cc.noharry.agent.ThreadEvent
+import cc.noharry.agent.spi.reliability.RuntimeCompletionOutcome
+import cc.noharry.agent.spi.reliability.RuntimeCompletionSummary
+import cc.noharry.agent.spi.reliability.RuntimeRunStatus
 import cc.noharry.bothy.server.voice.SpeechAudio
 import java.io.File
 import kotlin.math.max
@@ -36,7 +33,7 @@ import kotlinx.coroutines.yield
 /** The announcer that speaks through the configured provider (MiMo or 豆包) on this device's player; [onStatus] hears what goes wrong. */
 internal fun deviceTtsAnnouncer(context: Context, scope: CoroutineScope, onStatus: (String) -> Unit): TtsAnnouncer {
     val appContext = context.applicationContext
-    return TtsAnnouncer(scope, ttsClient(BenchHttpTransport(appContext)), AndroidTtsPlayer(appContext), onStatus = onStatus)
+    return TtsAnnouncer(scope, ttsClient(AppServerHttpTransport(appContext)), AndroidTtsPlayer(appContext), onStatus = onStatus)
 }
 
 internal class TtsAnnouncer(
@@ -54,10 +51,8 @@ internal class TtsAnnouncer(
     /** Whether something is being said or waits its turn. */
     val busy: Boolean get() = activeJob?.isActive == true
     private var progressRunId: String? = null
-    private val progressBuffer = StringBuilder()
     private val announcedProgress = linkedSetOf<String>()
     private val startedProgressTexts = mutableListOf<String>()
-    private val heldProgress = mutableListOf<String>()
     private var lastQuestion: Pair<String, String>? = null
     /** The line being synthesized or played, so a voice append's acknowledgement can cut a progress line short. */
     @Volatile private var currentLine: Job? = null
@@ -66,16 +61,26 @@ internal class TtsAnnouncer(
 
     fun observe(
         runScope: RuntimeRunScope,
-        event: AgentEvent,
+        event: ThreadEvent,
         config: TtsConfig,
         ownsUi: (RuntimeRunScope) -> Boolean,
     ) {
         if ((textOutput == null && !config.ready) || !ownsUi(runScope)) return
-        if (event is AgentEvent.UserInteraction) {
-            val question = event.interaction
-            if (question.kind == "QUESTION" && question.state == "PENDING" && announcedQuestionIds.add(question.questionId)) {
-                enqueueAnnouncement(config, question.text, clearPending = false, kind = TtsAnnouncementKind.PROGRESS, runId = event.runId)
+        // A partial or blocked answer: only what it asks is said (a run started by voice says its short reply).
+        if (event is ThreadEvent.TurnCompleted && event.result.error?.code in SHORT_ANSWER_CODES) {
+            val source = event.result.finalResponse.toFinalTtsSourceOrNull()
+            val partial = if (SpokenRuns.contains(event.result.turnId)) spokenRunFinal(event.result.turnId, event.result.finalResponse)
+                else source?.partialReplyTts(source.spokenReply(MAX_FINAL_TTS_TEXT_CHARS))
+            partial?.let {
+                enqueueAnnouncement(config, it, clearPending = true, kind = TtsAnnouncementKind.FINAL, runId = event.result.turnId)
             }
+            dropQueuedForRun(event.result.turnId, keepFinal = true)
+            resetProgressOf(event.result.turnId)
+            return
+        }
+        val asyncQuestion = (event as? ThreadEvent.ItemStarted)?.item as? cc.noharry.agent.Question
+        if (asyncQuestion?.async == true && announcedQuestionIds.add(asyncQuestion.id)) {
+            enqueueAnnouncement(config, asyncQuestion.text, clearPending = false, kind = TtsAnnouncementKind.PROGRESS, runId = asyncQuestion.turnId)
             return
         }
         event.followUpQuestion()?.let { (runId, question) ->
@@ -83,41 +88,30 @@ internal class TtsAnnouncer(
             return
         }
         when (event) {
-            is AgentEvent.Started -> if (lastQuestion?.first != event.runId) { lastQuestion = null; announcedQuestionIds.clear() }
-            is AgentEvent.TextDelta -> observeProgress(event, config)
-            is AgentEvent.NativeToolCallStarted ->
-                if (event.runId == progressRunId && !closesReply(event.toolName)) releaseHeldProgress(config)
-            // Hosted web search runs on the provider and emits no NativeToolCallStarted.
-            is AgentEvent.SearchActivity -> if (event.runId == progressRunId) releaseHeldProgress(config)
-            is AgentEvent.NetworkToolActivity -> if (event.runId == progressRunId) releaseHeldProgress(config)
-            is AgentEvent.ResultAvailable -> {
-                val runId = event.result.runId
-                val successful = RuntimeCompletionSummary.firstPartyPass(event.result.status, event.result.completion)
-                val canAsk = event.result.status in setOf(RuntimeRunStatus.COMPLETED, RuntimeRunStatus.BLOCKED) &&
-                    event.result.completion.outcome in setOf(RuntimeCompletionOutcome.PARTIAL, RuntimeCompletionOutcome.BLOCKED)
-                // A spoken request is answered out loud whatever the outcome; silence would read as not heard.
-                val spoken = SpokenRuns.contains(runId)
-                if (successful || canAsk || spoken) {
-                    val finalText = when {
-                        spoken -> spokenRunFinal(runId, event.result.response)
-                        successful -> finalTextForCompletedResult(runId, event.result.response)
-                        else -> event.result.response.toFinalTtsSourceOrNull()?.let { it.partialReplyTts(it.spokenReply(MAX_FINAL_TTS_TEXT_CHARS)) }
-                    }
-                    finalText?.let {
-                        enqueueAnnouncement(
-                            config = config,
-                            text = it,
-                            clearPending = true,
-                            kind = TtsAnnouncementKind.FINAL,
-                            runId = runId,
-                        )
-                    }
+            is ThreadEvent.TurnStarted -> if (lastQuestion?.first != event.turnId) { lastQuestion = null; announcedQuestionIds.clear() }
+            // What the model wrote for the user on a call that does real work ([SPOKEN_NOTE]) is said as the call starts.
+            is ThreadEvent.ItemStarted -> (event.item as? cc.noharry.agent.ThreadItem.ToolCall)?.let { call ->
+                cc.noharry.agent.appserver.runtime.ToolNotes.of(call.tool, call.arguments)?.let { observeProgress(call.turnId, it, config) }
+            }
+            is ThreadEvent.TurnFailed -> {
+                if (SpokenRuns.contains(event.turnId)) {
+                    val message = cc.noharry.bothy.server.voice.runtimeFailureFeedback()
+                    enqueueAnnouncement(config, message, clearPending = true, kind = TtsAnnouncementKind.FINAL, runId = event.turnId)
                 }
-                // Drop mid-progress for this run after final; keep isolation if another run is active.
+                dropQueuedForRun(event.turnId, keepFinal = true)
+                resetProgressOf(event.turnId)
+            }
+            is ThreadEvent.TurnCompleted -> {
+                val runId = event.result.turnId
+                val reply = event.result.finalResponse
+                val finalText = when {
+                    SpokenRuns.contains(runId) -> spokenRunFinal(runId, reply)
+                    event.result.status == cc.noharry.agent.TurnStatus.COMPLETED -> finalTextForCompletedResult(runId, reply)
+                    else -> null
+                }
+                finalText?.let { enqueueAnnouncement(config, it, clearPending = true, kind = TtsAnnouncementKind.FINAL, runId = runId) }
                 dropQueuedForRun(runId, keepFinal = true)
-                if (progressRunId == null || progressRunId == runId) {
-                    resetProgress()
-                }
+                resetProgressOf(runId)
             }
             else -> Unit
         }
@@ -212,25 +206,14 @@ internal class TtsAnnouncer(
         player?.stop()
     }
 
-    private fun observeProgress(event: AgentEvent.TextDelta, config: TtsConfig) {
-        if (progressRunId != event.runId) {
+    private fun observeProgress(runId: String, text: String, config: TtsConfig) {
+        if (progressRunId != runId) {
             // New run: drop queued progress from any previous run so mid-TTS cannot leak across turns.
-            dropQueuedProgressExcept(event.runId)
+            dropQueuedProgressExcept(runId)
             resetProgress()
-            progressRunId = event.runId
+            progressRunId = runId
         }
-        progressBuffer.append(event.text)
-        heldProgress += drainProgressText()
-    }
-
-    /**
-     * A progress line is spoken once its round goes on to real work. When the round instead closes the
-     * reply (finish/ask), the line is dropped: the final answer or question says it, not twice.
-     */
-    private fun releaseHeldProgress(config: TtsConfig) {
-        val lines = heldProgress.toList()
-        heldProgress.clear()
-        lines.forEach { announceProgress(config, it) }
+        text.toProgressLineOrNull()?.let { announceProgress(config, it) }
     }
 
     private fun announceProgress(config: TtsConfig, text: String) {
@@ -248,42 +231,13 @@ internal class TtsAnnouncer(
         )
     }
 
-    private fun drainProgressText(): List<String> {
-        val output = mutableListOf<String>()
-        while (true) {
-            val bufferText = progressBuffer.toString()
-            val marker = TTS_PROGRESS_MARKER.find(bufferText)
-            if (marker == null) {
-                trimProgressBuffer()
-                return output
-            }
-            val markerStart = marker.range.first
-            if (markerStart > 0) {
-                progressBuffer.delete(0, markerStart)
-            }
-            val normalized = progressBuffer.toString()
-            val contentStart = marker.value.length
-            val contentEnd = normalized.progressMessageEnd(contentStart)
-            if (contentEnd == null) {
-                trimProgressBuffer()
-                return output
-            }
-            normalized.substring(contentStart, contentEnd)
-                .toProgressTtsTextOrNull()
-                ?.let(output::add)
-            progressBuffer.delete(0, normalized.consumeProgressEnd(contentEnd))
-        }
-    }
-
-    private fun trimProgressBuffer() {
-        if (progressBuffer.length <= MAX_PROGRESS_BUFFER_CHARS) return
-        progressBuffer.delete(0, progressBuffer.length - MAX_PROGRESS_BUFFER_CHARS)
+    /** [runId] ended: its spoken progress is forgotten; another run's, still going, is kept. */
+    private fun resetProgressOf(runId: String) {
+        if (progressRunId == null || progressRunId == runId) resetProgress()
     }
 
     private fun resetProgress() {
         progressRunId = null
-        progressBuffer.clear()
-        heldProgress.clear()
         announcedProgress.clear()
         synchronized(queueLock) { startedProgressTexts.clear() }
     }
@@ -593,6 +547,11 @@ internal class AndroidTtsPlayer(
     }
 }
 
+private fun String.toProgressLineOrNull(): String? {
+    val line = trim().substringBefore('\n')
+    return line.substring(0, line.firstSentenceEnd()?.plus(1) ?: line.length).toProgressTtsTextOrNull()
+}
+
 private fun String.toProgressTtsTextOrNull(): String? {
     val normalized = withoutCodeParentheticals().trim().replace(Regex("\\s+"), " ")
     if (normalized.length < MIN_PROGRESS_TTS_TEXT_CHARS || normalized.length > MAX_PROGRESS_TTS_TEXT_CHARS) {
@@ -651,9 +610,7 @@ private fun String.leadingSentences(maxChars: Int): String? {
 }
 
 private fun String.toFinalTtsSourceOrNull(): String? {
-    val joined = lines()
-        .filterNot { it.isTtsMarkedLine() }
-        .joinToString("\n") { it.replace(MARKDOWN_HEADING_PREFIX, "") }
+    val joined = lines().joinToString("\n") { it.replace(MARKDOWN_HEADING_PREFIX, "") }
     if (joined.contains("```")) return null
     // Emphasis markers are display formatting; a synthesizer would read them out. Line and paragraph
     // breaks stay as boundaries (lead paragraph, follow-up questions); speech flattens them on enqueue.
@@ -786,6 +743,8 @@ private val BLOCKED_PROGRESS_TOKENS = listOf(
     "secret",
     "structuredcontent",
 )
+/** The codes of a turn that answered without doing everything ([PARTIAL_ANSWER_CODE], [BLOCKED_ANSWER_CODE]). */
+private val SHORT_ANSWER_CODES = setOf(PARTIAL_ANSWER_CODE, BLOCKED_ANSWER_CODE)
 private const val MAX_TTS_TEXT_CHARS = 600
 private const val MAX_FINAL_TTS_TEXT_CHARS = 180
 /** A voice request's spoken answer: about 45 s of speech. */
@@ -794,9 +753,8 @@ private const val MAX_SPOKEN_LEAD_CHARS = 140
 private const val MAX_AFTER_PROGRESS_FINAL_TTS_TEXT_CHARS = 120
 private const val MIN_PROGRESS_TTS_TEXT_CHARS = 6
 private const val MAX_PROGRESS_TTS_TEXT_CHARS = 80
-private const val MAX_PROGRESS_BUFFER_CHARS = 512
 private const val MAX_PROGRESS_ANNOUNCEMENTS_PER_RUN = 4
-/** Tools that end the reply (or only update the plan); progress written alongside them is not spoken. */
+/** Tools that end the reply (or only update the plan): what they say is the reply or the question itself. */
 private val REPLY_CLOSING_TOOLS = setOf("finish", "ask", "update_todo")
 
 /**
@@ -812,3 +770,17 @@ internal fun closesReply(toolName: String): Boolean =
 private const val DELEGATION_TOOL_NAME = "a2a_message_send"
 private val SUBAGENT_TOOLS = setOf("spawn_agent", "cancel_agent")
 private const val NEAR_DUPLICATE_PROGRESS_SIMILARITY = 0.6
+
+/** Looking for a tool or reading a file is not progress a listener needs, so these take no spoken note. */
+private val LOOKUP_TOOLS = setOf("search_tools", "list_dir", "read_file", "grep")
+
+/**
+ * The 「说给用户」 field Bothy adds to the tools that do real work: one sentence for the person as the work goes. The
+ * voice skill says how to word it.
+ */
+internal val SPOKEN_NOTE = cc.noharry.agent.appserver.runtime.ToolNote(
+    field = "say",
+    description = "可选。此刻要念给用户听的一句进度：中文口语短句，8–28字，以。！？结束。只在有对用户有用的新进展时填，" +
+        "同一轮最多一个调用填；内部过程、重试、工具名和参数不要填。",
+    applies = { !closesReply(it) && it !in LOOKUP_TOOLS },
+)

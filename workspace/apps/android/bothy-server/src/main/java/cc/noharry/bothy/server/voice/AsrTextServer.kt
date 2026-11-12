@@ -4,9 +4,13 @@ import android.os.Handler
 import android.os.Looper
 import cc.noharry.agent.appserver.a2a.A2aClientConsole
 import cc.noharry.agent.appserver.protocol.A2aInputSource
-import cc.noharry.agent.appserver.runtime.RuntimeSession
-import cc.noharry.agent.appserver.session.BACKEND_LIVE
-import cc.noharry.agent.appserver.session.LEGACY_BACKEND_LIVE_ALIAS
+import cc.noharry.agent.appserver.protocol.ModelSelectParams
+import cc.noharry.agent.appserver.protocol.SettingsRequests
+import cc.noharry.bothy.server.server.DEBUG_BACKEND_LIVE
+import cc.noharry.bothy.server.server.ServerLink
+import cc.noharry.bothy.server.server.debugLiveBackend
+import cc.noharry.bothy.server.server.debugStream
+import cc.noharry.bothy.server.server.debugSwitch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -22,6 +26,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.launch
 
 internal data class AsrTextRequest(
     val text: String,
@@ -93,9 +98,12 @@ internal object AsrTextServerManager {
         val mainHandler = Handler(Looper.getMainLooper())
         val candidate = AsrTextServer { request ->
             mainHandler.post {
-                request.profile?.takeIf { it.isNotBlank() }?.let { RuntimeSession.selectProfile(appContext, it) }
+                // On the main thread: the profile is selected before the text goes on.
+                request.profile?.takeIf { it.isNotBlank() }?.let { id ->
+                    ServerLink.main.launch { ServerLink.request(SettingsRequests.MODEL_SELECT, ModelSelectParams(profileId = id)) }
+                }
                 if (request.validation.equals(DEBUG_ASR_VALIDATION_HOSTED_SEARCH, ignoreCase = true)) {
-                    RuntimeSession.validateHostedSearch(appContext, request.text, request.stream)
+                    ServerLink.turns.checkHostedSearch(request.text, debugSwitch(request.stream) ?: false)
                 } else {
                     submitSpokenText(appContext, request.text, request.backend, request.stream)
                 }
@@ -115,7 +123,7 @@ internal fun submitSpokenText(context: Context, text: String, backend: String? =
     if (A2aClientConsole.isEnabled(context)) {
         A2aClientConsole.replace(context, text, A2aInputSource.ASR)
     } else {
-        RuntimeSession.submitTextReplacingRun(context, text, backend ?: BACKEND_LIVE, stream)
+        ServerLink.turns.replace(text, live = debugLiveBackend(backend ?: DEBUG_BACKEND_LIVE), stream = debugStream(stream))
     }
 }
 
@@ -146,10 +154,7 @@ private fun parseAsrJsonBody(body: String, query: Map<String, String>): AsrTextR
 }
 
 private fun externalBackend(value: String?): String? =
-    when (value?.trim()?.lowercase()) {
-        BACKEND_LIVE, LEGACY_BACKEND_LIVE_ALIAS -> BACKEND_LIVE
-        else -> null
-    }
+    if (debugLiveBackend(value?.trim())) DEBUG_BACKEND_LIVE else null
 
 private fun readRawHttpRequest(input: InputStream): RawAsrHttpRequest? {
     val header = readHttpHeader(input) ?: return null

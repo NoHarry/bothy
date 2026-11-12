@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Bothy's debug builds only: adb (which holds DUMP) sets an A2A profile or the image model for a test run. The
+         receivers are the app server's; Bothy declares them, so a host that does not merges neither. -->
+    <application>
+        <receiver
+            android:name="cc.noharry.agent.appserver.a2a.A2aProfileBroadcastReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="${applicationId}.DEBUG_A2A_PROFILE" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name="cc.noharry.agent.appserver.image.ImageModelBroadcastReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="${applicationId}.DEBUG_IMAGE_MODEL" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

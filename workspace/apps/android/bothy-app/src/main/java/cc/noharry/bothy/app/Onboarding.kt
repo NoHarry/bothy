@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -92,37 +91,6 @@ internal object OnboardingDraft {
     fun clear() {
         modelKey.value = ""
         doubaoKey.value = ""
-    }
-}
-
-/** 1. The DeepSeek key, saved to the selected model service and checked against its model list. */
-@Composable
-private fun ModelKeyStep() {
-    val server = LocalServer.current
-    val resources = LocalResources.current
-    var key by OnboardingDraft.modelKey
-    var status by remember { mutableStateOf<Pair<String, Color>?>(null) }
-    val good = ConsoleColors.success
-    val bad = ConsoleColors.danger
-    val waiting = ConsoleColors.muted
-    val checking = stringResource(R.string.onboarding_checking)
-    OnboardingStep(stringResource(R.string.onboarding_step_model_key), done = status?.second == good) {
-        Text(
-            stringResource(R.string.onboarding_model_key_note),
-            style = ConsoleType.bodySmall,
-            color = ConsoleColors.muted,
-        )
-        LinkButton(stringResource(R.string.onboarding_deepseek_link), DEEPSEEK_KEYS_URL)
-        KeyField("DeepSeek API key", key) { key = it }
-        Button(enabled = key.isNotBlank(), onClick = {
-            status = checking to waiting
-            server.send(
-                OnboardingRequests.SAVE_MODEL_KEY,
-                TextParams(key),
-                onRefused = { status = it.message.orEmpty() to bad },
-            ) { checked -> status = resources.words(checked.finding) to if (checked.failed) bad else good }
-        }) { Text(stringResource(R.string.onboarding_save_and_check)) }
-        status?.let { (text, color) -> Text(text, style = ConsoleType.bodySmall, color = color) }
     }
 }
 
@@ -249,7 +217,7 @@ private fun FirstWordsStep(onDone: () -> Unit) {
 }
 
 @Composable
-private fun OnboardingStep(title: String, done: Boolean, content: @Composable ColumnScope.() -> Unit) {
+internal fun OnboardingStep(title: String, done: Boolean, content: @Composable ColumnScope.() -> Unit) {
     Surface(
         shape = RoundedCornerShape(Dimens.radiusLg),
         color = ConsoleColors.panel,
@@ -263,7 +231,7 @@ private fun OnboardingStep(title: String, done: Boolean, content: @Composable Co
 }
 
 @Composable
-private fun KeyField(label: String, value: String, onChange: (String) -> Unit) {
+internal fun KeyField(label: String, value: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
@@ -312,7 +280,6 @@ private fun ignoresBatteryLimits(context: Context): Boolean =
     context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
 
 private val ONBOARDING_WIDTH = 640.dp
-private const val DEEPSEEK_KEYS_URL = "https://platform.deepseek.com/api_keys"
 private const val DOUBAO_CONSOLE_URL = "https://console.volcengine.com/speech/new/setting/activate?projectName=default"
 private val FIRST_WORDS = listOf(
     R.string.onboarding_try_weather,

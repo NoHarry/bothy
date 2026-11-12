@@ -9,7 +9,7 @@ import org.junit.Test
 class ReplayChecksTest {
     @Test
     fun theCarsRequestsMustAct() {
-        for (request in listOf("我想去广州塔，在那找一个停车场", "播放周杰伦的歌", "还是很热", "最近有个很火的电视剧，主题曲是王菲唱的，你知道是什么歌吗", "Navigate home")) {
+        for (request in listOf("我想去广州塔，在那找一个停车场", "播放周杰伦的歌", "还是很热", "最近有个很火的电视剧，主题曲是王菲唱的，你知道是什么歌吗", "Navigate home", "导航去公司")) {
             assertTrue(request, requiresCarAction(request))
         }
         assertFalse(requiresCarAction("介绍一下你自己"))

@@ -5,19 +5,32 @@
     <string name="model_add_service">添加服务</string>
     <string name="model_saved_choose_model">已保存；使用的模型请在输入框旁选择。</string>
     <string name="model_service_name">服务名称</string>
-    <string name="model_type">类型</string>
+    <string name="model_provider">服务商</string>
+    <string name="model_provider_choose">选择服务商</string>
+    <string name="model_provider_custom">自定义</string>
+    <string name="model_provider_custom_saved">自定义（不是 App 认识的服务的地址）</string>
+    <string name="model_region">地区</string>
+    <string name="model_region_cn">国内</string>
+    <string name="model_region_global">国际</string>
+    <string name="model_region_us">美国</string>
+    <string name="model_type">协议</string>
+    <string name="model_protocol_openai">OpenAI 兼容</string>
     <string name="model_endpoint">端点</string>
     <string name="model_delete_service">删除服务</string>
-    <!-- DeepSeek 余额 -->
+    <!-- key 输入框下面：所选服务在所选地区创建 key 的页面 -->
+    <string name="model_key_page">在 %1$s 创建 API key。</string>
+    <string name="model_key_page_by_region">在 %1$s 创建 API key。每个地区有自己的站点，key 只能在创建它的地区使用。</string>
+    <!-- 服务的余额 -->
     <string name="model_api_key_saved">已保存，留空不改</string>
-    <string name="model_deepseek_balance_hint">DeepSeek 官方 key 可查询余额</string>
+    <string name="model_service_balance_hint">%1$s 的 key 可查询余额</string>
     <string name="model_balance_checking">正在查询…</string>
     <string name="model_balance_check">查询余额</string>
-    <!-- 中转的 DeepSeek 检测 -->
-    <string name="model_deepseek_features">DeepSeek 官方能力</string>
-    <string name="model_deepseek_probe_intro">中转后面是 DeepSeek 官方接口时，检测通过的余额、Search/Fetch、原生延迟工具会走这个服务的地址和 key（检测搜索一次 ¥0.005）</string>
-    <string name="model_deepseek_probe_stale">地址、端点或 key 和上次检测时不同，需要重新检测</string>
-    <string name="model_deepseek_probe_current">按当前填写的地址和 key 检测；有改动要保存后才生效</string>
+    <!-- 中转的检测 -->
+    <string name="model_relay_features">%1$s 官方能力</string>
+    <string name="model_saved_key_elsewhere">已保存的 key 不发往这个地址：重新输入 key 后才能检测</string>
+    <string name="model_relay_probe_intro">中转后面是 %1$s 官方接口时，检测通过的余额、Search/Fetch、原生延迟工具会走这个服务的地址和 key（检测会搜索一次，按次计费）</string>
+    <string name="model_relay_probe_stale">地址、端点或 key 和上次检测时不同，需要重新检测</string>
+    <string name="model_relay_probe_current">按当前填写的地址和 key 检测；有改动要保存后才生效</string>
     <string name="model_probe_checking">正在检测…</string>
     <string name="model_probe_check">检测</string>
     <string name="model_probe_balance">余额接口</string>
@@ -46,6 +59,10 @@
     <string name="model_context_default">默认 %1$s</string>
     <string name="model_context_default_compacts">默认 %1$s · 80%% 自动压缩</string>
     <string name="model_context_invalid">请输入正整数或 K / M 数值</string>
+    <string name="model_output_limit">输出上限（tokens）</string>
+    <string name="model_output_default">默认 %1$s</string>
+    <string name="model_output_service_default">服务的默认值</string>
+    <string name="model_output_up_to">%1$s · 最多 %2$s</string>
     <string name="model_image_input_description">%1$s 图片输入</string>
     <string name="model_text_and_images">文本+图片</string>
     <string name="model_text_only">仅文本</string>
@@ -78,11 +95,13 @@
     <string name="model_balance_failed">查询失败：%1$s</string>
     <string name="model_balance_insufficient">余额不足，暂不可用</string>
     <string name="model_balance_key_rejected">API key 无效或已停用</string>
+    <string name="model_key_type_again">已保存的 API key 只发往它自己的服务地址；要在 %1$s 使用，请重新输入 key</string>
     <string name="model_balance_separator">；</string>
     <string name="model_choose_model_first">请在输入框旁选择模型；可先在设置中拉取或添加模型。</string>
     <string name="model_deepseek_available">可用</string>
     <string name="model_http_error">HTTP %1$s：%2$s</string>
     <string name="model_missing_api_key">缺少 %1$s 的 API key。请在设置中填写，或放在以下位置之一：\n%2$s</string>
+    <string name="model_missing_base_url">%1$s 没有服务地址（Base URL）。请在设置中填写。</string>
     <string name="model_on_device_missing">本机模型 %1$s 还没下载：设置 → 模型与服务 → 本机模型 → %1$s → 下载（约 %2$s GB）。</string>
     <string name="model_probe_dropped">模型照常回答，中转丢掉了 %1$s</string>
     <string name="model_probe_no_model">没有选模型，无法检测</string>

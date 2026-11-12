@@ -1,24 +1,13 @@
 package cc.noharry.bothy.server.mcp
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.mcp.ChineseMcpMessages
-import cc.noharry.agent.appserver.mcp.McpSaveResult
 import cc.noharry.agent.appserver.mcp.McpSecrets
-import cc.noharry.agent.appserver.mcp.deleteMcpServerConfig
 import cc.noharry.agent.appserver.mcp.loadMcpServers
-import cc.noharry.agent.appserver.mcp.saveMcpServerDraft
-import cc.noharry.agent.appserver.mcp.setMcpServerEnabled
 import cc.noharry.agent.appserver.protocol.McpServerDraft
-import cc.noharry.agent.kernel.api.ToolDescriptor
-import cc.noharry.agent.mcp.McpHttpClient
+import cc.noharry.agent.appserver.server.AppServerTesting
+import cc.noharry.agent.spi.ToolDescriptor
 import cc.noharry.agent.mcp.McpToolsListing
-import cc.noharry.agent.transport.HttpEvent
-import cc.noharry.agent.transport.HttpRequest
-import cc.noharry.agent.transport.HttpResponse
-import cc.noharry.agent.transport.HttpTransport
 import cc.noharry.bothy.protocol.ConnectorStatus
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -47,7 +36,7 @@ class McpConnectorsTest {
 
     @After
     fun tearDown() {
-        DEBUG_MCP_CONNECTORS.forEach { connector -> connector.mcp?.let { deleteMcpServerConfig(context, it.serverId) } }
+        DEBUG_MCP_CONNECTORS.forEach { connector -> connector.mcp?.let { AppServerTesting.deleteMcpServer(context, it.serverId) } }
         context.getSharedPreferences("debug_connectors", Context.MODE_PRIVATE).edit().clear().commit()
     }
 
@@ -60,19 +49,19 @@ class McpConnectorsTest {
         probe = { endpoint -> probed += endpoint; answer },
     )
 
-    /** The stored server list, without the live session. */
+    /** The stored server list as the MCP page sets it up, without the live session. */
     private object PrefsServers : ConnectorServers {
         override fun find(context: Context, id: String) = loadMcpServers(context).firstOrNull { it.id == id }
 
         override suspend fun save(context: Context, draft: McpServerDraft): String? =
-            (saveMcpServerDraft(context, draft) as? McpSaveResult.Rejected)?.reason
+            AppServerTesting.saveMcpServer(context, draft).exceptionOrNull()?.message
 
         override suspend fun delete(context: Context, id: String) {
-            deleteMcpServerConfig(context, id)
+            AppServerTesting.deleteMcpServer(context, id)
         }
 
         override suspend fun setEnabled(context: Context, id: String, enabled: Boolean) {
-            setMcpServerEnabled(context, id, enabled)
+            AppServerTesting.switchMcpProvider(context, id, enabled)
         }
     }
 
@@ -105,7 +94,7 @@ class McpConnectorsTest {
 
         assertEquals(McpEndpoint("https://mcp.kiwi.com"), probed.single())
         assertEquals("https://mcp.kiwi.com", loadMcpServers(context).single { it.id == "kiwi" }.url)
-        assertTrue(McpSecrets.read(context, "kiwi").isEmpty)
+        assertTrue(McpSecrets.requestHeaders(context, "kiwi").isEmpty() && McpSecrets.requestQuery(context, "kiwi").isEmpty())
         assertEquals(ConnectorStatus.Connected(verified = true), controller.status(kiwi))
         answer = McpToolsListing(emptyList(), "服务出错（HTTP 503）")
         val down = runCatching { controller.connectApp(kiwi, "", sandbox = false) }.exceptionOrNull()!!
@@ -141,7 +130,7 @@ class McpConnectorsTest {
         assertEquals("https://mcp.didichuxing.com/mcp-servers-sandbox", probed.single().url)
         assertTrue(controller.usesSandbox(didi))
 
-        setMcpServerEnabled(context, "didi", false)
+        AppServerTesting.switchMcpProvider(context, "didi", false)
         assertEquals(ConnectorStatus.Paused, controller.status(didi))
         assertEquals(ConnectorStatus.Connected(verified = true), controller.resumeApp(didi))
 
@@ -155,7 +144,7 @@ class McpConnectorsTest {
 
         controller.disconnect(didi)
         assertEquals(ConnectorStatus.Disconnected, controller.status(didi))
-        assertTrue(McpSecrets.read(context, "didi").isEmpty)
+        assertTrue(McpSecrets.requestHeaders(context, "didi").isEmpty() && McpSecrets.requestQuery(context, "didi").isEmpty())
     }
 
     @Test
@@ -173,24 +162,5 @@ class McpConnectorsTest {
             assertEquals(spec.serverId, spec.needsCredential, spec.credentialLabel != null)
         }
         assertTrue(GROK_BOT_CONNECTOR.mcp == null && GROK_BOT_CONNECTOR in DEBUG_CONNECTORS)
-    }
-
-    @Test
-    fun theKeyIsAddedToTheAddressOnlyWhenARequestIsSent() = runBlocking {
-        val sent = mutableListOf<String>()
-        val http = object : HttpTransport {
-            override fun stream(request: HttpRequest): Flow<HttpEvent> = emptyFlow()
-
-            override suspend fun execute(request: HttpRequest): HttpResponse {
-                sent += request.url
-                return HttpResponse(200, mapOf("Content-Type" to listOf("application/json")), """{"status":"0","info":"INVALID_USER_KEY"}""".toByteArray())
-            }
-        }
-        val client = McpHttpClient("https://mcp.amap.com/mcp?key=old", { emptyMap() }, http, "sample", "1.0", query = { mapOf("key" to "k 1") }, messages = ChineseMcpMessages)
-
-        val result = client.connect()
-
-        assertEquals("https://mcp.amap.com/mcp?key=k%201", sent.single())
-        assertEquals("""服务没有回应 initialize：{"status":"0","info":"INVALID_USER_KEY"}""", result.errorMessage)
     }
 }

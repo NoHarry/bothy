@@ -62,8 +62,8 @@
     <string name="usage_unpriced_hint">到「模型价格」同步或手填</string>
     <!-- 模型价格 -->
     <string name="usage_sync_and_rate">同步与汇率</string>
-    <string name="usage_prices_note">价格从 models.dev 同步，单位是美元/百万 token，按汇率折算成人民币。DeepSeek 按官方价：flash 系列都按 deepseek-flash；缓存命中按缓存价计，没有缓存价的按输入价。手填的价格同步时不会被覆盖。</string>
-    <string name="usage_model_prices_title">模型价格（美元/百万 token）</string>
+    <string name="usage_prices_note">价格按每百万 token 计，币种标在每个模型旁边。App 认识的模型服务（DeepSeek 等常见服务）的模型按该服务的官方价目，用它的币种（DeepSeek 是人民币；flash 系列都按 deepseek-flash）；有国内（人民币）和国际（美元）两份价目的服务，按模型实际调用的地址取对应那份。其余从 models.dev 同步，单位是美元。费用按汇率折算成人民币显示。缓存命中按缓存价计，没有缓存价的按输入价。手填的价格用旁边选的币种，同步时不会被覆盖。</string>
+    <string name="usage_model_prices_title">模型价格（每百万 token）</string>
     <string name="usage_no_models_title">还没有模型</string>
     <string name="usage_no_models_body">用过的模型会出现在这里，同步后自动带上价格。</string>
     <string name="usage_rate_label">美元兑人民币汇率</string>
@@ -84,6 +84,7 @@
     <string name="usage_restore_synced">恢复同步价</string>
     <string name="usage_source_manual">手填</string>
     <string name="usage_source_priced_as">%1$s（按 %2$s）</string>
+    <string name="usage_source_service">%1$s 官方价目（%2$s）· %3$s</string>
     <!-- 上下文占用 -->
     <string name="usage_context_ring_description">上下文占用：%1$s，点击查看详情</string>
     <string name="usage_context_not_yet">尚未获取</string>

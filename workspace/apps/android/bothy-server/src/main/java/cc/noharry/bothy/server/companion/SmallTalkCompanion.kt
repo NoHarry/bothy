@@ -2,7 +2,7 @@ package cc.noharry.bothy.server.companion
 import android.content.Context
 import android.os.SystemClock
 import cc.noharry.agent.appserver.FoundException
-import cc.noharry.agent.appserver.evidence.BenchHttpTransport
+import cc.noharry.agent.appserver.http.AppServerHttpTransport
 import cc.noharry.agent.appserver.finding
 import cc.noharry.agent.appserver.memory.UserMemoryStore
 import cc.noharry.agent.appserver.memory.memoryProfileText
@@ -11,7 +11,7 @@ import cc.noharry.agent.appserver.protocol.FindingCode
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.parts
 import cc.noharry.agent.appserver.protocol.text
-import cc.noharry.agent.appserver.runtime.RuntimeSession
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.bothy.protocol.BothyFindingCode
 import cc.noharry.bothy.protocol.CompanionConfig
 import cc.noharry.bothy.server.evidence.CheckResult
@@ -77,7 +77,7 @@ internal object SmallTalkCompanion {
         val started = SystemClock.elapsedRealtime()
         val label = "${context.getString(config.service.label)} · ${config.endpoint().model}"
         val reply = try {
-            ask(context, config, handOver.text, RuntimeSession.recentExchanges(context))
+            ask(context, config, handOver.text, ServerLink.turns.recentExchanges())
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
@@ -91,7 +91,7 @@ internal object SmallTalkCompanion {
         }
         VoiceLog.i(COMPANION_TAG, "$label replied in $elapsed ms: ${reply.take(LOG_CHARS)}")
         lastReply = reply
-        RuntimeSession.recordCompanionTurn(context, handOver.text, reply, label)
+        ServerLink.turns.record(handOver.text, reply, label)
         onReply(reply)
     }
 
@@ -107,9 +107,9 @@ internal object SmallTalkCompanion {
         }
     }
 
-    @Volatile private var http: BenchHttpTransport? = null
+    @Volatile private var http: AppServerHttpTransport? = null
 
-    private fun transport(context: Context): BenchHttpTransport = http ?: BenchHttpTransport(context.applicationContext).also { http = it }
+    private fun transport(context: Context): AppServerHttpTransport = http ?: AppServerHttpTransport(context.applicationContext).also { http = it }
 
     private fun remember(decision: CompanionDecision, handOver: VoiceHandOver) {
         VoiceLog.i(COMPANION_TAG, "route ${if (decision.toCompanion) "companion" else "agent"} (${decision.reason}): ${handOver.text.take(LOG_CHARS)}")

@@ -1,13 +1,16 @@
 package cc.noharry.bothy.server.mcp
 import android.content.Context
 import androidx.annotation.StringRes
-import cc.noharry.agent.appserver.evidence.BenchHttpTransport
+import cc.noharry.agent.appserver.http.AppServerHttpTransport
 import cc.noharry.agent.appserver.mcp.ScreenMcpMessages
 import cc.noharry.agent.appserver.mcp.loadMcpServers
 import cc.noharry.agent.appserver.protocol.McpServer
 import cc.noharry.agent.appserver.protocol.McpServerDraft
 import cc.noharry.agent.appserver.protocol.McpServerKind
-import cc.noharry.agent.appserver.runtime.RuntimeSession
+import cc.noharry.agent.appserver.protocol.EnabledParams
+import cc.noharry.agent.appserver.protocol.IdParams
+import cc.noharry.agent.appserver.protocol.SettingsRequests
+import cc.noharry.bothy.server.server.ServerLink
 import cc.noharry.agent.mcp.McpHttpClient
 import cc.noharry.agent.mcp.McpToolsListing
 import cc.noharry.agent.mcp.listMcpTools
@@ -82,7 +85,7 @@ internal suspend fun probeMcpEndpoint(context: Context, endpoint: McpEndpoint): 
     val client = McpHttpClient(
         url = endpoint.url,
         headers = { endpoint.headers },
-        http = BenchHttpTransport(app),
+        http = AppServerHttpTransport(app),
         clientName = app.packageName,
         clientVersion = BuildConfig.VERSION_NAME,
         query = { endpoint.query },
@@ -115,18 +118,18 @@ internal interface ConnectorServers {
     suspend fun setEnabled(context: Context, id: String, enabled: Boolean)
 }
 
-/** Through [RuntimeSession], so the next run sees the change; on the main thread like settings changes it. */
+/** As the protocol's MCP requests ([ServerLink.request]), so the next run sees the change; on the main thread like settings changes it. */
 internal object SessionConnectorServers : ConnectorServers {
     override fun find(context: Context, id: String): McpServer? = loadMcpServers(context).firstOrNull { it.id == id }
 
     override suspend fun save(context: Context, draft: McpServerDraft): String? =
-        withContext(Dispatchers.Main) { RuntimeSession.saveMcpServer(context, draft) }
+        withContext(Dispatchers.Main) { ServerLink.request(SettingsRequests.MCP_SAVE, draft).error?.let { it.args.firstOrNull() ?: it.code } }
 
     override suspend fun delete(context: Context, id: String) =
-        withContext(Dispatchers.Main) { RuntimeSession.deleteMcpServer(context, id) }
+        withContext(Dispatchers.Main) { ServerLink.request(SettingsRequests.MCP_DELETE, IdParams(id)); Unit }
 
     override suspend fun setEnabled(context: Context, id: String, enabled: Boolean) =
-        withContext(Dispatchers.Main) { RuntimeSession.setMcpProviderEnabled(context, id, enabled) }
+        withContext(Dispatchers.Main) { ServerLink.request(SettingsRequests.MCP_SET_ENABLED, EnabledParams(id, enabled)); Unit }
 }
 
 /** Why a key was not taken, with what to check: the network, or the key itself. */

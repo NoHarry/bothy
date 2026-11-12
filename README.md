@@ -98,15 +98,19 @@ A build of your own can also carry the key as `AMAP_ANDROID_KEY` in `local.prope
 | Module | What it does |
 |--------|--------------|
 | `bothy-app` | The demo app's screens (tablet first): debug console, phone screens, settings, floating assistant card |
-| `bothy-server` | Bothy's server under those screens: the app server below with Bothy's voice, on-device model, checks and Playground |
-| `agent-app-server` | The generic app server: sessions, models, MCP, plans, memory, A2A on the runtime, for any agent app to build on |
-| `agent-app-sample` | The smallest app on that server: one screen, no Bothy, where a standalone agent app starts from |
-| `bothy-protocol` | What the screens and the server say to each other: the protocol below plus Bothy's own methods and sections |
-| `agent-app-protocol` | The app server's protocol, in the style of Codex's app-server (threads, turns, items) |
+| `bothy-server` | Bothy's server under those screens: the runtime's app server with Bothy's voice, on-device model, checks and Playground |
+| `bothy-protocol` | What the screens and the server say to each other: the app server's protocol plus Bothy's own methods and sections |
 | `bothy-playground` | A second demo app: a fictional car cabin and home behind a local MCP server, for Bothy to drive ([below](#bothy-playground)) |
 
-The server depends on the runtime's artifacts (`cc.noharry:agent-*`); the playground depends on nothing: Bothy reaches
-it like any other MCP server.
+The server depends on the runtime's artifacts (`cc.noharry:agent-*`), its app server among them: the generic server
+(`agent-app-server`, sessions, models, MCP and a plugin kernel for any agent app to build on) and its protocol
+(`agent-app-protocol`, in the style of Codex's app-server: threads, turns, items), experimental, with apps on it that
+have no Bothy in them, are in the runtime's repository. The model services (DeepSeek among them), screen operation
+and the device tools are plugins of the runtime's own published modules (`agent-app-models`, `agent-android-use`,
+`agent-device-capabilities`), loaded from their manifests. The server's other first-party plugins (cards, pages,
+memory, pictures, plans, A2A) are source modules here, in `workspace/apps/android/plugins/`, not published and free of
+Bothy, so another app can take them as they are. The playground depends on nothing: Bothy reaches it like any other MCP
+server.
 
 ## What the demo shows
 
@@ -265,7 +269,9 @@ works only when both apps are signed with the same key (see [Running the demo](#
 
 ## Running the demo
 
-The apps use the runtime published on Maven Central (`agentRuntimeVersion` in `gradle.properties`). To build against
+To send tasks to Bothy's local A2A server (`http://127.0.0.1:8766/a2a`), open **Settings → Connections → A2A** in the console, or **Settings → Connectors and A2A → A2A** on the phone. Show and copy the incoming access token, then send it as the `Authorization: Bearer <token>` request header. Requests without the token return 401.
+
+The apps use the runtime published on Maven Central (`agentRuntimeVersion` in `gradle.properties`, 0.5.0). To build against
 its source instead, clone it beside this repository: Gradle then builds it in place of the published artifacts
 (`settings.gradle.kts`; `-PagentRuntimeDir=` goes back to the published version).
 

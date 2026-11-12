@@ -2,19 +2,9 @@ package cc.noharry.bothy.server.server
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.deepseek.DeepSeekAdapter
 import cc.noharry.agent.appserver.protocol.MethodKind
-import cc.noharry.agent.appserver.protocol.ServerInfo
-import cc.noharry.agent.appserver.runtime.AppHost
-import cc.noharry.agent.appserver.runtime.BuiltInFeatures
-import cc.noharry.agent.appserver.server.CONNECTION_METHODS
-import cc.noharry.agent.appserver.server.ServerHub
-import cc.noharry.agent.appserver.server.kind
+import cc.noharry.agent.appserver.server.AppServerTesting
 import cc.noharry.bothy.protocol.ProtocolMethods
-import java.lang.reflect.Proxy
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,21 +16,17 @@ class ProtocolRoutesTest {
     @Test
     fun theServerAnswersEveryClientRequestOfTheProtocolAndNoOther() {
         val app = ApplicationProvider.getApplicationContext<Context>()
-        // Bothy's server has the DeepSeek adapter and every built-in feature, whose requests are part of its protocol.
-        AppHost.install(builtIns = BothyBuiltIns, providerAdapters = listOf(DeepSeekAdapter))
-        val hub = try {
-            ServerHub(unused(), unused(), Dispatchers.Unconfined, CoroutineScope(Job()), ServerInfo("test"), serverModules(app))
+        // Bothy's server has every built-in feature and all its plugins (its local A2A endpoint among them), whose
+        // requests are part of its protocol.
+        AppServerTesting.install(bothyConfig())
+        val answered = try {
+            AppServerTesting.requestsAnswered(serverModules(app))
         } finally {
-            AppHost.install(builtIns = BuiltInFeatures.NONE, providerAdapters = emptyList())
+            AppServerTesting.reset()
         }
 
-        val answered = hub.routes.methodNames + CONNECTION_METHODS
         val declared = ProtocolMethods.all.filter { it.kind == MethodKind.CLIENT_REQUEST }.map { it.name }
 
         assertEquals(declared.sorted(), answered.sorted())
     }
-
-    /** Routes are only listed, never called, so the backends do nothing. */
-    private inline fun <reified T> unused(): T =
-        Proxy.newProxyInstance(T::class.java.classLoader, arrayOf(T::class.java)) { _, method, _ -> error("${method.name} called") } as T
 }

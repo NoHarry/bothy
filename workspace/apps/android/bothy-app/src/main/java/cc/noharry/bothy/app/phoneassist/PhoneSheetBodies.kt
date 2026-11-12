@@ -1,5 +1,6 @@
 package cc.noharry.bothy.app.phoneassist
 
+import cc.noharry.agent.appserver.protocol.isTurnStart
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +49,7 @@ import cc.noharry.bothy.app.R
 import cc.noharry.bothy.app.a2ui.ConsoleWidgets
 import cc.noharry.bothy.app.a2ui.LocalPhoneA2ui
 import cc.noharry.bothy.app.console.ConsoleColors
-import cc.noharry.bothy.app.console.labelRes
+import cc.noharry.bothy.app.console.approvalWayRes
 import cc.noharry.bothy.app.console.ui.Markdown
 import cc.noharry.bothy.app.console.ui.StatusDot
 import cc.noharry.bothy.app.image.GeneratedImageRow
@@ -138,7 +139,7 @@ private fun WorkingBody(model: PhoneSheetModel, actions: PhoneSheetActions) {
     val colors = ConsoleColors
     val state = model.state
     val resources = LocalResources.current
-    val asked = state.items.lastOrNull { it is ConversationItem.TurnHeader } as? ConversationItem.TurnHeader
+    val asked = state.items.lastOrNull { it.isTurnStart } as? ConversationItem.TurnHeader
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             asked?.let { "“${it.preview}”" }.orEmpty(),
@@ -256,7 +257,7 @@ private fun ColumnScope.ApprovalBody(approval: WaitingApproval, actions: PhoneSh
     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.elevated).padding(horizontal = 16.dp, vertical = 10.dp)) {
         if (item.domain.isNotBlank()) DetailLine(stringResource(R.string.phone_approval_site), item.domain)
         approval.tool?.let { DetailLine(stringResource(R.string.phone_approval_tool), it.toolName.substringAfterLast("__")) }
-        DetailLine(stringResource(R.string.console_approval), stringResource(item.mode.labelRes()))
+        DetailLine(stringResource(R.string.console_approval), stringResource(approvalWayRes(item)))
     }
     Spacer(Modifier.height(16.dp))
     Row(Modifier.fillMaxWidth()) {
@@ -264,8 +265,11 @@ private fun ColumnScope.ApprovalBody(approval: WaitingApproval, actions: PhoneSh
         Spacer(Modifier.width(12.dp))
         PillButton(stringResource(R.string.console_approve), fill = colors.accent, text = onAccent(), Modifier.weight(1f)) { actions.approve(item.pendingId) }
     }
-    TextButton(onClick = { actions.allowSession(item.pendingId) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-        Text(stringResource(R.string.phone_assist_allow_session), style = PhoneType.label, color = colors.muted)
+    // A call that asks every time is not answered by any mode: switching to allowing all would not cover it.
+    if (!item.alwaysAsk) {
+        TextButton(onClick = { actions.allowSession(item.pendingId) }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+            Text(stringResource(R.string.phone_assist_allow_session), style = PhoneType.label, color = colors.muted)
+        }
     }
 }
 
@@ -273,6 +277,7 @@ private fun outcomeTitle(phase: OverlayPhase, outcome: RunOutcome?): Int = when 
     phase == OverlayPhase.FAIL -> R.string.phone_assist_failed
     phase == OverlayPhase.STOP -> R.string.phone_assist_stopped
     outcome == RunOutcome.PARTIAL -> R.string.phone_assist_partly
+    outcome == RunOutcome.BLOCKED -> R.string.phone_assist_not_done
     else -> R.string.phone_assist_done
 }
 

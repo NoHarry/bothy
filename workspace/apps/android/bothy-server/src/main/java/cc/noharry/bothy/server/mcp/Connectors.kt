@@ -2,16 +2,17 @@ package cc.noharry.bothy.server.mcp
 import android.content.Context
 import android.os.Build
 import androidx.annotation.StringRes
+import cc.noharry.agent.appserver.a2a.A2aProfiles
 import cc.noharry.agent.appserver.a2a.A2aTokens
 import cc.noharry.agent.appserver.a2a.DIRECT_MODULE_ID
 import cc.noharry.agent.appserver.a2a.loadA2aProfiles
 import cc.noharry.agent.appserver.mcp.McpSecrets
 import cc.noharry.agent.appserver.model.buildConfigValues
 import cc.noharry.agent.appserver.protocol.McpServer
-import cc.noharry.agent.appserver.runtime.RuntimeSession
 import cc.noharry.agent.mcp.McpToolsListing
 import cc.noharry.bothy.protocol.ConnectorStatus
 import cc.noharry.bothy.server.R
+import cc.noharry.bothy.server.server.ServerLink
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -93,17 +94,17 @@ internal object SessionConnectorProfiles : ConnectorProfiles {
         withContext(Dispatchers.Main) { saveNow(context, label, endpoint, description, token) }
 
     override suspend fun remove(context: Context, label: String) = withContext(Dispatchers.Main) {
-        userProfile(context, label)?.let { RuntimeSession.deleteA2aProfile(context, it.id) }
+        userProfile(context, label)?.let { A2aProfiles.delete(context, it.id) }
         Unit
     }
 
     private fun saveNow(context: Context, label: String, endpoint: String, description: String, token: String): String? {
-        RuntimeSession.saveA2aProfile(
+        A2aProfiles.save(
             context, label, DIRECT_MODULE_ID, endpoint, allowLoopbackHttpForDebug = false,
             description = description, token = token, replaceSameLabel = true,
         )?.let { return it }
         val profile = userProfile(context, label) ?: return context.getString(R.string.mcp_profile_missing, label)
-        RuntimeSession.setA2aProfileEnabled(context, profile.id, enabled = true)
+        A2aProfiles.setEnabled(context, profile.id, enabled = true)
         return null
     }
 
@@ -245,7 +246,7 @@ internal class ConnectorController(
     private val profiles: ConnectorProfiles = SessionConnectorProfiles,
     private val clientFor: (HttpUrl) -> RelayConnectClient = { RelayConnectClient(context, it) },
     private val carLabel: String = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
-    private val note: (String) -> Unit = RuntimeSession::noteConnection,
+    private val note: (String) -> Unit = { ServerLink.turns.note(it) },
     private val clock: () -> Long = System::currentTimeMillis,
     private val servers: ConnectorServers = SessionConnectorServers,
     private val probe: suspend (McpEndpoint) -> McpToolsListing = { endpoint -> probeMcpEndpoint(context, endpoint) },

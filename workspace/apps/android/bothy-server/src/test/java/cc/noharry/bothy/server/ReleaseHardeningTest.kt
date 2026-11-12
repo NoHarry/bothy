@@ -26,8 +26,8 @@ class ReleaseHardeningTest {
         val activity = File("src/main/java/cc/noharry/bothy/server/AgentRuntimeSmokeActivity.java").readText()
 
         assertTrue(manifest.contains("AgentRuntimeSmokeActivity"))
-        assertTrue(activity.contains("AgentRuntimeBuilder.create().build()"))
-        assertTrue(activity.contains("new AgentRequest("))
+        assertTrue(activity.contains("AgentRuntimeBuilder.create().model(new FixtureModelClient()).build()"))
+        assertTrue(activity.contains("runtime.resumeThread("))
     }
 
     @Test

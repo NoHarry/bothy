@@ -1,0 +1,21 @@
+{
+  "defaultProfileId": "preset-direct",
+  "profiles": [
+    {
+      "id": "preset-direct",
+      "label": "Preset over JSON-RPC",
+      "moduleId": "direct-jsonrpc",
+      "endpoint": "http://127.0.0.1:9999",
+      "enabled": false,
+      "allowLoopbackHttpForDebug": true
+    },
+    {
+      "id": "preset-official",
+      "label": "Preset over the official SDK",
+      "moduleId": "official-java-sdk",
+      "endpoint": "http://127.0.0.1:9999",
+      "enabled": false,
+      "allowLoopbackHttpForDebug": true
+    }
+  ]
+}

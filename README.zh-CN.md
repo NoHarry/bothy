@@ -72,14 +72,11 @@ Playground 的地图和导航用高德 SDK，要用你自己申请的免费 key�
 | 模块 | 做什么 |
 |------|--------|
 | `bothy-app` | 演示 App 的界面（平板优先）：调试控制台、手机界面、设置、悬浮助手卡片 |
-| `bothy-server` | 界面下面 Bothy 的服务端：下面的通用服务端，加上 Bothy 的语音、本机模型、检查和 Playground |
-| `agent-app-server` | 通用的服务端：会话、模型、MCP、计划、记忆、A2A，跑在运行时上，任何 agent App 都可以拿来做底座 |
-| `agent-app-sample` | 这个服务端上最小的 App：一个界面，不带 Bothy，独立的 agent App 从这里起步 |
-| `bothy-protocol` | 界面和服务端之间说的话：下面的协议，加上 Bothy 自己的方法和分区 |
-| `agent-app-protocol` | 通用服务端的协议，仿 Codex 的 app-server（会话、轮次、条目） |
+| `bothy-server` | 界面下面 Bothy 的服务端：运行时的通用服务端，加上 Bothy 的语音、本机模型、检查和 Playground |
+| `bothy-protocol` | 界面和服务端之间说的话：通用服务端的协议，加上 Bothy 自己的方法和分区 |
 | `bothy-playground` | 第二个演示 App：用本机 MCP 服务提供一辆虚构的车和一个虚构的家，给 Bothy 操作（见[下文](#bothy-playground)） |
 
-服务端依赖运行时的构件（`cc.noharry:agent-*`）；playground 不依赖任何模块，Bothy 像连其他 MCP 服务一样连它。
+服务端依赖运行时的构件（`cc.noharry:agent-*`），其中有它的通用服务端：通用的服务端（`agent-app-server`：会话、模型、MCP 和插件内核，任何 agent App 都可以拿来做底座）和它的协议（`agent-app-protocol`，仿 Codex 的 app-server：会话、轮次、条目），连同不带 Bothy 的示例 App 都在运行时仓（实验性）。模型服务（含 DeepSeek）、操作屏幕和设备工具是运行时自己发布的模块（`agent-app-models`、`agent-android-use`、`agent-device-capabilities`）里的插件，从它们的 manifest 加载。通用服务端的其余第一方插件（卡片、画页面、记忆、生图、计划、A2A）是本仓 `workspace/apps/android/plugins/` 下的源码模块，不发布、不依赖 Bothy，别的 App 可以原样拿去用。playground 不依赖任何模块，Bothy 像连其他 MCP 服务一样连它。
 
 ## 演示 App 能看到什么
 
@@ -178,7 +175,9 @@ Bothy 本身的界面是一个类似 Codex 的开发者控制台。对话区列�
 
 ## 运行演示 App
 
-两个 App 用的是发布在 Maven Central 上的运行时（版本见 `gradle.properties` 的 `agentRuntimeVersion`）。想基于运行时源码构建，就把它 clone 到本仓库旁边，Gradle 会从源码构建它，代替已发布的构件（见 `settings.gradle.kts`；加 `-PagentRuntimeDir=` 则回到已发布的版本）。
+向 Bothy 的本地 A2A 服务（`http://127.0.0.1:8766/a2a`）发送任务时，在控制台打开**设置 → 连接 → A2A**，手机上打开**设置 → 连接器与 A2A → A2A**，显示并复制接收请求的访问令牌，通过 `Authorization: Bearer <token>` 请求头发送。不带令牌的请求会返回 401。
+
+两个 App 用的是发布在 Maven Central 上的运行时（版本见 `gradle.properties` 的 `agentRuntimeVersion`，现为 0.5.0）。想基于运行时源码构建，就把它 clone 到本仓库旁边，Gradle 会从源码构建它，代替已发布的构件（见 `settings.gradle.kts`；加 `-PagentRuntimeDir=` 则回到已发布的版本）。
 
 ```bash
 git clone https://github.com/NoHarry/bothy.git

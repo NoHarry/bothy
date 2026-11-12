@@ -1,0 +1,218 @@
+package cc.noharry.agent.appserver.memory
+
+import android.app.Application
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
+import cc.noharry.agent.appserver.protocol.FindingCode
+import cc.noharry.agent.appserver.protocol.MAX_MEMORIES
+import cc.noharry.agent.appserver.protocol.MAX_MEMORY_CHARS
+import cc.noharry.agent.appserver.protocol.MAX_PER_CATEGORY
+import cc.noharry.agent.appserver.protocol.MemoryCategory
+import cc.noharry.agent.appserver.protocol.MemorySource
+import cc.noharry.agent.appserver.protocol.UserMemory
+import cc.noharry.agent.appserver.runtime.Persona
+import cc.noharry.agent.appserver.server.AppServerConfig
+import cc.noharry.agent.appserver.server.AppServerTesting
+import cc.noharry.agent.spi.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.spi.RuntimeContextRequest
+import cc.noharry.agent.spi.RuntimeContextScalar
+import cc.noharry.agent.spi.ToolCallContext
+import cc.noharry.agent.spi.ToolPrefetchRequest
+import java.io.File
+import java.nio.file.Files
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.After
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+@OptIn(ExperimentalAgentRuntimeApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28], qualifiers = "zh", application = Application::class)
+class UserMemoryTest {
+    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val dir: File = Files.createTempDirectory("user-memory").toFile()
+    private var clock = 1_000L
+    private val book = UserMemoryBook(File(dir, "memories.json")) { clock }
+
+    // These read the memory tool's words as a Chinese persona has them; MemoryWordsTest has the English.
+    @Before
+    fun chinese() = AppServerTesting.install(AppServerConfig(name = "test", persona = Persona("助手", "", language = "zh-CN")))
+
+    @After
+    fun generic() = AppServerTesting.reset()
+
+    @Test
+    fun remembersChangesForgetsAndReadsBackFromTheFile() {
+        val home = saved(book.remember(MemoryCategory.PLACES, " 家在望京花园 ", MemorySource.SAID, "记住我家在望京花园"))
+        assertEquals("家在望京花园", home.content)
+        assertEquals("记住我家在望京花园", home.said)
+        // The same words again (punctuation aside) are kept once.
+        val again = book.remember(MemoryCategory.PLACES, "家在望京花园。", MemorySource.SAID) as MemoryWrite.Saved
+        assertFalse(again.created)
+        assertEquals(1, book.all().size)
+        clock = 2_000L
+        val moved = saved(book.update(home.id, "家在回龙观", null, MemorySource.TYPED))
+        assertEquals(MemoryCategory.PLACES, moved.category)
+        assertEquals(1_000L to 2_000L, moved.createdAtMillis to moved.updatedAtMillis)
+        assertEquals("记住我家在望京花园", moved.said)
+        book.remember(MemoryCategory.HOME, "开空调一般 22 度", MemorySource.TYPED)
+        val reread = UserMemoryBook(File(dir, "memories.json")).all()
+        assertEquals(listOf("家在回龙观", "开空调一般 22 度"), reread.map { it.content })
+        assertEquals(MemorySource.TYPED, reread.last().source)
+        assertTrue(book.forget(home.id) is MemoryWrite.Removed)
+        assertTrue(book.forget(home.id) is MemoryWrite.Refused)
+        assertEquals(listOf("开空调一般 22 度"), book.all().map { it.content })
+        // 只清除记忆 empties the book and its file.
+        book.clear()
+        assertTrue(book.all().isEmpty())
+        assertTrue(UserMemoryBook(File(dir, "memories.json")).all().isEmpty())
+    }
+
+    @Test
+    fun refusesSecretsLongNumbersAndOverlongWords() {
+        assertNull(memoryContentError("老婆电话 13812345678"))
+        assertEquals("不记密码、验证码这类信息", memoryContentError("车库门密码是 4321"))
+        assertEquals("不记身份证号、银行卡号这类长号码", memoryContentError("身份证 110101199001011234"))
+        assertEquals("不记身份证号、银行卡号这类长号码", memoryContentError("卡号 6222 0212 3456 7890"))
+        assertEquals("内容是空的", memoryContentError("  "))
+        assertTrue(memoryContentError("长".repeat(MAX_MEMORY_CHARS + 1))!!.startsWith("太长了"))
+        val secret = book.remember(MemoryCategory.OTHER, "验证码 123456", MemorySource.SAID) as MemoryWrite.Refused
+        assertEquals(MemoryRefusal.Secret, secret.why)
+        assertEquals(FindingCode.MEMORY_REFUSED_SECRET.name, refusal(secret).code)
+        assertTrue(book.all().isEmpty())
+    }
+
+    @Test
+    fun keepsOneLineAndNoSecretsInTheWordsAsSaid() {
+        val typed = saved(book.remember(MemoryCategory.PLACES, "家在望京花园3号楼\n公司在国贸", MemorySource.TYPED))
+        assertEquals("家在望京花园3号楼 公司在国贸", typed.content)
+        val home = saved(book.remember(MemoryCategory.PLACES, "家在回龙观", MemorySource.SAID, "记住我家在回龙观，门禁密码是3721"))
+        assertNull(home.said)
+        assertEquals("不记身份证号、银行卡号这类长号码", memoryContentError("卡号 6222/0212/3456/7890"))
+        assertEquals("不记身份证号、银行卡号这类长号码", memoryContentError("卡号 6222 - 0212 - 3456 - 7890"))
+        // A book written when 30 were allowed: the assistant uses the 24 last changed, in their order.
+        val many = (1..30).map { UserMemory("m$it", MemoryCategory.OTHER, "事 $it", MemorySource.TYPED, null, 0L, it.toLong()) }
+        assertEquals((7..30).map { "m$it" }, memoriesInUse(many).map { it.id })
+    }
+
+    @Test
+    fun capsEachKindAndTheWhole() {
+        repeat(MAX_PER_CATEGORY) { book.remember(MemoryCategory.MEDIA, "喜欢歌手 $it", MemorySource.SAID) }
+        val full = book.remember(MemoryCategory.MEDIA, "喜欢歌手 X", MemorySource.SAID) as MemoryWrite.Refused
+        assertTrue(full.reason, full.reason.contains("娱乐"))
+        // The page says the same in its own words; the assistant reads the reason.
+        assertEquals(MemoryRefusal.CategoryFull(MemoryCategory.MEDIA), full.why)
+        val shown = refusal(full)
+        assertEquals(FindingCode.MEMORY_REFUSED_CATEGORY_FULL.name, shown.code)
+        assertEquals(FindingCode.MEMORY_CATEGORY_MEDIA.name, shown.more.first().code)
+        val other = book.remember(MemoryCategory.OTHER, "别的", MemorySource.SAID) as MemoryWrite.Saved
+        assertTrue(book.update(other.memory.id, "别的", MemoryCategory.MEDIA, MemorySource.TYPED) is MemoryWrite.Refused)
+        val kinds = MemoryCategory.entries.filter { it != MemoryCategory.MEDIA }
+        var n = 0
+        while (book.all().size < MAX_MEMORIES) book.remember(kinds[n % kinds.size], "第 ${n++} 件", MemorySource.SAID)
+        assertTrue(book.remember(MemoryCategory.TRAVEL, "再一件", MemorySource.SAID) is MemoryWrite.Refused)
+    }
+
+    @Test
+    fun decodingDropsOnlyTheBrokenEntries() {
+        val text = """{"version":1,"memories":[{"id":"m1","category":"home","content":"22 度","source":"typed","createdAt":5,"updatedAt":6},""" +
+            """{"id":"m2","category":"nope","content":"x"},{"id":"m3","category":"people","content":""},"bad"]}"""
+        val memories = decodeMemories(text)
+        assertEquals(listOf("m1"), memories.map { it.id })
+        assertEquals(memories, decodeMemories(encodeMemories(memories)))
+    }
+
+    @Test
+    fun theToolRemembersUpdatesAndForgetsThroughTheBook() = runBlocking {
+        val tool = UserMemoryToolProvider { change -> change(book) }
+        assertEquals(listOf(USER_MEMORY_TOOL), tool.listTools().map { it.name })
+        val remembered = call(tool, """{"action":"remember","category":"identity","content":"叫我老王","said":"以后叫我老王"}""")
+        assertEquals(true, remembered["ok"]?.jsonPrimitive?.content?.toBoolean())
+        val id = remembered["id"]!!.jsonPrimitive.content
+        assertEquals("以后叫我老王", book.all().single().said)
+        call(tool, """{"action":"update","id":"$id","content":"叫我王哥"}""")
+        assertEquals("叫我王哥", book.all().single().content)
+        val missing = call(tool, """{"action":"remember","content":"没有类别"}""")
+        assertEquals("remember 需要 category 和 content", missing["message"]?.jsonPrimitive?.content)
+        val secret = call(tool, """{"action":"remember","category":"other","content":"支付密码 123456"}""")
+        assertEquals("NOT_SAVED", secret["code"]?.jsonPrimitive?.content)
+        call(tool, """{"action":"forget","id":"$id"}""")
+        assertTrue(book.all().isEmpty())
+        val unknown = tool.callTool(USER_MEMORY_TOOL, """{"action":"forget","id":"$id"}""", ToolCallContext("s", "r", "q"))
+        assertFalse(unknown.success)
+    }
+
+    @Test
+    fun theHostsPageKeepsTheToolsWordsInChinese() = runBlocking {
+        val tool = UserMemoryToolProvider(PAGE) { change -> change(book) }
+        assertTrue(tool.listTools().single().description.contains("记住 / 修改 / 忘掉关于用户本人的长期信息（用户画像，$PAGE）。"))
+        val remembered = call(tool, """{"action":"remember","category":"identity","content":"叫我老王"}""")
+        assertEquals(
+            "已记住。用一句话告诉用户，复述记下或忘掉的内容；用户可以在 $PAGE 查看和修改。",
+            remembered["message"]?.jsonPrimitive?.content,
+        )
+        val paged = UserMemoryBook(File(dir, "paged.json"), PAGE) { clock }
+        val kinds = MemoryCategory.entries
+        var n = 0
+        while (paged.all().size < MAX_MEMORIES) paged.remember(kinds[n % kinds.size], "第 ${n++} 件", MemorySource.SAID)
+        val full = paged.remember(MemoryCategory.OTHER, "再一件", MemorySource.SAID) as MemoryWrite.Refused
+        assertEquals("已经记了 $MAX_MEMORIES 件事，记满了：先在 $PAGE 删掉一些", full.reason)
+    }
+
+    @Test
+    fun wordsAboutTheUserOfferTheToolOnTheFirstRound() {
+        val tool = UserMemoryToolProvider { change -> change(book) }
+        fun offered(words: String) = tool.localToolNames(ToolPrefetchRequest(words, emptyList(), ToolCallContext("s", "r", "q"), 24))
+        assertEquals(listOf(USER_MEMORY_TOOL), offered("记住我家在望京花园3号楼，以后叫我老王"))
+        assertEquals(listOf(USER_MEMORY_TOOL), offered("忘掉我公司地址"))
+        assertEquals(listOf(USER_MEMORY_TOOL), offered("你都记得我什么"))
+        assertEquals(emptyList<String>(), offered("导航去广州塔"))
+        assertFalse(tool.remotePrefetchEnabled)
+    }
+
+    @Test
+    fun eachKindIsOneBlockOfFactsWhoseIdsTheToolUses() = runBlocking {
+        val request = RuntimeContextRequest("run", "session", "request", null, "你记得我什么", 0L, null)
+        assertTrue(UserMemoryContext { emptyList() }.provide(request).blocks.isEmpty())
+        val home = saved(book.remember(MemoryCategory.PLACES, "家在望京花园", MemorySource.SAID))
+        book.remember(MemoryCategory.IDENTITY, "叫我老王", MemorySource.SAID)
+        val contribution = UserMemoryContext { book.all() }.provide(request)
+        assertEquals(listOf("user_memory.identity", "user_memory.places"), contribution.blocks.map { it.id })
+        val fact = contribution.blocks.last().data.single()
+        assertEquals(home.id, fact.id)
+        assertEquals("常去地点" to "user_memory", fact.subject to fact.predicate)
+        assertEquals(RuntimeContextScalar.Text("家在望京花园"), fact.value)
+        book.update(home.id, "家在回龙观", null, MemorySource.SAID)
+        val changed = UserMemoryContext { book.all() }.provide(request)
+        assertTrue(changed.fingerprint != contribution.fingerprint)
+    }
+
+    @Test
+    fun theProfileIsOneLinePerFactUnderItsKind() {
+        book.remember(MemoryCategory.IDENTITY, "叫我老王", MemorySource.SAID)
+        book.remember(MemoryCategory.HOME, "开空调一般 22 度", MemorySource.SAID)
+        val profile = memoryProfileText(book.all())
+        assertTrue(profile, profile.contains("- 称呼与身份：叫我老王\n- 设备与家居偏好：开空调一般 22 度"))
+        assertEquals("", memoryProfileText(emptyList()))
+    }
+
+    private fun saved(result: MemoryWrite): UserMemory = (result as MemoryWrite.Saved).memory
+
+    private suspend fun call(tool: UserMemoryToolProvider, arguments: String) =
+        Json.parseToJsonElement(tool.callTool(USER_MEMORY_TOOL, arguments, ToolCallContext("s", "r", "q")).resultJson).jsonObject
+
+    private companion object {
+        /** Where a host's screens show what is remembered. */
+        const val PAGE = "我的 → 记忆"
+    }
+}

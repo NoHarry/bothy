@@ -1,9 +1,12 @@
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.server.tools
 import android.content.Context
-import cc.noharry.agent.appserver.a2a.describe
-import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_CALENDAR
-import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_MEDIA
-import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION
+import cc.noharry.agent.runtime.RuntimeInspection
+import cc.noharry.agent.ToolCatalogEntry
+import cc.noharry.agent.device.appserver.DEVICE_CALENDAR_TOOL_SERVER
+import cc.noharry.agent.device.appserver.DEVICE_MEDIA_TOOL_SERVER
+import cc.noharry.agent.device.appserver.DEVICE_NOTIFICATIONS_TOOL_SERVER
 import cc.noharry.agent.appserver.mcp.DEBUG_MCP_PROVIDER_TOOLS_JSON
 import cc.noharry.agent.appserver.mcp.McpToolCatalogs
 import cc.noharry.agent.appserver.mcp.ToolsJsonMcpProvider
@@ -17,17 +20,13 @@ import cc.noharry.agent.appserver.tools.LastPrompt
 import cc.noharry.agent.device.DeviceCalendarMcpProvider
 import cc.noharry.agent.device.DeviceMediaMcpProvider
 import cc.noharry.agent.device.DeviceNotificationMcpProvider
-import cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi
-import cc.noharry.agent.kernel.api.ProviderConcurrencyDeclaration
-import cc.noharry.agent.kernel.api.ToolCallContext
-import cc.noharry.agent.kernel.api.ToolCallResult
-import cc.noharry.agent.kernel.api.ToolDescriptor
-import cc.noharry.agent.kernel.api.ToolProvider
-import cc.noharry.agent.kernel.api.mcp.McpClientProvider
-import cc.noharry.agent.kernel.core.tools.MaterializerContext
-import cc.noharry.agent.kernel.core.tools.McpToolRef
-import cc.noharry.agent.kernel.core.tools.ToolDomainIndexer
-import cc.noharry.agent.kernel.core.tools.ToolProviderRegistry
+import cc.noharry.agent.spi.ExperimentalAgentRuntimeApi
+import cc.noharry.agent.spi.ProviderConcurrencyDeclaration
+import cc.noharry.agent.spi.ToolCallContext
+import cc.noharry.agent.spi.ToolCallResult
+import cc.noharry.agent.spi.ToolDescriptor
+import cc.noharry.agent.spi.ToolProvider
+import cc.noharry.agent.spi.mcp.McpClientProvider
 import cc.noharry.bothy.protocol.BothyFindingCode
 import cc.noharry.bothy.server.evidence.CheckResult
 import cc.noharry.bothy.server.evidence.CheckState
@@ -40,8 +39,9 @@ import cc.noharry.bothy.server.evidence.CheckState
 @OptIn(ExperimentalAgentRuntimeApi::class)
 internal suspend fun checkToolCatalog(context: Context): CheckResult {
     val sources = loadMcpProviders(context).filter { it.enabled }.map { it.label to catalogSource(context, it) }
-    val refs = ToolProviderRegistry(sources.mapNotNull { it.second.provider }).allTools(MaterializerContext())
-    val groups = ToolDomainIndexer.index(refs).domains
+    val catalog = RuntimeInspection.toolCatalog(sources.mapNotNull { it.second.provider })
+    val refs = catalog.tools
+    val groups = catalog.domains
     val shownGroups = listing(groups.take(MAX_LISTED_GROUPS).map { finding(BothyFindingCode.TOOLS_GROUP_LINE, it.id, it.toolCount) })
     val listed = if (groups.size > MAX_LISTED_GROUPS) Finding(BothyFindingCode.TOOLS_GROUPS_MORE, more = listOf(shownGroups)) else shownGroups
     val found = listOfNotNull(
@@ -65,7 +65,7 @@ internal suspend fun checkToolCatalog(context: Context): CheckResult {
 
 /** One MCP source as the check sees it: the tools to count, or why there are none. */
 private class CatalogSource(val provider: ToolProvider? = null, val note: Finding? = null, val failed: Boolean = false) {
-    fun describe(refs: List<McpToolRef>): Finding =
+    fun describe(refs: List<ToolCatalogEntry>): Finding =
         note ?: refs.count { it.provider === provider }.let { Finding(BothyFindingCode.TOOLS_COUNT, listOf(it.toString()), count = it) }
 }
 
@@ -80,9 +80,9 @@ private suspend fun catalogSource(context: Context, provider: McpProviderState):
     }
     return when (provider.id) {
         DEBUG_MCP_PROVIDER_TOOLS_JSON -> CatalogSource(ToolsJsonMcpProvider.fromAssets(context))
-        DEBUG_MCP_PROVIDER_DEVICE_CALENDAR -> CatalogSource(DeviceCalendarMcpProvider(context))
-        DEBUG_MCP_PROVIDER_DEVICE_NOTIFICATION -> CatalogSource(DeviceNotificationMcpProvider(context))
-        DEBUG_MCP_PROVIDER_DEVICE_MEDIA -> CatalogSource(DeviceMediaMcpProvider(context))
+        DEVICE_CALENDAR_TOOL_SERVER -> CatalogSource(DeviceCalendarMcpProvider(context))
+        DEVICE_NOTIFICATIONS_TOOL_SERVER -> CatalogSource(DeviceNotificationMcpProvider(context, channelName = context.applicationInfo.loadLabel(context.packageManager).toString()))
+        DEVICE_MEDIA_TOOL_SERVER -> CatalogSource(DeviceMediaMcpProvider(context))
         else -> CatalogSource(note = finding(BothyFindingCode.TOOLS_SOURCE_UNKNOWN), failed = true)
     }
 }

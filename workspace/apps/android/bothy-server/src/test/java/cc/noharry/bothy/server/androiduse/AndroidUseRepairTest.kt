@@ -2,8 +2,8 @@ package cc.noharry.bothy.server.androiduse
 import android.content.Context
 import android.provider.Settings
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.androiduse.repairAndroidUse
-import cc.noharry.agent.appserver.androiduse.saveAndroidUseEnabled
+import cc.noharry.agent.androiduse.appserver.repairAndroidUse
+import cc.noharry.agent.androiduse.appserver.saveAndroidUseEnabled
 import cc.noharry.bothy.protocol.CheckId
 import cc.noharry.bothy.server.evidence.CheckState
 import cc.noharry.bothy.server.evidence.DEBUG_CHECKS

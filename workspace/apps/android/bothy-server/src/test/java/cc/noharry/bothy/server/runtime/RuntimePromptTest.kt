@@ -1,232 +1,124 @@
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
+
 package cc.noharry.bothy.server.runtime
+
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import cc.noharry.agent.appserver.model.appSystemPrompt
-import cc.noharry.agent.appserver.runtime.AppHost
-import cc.noharry.agent.appserver.runtime.Persona
-import cc.noharry.agent.appserver.runtime.PreviousExchange
-import cc.noharry.agent.appserver.runtime.RunAddOns
 import cc.noharry.agent.appserver.runtime.RunFacts
-import cc.noharry.agent.appserver.runtime.THINK_IN_CHINESE
-import cc.noharry.agent.appserver.runtime.basicToolPrompt
-import cc.noharry.agent.appserver.runtime.carriesSkill
-import cc.noharry.agent.appserver.runtime.clockLine
-import cc.noharry.agent.appserver.runtime.loadBasicTools
-import cc.noharry.agent.appserver.runtime.runtimePrompt
-import cc.noharry.agent.appserver.runtime.workspaceVfs
-import cc.noharry.agent.appserver.session.SessionStore
-import cc.noharry.agent.appserver.session.modelContext
-import cc.noharry.agent.appserver.skills.loadRuntimeSkills
-import cc.noharry.agent.appserver.skills.preloadedSkillBodies
-import cc.noharry.agent.appserver.skills.saveRuntimeSkill
-import cc.noharry.agent.appserver.skills.systemPromptIds
-import cc.noharry.agent.kernel.core.context.MAX_HOST_SYSTEM_PROMPT_BYTES
-import cc.noharry.agent.kernel.core.context.validateHostSystemPrompt
-import cc.noharry.agent.vfs.VfsReadResult
-import cc.noharry.bothy.server.server.BothyPersona
+import cc.noharry.agent.appserver.server.AppServerTesting
+import cc.noharry.agent.runtime.RuntimeInspection.validateHostSystemPrompt
+import cc.noharry.bothy.server.server.bothyConfig
 import cc.noharry.bothy.server.tools.BothyRuns
 import cc.noharry.bothy.server.tools.WEB_SEARCH_RULE
 import cc.noharry.bothy.server.tools.WEB_VERIFY_KIND
 import cc.noharry.bothy.server.tools.WEB_VERIFY_RULE
-import java.io.File
-import kotlinx.coroutines.runBlocking
+import cc.noharry.bothy.server.tools.bothySkills
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+/**
+ * Bothy's skills and rules where its model reads them (`AppServerTesting.prompt`): a trip carries its skill in full,
+ * every combination of its skills fits the runtime's cap, its voice skill stays in the system prompt, and its rules on
+ * the web and on 网上核实. How the server composes a prompt is the core's (`RuntimePromptTest` in agent-app-server).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class RuntimePromptTest {
-    @After
-    fun resetRuns() {
-        AppHost.install(runs = RunAddOns.NONE, persona = Persona.GENERIC)
-    }
-
-    @Before
-    fun installBothyRuns() {
-        AppHost.install(runs = BothyRuns, persona = BothyPersona)
-    }
-
     private lateinit var context: Context
 
-    @Before fun setup() {
+    @Before
+    fun installBothy() {
+        AppServerTesting.install(bothyConfig())
         context = ApplicationProvider.getApplicationContext()
         listOf("app_server_runtime_skills", "app_server_basic_tools").forEach {
             context.getSharedPreferences(it, Context.MODE_PRIVATE).edit().clear().commit()
         }
     }
 
-    @Test fun aTripRequestPreloadsItsSkillWithCompactHostInstructions() = runBlocking {
-        val skills = loadRuntimeSkills(context).map { it.copy(enabled = it.id != "mcp-task-orchestration") }
-        val bodies = preloadedSkillBodies(context, skills, TRIP_TEXT)
-        assertEquals(listOf("debug_voice_progress", "travel-planning"), bodies.map { it.first })
-        val tools = loadBasicTools(context)
-        // Even a new session has nonempty continuity metadata in the production runner.
-        val session = SessionStore(File(context.cacheDir, "prompt-context")).modelContext("broadcast-test")
-        assertTrue("Keep shared instructions under 4.5 KiB", appSystemPrompt("").toByteArray().size <= 4608)
-        val prompt = runtimePrompt(session, tools, bodies).text
-        validateHostSystemPrompt(prompt)
-        assertTrue(prompt.contains(bodies.first().second))
-        assertTrue(prompt.contains(bodies.last().second))
-        assertFalse(prompt.contains("Deferred runtime skill"))
-        val vfs = workspaceVfs(context, File(context.cacheDir, "prompt-skills"), skills)
-        for ((id, body) in bodies) {
-            val read = vfs.read("/.agents/skills/$id/SKILL.md", 0, 65536) as VfsReadResult.Found
-            assertEquals(body, read.text)
-            assertTrue(prompt.contains(body) || prompt.contains("Deferred runtime skill: $id."))
-        }
-        println("broadcast prompt bytes: ${prompt.toByteArray().size}")
-        println("base=${appSystemPrompt("").toByteArray().size}, context=${session.toByteArray().size}, tools=${basicToolPrompt(tools).toByteArray().size}, skills=${bodies.map { it.first to it.second.toByteArray().size }}")
+    @After
+    fun bareHost() = AppServerTesting.reset()
+
+    @Test fun theSystemPromptOpensWithXiaobosIdentity() {
+        assertTrue(AppServerTesting.prompt(context, "你好").system.startsWith("You are 小博 (Xiaobo), the assistant of the Bothy sample app"))
     }
 
-    @Test fun everySkillCombinationAndLongMultibyteHistoryFitTheSameHostCap() {
-        val all = loadRuntimeSkills(context)
-        val tools = loadBasicTools(context)
+    @Test fun aTripRequestCarriesItsSkillInFull() {
+        val prompt = AppServerTesting.prompt(context, TRIP_TEXT)
+        assertEquals(listOf("debug_voice_progress", "travel-planning"), prompt.skills.map { it.first })
+        validateHostSystemPrompt(prompt.text)
+        assertTrue(prompt.skills.all { (_, body) -> prompt.text.contains(body) })
+        assertFalse(prompt.text.contains("Deferred runtime skill"))
+    }
+
+    @Test fun everyCombinationOfBothysSkillsAndLongMultibyteHistoryFitTheHostCap() {
+        val all = bothySkills(context)
         val input = "$MIXED_BROADCAST_TEXT，然后把音量调低、亮度调高"
         val history = "lastSuccessfulAction=previous\n" + (1..30).joinToString("\n") { "turn=$it " + "广州😀".repeat(70) }
         for (mask in 0 until (1 shl all.size)) {
             val skills = all.mapIndexed { index, skill -> skill.copy(enabled = mask and (1 shl index) != 0) }
-            val bodies = preloadedSkillBodies(context, skills, input)
             for (session in listOf("", "最近一轮：去广州塔。", history)) {
-                val prompt = runtimePrompt(session, tools, bodies).text
-                validateHostSystemPrompt(prompt)
-                assertFalse(prompt.contains('\uFFFD'))
-                bodies.forEach { (id, body) ->
-                    assertTrue("mask=$mask id=$id", prompt.contains(body) || prompt.contains("Deferred runtime skill: $id."))
-                }
-                if (session == history) {
-                    assertTrue(prompt.contains("lastSuccessfulAction=previous"))
-                    assertTrue(prompt.contains("Read /context/session/current.json"))
+                val prompt = AppServerTesting.prompt(context, input, skills, session)
+                validateHostSystemPrompt(prompt.text)
+                assertFalse(prompt.text.contains('�'))
+                prompt.skills.forEach { (id, body) ->
+                    assertTrue("mask=$mask id=$id", prompt.text.contains(body) || prompt.text.contains("Deferred runtime skill: $id."))
                 }
             }
         }
     }
 
-    @Test fun aTripStillPreloadsWithNormalContinuity() {
-        val skills = loadRuntimeSkills(context).map { it.copy(enabled = true) }.filter { it.id != "mcp-task-orchestration" }
-        val bodies = preloadedSkillBodies(context, skills, TRIP_TEXT)
-        assertEquals(listOf("debug_voice_progress", "travel-planning"), bodies.map { it.first })
-        val prompt = runtimePrompt("lastSuccessfulAction=none", loadBasicTools(context), bodies).text
-        assertTrue(bodies.all { prompt.contains(it.second) })
-        assertTrue(prompt.contains("lastSuccessfulAction=none"))
-        assertFalse(prompt.contains("Deferred runtime skill"))
+    @Test fun aTripStillCarriesItsSkillWithNormalContinuity() {
+        val skills = bothySkills(context).map { it.copy(enabled = true) }.filter { it.id != "mcp-task-orchestration" }
+        val prompt = AppServerTesting.prompt(context, TRIP_TEXT, skills, history = "lastSuccessfulAction=none")
+        assertEquals(listOf("debug_voice_progress", "travel-planning"), prompt.skills.map { it.first })
+        assertTrue(prompt.skills.all { (_, body) -> prompt.text.contains(body) })
+        assertTrue(prompt.text.contains("lastSuccessfulAction=none"))
+        assertFalse(prompt.text.contains("Deferred runtime skill"))
     }
 
-    @Test fun voiceSnapshotIsReservedUnderHistoryPressureAndRemovedWhenDisabled() {
-        val enabled = loadRuntimeSkills(context)
-        val bodies = preloadedSkillBodies(context, enabled, "查目的地和附近停车场")
-        val voice = bodies.single { it.first == "debug_voice_progress" }.second
-        val tools = loadBasicTools(context)
-        val prompt = runtimePrompt("历史内容\n".repeat(4000), tools, bodies, systemSkills = enabled.systemPromptIds()).text
-        validateHostSystemPrompt(prompt)
-        assertTrue(prompt.contains(voice))
-        assertTrue(prompt.contains("channel=speech, phase=progress"))
-        assertFalse(prompt.contains("Deferred runtime skill: debug_voice_progress"))
-        saveRuntimeSkill(context, "debug_voice_progress", false)
-        val disabled = runtimePrompt("", tools, preloadedSkillBodies(context, loadRuntimeSkills(context), "")).text
-        assertFalse(disabled.contains("TTS:"))
-        assertFalse(disabled.contains("Active runtime skill: debug_voice_progress"))
-        assertEquals(bodies, preloadedSkillBodies(context, enabled, "查目的地和附近停车场"))
-    }
-
-    @Test fun oversizedUnicodeSkillIsDeferredWholeRatherThanTruncated() {
-        val body = "完整约束😀".repeat(5000)
-        val prompt = runtimePrompt("", loadBasicTools(context), listOf("large" to body)).text
-        validateHostSystemPrompt(prompt)
-        assertTrue(prompt.contains("/.agents/skills/large/SKILL.md"))
-        assertFalse(prompt.contains("完整约束"))
-    }
-
-    @Test fun exactUtf8BoundaryFitsAndOneExtraByteDefersTheWholeSkill() {
-        val tools = loadBasicTools(context)
-        val fixed = runtimePrompt("", tools, emptyList()).text
-        val remaining = MAX_HOST_SYSTEM_PROMPT_BYTES - (fixed + "\n\nActive runtime skill: boundary\n").toByteArray().size
-        val body = "中".repeat(remaining / 3) + "a".repeat(remaining % 3)
-        val exact = runtimePrompt("", tools, listOf("boundary" to body)).text
-        assertEquals(MAX_HOST_SYSTEM_PROMPT_BYTES, exact.toByteArray().size)
-        assertTrue(exact.beforeThinkingLine().endsWith(body))
-        val overflow = runtimePrompt("", tools, listOf("boundary" to body + "a")).text
-        assertTrue(overflow.contains("Deferred runtime skill: boundary"))
-        assertFalse(overflow.contains(body))
-    }
-
-    @Test fun systemPartStaysTheSameAcrossRunsWhilePerRunPartsGoToRunContext() {
-        val tools = loadBasicTools(context)
-        val skills = loadRuntimeSkills(context).map { it.copy(enabled = true) }.filter { it.id != "mcp-task-orchestration" }
-        val first = runtimePrompt("", tools, preloadedSkillBodies(context, skills, TRIP_TEXT))
-        val previous = PreviousExchange("s", "t", "导航去广州塔", "已开始导航", "COMPLETED", "SUCCEEDED")
-        val later = runtimePrompt("最近一轮：去广州塔。", tools, preloadedSkillBodies(context, skills, "查天气"), previous)
-        assertEquals(first.system, later.system)
-        assertTrue(first.runContext.contains("Active runtime skill: travel-planning"))
-        assertFalse(first.system.contains("travel-planning"))
-        assertTrue(later.runContext.contains("最近一轮：去广州塔。"))
-        assertTrue(later.runContext.beforeThinkingLine().endsWith(previous.prompt(true)))
-        assertFalse(later.system.contains("Current debug session context"))
-    }
-
-    @Test fun aSkillCountsAsCarriedOnlyWhenAnEarlierRunSentItInFull() {
-        val tools = loadBasicTools(context)
-        val skills = loadRuntimeSkills(context).map { it.copy(enabled = true) }.filter { it.id != "mcp-task-orchestration" }
-        val sent = runtimePrompt("", tools, preloadedSkillBodies(context, skills, TRIP_TEXT)).runContext
-        val carried = listOf(cc.noharry.agent.kernel.api.model.ModelMessage(role = "user", content = sent))
-        assertTrue(carried.carriesSkill("travel-planning"))
-        assertFalse(carried.carriesSkill("android-use"))
-        val deferredOnly = listOf(cc.noharry.agent.kernel.api.model.ModelMessage(role = "user", content = "Deferred runtime skill: android-use. Before using its workflow, read it."))
-        assertFalse(deferredOnly.carriesSkill("android-use"))
-    }
-
-    @Test fun unavailableReadToolCannotSilentlyDiscardSkillInstructions() {
-        val tools = loadBasicTools(context).map { if (it.name == "read_file") it.copy(enabled = false) else it }
-        val error = assertThrows(IllegalArgumentException::class.java) {
-            runtimePrompt("", tools, listOf("large" to "中文".repeat(10000))).text
-        }
-        assertTrue(error.message!!.contains("Enable read_file"))
-        assertTrue(runtimePrompt("", tools, listOf("small" to "完整内容")).text.contains("完整内容"))
+    @Test fun theVoiceSkillStaysInTheSystemPromptUnderHistoryPressureAndGoesWhenSwitchedOff() {
+        val pressed = AppServerTesting.prompt(context, "查目的地和附近停车场", history = "历史内容\n".repeat(4000))
+        val voice = pressed.skills.single { it.first == "debug_voice_progress" }.second
+        validateHostSystemPrompt(pressed.text)
+        assertTrue(pressed.system.contains(voice))
+        assertTrue(pressed.text.contains("channel=speech, phase=progress"))
+        assertFalse(pressed.text.contains("Deferred runtime skill: debug_voice_progress"))
+        val off = bothySkills(context).map { if (it.id == "debug_voice_progress") it.copy(enabled = false) else it }
+        val quiet = AppServerTesting.prompt(context, "", off).text
+        assertFalse(quiet.contains("进度播报"))
+        assertFalse(quiet.contains("Active runtime skill: debug_voice_progress"))
     }
 
     @Test
-    fun theClockGoesWithTheRunContextNotTheSystemPrompt() {
-        val noon = java.time.ZonedDateTime.of(2026, 10, 19, 11, 35, 0, 0, java.time.ZoneId.of("Asia/Shanghai")).toInstant().toEpochMilli()
-        val clock = clockLine(noon, java.time.ZoneId.of("Asia/Shanghai"))
+    fun theVerifyRuleIsBothysOnlyWhileTheTypeIsOffered() {
+        val with = BothyRuns.systemRules(facts(verify = true)).joinToString("\n")
+        val without = BothyRuns.systemRules(facts()).joinToString("\n")
 
-        val prompt = runtimePrompt("", emptyList(), emptyList(), clock = clock)
-
-        assertEquals("现在：2026-10-19 周一 11:35", clock)
-        assertTrue(prompt.runContext.startsWith(clock))
-        assertFalse(prompt.system.contains("现在："))
-        assertEquals(runtimePrompt("", emptyList(), emptyList()).system, prompt.system)
-        assertTrue("the thinking is asked for in Chinese with the run, not in the cached system prompt", prompt.runContext.contains(THINK_IN_CHINESE))
-        assertFalse(prompt.system.contains(THINK_IN_CHINESE))
-    }
-
-    @Test
-    fun theVerifyRuleIsPartOfTheCachedSystemPromptOnlyWhileTheTypeIsOffered() {
-        val with = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true)))
-        val without = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts()))
-
-        assertTrue(with.system.contains("agent=web-verify") && with.system.contains("do not wait_agent"))
-        assertTrue(with.system.contains("speak at most two short sentences") && with.system.contains("details stay on the card"))
-        assertFalse(without.system.contains("web-verify"))
-        assertEquals(with.runContext, without.runContext)
+        assertTrue(with.contains("agent=web-verify") && with.contains("do not wait_agent"))
+        assertTrue(with.contains("speak at most two short sentences") && with.contains("details stay on the card"))
+        assertFalse(without.contains("web-verify"))
     }
 
     @Test
     fun webAnswersAreCheckedInOneParallelStepAndNotSentToTheVerifier() {
-        val both = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true, search = true)))
-        val noSearch = runtimePrompt("", emptyList(), emptyList(), hostRules = BothyRuns.systemRules(facts(verify = true)))
+        val both = BothyRuns.systemRules(facts(verify = true, search = true)).joinToString("\n")
+        val noSearch = BothyRuns.systemRules(facts(verify = true)).joinToString("\n")
 
-        assertTrue(both.system.contains("several search calls in the same response") && both.system.contains("answer once"))
-        assertTrue(both.system.contains("decide which fit today before you calculate, route today only those"))
-        assertTrue(both.system.indexOf(WEB_SEARCH_RULE) < both.system.indexOf(WEB_VERIFY_RULE))
+        assertTrue(both.contains("several search calls in the same response") && both.contains("answer once"))
+        assertTrue(both.contains("decide which fit today before you calculate, route today only those"))
+        assertTrue(both.indexOf(WEB_SEARCH_RULE) in 0 until both.indexOf(WEB_VERIFY_RULE))
         assertTrue(WEB_VERIFY_RULE.contains("what you found by searching the web yourself"))
         // Navigation stays as fast as before: no verifier for a named destination, fuel or charging, or a route.
         assertTrue(WEB_VERIFY_RULE.contains("Never for navigating to a place the user named; fuel, charging, parking"))
         assertTrue(WEB_VERIFY_RULE.contains("in the same response as show_card"))
-        assertFalse(noSearch.system.contains(WEB_SEARCH_RULE))
+        assertFalse(noSearch.contains(WEB_SEARCH_RULE))
     }
 
     private fun facts(verify: Boolean = false, search: Boolean = false) = RunFacts(
@@ -235,7 +127,6 @@ class RuntimePromptTest {
         child = false,
         webSearch = search,
         subagentTypes = if (verify) setOf(WEB_VERIFY_KIND) else emptySet(),
-        drawsPages = false,
     )
 }
 

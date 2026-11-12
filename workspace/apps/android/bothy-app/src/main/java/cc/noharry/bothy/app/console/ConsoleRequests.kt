@@ -16,7 +16,6 @@ import cc.noharry.agent.appserver.protocol.FlagParams
 import cc.noharry.agent.appserver.protocol.IdParams
 import cc.noharry.agent.appserver.protocol.ModelSelectParams
 import cc.noharry.agent.appserver.protocol.PreferenceRequests
-import cc.noharry.agent.appserver.protocol.ProviderCreateParams
 import cc.noharry.agent.appserver.protocol.ProviderFetchParams
 import cc.noharry.agent.appserver.protocol.ProviderModelsParams
 import cc.noharry.agent.appserver.protocol.ProviderSaveParams
@@ -27,7 +26,9 @@ import cc.noharry.agent.appserver.protocol.TextParams
 import cc.noharry.agent.appserver.protocol.ThreadIdParams
 import cc.noharry.agent.appserver.protocol.TurnInterruptParams
 import cc.noharry.agent.appserver.protocol.TurnStartParams
+import cc.noharry.agent.appserver.protocol.text
 import cc.noharry.bothy.app.a2a.A2aClientActions
+import cc.noharry.bothy.app.finding
 import cc.noharry.bothy.app.frontend.FrontEndClient
 import cc.noharry.bothy.app.words
 import cc.noharry.bothy.protocol.VoiceRequests
@@ -55,7 +56,7 @@ internal fun consoleActions(
     deleteSession = { id -> server.send(ClientRequests.THREAD_DELETE, ThreadIdParams(id)) },
     clearRuntimeData = { server.send(SettingsRequests.DATA_CLEAR, DataClearParams()) },
     clearMemoriesAndRuntimeData = { done ->
-        server.send(SettingsRequests.DATA_CLEAR, DataClearParams(alsoMemories = true), onRefused = { done(false) }) { done(it.cleared) }
+        server.send(SettingsRequests.DATA_CLEAR, DataClearParams(also = listOf(MEMORY_PLUGIN)), onRefused = { done(false) }) { done(it.cleared) }
     },
     selectProvider = { provider -> server.send(SettingsRequests.MODEL_SELECT, ModelSelectParams(provider = provider)) },
     selectProfile = { id -> server.send(SettingsRequests.MODEL_SELECT, ModelSelectParams(profileId = id)) },
@@ -65,12 +66,10 @@ internal fun consoleActions(
     toggleStream = { server.send(SettingsRequests.RUN_SET, RunSettingsParams(toggleStream = true)) },
     selectBackend = { simulated -> server.send(SettingsRequests.RUN_SET, RunSettingsParams(simulatedBackend = simulated)) },
     reloadConfig = { server.send(SettingsRequests.CONFIG_RELOAD, Empty) },
-    saveConfig = { provider, apiKey, model, baseUrl, endpoint ->
-        server.send(SettingsRequests.PROVIDER_SAVE, ProviderSaveParams(provider, apiKey, model, baseUrl, endpoint))
+    saveConfig = { provider, apiKey, model, baseUrl, endpoint, done ->
+        server.send(SettingsRequests.PROVIDER_SAVE, ProviderSaveParams(provider, apiKey, model, baseUrl, endpoint), onRefused = { done(it.finding() ?: text(it.message.orEmpty())) }) { done(null) }
     },
-    saveNewProfile = { label, provider, endpoint, apiKey, model, baseUrl, saved ->
-        server.send(SettingsRequests.PROVIDER_CREATE, ProviderCreateParams(label, provider, endpoint, apiKey, model, baseUrl)) { saved(it.profileId) }
-    },
+    saveNewProfile = { params, saved -> server.send(SettingsRequests.PROVIDER_CREATE, params) { saved(it.profileId) } },
     saveProviderModels = { editor, models -> server.send(SettingsRequests.PROVIDER_SAVE_MODELS, ProviderModelsParams(editor, models)) },
     deleteProfile = { id -> server.send(SettingsRequests.PROVIDER_DELETE, IdParams(id)) },
     fetchModels = { profileId, provider, endpoint, apiKey, model, baseUrl, onModels ->
@@ -119,3 +118,6 @@ internal fun consoleA2aActions(server: FrontEndClient, openOverlay: () -> Unit):
     openOverlay = openOverlay,
     setSpeakExternal = { on -> server.send(FeatureRequests.A2A_CLIENT_SET_SPEAK_EXTERNAL, FlagParams(on)) },
 )
+
+/** The server's memory plugin, whose book goes when the memories are cleared with the runtime data. */
+private const val MEMORY_PLUGIN = "memory"

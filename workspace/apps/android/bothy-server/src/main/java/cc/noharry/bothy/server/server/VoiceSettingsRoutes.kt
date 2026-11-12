@@ -7,7 +7,6 @@ import cc.noharry.agent.appserver.protocol.FindingKind
 import cc.noharry.agent.appserver.protocol.FlagParams
 import cc.noharry.agent.appserver.protocol.finding
 import cc.noharry.agent.appserver.protocol.lines
-import cc.noharry.agent.appserver.runtime.RuntimeSession
 import cc.noharry.agent.appserver.server.RouteModule
 import cc.noharry.agent.appserver.server.RouteTable
 import cc.noharry.bothy.protocol.BothyFindingCode
@@ -62,6 +61,7 @@ import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import cc.noharry.bothy.server.voice.BothyVoice
 
 /** Settings → 语音: recognition, turns, speech, the keys each needs, the wake level and 试听. */
 internal class VoiceSettingsRoutes(private val app: Context) : RouteModule {
@@ -72,17 +72,17 @@ internal class VoiceSettingsRoutes(private val app: Context) : RouteModule {
         }
         on(VoiceSettingsRequests.CHOOSE_TTS) { params ->
             val saved = io { saveTtsChoice(app, params.choice.key, params.value) }
-            if (saved) RuntimeSession.refreshTts(app)
+            if (saved) BothyVoice.refresh(app)
             io { result(if (saved) null else finding(BothyFindingCode.TTS_SAVE_FAILED)) }
         }
         on(VoiceSettingsRequests.SAVE) { params ->
             val error = io { save(params) }
-            if (error == null) RuntimeSession.refreshTts(app)
+            if (error == null) BothyVoice.refresh(app)
             io { result(error) }
         }
         on(VoiceSettingsRequests.DELETE_KEY) { params ->
             val error = io { deleteKey(params.key) }
-            if (error == null && (params.key == VoiceKey.MIMO || params.key == VoiceKey.DOUBAO)) RuntimeSession.refreshTts(app)
+            if (error == null && (params.key == VoiceKey.MIMO || params.key == VoiceKey.DOUBAO)) BothyVoice.refresh(app)
             io { result(error) }
         }
         on(VoiceSettingsRequests.SET_WAKE_LEVEL) { params ->
@@ -91,7 +91,7 @@ internal class VoiceSettingsRoutes(private val app: Context) : RouteModule {
             io { result(if (saved) null else finding(BothyFindingCode.VOICE_WAKE_SENSITIVITY_SAVE_FAILED)) }
         }
         on(VoiceSettingsRequests.PREVIEW) {
-            FlagParams(suspendCancellableCoroutine { done -> RuntimeSession.previewTts(app, PREVIEW_LINE) { done.resume(it) } })
+            FlagParams(suspendCancellableCoroutine { done -> ServerLink.speech.preview(PREVIEW_LINE) { done.resume(it) } })
         }
     }
 

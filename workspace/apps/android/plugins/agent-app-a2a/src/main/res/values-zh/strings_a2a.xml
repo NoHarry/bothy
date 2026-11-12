@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="a2a_label_required">请填名称</string>
+    <string name="a2a_unknown_module">未知的 A2A 模块：%1$s</string>
+    <string name="a2a_endpoint_invalid">端点要是有效的 http(s) 地址</string>
+    <string name="a2a_endpoint_credentials">端点地址里不能带用户名和密码</string>
+    <string name="a2a_endpoint_loopback">http 或本机地址要先打开「允许调试用的本机 HTTP」</string>
+    <string name="a2a_token_spaces">访问令牌要是一个词，不能有空格。</string>
+    <string name="a2a_token_save_failed">访问令牌没能保存。</string>
+    <string name="a2a_source_console">输入框</string>
+    <string name="a2a_source_overlay">悬浮窗</string>
+    <string name="a2a_source_adb">adb</string>
+    <string name="a2a_source_asr">ASR</string>
+    <string name="a2a_source_pc">PC 调试</string>
+    <string name="a2a_source_external">外部 A2A</string>
+    <string name="a2a_answer_item">回答「%1$s」：%2$s</string>
+    <string name="a2a_notice_busy_ignored">上一条仍在执行，已忽略来自%1$s的输入；可停止后再发。</string>
+    <string name="a2a_notice_no_active_task">没有可补充要求的活跃任务。</string>
+    <string name="a2a_notice_answer_after_end">原任务已结束；等待其收尾后作为同会话新消息发送。</string>
+    <string name="a2a_notice_cancel_pending">正在等待服务端分配任务 ID，随后取消。</string>
+    <string name="a2a_notice_wait_or_stop">请先等待当前任务结束或停止。</string>
+    <string name="a2a_notice_new_conversation">已新建会话；下条消息不携带历史。</string>
+    <string name="a2a_notice_input_delivered">[输入] 已送达，原任务继续执行。</string>
+    <string name="a2a_notice_input_failed">[输入失败] %1$s</string>
+    <string name="a2a_notice_busy_answer">上一条仍在执行，请等待或停止后再回答。</string>
+    <string name="a2a_notice_late_answer">原任务已结束；回答作为同会话新消息发送。</string>
+    <string name="a2a_notice_cancelled">[取消] %1$s</string>
+    <string name="a2a_notice_cancel_failed">[取消失败] %1$s</string>
+    <string name="a2a_notice_error">A2A 错误：%1$s</string>
+    <string name="a2a_notice_incomplete">连接已结束，但未收到任务终态；结果未知，不会自动重试。</string>
+    <string name="a2a_notice_unknown_output">[未知输出 %1$s] %2$s</string>
+    <string name="a2a_notice_question">[问题] %1$s</string>
+    <string name="a2a_delegation_report_title">委托回报</string>
+</resources>

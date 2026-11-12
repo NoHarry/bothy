@@ -3,12 +3,11 @@ import android.content.Context
 import android.util.Log
 import cc.noharry.agent.appserver.model.ProviderConfig
 import cc.noharry.agent.appserver.protocol.ModelUsage
-import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.appserver.usage.UsageStore
 import cc.noharry.agent.appserver.usage.toModelUsage
-import cc.noharry.agent.kernel.api.model.ModelEvent
-import cc.noharry.agent.kernel.api.model.ModelMessage
-import cc.noharry.agent.kernel.api.model.ModelRequest
+import cc.noharry.agent.spi.model.ModelEvent
+import cc.noharry.agent.spi.model.ModelMessage
+import cc.noharry.agent.spi.model.ModelRequest
 import cc.noharry.agent.model.ModelVariantRegistry
 import cc.noharry.bothy.server.model.isOnDevice
 import kotlinx.coroutines.Dispatchers

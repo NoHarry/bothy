@@ -1,5 +1,4 @@
 package cc.noharry.bothy.server.companion
-import cc.noharry.agent.appserver.runtime.append
 import cc.noharry.agent.transport.HttpEvent
 import cc.noharry.agent.transport.HttpRequest
 import cc.noharry.agent.transport.HttpTransport

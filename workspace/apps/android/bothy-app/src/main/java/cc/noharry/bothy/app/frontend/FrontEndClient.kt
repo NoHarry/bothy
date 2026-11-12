@@ -25,7 +25,7 @@ internal class FrontEndClient(
     context: Context,
     name: String,
     capabilities: ClientCapabilities = ClientCapabilities(),
-) {
+) : ServerSender {
     private val main = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val io = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -56,11 +56,11 @@ internal class FrontEndClient(
         }
     }
 
-    fun <P, R> send(
+    override fun <P, R> send(
         method: RequestMethod<P, R>,
         params: P,
-        onRefused: (JsonRpcException) -> Unit = {},
-        onAnswer: (R) -> Unit = {},
+        onRefused: (JsonRpcException) -> Unit,
+        onAnswer: (R) -> Unit,
     ) {
         main.launch {
             ready.await()

@@ -133,12 +133,4 @@ class PhoneTimelineTest {
         )
         assertEquals(listOf("asked-1", "fold-1", "drawn-page-2", "item-3", "foot-1"), rows.map { it.key })
     }
-
-    @Test
-    fun whatTheRunSaidAsItWentShowsWithoutItsVoiceMarks() {
-        val said = ConversationItem.MessageItem(2, TranscriptRole.ASSISTANT, "我先查一下。TTS: 好，这就排周六一整天。")
-        assertEquals("我先查一下。好，这就排周六一整天。", (said.withoutSpokenMarks() as ConversationItem.MessageItem).content)
-        val thought = ConversationItem.MessageItem(3, TranscriptRole.THINKING, "TTS: 不动")
-        assertEquals(thought, thought.withoutSpokenMarks())
-    }
 }

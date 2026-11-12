@@ -4,10 +4,13 @@ plugins {
 }
 
 // Bothy's part of the wire between its server and its front ends (the console, the phone screens, the overlay, a PC
-// over adb): the app server's protocol (:agent-app-protocol) plus Bothy's own methods, sections and finding codes
-// (voice, checks, the on-device model, companion chat, connectors, onboarding). Plain Kotlin, no Android.
+// over adb): the app server's protocol (the runtime's cc.noharry:agent-app-protocol) plus Bothy's own methods,
+// sections and finding codes (voice, checks, the on-device model, companion chat, connectors, onboarding). Plain
+// Kotlin, no Android.
 kotlin {
     jvmToolchain(17)
+    // The app server is experimental: its entry points ask for this opt-in.
+    compilerOptions.optIn.add("cc.noharry.agent.appserver.protocol.ExperimentalAppServerApi")
 }
 
 // The schema generator (src/schema) writes schema/ from the protocol's types; it is not part of what the app ships.
@@ -22,7 +25,9 @@ sourceSets.test {
 }
 
 dependencies {
-    api(project(":agent-app-protocol"))
+    // The app server's protocol at the runtime's version, and the DeepSeek plugin's part of it (plugins/).
+    val agentRuntimeVersion = providers.gradleProperty("agentRuntimeVersion").get()
+    api("cc.noharry:agent-app-protocol:$agentRuntimeVersion")
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
 

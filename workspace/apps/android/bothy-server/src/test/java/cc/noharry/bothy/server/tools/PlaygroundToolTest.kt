@@ -1,5 +1,5 @@
 package cc.noharry.bothy.server.tools
-import cc.noharry.agent.kernel.api.ToolCallContext
+import cc.noharry.agent.spi.ToolCallContext
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

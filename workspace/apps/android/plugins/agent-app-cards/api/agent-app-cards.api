@@ -1,0 +1,40 @@
+public abstract interface class cc/noharry/agent/appserver/a2ui/CardHooks {
+	public static final field Companion Lcc/noharry/agent/appserver/a2ui/CardHooks$Companion;
+	public fun closing ()Ljava/lang/String;
+	public fun finish (Lcc/noharry/agent/appserver/protocol/view/WidgetCard;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public fun problem (Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/view/WidgetCard;)Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2ui/CardHooks$Companion {
+	public final fun getNONE ()Lcc/noharry/agent/appserver/a2ui/CardHooks;
+}
+
+public final class cc/noharry/agent/appserver/a2ui/CardHooks$DefaultImpls {
+	public static fun closing (Lcc/noharry/agent/appserver/a2ui/CardHooks;)Ljava/lang/String;
+	public static fun finish (Lcc/noharry/agent/appserver/a2ui/CardHooks;Lcc/noharry/agent/appserver/protocol/view/WidgetCard;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static fun problem (Lcc/noharry/agent/appserver/a2ui/CardHooks;Ljava/lang/String;Lcc/noharry/agent/appserver/protocol/view/WidgetCard;)Ljava/lang/String;
+}
+
+public final class cc/noharry/agent/appserver/a2ui/CardsPlugin : cc/noharry/agent/appserver/server/AppServerPlugin {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun apply (Lcc/noharry/agent/appserver/server/PluginContext;)V
+	public fun clearWhileOff (Landroid/app/Application;Lcc/noharry/agent/appserver/server/DataClearing;)Z
+	public fun getId ()Ljava/lang/String;
+	public fun getNeeds ()Ljava/util/Set;
+	public fun getRequired ()Z
+}
+
+public final class cc/noharry/agent/appserver/a2ui/OfferOptionsKt {
+	public static final fun isBoundPick (Ljava/lang/String;)Z
+	public static final fun picksBoundCall (Ljava/lang/String;Ljava/lang/String;)Z
+}
+
+public final class cc/noharry/agent/appserver/a2ui/WebPicturesKt {
+	public static final fun cardPictureSize (Landroid/content/Context;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun pagePictureUrls (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun photoSize (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun webPageSearch (Landroid/content/Context;I)Lkotlin/jvm/functions/Function2;
+}
+

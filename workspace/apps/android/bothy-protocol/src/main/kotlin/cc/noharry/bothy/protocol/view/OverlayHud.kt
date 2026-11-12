@@ -110,7 +110,11 @@ fun ServerState.overlayHud(nowEpochMillis: Long = System.currentTimeMillis(), sh
     }
     val headline = when (phase) {
         OverlayPhase.LIVE -> currentStep ?: "Agent working"
-        OverlayPhase.DONE -> if (lastRun?.outcome == RunOutcome.PARTIAL) PARTLY_DONE_HEADLINE else "Completed"
+        OverlayPhase.DONE -> when (lastRun?.outcome) {
+            RunOutcome.PARTIAL -> PARTLY_DONE_HEADLINE
+            RunOutcome.BLOCKED -> NOT_DONE_HEADLINE
+            else -> "Completed"
+        }
         OverlayPhase.FAIL -> "Failed"
         OverlayPhase.STOP -> "Stopped"
         OverlayPhase.IDLE -> "Agent ready"
@@ -185,7 +189,8 @@ internal fun ServerState.overlayPhase(): OverlayPhase {
             RunOutcome.FAILED -> OverlayPhase.FAIL
             RunOutcome.STOPPED -> OverlayPhase.STOP
             // A failed replay is the run evidence check's verdict, for the bench and the console: the person got an answer.
-            RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.REPLAY_FAILED -> OverlayPhase.DONE
+            // So is an answer that some or all of it could not be done (partial, blocked): it says so in its headline.
+            RunOutcome.COMPLETED, RunOutcome.PARTIAL, RunOutcome.BLOCKED, RunOutcome.REPLAY_FAILED -> OverlayPhase.DONE
         }
         activity == RunActivity.STOPPED -> OverlayPhase.STOP
         activity == RunActivity.FAILED -> OverlayPhase.FAIL
@@ -214,22 +219,19 @@ private fun ServerState.overlayElapsedLabel(nowEpochMillis: Long): String {
 private fun ServerState.overlayResultText(showThinking: Boolean = true): String {
     if (isRunning) {
         // Only this turn: an earlier answer shown under "processing" reads as the result of the new request.
-        // A spoken progress line is what the device just said, so it captions the stage without its marker.
+        // What the run says before its tools is what the device just said, so it captions the stage.
         val progress = items.currentTurnItems().asReversed().firstOrNull { item ->
             item is ConversationItem.MessageItem &&
                 item.role == TranscriptRole.ASSISTANT &&
                 item.content.isNotBlank()
         } as? ConversationItem.MessageItem
-        // The step itself is on the progress row, so no progress text leaves the body empty.
-        val shown = if (showThinking) progress?.content else progress?.content?.spokenProgress()?.joinToString("\n")
-        return shown?.replace(TTS_PROGRESS_PREFIX, "")?.overlayHudMultiline(HUD_RESULT_MAX).orEmpty()
+        return progress?.content?.overlayHudMultiline(HUD_RESULT_MAX).orEmpty()
     }
     if (!showThinking) finishedWithoutThinking()?.let { return it }
     val assistant = items.asReversed().firstOrNull { item ->
         item is ConversationItem.MessageItem &&
             item.role == TranscriptRole.ASSISTANT &&
             item.content.isNotBlank() &&
-            !item.content.trimStart().startsWith("TTS:", ignoreCase = true) &&
             // Don't treat protocol error bodies that were mirrored as assistant text.
             !item.content.contains("MODEL_FINISHED_WITHOUT_RUNTIME_FINISH")
     } as? ConversationItem.MessageItem
@@ -251,10 +253,9 @@ private fun ServerState.overlayResultText(showThinking: Boolean = true): String 
 private fun ServerState.finishedWithoutThinking(): String? {
     val turn = items.currentTurnItems().filterIsInstance<ConversationItem.MessageItem>()
     turn.lastOrNull { it.role == TranscriptRole.ASSISTANT && it.final && it.content.isNotBlank() }
-        ?.let { return it.content.replace(TTS_PROGRESS_PREFIX, "").overlayHudMultiline(HUD_RESULT_MAX) }
+        ?.let { return it.content.overlayHudMultiline(HUD_RESULT_MAX) }
     turn.lastOrNull { it.role == TranscriptRole.ERROR }?.let { return it.content.overlayHudMultiline(HUD_RESULT_MAX) }
-    val spoken = turn.lastOrNull { it.role == TranscriptRole.ASSISTANT && it.content.isNotBlank() }
-        ?.content?.spokenProgress()?.joinToString("\n")?.takeIf { it.isNotBlank() }
+    val spoken = turn.lastOrNull { it.role == TranscriptRole.ASSISTANT && it.content.isNotBlank() }?.content
     return spoken?.overlayHudMultiline(HUD_RESULT_MAX) ?: lastRun?.label()
 }
 

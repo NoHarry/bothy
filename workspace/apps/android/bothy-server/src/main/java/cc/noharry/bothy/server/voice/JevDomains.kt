@@ -1,8 +1,8 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.server.voice
-import cc.noharry.agent.kernel.api.ToolDescriptor
-import cc.noharry.agent.kernel.api.ToolPrefetchRequest
+import cc.noharry.agent.spi.ToolDescriptor
+import cc.noharry.agent.spi.ToolPrefetchRequest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 

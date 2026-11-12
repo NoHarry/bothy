@@ -1,4 +1,4 @@
-@file:OptIn(cc.noharry.agent.kernel.api.ExperimentalAgentRuntimeApi::class)
+@file:OptIn(cc.noharry.agent.spi.ExperimentalAgentRuntimeApi::class)
 
 package cc.noharry.bothy.app.trajectory
 import android.content.Context
@@ -7,10 +7,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import cc.noharry.agent.appserver.protocol.ModelProvider
 import cc.noharry.agent.appserver.protocol.SessionTurn
-import cc.noharry.agent.kernel.api.AgentRequest
-import cc.noharry.agent.kernel.api.SessionEventLogDurability
-import cc.noharry.agent.kernel.api.SessionEventLogHealthStatus
-import cc.noharry.agent.kernel.api.SessionEventQuery
+import cc.noharry.agent.appserver.runtime.RuntimeTurnRequest
+import cc.noharry.agent.spi.SessionEventLogDurability
+import cc.noharry.agent.spi.SessionEventLogHealthStatus
+import cc.noharry.agent.spi.SessionEventQuery
 import cc.noharry.bothy.app.console.status
 import java.io.File
 import java.util.UUID
@@ -223,7 +223,7 @@ class TrajectoryColdReadDeviceTest {
             onRawToolTranscript = { _, _ -> },
             userInput = COLD_READ_PROMPT,
         ).let { runtime ->
-            runtime.run(AgentRequest(requestId = runId, sessionId = sessionId, input = COLD_READ_PROMPT)).toList()
+            runtime.run(RuntimeTurnRequest(requestId = runId, sessionId = sessionId, input = COLD_READ_PROMPT)).toList()
             val events = runtime.replaySessionEvents(sessionId, runId)
             // Closing the writer is what an app restart leaves behind for the reader.
             runtime.close()
